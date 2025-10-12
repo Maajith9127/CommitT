@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://yourdomain.dev/schemas/tasks.json",
+  "title": "Task",
+  "description": "Task creation, assignment, and monitoring entity.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Primary key (use Convex _id if preferred)."
+    },
+    "assigner": {
+      "type": "string",
+      "format": "uuid",
+      "description": "User ID who assigned the task."
+    },
+    "assignee": {
+      "type": "string",
+      "format": "uuid",
+      "description": "User ID who performs the task."
+    },
+    "categoryId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid",
+      "description": "Optional reference to categories(id)."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short label for UI lists."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Detailed task description."
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "urgent"
+      ],
+      "default": "normal",
+      "description": "Task priority."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "blocked",
+        "completed",
+        "failed",
+        "canceled"
+      ],
+      "default": "pending",
+      "description": "Task lifecycle state."
+    },
+    "dueAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Optional deadline."
+    },
+    "startedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Set when work starts."
+    },
+    "completedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Set when status → completed."
+    },
+    "canceledAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "description": "Set when status → canceled."
+    },
+    "proofId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uuid",
+      "description": "Optional reference to proofs(id), set on completion."
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creation timestamp (server-side)."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Update timestamp (server-side)."
+    }
+  },
+  "required": [
+    "id",
+    "assigner",
+    "assignee",
+    "title",
+    "description",
+    "priority",
+    "status",
+    "createdAt",
+    "updatedAt"
+  ],
+  "$comment": "Relational constraints (FKs) and cross-field checks (e.g., completedAt >= createdAt, dueAt >= createdAt) must be enforced in application logic or Convex mutations."
+}

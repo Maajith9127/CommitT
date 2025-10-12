@@ -1,0 +1,6 @@
+{
+  "id": "uuid",
+  "taskId": "uuid",
+  "witnessId": "uuid",
+  "verifiedAt": "date-time | null"
+}

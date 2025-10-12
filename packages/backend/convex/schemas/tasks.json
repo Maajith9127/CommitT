@@ -1,0 +1,16 @@
+{
+  "id": "uuid",
+  "assignerId": "uuid",
+  "assigneeId": "uuid",
+  "categoryId": "uuid | null",
+  "title": "string",
+  "description": "string",
+  "priority": "enum [low, normal, high, urgent]",
+  "status": "enum [pending, in_progress, blocked, completed, failed, canceled]",
+  "dueAt": "date-time | null",
+  "startedAt": "date-time | null",
+  "completedAt": "date-time | null",
+  "canceledAt": "date-time | null",
+  "createdAt": "date-time",
+  "updatedAt": "date-time"
+}

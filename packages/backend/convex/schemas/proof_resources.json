@@ -1,0 +1,8 @@
+{
+  "id": "uuid",
+  "proofId": "uuid",
+  "type": "string",
+  "fileUrl": "string",
+  "createdAt": "date-time",
+  "updatedAt": "date-time"
+}

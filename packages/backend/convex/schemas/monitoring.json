@@ -1,0 +1,81 @@
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "taskId": "uuid",
+  "timestamp": "date-time",
+  "status": "enum [inactive, active, completed]",
+  "notes": "string | null",
+  "session": {
+    "startedAt": "date-time | null",
+    "endedAt": "date-time | null",
+    "durationSeconds": "number | null",
+    "focusScore": "number | null"
+  },
+  "geoLocation": {
+    "latitude": "number | null",
+    "longitude": "number | null",
+    "accuracy": "number | null"
+  },
+  "camera": {
+    "imageUrl": "string | null",
+    "verified": "boolean",
+    "verifiedBy": "uuid | null",
+    "verifiedAt": "date-time | null"
+  },
+  "websiteAccess": {
+    "currentUrl": "string | null",
+    "isAllowed": "boolean | null",
+    "blocked": "boolean",
+    "allowedListId": "uuid | null"
+  },
+  "appUsage": {
+    "activeApp": "string | null",
+    "isAllowedApp": "boolean | null",
+    "blockedAppDetected": "boolean",
+    "allowedListId": "uuid | null"
+  },
+  "screen": {
+    "screenOn": "boolean | null",
+    "unlocked": "boolean | null",
+    "activeWindowTitle": "string | null",
+    "screencapUrl": "string | null"
+  },
+  "inputActivity": {
+    "keystrokesPerMinute": "number | null",
+    "mouseMovesPerMinute": "number | null",
+    "idleSeconds": "number | null",
+    "burstDetected": "boolean"
+  },
+  "audio": {
+    "sampleUrl": "string | null",
+    "speechDetected": "boolean | null",
+    "noiseLevelDb": "number | null"
+  },
+  "network": {
+    "currentSsid": "string | null",
+    "vpnActive": "boolean | null",
+    "bandwidthKbps": "number | null"
+  },
+  "proximity": {
+    "distanceMeters": "number | null",
+    "bluetoothDevices": "array"
+  },
+  "device": {
+    "deviceId": "string | null",
+    "os": "string | null",
+    "batteryPercent": "number | null",
+    "powerSaving": "boolean | null"
+  },
+  "consent": {
+    "consentGiven": "boolean | null",
+    "consentAt": "date-time | null",
+    "policyVersion": "string | null"
+  },
+  "compliance": {
+    "overallPassed": "boolean | null",
+    "score": "number | null",
+    "failedRules": "array"
+  },
+  "riskFlags": "array",
+  "rules": "array of objects { ruleId: string, type: string, status: enum [pending, passed, failed], passed: boolean, evaluatedAt: date-time | null, metadata: json }"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "uuid",
+  "name": "string",
+  "description": "string | null",
+  "color": "string | null",
+  "createdAt": "date-time",
+  "updatedAt": "date-time"
+}

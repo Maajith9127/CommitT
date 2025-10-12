@@ -1,0 +1,16 @@
+{
+  "id": "uuid",
+  "taskId": "uuid",
+  "submitterId": "uuid",
+  "note": "string | null",
+  "verification": {
+    "status": "enum [unverified, ai_verified, human_verified]",
+    "confidenceScore": "number | null (0–1)",
+    "verifiedBy": "uuid | null",
+    "verifiedAt": "date-time | null",
+    "method": "string | null",
+    "comments": "string | null"
+  },
+  "createdAt": "date-time",
+  "updatedAt": "date-time"
+}
