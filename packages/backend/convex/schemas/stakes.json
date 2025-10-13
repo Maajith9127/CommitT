@@ -1,0 +1,13 @@
+{
+  "id": "uuid | not null | Primary key",
+  "task_id": "uuid | not null | Task tied to stake",
+  "staker_id": "uuid | not null | User who staked",
+  "amount": "float | not null | Staked amount",
+  "stake_type": "string | not null | Lookup enums.stake_type",
+  "loss_outcome": "string | not null | Lookup enums.loss_outcome",
+  "loss_target": "string | null | Optional recipient identifier",
+  "status": "string | not null | Lookup enums.stake_status",
+  "settlement_tx_id": "uuid | null | Reference to settlement transaction",
+  "created_at": "timestamp | not null | When stake was created",
+  "processed_at": "timestamp | null | When stake was processed"
+}

@@ -1,8 +1,10 @@
 {
-  "id": "uuid",
-  "name": "string",
-  "description": "string | null",
-  "color": "string | null",
-  "createdAt": "date-time",
-  "updatedAt": "date-time"
+  "id": "uuid | not null | Primary key",
+  "created_by": "uuid | not null | User who created this category",
+  "parent_id": "uuid | null | Parent category for hierarchy",
+  "name": "string | not null | Category name",
+  "description": "string | null | Category description",
+  "color": "string | null | Optional UI color",
+  "created_at": "timestamp | not null | Creation timestamp",
+  "updated_at": "timestamp | not null | Last updated timestamp"
 }

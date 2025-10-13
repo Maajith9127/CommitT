@@ -1,0 +1,10 @@
+{
+  "id": "uuid | not null | Primary key",
+  "task_id": "uuid | not null | Task for witness assignment",
+  "witness_id": "uuid | not null | Assigned witness user",
+  "assignment_status": "string | not null | invite/accepted/declined",
+  "invited_at": "timestamp | not null | When invited",
+  "responded_at": "timestamp | null | When they responded",
+  "notes": "text | null | Optional witness notes",
+  "signature": "string | null | Cryptographic signature if used"
+}

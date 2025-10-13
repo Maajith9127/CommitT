@@ -1,0 +1,10 @@
+{
+  "id": "uuid | not null | Primary key",
+  "task_id": "uuid | not null | Task this proof supports",
+  "submitter_id": "uuid | not null | Who submitted proof",
+  "note": "text | null | Optional note from submitter",
+  "namespace": "string | not null | Logical grouping",
+  "metadata": "jsonb | null | Arbitrary metadata",
+  "created_at": "timestamp | not null | When proof was submitted",
+  "updated_at": "timestamp | not null | When proof was last modified"
+}

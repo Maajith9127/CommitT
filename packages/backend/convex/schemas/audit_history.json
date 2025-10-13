@@ -1,9 +1,0 @@
-{
-  "id": "uuid",
-  "taskId": "uuid",
-  "fieldChanged": "string",
-  "oldValue": "string | json",
-  "newValue": "string | json",
-  "changedById": "uuid",
-  "changedAt": "date-time"
-}

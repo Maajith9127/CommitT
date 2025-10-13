@@ -1,7 +1,14 @@
 {
-  "id": "uuid",
-  "name": "string",
-  "email": "string",
-  "profile": "json | null",
-  "reputationScore": "number | null"
+  "id": "uuid | not null | Primary key",
+  "name": "string | not null | Display name, unique",
+  "email": "string | not null | Unique email address",
+  "bio": "string | null | Short biography",
+  "avatar": "string | null | Avatar URL",
+  "social_links": "jsonb | null | Flexible social links",
+  "reputation": "float | not null | Cached reputation score",
+  "balance": "float | not null | Monetary or native token balance",
+  "role": "string | not null | Lookup enums.role",
+  "status": "string | not null | Lookup enums.user_status",
+  "created_at": "timestamp | not null | Creation timestamp",
+  "updated_at": "timestamp | not null | Last updated timestamp"
 }

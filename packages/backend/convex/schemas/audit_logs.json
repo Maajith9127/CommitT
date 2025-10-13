@@ -1,0 +1,11 @@
+{
+  "id": "uuid | not null | Primary key",
+  "entity_type": "string | not null | Type of entity changed",
+  "entity_id": "uuid | not null | ID of the entity",
+  "field_changed": "string | null | Field name that changed",
+  "old_value": "jsonb | null | Previous value",
+  "new_value": "jsonb | null | New value",
+  "changed_by": "uuid | not null | Who made the change",
+  "change_type": "string | not null | create/update/delete",
+  "changed_at": "timestamp | not null | When change occurred"
+}

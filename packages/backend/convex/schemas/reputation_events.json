@@ -1,0 +1,9 @@
+{
+  "id": "uuid | not null | Primary key",
+  "user_id": "uuid | not null | User affected",
+  "reason": "string | not null | Why reputation changed",
+  "delta": "float | not null | Amount of reputation change",
+  "task_id": "uuid | null | Optional related task",
+  "verification_id": "uuid | null | Optional related verification action",
+  "created_at": "timestamp | not null | When event recorded"
+}

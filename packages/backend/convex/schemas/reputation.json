@@ -1,8 +1,0 @@
-{
-  "id": "uuid",
-  "userId": "uuid",
-  "taskId": "uuid",
-  "scoreDelta": "number",
-  "reason": "string",
-  "createdAt": "date-time"
-}

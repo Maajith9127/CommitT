@@ -1,0 +1,8 @@
+{
+  "id": "uuid | not null | Primary key",
+  "name": "string | not null | Policy name",
+  "description": "text | null | Human-friendly explanation",
+  "policy_definition": "jsonb | not null | JSON object defining quorum, weighting, thresholds",
+  "created_at": "timestamp | not null | Created at",
+  "updated_at": "timestamp | not null | Updated at"
+}
