@@ -1,4 +1,6 @@
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexReactClient } from "convex/react";
+import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
+import { authClient } from "@/lib/auth-client";
 import { Stack } from "expo-router";
 import {
 	DarkTheme,
@@ -54,7 +56,7 @@ export default function RootLayout() {
 		return null;
 	}
 	return (
-		<ConvexProvider client={convex}>
+		<ConvexBetterAuthProvider client={convex} authClient={authClient}>
 			<ThemeProvider value={isDarkColorScheme ? DARK_THEME : LIGHT_THEME}>
 				<StatusBar style={isDarkColorScheme ? "light" : "dark"} />
 				<GestureHandlerRootView style={{ flex: 1 }}>
@@ -67,7 +69,7 @@ export default function RootLayout() {
 					</Stack>
 				</GestureHandlerRootView>
 			</ThemeProvider>
-		</ConvexProvider>
+		</ConvexBetterAuthProvider>
 	);
 }
 

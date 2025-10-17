@@ -3,8 +3,8 @@
 
 {
   "$schema": "https://r2.better-t-stack.dev/schema.json",
-  "version": "3.1.5",
-  "createdAt": "2025-10-12T16:45:56.827Z",
+  "version": "3.2.1",
+  "createdAt": "2025-10-17T19:00:26.171Z",
   "database": "none",
   "orm": "none",
   "backend": "convex",
@@ -14,6 +14,8 @@
     "native-nativewind"
   ],
   "addons": [
+    "husky",
+    "tauri",
     "turborepo",
     "ultracite"
   ],

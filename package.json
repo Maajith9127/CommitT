@@ -25,11 +25,21 @@
     "dev:server": "turbo -F @mono/backend dev",
     "dev:setup": "turbo -F @mono/backend dev:setup"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@convex-dev/better-auth": "^0.9.6",
+    "typescript": "^5.9.3"
+  },
   "devDependencies": {
     "turbo": "^2.5.4",
-    "@biomejs/biome": "2.2.5",
-    "ultracite": "5.6.2"
+    "@biomejs/biome": "2.2.6",
+    "ultracite": "5.6.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,jsonc,css,scss,md,mdx}": [
+      "bun x ultracite fix"
+    ]
   },
   "packageManager": "bun@1.2.18"
 }
