@@ -40,56 +40,6 @@ This system allows users to assign tasks to themselves or receive tasks from oth
 
 ---
 
-## 🚀 Getting Started
-
-First, install the dependencies:
-
-```bash
-bun install
-```
-
-## ⚙️ Convex Setup
-
-This project uses Convex as a backend. You'll need to set up Convex before running the app:
-
-```bash
-bun dev:setup
-```
-
-Follow the prompts to create a new Convex project and connect it to your application.
-
-Then, run the development server:
-
-```bash
-bun dev
-```
-
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
-Use the Expo Go app to run the mobile application.
-Your app will connect to the Convex cloud backend automatically.
-
-## 📁 Project Structure
-
-```
-mono/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Router)
-│   ├── native/      # Mobile application (React Native, Expo)
-├── packages/
-│   ├── backend/     # Convex backend functions and schema
-```
-
-## 📜 Available Scripts
-
-- `bun dev`: Start all applications in development mode
-- `bun build`: Build all applications
-- `bun dev:web`: Start only the web application
-- `bun dev:setup`: Setup and configure your Convex project
-- `bun check-types`: Check TypeScript types across all apps
-- `bun dev:native`: Start the React Native/Expo development server
-
----
-
 ## 🌟 Philosophy
 
 Accountability should be **voluntary**, **real**, and **transparent**.
