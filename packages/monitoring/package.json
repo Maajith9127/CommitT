@@ -11,6 +11,6 @@
     "expo-modules-core": "~3.0.21"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "~5.9.2"
   }
 }
