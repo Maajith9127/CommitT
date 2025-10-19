@@ -30,16 +30,19 @@ class MonitoringForegroundService : Service() {
         private const val NOTIFICATION_CHANNEL_ID = "monitoring_service_channel"
         private const val NOTIFICATION_CHANNEL_NAME = "Monitoring Service"
         private const val USAGE_STATS_POLLING_INTERVAL_MS = 30_000L // 30 seconds
+        var isRunning = false
+            private set
     }
 
     private lateinit var notificationManager: NotificationManager
     private lateinit var usageStatsManager: UsageStatsManager
     private lateinit var screenStateReceiver: ScreenStateReceiver
-    private lateinit var networkStateReceiver: NetworkStateReceiver
     private lateinit var repository: MonitoringRepository
     private lateinit var mainHandler: Handler
     private val usagePollingRunnable = Runnable { pollUsageStats() }
     private val serviceScope = CoroutineScope(Dispatchers.IO)
+    private var lastPollTime = 0L
+    private lateinit var networkCallback: NetworkStateCallback
 
     override fun onCreate() {
         super.onCreate()
@@ -47,7 +50,12 @@ class MonitoringForegroundService : Service() {
 
         initializeManagers()
         registerScreenReceiver()
-        registerNetworkReceiver()
+
+        // Emit service status event
+        MonitoringModule.emitMonitoringEvent("service_status", mapOf(
+            "status" to "STARTING",
+            "message" to "Foreground service is initializing"
+        ))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -78,18 +86,35 @@ class MonitoringForegroundService : Service() {
             return START_NOT_STICKY
         }
 
-        // TODO: Start monitoring background tasks
         startMonitoringTasks()
 
+        // Emit service status event when fully started
+        MonitoringModule.emitMonitoringEvent("service_status", mapOf(
+            "status" to "STARTED",
+            "message" to "Foreground service is now active and monitoring"
+        ))
+
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager.registerDefaultNetworkCallback(networkCallback)
+
+        isRunning = true
         return START_STICKY
     }
 
     override fun onDestroy() {
         Log.d(TAG, "MonitoringForegroundService destroyed")
+
+        // Emit service status event before cleanup
+        MonitoringModule.emitMonitoringEvent("service_status", mapOf(
+            "status" to "STOPPING",
+            "message" to "Foreground service is shutting down"
+        ))
+
         stopUsageStatsPolling()
         unregisterScreenReceiver()
-        unregisterNetworkReceiver()
-        // TODO: Implement scheduleRestartIfNeeded()
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager.unregisterNetworkCallback(networkCallback)
+        isRunning = false
         super.onDestroy()
     }
 
@@ -100,8 +125,8 @@ class MonitoringForegroundService : Service() {
         usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         repository = MonitoringRepository(this)
         screenStateReceiver = ScreenStateReceiver(repository)
-        networkStateReceiver = NetworkStateReceiver(repository)
         mainHandler = Handler(Looper.getMainLooper())
+        networkCallback = NetworkStateCallback(repository)
 
         // Schedule periodic data sync
         DataSyncWorker.schedulePeriodicSync(this)
@@ -117,13 +142,7 @@ class MonitoringForegroundService : Service() {
         Log.d(TAG, "Screen state receiver registered")
     }
 
-    private fun registerNetworkReceiver() {
-        val filter = IntentFilter().apply {
-            addAction(android.net.ConnectivityManager.CONNECTIVITY_ACTION)
-        }
-        registerReceiver(networkStateReceiver, filter)
-        Log.d(TAG, "Network state receiver registered")
-    }
+
 
     private fun unregisterScreenReceiver() {
         try {
@@ -134,14 +153,7 @@ class MonitoringForegroundService : Service() {
         }
     }
 
-    private fun unregisterNetworkReceiver() {
-        try {
-            unregisterReceiver(networkStateReceiver)
-            Log.d(TAG, "Network state receiver unregistered")
-        } catch (e: IllegalArgumentException) {
-            Log.w(TAG, "Network state receiver was not registered")
-        }
-    }
+
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -219,10 +231,10 @@ class MonitoringForegroundService : Service() {
     private fun pollUsageStats() {
         try {
             val currentTime = System.currentTimeMillis()
-            val oneHourAgo = currentTime - (60 * 60 * 1000) // Last hour
+            val startTime = if (lastPollTime == 0L) currentTime - (60 * 60 * 1000) else lastPollTime
 
             // Query usage events
-            val usageEvents = usageStatsManager.queryEvents(oneHourAgo, currentTime)
+            val usageEvents = usageStatsManager.queryEvents(startTime, currentTime)
             val event = UsageEvents.Event()
 
             var eventCount = 0
@@ -233,14 +245,15 @@ class MonitoringForegroundService : Service() {
             }
 
             Log.d(TAG, "Polled $eventCount usage events")
+            lastPollTime = currentTime
 
             // Schedule next poll
             mainHandler.postDelayed(usagePollingRunnable, USAGE_STATS_POLLING_INTERVAL_MS)
 
         } catch (e: Exception) {
             Log.e(TAG, "Error polling usage stats", e)
-            // Continue polling despite errors
-            mainHandler.postDelayed(usagePollingRunnable, USAGE_STATS_POLLING_INTERVAL_MS)
+            // Continue polling despite errors, but with a backoff
+            mainHandler.postDelayed(usagePollingRunnable, USAGE_STATS_POLLING_INTERVAL_MS * 2)
         }
     }
 
@@ -251,14 +264,35 @@ class MonitoringForegroundService : Service() {
                     UsageEvents.Event.ACTIVITY_RESUMED -> {
                         Log.d(TAG, "App resumed: ${event.packageName} at ${event.timeStamp}")
                         repository.startAppSession(event.packageName)
+
+                        // Emit usage event to JavaScript
+                        MonitoringModule.emitMonitoringEvent("usage_event", mapOf(
+                            "eventType" to "APP_RESUMED",
+                            "packageName" to event.packageName,
+                            "timestamp" to event.timeStamp
+                        ), event.timeStamp)
                     }
                     UsageEvents.Event.ACTIVITY_PAUSED -> {
                         Log.d(TAG, "App paused: ${event.packageName} at ${event.timeStamp}")
                         // Note: We don't end session on pause, only on stop
+
+                        // Emit usage event to JavaScript
+                        MonitoringModule.emitMonitoringEvent("usage_event", mapOf(
+                            "eventType" to "APP_PAUSED",
+                            "packageName" to event.packageName,
+                            "timestamp" to event.timeStamp
+                        ), event.timeStamp)
                     }
                     UsageEvents.Event.ACTIVITY_STOPPED -> {
                         Log.d(TAG, "App stopped: ${event.packageName} at ${event.timeStamp}")
                         repository.endAppSession(event.packageName)
+
+                        // Emit usage event to JavaScript
+                        MonitoringModule.emitMonitoringEvent("usage_event", mapOf(
+                            "eventType" to "APP_STOPPED",
+                            "packageName" to event.packageName,
+                            "timestamp" to event.timeStamp
+                        ), event.timeStamp)
                     }
                     else -> {
                         Log.v(TAG, "Other usage event: ${event.eventType} for ${event.packageName}")

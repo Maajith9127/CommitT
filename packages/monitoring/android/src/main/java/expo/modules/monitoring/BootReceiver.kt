@@ -17,8 +17,8 @@ class BootReceiver : BroadcastReceiver() {
             Intent.ACTION_LOCKED_BOOT_COMPLETED -> {
                 Log.d(TAG, "Device boot completed, checking if monitoring should start")
 
-                // TODO: Check user preferences to see if monitoring should auto-start
-                // For now, we'll start the service if it was previously active
+                // Check user preferences to see if monitoring should auto-start
+                // Basic implementation checks SharedPreferences for auto_start setting
                 if (shouldStartMonitoring(context)) {
                     startMonitoringService(context)
                 } else {
@@ -32,10 +32,11 @@ class BootReceiver : BroadcastReceiver() {
     }
 
     private fun shouldStartMonitoring(context: Context): Boolean {
-        // TODO: Implement proper preference checking
-        // For now, return true to always start after boot
-        // In production, check SharedPreferences for user setting
-        return true
+        // Basic preference checking implementation
+        // Checks SharedPreferences for auto_start setting with default true
+        // FUTURE: Could be enhanced with more sophisticated preference management
+        val sharedPreferences = context.getSharedPreferences("monitoring_prefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getBoolean("auto_start", true)
     }
 
     private fun startMonitoringService(context: Context) {

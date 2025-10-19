@@ -9,7 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class ScreenStateReceiver(private val repository: MonitoringRepository? = null) : BroadcastReceiver() {
+class ScreenStateReceiver(private val repository: MonitoringRepository) : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "ScreenStateReceiver"
@@ -64,27 +64,32 @@ class ScreenStateReceiver(private val repository: MonitoringRepository? = null) 
             Log.d(TAG, "Idle time since screen off: ${idleTime}ms (${idleTime / 1000}s)")
 
             // Update daily idle time in database
-            repository?.let { repo ->
-                scope.launch {
-                    try {
-                        repo.updateDailyIdleTime(idleTime)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error updating daily idle time", e)
-                    }
+            scope.launch {
+                try {
+                    repository.updateDailyIdleTime(idleTime)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error updating daily idle time", e)
                 }
             }
         }
 
         // Record screen state change
         recordScreenEvent("SCREEN_ON", timestamp)
+
+        // Emit event to JavaScript
+        MonitoringModule.emitMonitoringEvent("screen_event", mapOf(
+            "eventType" to "SCREEN_ON",
+            "idleTime" to (if (lastScreenOffTime > 0) timestamp - lastScreenOffTime else 0)
+        ), timestamp)
     }
 
     private fun handleScreenOff(timestamp: Long) {
         lastScreenOffTime = timestamp
 
         // Calculate session duration if we have a session start time
+        var sessionDuration = 0L
         if (currentSessionStartTime > 0) {
-            val sessionDuration = timestamp - currentSessionStartTime
+            sessionDuration = timestamp - currentSessionStartTime
             Log.d(TAG, "Session duration: ${sessionDuration}ms (${sessionDuration / 1000}s)")
             // Reset session start time - next screen on will start a new session
             currentSessionStartTime = 0
@@ -92,6 +97,12 @@ class ScreenStateReceiver(private val repository: MonitoringRepository? = null) 
 
         // Record screen state change
         recordScreenEvent("SCREEN_OFF", timestamp)
+
+        // Emit event to JavaScript
+        MonitoringModule.emitMonitoringEvent("screen_event", mapOf(
+            "eventType" to "SCREEN_OFF",
+            "sessionDuration" to sessionDuration
+        ), timestamp)
     }
 
     private fun handleUserPresent(timestamp: Long) {
@@ -103,19 +114,23 @@ class ScreenStateReceiver(private val repository: MonitoringRepository? = null) 
 
         // Record user present event
         recordScreenEvent("USER_PRESENT", timestamp)
+
+        // Emit event to JavaScript
+        MonitoringModule.emitMonitoringEvent("screen_event", mapOf(
+            "eventType" to "USER_PRESENT",
+            "timeSinceScreenOn" to (if (lastScreenOnTime > 0) timestamp - lastScreenOnTime else 0)
+        ), timestamp)
     }
 
     private fun recordScreenEvent(eventType: String, timestamp: Long) {
         Log.d(TAG, "Screen event recorded: $eventType at $timestamp")
 
-        // Store in database if repository is available
-        repository?.let { repo ->
-            scope.launch {
-                try {
-                    repo.recordScreenEvent(eventType, timestamp)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error recording screen event to database", e)
-                }
+        // Store in database
+        scope.launch {
+            try {
+                repository.recordScreenEvent(eventType, timestamp)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error recording screen event to database", e)
             }
         }
     }

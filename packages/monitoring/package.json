@@ -1,44 +1,16 @@
 {
   "name": "@mono/monitoring",
-  "version": "0.1.0",
-  "description": "Core monitoring functionality for Android usage analytics",
+  "version": "1.0.0",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
-    "build": "expo-module build",
-    "clean": "expo-module clean",
-    "lint": "expo-module lint",
-    "test": "expo-module test",
-    "prepare": "expo-module prepare",
-    "prepublishOnly": "expo-module prepublishOnly",
-    "expo-module": "expo-module",
-    "open:android": "open -a \"Android Studio\" example/android"
+    "build": "tsc",
+    "check-types": "tsc --noEmit"
   },
-  "keywords": [
-    "react-native",
-    "expo",
-    "monitoring",
-    "analytics",
-    "usage-tracking"
-  ],
-  "repository": "https://github.com/atheeq-rhxn/mono",
-  "bugs": {
-    "url": "https://github.com/atheeq-rhxn/mono/issues"
+  "dependencies": {
+    "expo-modules-core": "~3.0.21"
   },
-  "author": "atheeq-rhxn <atheeq.rhxn@gmail.com>",
-  "license": "MIT",
-  "homepage": "https://github.com/atheeq-rhxn/mono#readme",
-  "dependencies": {},
   "devDependencies": {
-    "@types/react": "~19.1.0",
-    "expo-module-scripts": "^5.0.7",
-    "expo": "^54.0.12",
-    "react-native": "0.81.4"
-  },
-  "peerDependencies": {
-    "expo": "*",
-    "expo-modules-core": "*",
-    "react": "*",
-    "react-native": "*"
+    "typescript": "^5.9.3"
   }
 }

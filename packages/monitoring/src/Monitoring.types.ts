@@ -22,16 +22,41 @@ export type PermissionStatus = {
 };
 
 // Event system types
-export type MonitoringEventPayload = {
-  type: "screen_event" | "usage_event" | "network_event" | "service_status";
-  data: any;
-  timestamp: number;
-};
+export type MonitoringEventPayload =
+  | {
+      type: "screen_event";
+      data: {
+        eventType: "SCREEN_ON" | "SCREEN_OFF" | "USER_PRESENT";
+        idleTime?: number;
+        sessionDuration?: number;
+        timeSinceScreenOn?: number;
+      };
+      timestamp: number;
+    }
+  | {
+      type: "usage_event";
+      data: {
+        eventType: "APP_RESUMED" | "APP_PAUSED" | "APP_STOPPED";
+        packageName: string;
+        timestamp: number;
+      };
+      timestamp: number;
+    }
+  | {
+      type: "network_event";
+      data: { bytesSent: number; bytesReceived: number };
+      timestamp: number;
+    }
+  | {
+      type: "service_status";
+      data: {
+        status: "STARTING" | "STARTED" | "STOPPING";
+        message: string;
+      };
+      timestamp: number;
+    };
 
-export type PermissionStatusPayload = {
-  usageStatsGranted: boolean;
-  canRequestPermission: boolean;
-};
+export type PermissionStatusPayload = PermissionStatus;
 
 // Module event definitions
 export type MonitoringModuleEvents = {
