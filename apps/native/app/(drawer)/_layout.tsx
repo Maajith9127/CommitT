@@ -41,6 +41,16 @@ const DrawerLayout = () => (
         ),
       }}
     />
+    <Drawer.Screen
+      name="monitoring"
+      options={{
+        headerTitle: "Monitoring",
+        drawerLabel: "Monitoring",
+        drawerIcon: ({ size, color }) => (
+          <Ionicons color={color} name="analytics-outline" size={size} />
+        ),
+      }}
+    />
   </Drawer>
 );
 
