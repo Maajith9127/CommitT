@@ -3,8 +3,14 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "monitoring-mobile": ["../src/index"],
-      "monitoring-mobile/*": ["../src/*"]
+      "@/*": ["./*"]
     }
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ]
 }

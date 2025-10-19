@@ -1,0 +1,12 @@
+# expo-module.config.json
+
+_Learn about different configuration options available in expo-module.config.json._
+
+Expo modules are configured in **expo-module.config.json**. This file currently is capable of configuring autolinking and module registration. The following properties are available:
+
+- `platforms` — An array of supported platforms. Acceptable values are `android`, `apple` (or use the more granular `ios` / `macos` / `tvos`), `web` and `devtools` (see [Create a dev tools plugin](https://docs.expo.dev/debugging/create-devtools-plugins)).
+- `apple` — Config with options specific to Apple platforms
+  - `modules` — Names of Swift native modules classes to put to the generated modules provider file.
+  - `appDelegateSubscribers` — Names of Swift classes that hook into `ExpoAppDelegate` to receive AppDelegate lifecycle events.
+- `android` — Config with options specific to Android platform
+  - `modules` — Full names (package + class name) of Kotlin native modules classes to put to the generated package provider file.
