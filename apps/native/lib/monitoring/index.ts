@@ -1,15 +1,20 @@
 // Export types
-export * from './types';
-
-// Export hook
-export { useMonitoring } from './useMonitoring';
 
 // Export module
-export { default as MonitoringModule } from './MonitoringModule';
+export { default as MonitoringModule } from "./MonitoringModule";
+export * from "./types";
+// Export hook
+export { useMonitoring } from "./useMonitoring";
 
 // Main API wrapper
-import MonitoringModule from './MonitoringModule';
-import type { UsageData, DailySummary, PermissionStatus, MonitoringEventPayload, PermissionStatusPayload } from './types';
+import MonitoringModule from "./MonitoringModule";
+import type {
+  DailySummary,
+  MonitoringEventPayload,
+  PermissionStatus,
+  PermissionStatusPayload,
+  UsageData,
+} from "./types";
 
 export const Monitoring = {
   // Service Control
@@ -43,7 +48,10 @@ export const Monitoring = {
     return await MonitoringModule.getUsageData(startDate, endDate);
   },
 
-  async getDailySummaries(startDate: string, endDate: string): Promise<DailySummary[]> {
+  async getDailySummaries(
+    startDate: string,
+    endDate: string
+  ): Promise<DailySummary[]> {
     return await MonitoringModule.getDailySummaries(startDate, endDate);
   },
 

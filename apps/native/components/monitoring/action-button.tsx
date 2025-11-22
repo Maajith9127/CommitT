@@ -1,10 +1,10 @@
-import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import { ActivityIndicator, Text, TouchableOpacity } from "react-native";
 
 interface ActionButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger';
+  variant?: "primary" | "secondary" | "danger";
   icon?: keyof typeof Ionicons.glyphMap;
   isLoading?: boolean;
   disabled?: boolean;
@@ -13,51 +13,51 @@ interface ActionButtonProps {
 export const ActionButton = ({
   title,
   onPress,
-  variant = 'primary',
+  variant = "primary",
   icon,
   isLoading = false,
   disabled = false,
 }: ActionButtonProps) => {
   const getVariantStyles = () => {
     switch (variant) {
-      case 'primary':
-        return 'bg-primary';
-      case 'secondary':
-        return 'bg-secondary';
-      case 'danger':
-        return 'bg-destructive';
+      case "primary":
+        return "bg-primary";
+      case "secondary":
+        return "bg-secondary";
+      case "danger":
+        return "bg-destructive";
       default:
-        return 'bg-primary';
+        return "bg-primary";
     }
   };
 
   const getTextStyles = () => {
     switch (variant) {
-      case 'primary':
-        return 'text-primary-foreground';
-      case 'secondary':
-        return 'text-secondary-foreground';
-      case 'danger':
-        return 'text-destructive-foreground';
+      case "primary":
+        return "text-primary-foreground";
+      case "secondary":
+        return "text-secondary-foreground";
+      case "danger":
+        return "text-destructive-foreground";
       default:
-        return 'text-primary-foreground';
+        return "text-primary-foreground";
     }
   };
 
   return (
     <TouchableOpacity
-      className={`${getVariantStyles()} rounded-lg px-4 py-3 flex-row items-center justify-center gap-2 ${
-        disabled ? 'opacity-50' : ''
-      }`}
-      onPress={onPress}
-      disabled={disabled || isLoading}
-      accessibilityRole="button"
       accessibilityLabel={title}
+      accessibilityRole="button"
+      className={`${getVariantStyles()} flex-row items-center justify-center gap-2 rounded-lg px-4 py-3 ${
+        disabled ? "opacity-50" : ""
+      }`}
+      disabled={disabled || isLoading}
+      onPress={onPress}
     >
       {isLoading ? (
-        <ActivityIndicator size="small" color="white" />
+        <ActivityIndicator color="white" size="small" />
       ) : (
-        icon && <Ionicons name={icon} size={20} color="white" />
+        icon && <Ionicons color="white" name={icon} size={20} />
       )}
       <Text className={`font-medium ${getTextStyles()}`}>{title}</Text>
     </TouchableOpacity>
