@@ -1,19 +1,15 @@
-import { ScrollView, Text, View } from "react-native";
 import { Container } from "@/components/container";
+import { Text, View } from "react-native";
+import { Card } from "heroui-native";
 
 export default function TabTwo() {
-  return (
-    <Container>
-      <ScrollView className="flex-1 p-6">
-        <View className="py-8">
-          <Text className="mb-2 font-bold text-3xl text-foreground">
-            Tab Two
-          </Text>
-          <Text className="text-lg text-muted-foreground">
-            Discover more features and content
-          </Text>
-        </View>
-      </ScrollView>
-    </Container>
-  );
+	return (
+		<Container className="p-6">
+			<View className="flex-1 justify-center items-center">
+				<Card variant="secondary" className="p-8 items-center">
+					<Card.Title className="text-3xl mb-2">TabTwo</Card.Title>
+				</Card>
+			</View>
+		</Container>
+	);
 }

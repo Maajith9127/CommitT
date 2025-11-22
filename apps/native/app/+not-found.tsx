@@ -1,29 +1,32 @@
-import { Link, Stack } from "expo-router";
-import { Text, View } from "react-native";
 import { Container } from "@/components/container";
+import { Link, Stack } from "expo-router";
+import { Text, View, Pressable } from "react-native";
+import { Card } from "heroui-native";
 
 export default function NotFoundScreen() {
-  return (
-    <>
-      <Stack.Screen options={{ title: "Oops!" }} />
-      <Container>
-        <View className="flex-1 items-center justify-center p-6">
-          <View className="items-center">
-            <Text className="mb-4 text-6xl">🤔</Text>
-            <Text className="mb-2 text-center font-bold text-2xl text-foreground">
-              Page Not Found
-            </Text>
-            <Text className="mb-8 max-w-sm text-center text-muted-foreground">
-              Sorry, the page you're looking for doesn't exist.
-            </Text>
-            <Link asChild href="/">
-              <Text className="rounded-lg bg-primary/10 px-6 py-3 font-medium text-primary">
-                Go to Home
-              </Text>
-            </Link>
-          </View>
-        </View>
-      </Container>
-    </>
-  );
+	return (
+		<>
+			<Stack.Screen options={{ title: "Oops!" }} />
+			<Container>
+				<View className="flex-1 justify-center items-center p-6">
+					<Card variant="secondary" className="items-center p-8 max-w-md">
+						<Text className="text-6xl mb-4">🤔</Text>
+						<Card.Title className="text-2xl text-center mb-2">
+							Page Not Found
+						</Card.Title>
+						<Card.Description className="text-center mb-6">
+							Sorry, the page you're looking for doesn't exist.
+						</Card.Description>
+						<Link href="/" asChild>
+							<Pressable className="bg-accent px-6 py-3 rounded-lg active:opacity-70">
+								<Text className="text-accent-foreground font-medium text-base">
+									Go to Home
+								</Text>
+							</Pressable>
+						</Link>
+					</Card>
+				</View>
+			</Container>
+		</>
+	);
 }

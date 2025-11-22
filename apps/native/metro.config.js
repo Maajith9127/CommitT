@@ -1,12 +1,12 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
+const { withUniwindConfig } = require("uniwind/metro");
 
-const config = withNativeWind(getDefaultConfig(__dirname), {
-  input: "./global.css",
-  configPath: "./tailwind.config.js",
+/** @type {import('expo/metro-config').MetroConfig} */
+const config = getDefaultConfig(__dirname);
+
+const uniwindConfig = withUniwindConfig(config, {
+	cssEntryFile: "./global.css",
+	dtsFile: "./uniwind-types.d.ts",
 });
 
-config.resolver.unstable_enablePackageExports = true;
-
-module.exports = config;
+module.exports = uniwindConfig;

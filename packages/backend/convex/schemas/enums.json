@@ -1,6 +1,0 @@
-{
-  "category": "string | not null | Enum category e.g., task_status",
-  "key": "string | not null | Lookup key, used in code",
-  "value": "string | not null | Human readable value/label",
-  "description": "string | null | Optional description"
-}

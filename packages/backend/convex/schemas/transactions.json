@@ -1,9 +1,0 @@
-{
-  "id": "uuid | not null | Primary key",
-  "kind": "string | not null | settlement, reward, fee, refund",
-  "reference_id": "uuid | null | Reference to related object (stake, task)",
-  "details": "jsonb | null | Extra metadata for transaction",
-  "amount": "float | null | Amount moved",
-  "currency": "string | not null | Currency or token code",
-  "created_at": "timestamp | not null | When transaction was created"
-}

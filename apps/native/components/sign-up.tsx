@@ -1,97 +1,101 @@
+import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+	ActivityIndicator,
+	Text,
+	TextInput,
+	Pressable,
+	View,
 } from "react-native";
-import { authClient } from "@/lib/auth-client";
+import { Card, useThemeColor } from "heroui-native";
 
 export function SignUp() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-  const handleSignUp = async () => {
-    setIsLoading(true);
-    setError(null);
+	const mutedColor = useThemeColor("muted");
+	const accentColor = useThemeColor("accent");
+	const foregroundColor = useThemeColor("foreground");
+	const dangerColor = useThemeColor("danger");
 
-    await authClient.signUp.email(
-      {
-        name,
-        email,
-        password,
-      },
-      {
-        onError: (error) => {
-          setError(error.error?.message || "Failed to sign up");
-          setIsLoading(false);
-        },
-        onSuccess: () => {
-          setName("");
-          setEmail("");
-          setPassword("");
-        },
-        onFinished: () => {
-          setIsLoading(false);
-        },
-      }
-    );
-  };
+	const handleSignUp = async () => {
+		setIsLoading(true);
+		setError(null);
 
-  return (
-    <View className="mt-6 rounded-lg border border-border bg-card p-4">
-      <Text className="mb-4 font-semibold text-foreground text-lg">
-        Create Account
-      </Text>
+		await authClient.signUp.email(
+			{
+				name,
+				email,
+				password,
+			},
+			{
+				onError: (error) => {
+					setError(error.error?.message || "Failed to sign up");
+					setIsLoading(false);
+				},
+				onSuccess: () => {
+					setName("");
+					setEmail("");
+					setPassword("");
+				},
+				onFinished: () => {
+					setIsLoading(false);
+				},
+			},
+		);
+	};
 
-      {error && (
-        <View className="mb-4 rounded-md bg-destructive/10 p-3">
-          <Text className="text-destructive text-sm">{error}</Text>
-        </View>
-      )}
+	return (
+		<Card variant="secondary" className="mt-6 p-4">
+			<Card.Title className="mb-4">Create Account</Card.Title>
 
-      <TextInput
-        className="mb-3 rounded-md border border-input bg-input p-4 text-foreground"
-        onChangeText={setName}
-        placeholder="Name"
-        placeholderTextColor="#9CA3AF"
-        value={name}
-      />
+			{error && (
+				<View className="mb-4 p-3 bg-danger/10 rounded-lg">
+					<Text className="text-danger text-sm">{error}</Text>
+				</View>
+			)}
 
-      <TextInput
-        autoCapitalize="none"
-        className="mb-3 rounded-md border border-input bg-input p-4 text-foreground"
-        keyboardType="email-address"
-        onChangeText={setEmail}
-        placeholder="Email"
-        placeholderTextColor="#9CA3AF"
-        value={email}
-      />
+			<TextInput
+				className="mb-3 py-3 px-4 rounded-lg bg-surface text-foreground border border-divider"
+				placeholder="Name"
+				value={name}
+				onChangeText={setName}
+				placeholderTextColor={mutedColor}
+			/>
 
-      <TextInput
-        className="mb-4 rounded-md border border-input bg-input p-4 text-foreground"
-        onChangeText={setPassword}
-        placeholder="Password"
-        placeholderTextColor="#9CA3AF"
-        secureTextEntry
-        value={password}
-      />
+			<TextInput
+				className="mb-3 py-3 px-4 rounded-lg bg-surface text-foreground border border-divider"
+				placeholder="Email"
+				value={email}
+				onChangeText={setEmail}
+				placeholderTextColor={mutedColor}
+				keyboardType="email-address"
+				autoCapitalize="none"
+			/>
 
-      <TouchableOpacity
-        className="flex-row items-center justify-center rounded-md bg-primary p-4"
-        disabled={isLoading}
-        onPress={handleSignUp}
-      >
-        {isLoading ? (
-          <ActivityIndicator color="#fff" size="small" />
-        ) : (
-          <Text className="font-medium text-primary-foreground">Sign Up</Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
+			<TextInput
+				className="mb-4 py-3 px-4 rounded-lg bg-surface text-foreground border border-divider"
+				placeholder="Password"
+				value={password}
+				onChangeText={setPassword}
+				placeholderTextColor={mutedColor}
+				secureTextEntry
+			/>
+
+			<Pressable
+				onPress={handleSignUp}
+				disabled={isLoading}
+				className="bg-accent p-4 rounded-lg flex-row justify-center items-center active:opacity-70"
+			>
+				{isLoading ? (
+					<ActivityIndicator size="small" color={foregroundColor} />
+				) : (
+					<Text className="text-foreground font-medium">Sign Up</Text>
+				)}
+			</Pressable>
+		</Card>
+	);
 }

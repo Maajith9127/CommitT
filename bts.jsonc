@@ -3,21 +3,20 @@
 
 {
   "$schema": "https://r2.better-t-stack.dev/schema.json",
-  "version": "3.2.1",
-  "createdAt": "2025-10-17T19:00:26.171Z",
+  "version": "3.5.3",
+  "createdAt": "2025-11-22T17:53:55.318Z",
   "database": "none",
   "orm": "none",
   "backend": "convex",
   "runtime": "none",
   "frontend": [
     "tanstack-router",
-    "native-nativewind"
+    "native-uniwind"
   ],
   "addons": [
-    "husky",
+    "biome",
     "tauri",
-    "turborepo",
-    "ultracite"
+    "turborepo"
   ],
   "examples": [
     "todo"
