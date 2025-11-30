@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "monitoring-mobile": ["../src/index"],
+      "monitoring-mobile/*": ["../src/*"]
+    }
+  }
+}
