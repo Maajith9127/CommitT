@@ -1,13 +1,13 @@
-import { authClient } from "@/lib/auth-client";
+import { Card, useThemeColor } from "heroui-native";
 import { useState } from "react";
 import {
 	ActivityIndicator,
+	Pressable,
 	Text,
 	TextInput,
-	Pressable,
 	View,
 } from "react-native";
-import { Card, useThemeColor } from "heroui-native";
+import { authClient } from "@/lib/auth-client";
 
 export function SignUp() {
 	const [name, setName] = useState("");
@@ -53,13 +53,13 @@ export function SignUp() {
 			<Card.Title className="mb-4">Create Account</Card.Title>
 
 			{error && (
-				<View className="mb-4 p-3 bg-danger/10 rounded-lg">
+				<View className="mb-4 rounded-lg bg-danger/10 p-3">
 					<Text className="text-danger text-sm">{error}</Text>
 				</View>
 			)}
 
 			<TextInput
-				className="mb-3 py-3 px-4 rounded-lg bg-surface text-foreground border border-divider"
+				className="mb-3 rounded-lg border border-divider bg-surface px-4 py-3 text-foreground"
 				placeholder="Name"
 				value={name}
 				onChangeText={setName}
@@ -67,7 +67,7 @@ export function SignUp() {
 			/>
 
 			<TextInput
-				className="mb-3 py-3 px-4 rounded-lg bg-surface text-foreground border border-divider"
+				className="mb-3 rounded-lg border border-divider bg-surface px-4 py-3 text-foreground"
 				placeholder="Email"
 				value={email}
 				onChangeText={setEmail}
@@ -77,7 +77,7 @@ export function SignUp() {
 			/>
 
 			<TextInput
-				className="mb-4 py-3 px-4 rounded-lg bg-surface text-foreground border border-divider"
+				className="mb-4 rounded-lg border border-divider bg-surface px-4 py-3 text-foreground"
 				placeholder="Password"
 				value={password}
 				onChangeText={setPassword}
@@ -88,12 +88,12 @@ export function SignUp() {
 			<Pressable
 				onPress={handleSignUp}
 				disabled={isLoading}
-				className="bg-accent p-4 rounded-lg flex-row justify-center items-center active:opacity-70"
+				className="flex-row items-center justify-center rounded-lg bg-accent p-4 active:opacity-70"
 			>
 				{isLoading ? (
 					<ActivityIndicator size="small" color={foregroundColor} />
 				) : (
-					<Text className="text-foreground font-medium">Sign Up</Text>
+					<Text className="font-medium text-foreground">Sign Up</Text>
 				)}
 			</Pressable>
 		</Card>

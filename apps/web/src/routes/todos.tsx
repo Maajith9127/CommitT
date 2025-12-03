@@ -1,3 +1,9 @@
+import { api } from "@mono/backend/convex/_generated/api";
+import type { Id } from "@mono/backend/convex/_generated/dataModel";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery } from "convex/react";
+import { Loader2, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -8,13 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { createFileRoute } from "@tanstack/react-router";
-import { Loader2, Trash2 } from "lucide-react";
-import { useState } from "react";
-
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@mono/backend/convex/_generated/api";
-import type { Id } from "@mono/backend/convex/_generated/dataModel";
 
 export const Route = createFileRoute("/todos")({
 	component: TodosRoute,
@@ -89,7 +88,7 @@ function TodosRoute() {
 										/>
 										<label
 											htmlFor={`todo-${todo._id}`}
-											className={`${todo.completed ? "line-through text-muted-foreground" : ""}`}
+											className={`${todo.completed ? "text-muted-foreground line-through" : ""}`}
 										>
 											{todo.text}
 										</label>

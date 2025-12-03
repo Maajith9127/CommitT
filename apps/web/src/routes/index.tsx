@@ -1,6 +1,6 @@
+import { api } from "@mono/backend/convex/_generated/api";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { api } from "@mono/backend/convex/_generated/api";
 
 export const Route = createFileRoute("/")({
 	component: HomeComponent,
@@ -35,7 +35,7 @@ function HomeComponent() {
 						<div
 							className={`h-2 w-2 rounded-full ${healthCheck === "OK" ? "bg-green-500" : healthCheck === undefined ? "bg-orange-400" : "bg-red-500"}`}
 						/>
-						<span className="text-sm text-muted-foreground">
+						<span className="text-muted-foreground text-sm">
 							{healthCheck === undefined
 								? "Checking..."
 								: healthCheck === "OK"
