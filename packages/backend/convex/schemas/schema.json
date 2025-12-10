@@ -1,0 +1,74 @@
+{
+	"users": {
+		"name": "optional string",
+		"email": "optional string",
+		"credit_score": "number"
+	},
+	"tasks": {
+		"assigner_id": "id(users)",
+		"assignee_id": "id(users)",
+		"title": "string",
+		"description": "string",
+		"visibility": "enum(public|private|shared)",
+		"conditions": [
+			{
+				"condition_id": "string",
+				"type": "enum(time_bound|app|location|live_video)",
+				"params": "object",
+				"description": "string"
+			}
+		],
+		"start_at": "optional number",
+		"due_at": "optional number",
+		"status": "enum(pending|in_progress|completed|failed)",
+		"requires_verification": "boolean"
+	},
+	"proofs": {
+		"task_id": "id(tasks)",
+		"submitter_id": "id(users)",
+		"submitted_at": "number",
+		"location": "optional object(lat:number, lng:number)"
+	},
+	"proof_resources": {
+		"proof_id": "id(proofs)",
+		"uri": "string",
+		"mime": "string"
+	},
+	"verifications": {
+		"proof_id": "id(proofs)",
+		"verifier_id": "union id(users|verification_chats)",
+		"verification_type": "enum(assigner|ai)",
+		"status": "enum(approved|rejected|pending)",
+		"comments": "optional string",
+		"verified_at": "number"
+	},
+	"verification_chats": {
+		"user_id": "id(users)",
+		"status": "enum(active|completed|failed)",
+		"created_at": "number",
+		"task_id": "id(tasks)",
+		"proof_id": "id(proofs)",
+		"messages": [
+			{
+				"sender": "enum(system|user|ai)",
+				"content": "string",
+				"timestamp": "number"
+			}
+		]
+	},
+	"stakes": {
+		"task_id": "id(tasks)",
+		"staker_id": "id(users)",
+		"amount": "number",
+		"stake_type": "enum(financial|credits)",
+		"loss_outcome": "enum(donate|give_to_assigner)",
+		"status": "enum(pending|settled|forfeited)"
+	},
+	"credit_events": {
+		"user_id": "id(users)",
+		"task_id": "optional id(tasks)",
+		"change": "number",
+		"reason": "string",
+		"timestamp": "number"
+	}
+}
