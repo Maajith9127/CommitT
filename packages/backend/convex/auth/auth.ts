@@ -35,5 +35,5 @@ export { createAuth };
 export const getCurrentUser = query({
 	args: {},
 	returns: v.any(),
-	handler: async (ctx, args) => authComponent.getAuthUser(ctx),
+	handler: async (ctx, _args) => authComponent.getAuthUser(ctx),
 });

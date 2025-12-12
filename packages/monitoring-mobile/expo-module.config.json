@@ -1,9 +1,9 @@
 {
-	"platforms": ["apple", "android", "web"],
-	"apple": {
-		"modules": ["MonitoringMobileModule"]
-	},
-	"android": {
-		"modules": ["expo.modules.monitoringmobile.MonitoringMobileModule"]
-	}
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["MonitoringMobileModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.monitoringmobile.MonitoringMobileModule"]
+  }
 }

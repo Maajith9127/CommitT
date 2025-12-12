@@ -3,9 +3,7 @@
 	"version": "1.0.0",
 	"scripts": {
 		"dev": "convex dev",
-		"dev:setup": "convex dev --configure --until-success",
-		"check-types": "cd convex && tsc --noEmit",
-		"lint": "biome check"
+		"dev:setup": "convex dev --configure --until-success"
 	},
 	"author": "",
 	"license": "ISC",
