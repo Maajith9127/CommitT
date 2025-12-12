@@ -12,11 +12,10 @@ import {
 
 export default defineSchema(
 	{
-		users: defineTable({
-			name: v.optional(v.string()),
-			email: v.optional(v.string()),
+		user_profiles: defineTable({
+			user_id: v.string(),
 			credit_score: v.number(),
-		}),
+		}).index("by_user_id", ["user_id"]),
 
 		tasks: defineTable({
 			assigner_id: v.id("users"),

@@ -8,7 +8,8 @@
  * @module
  */
 
-import type * as auth from "../auth.js";
+import type * as auth_auth from "../auth/auth.js";
+import type * as auth_profile from "../auth/profile.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as privateData from "../privateData.js";
@@ -22,7 +23,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth;
+  "auth/auth": typeof auth_auth;
+  "auth/profile": typeof auth_profile;
   healthCheck: typeof healthCheck;
   http: typeof http;
   privateData: typeof privateData;

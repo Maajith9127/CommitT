@@ -1,8 +1,8 @@
 import { authComponent, createAuth } from "./auth";
-import { mutation, query } from "./_generated/server";
+import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
-// Sync user profile: ensure users table record exists for authenticated user
+// Sync user profile: ensure user_profiles table record exists for authenticated user
 export const syncUserProfile = mutation({
 	args: {},
 	handler: async (ctx) => {
@@ -11,21 +11,16 @@ export const syncUserProfile = mutation({
 			throw new Error("Unauthorized");
 		}
 
-		// Get better-auth user data
-		const betterAuthUser = await authComponent.getAuthUser(ctx);
-		if (!betterAuthUser) {
-			throw new Error("User data unavailable");
-		}
+		// Check if user_profiles record exists
+		const existingProfile = await ctx.db
+			.query("user_profiles")
+			.withIndex("by_user_id", (q) => q.eq("user_id", identity.subject))
+			.first();
 
-		// Check if users record exists
-		const existingUser = await ctx.db.get(identity.subject);
-
-		if (!existingUser) {
-			// Create users record with same ID
-			await ctx.db.insert("users", {
-				_id: identity.subject,
-				name: betterAuthUser.name,
-				email: betterAuthUser.email,
+		if (!existingProfile) {
+			// Create user_profiles record
+			await ctx.db.insert("user_profiles", {
+				user_id: identity.subject,
 				credit_score: 0,
 			});
 		}
@@ -49,15 +44,18 @@ export const getUserProfile = query({
 			return null;
 		}
 
-		// Get users record
-		const usersRecord = await ctx.db.get(identity.subject);
+		// Get user_profiles record
+		const userProfile = await ctx.db
+			.query("user_profiles")
+			.withIndex("by_user_id", (q) => q.eq("user_id", identity.subject))
+			.first();
 
 		return {
 			id: identity.subject,
 			name: betterAuthUser.name,
 			email: betterAuthUser.email,
 			image: betterAuthUser.image,
-			credit_score: usersRecord?.credit_score ?? 0,
+			credit_score: userProfile?.credit_score ?? 0,
 		};
 	},
 });
@@ -66,7 +64,7 @@ export const getUserProfile = query({
 export const updateUserProfile = mutation({
 	args: {
 		name: v.optional(v.string()),
-		email: v.optional(v.string()),
+		// Note: email updates are not supported via this API for security reasons
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -74,26 +72,18 @@ export const updateUserProfile = mutation({
 			throw new Error("Unauthorized");
 		}
 
-		// Update better-auth user if fields provided
-		if (args.name !== undefined || args.email !== undefined) {
+		// Update better-auth user if name provided
+		if (args.name !== undefined) {
 			const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
 			await auth.api.updateUser({
 				body: {
 					name: args.name,
-					email: args.email,
 				},
 				headers,
 			});
 		}
 
-		// Update users table
-		const existingUser = await ctx.db.get(identity.subject);
-		if (existingUser) {
-			await ctx.db.patch(existingUser._id, {
-				...(args.name !== undefined && { name: args.name }),
-				...(args.email !== undefined && { email: args.email }),
-			});
-		}
+		// Note: name is managed by better-auth, email cannot be updated via API
 
 		return { success: true };
 	},
