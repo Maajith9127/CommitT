@@ -1,8 +1,7 @@
-import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ImageBackground, Text, TouchableOpacity, View } from "react-native";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import {
 	AuthFooterLegal,
 	AuthHeading,
@@ -11,9 +10,6 @@ import {
 	ScreenContainer,
 } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
-
-// Dismiss any stale browser sessions on load
-WebBrowser.maybeCompleteAuthSession();
 
 type AuthMode = "signin" | "signup";
 
@@ -30,6 +26,15 @@ export default function Signin() {
 		confirmPassword?: string;
 		general?: string;
 	}>({});
+
+	// Configure Google Sign-In
+	useEffect(() => {
+		GoogleSignin.configure({
+			webClientId:
+				"264657416758-cvnamsspk9hsfiq1qat9mu7hv8rsokbb.apps.googleusercontent.com",
+			offlineAccess: true,
+		});
+	}, []);
 
 	// Validation functions
 	const validateEmail = (email: string) => {
@@ -98,32 +103,32 @@ export default function Signin() {
 		}
 	};
 
-	// 🔵 Google Login - Opens browser for account selection
+	// Native Google Sign-In
 	const handleGoogle = async () => {
 		try {
-			// Warm up browser for faster OAuth
-			await WebBrowser.warmUpAsync();
+			await GoogleSignin.hasPlayServices();
+			const userInfo = await GoogleSignin.signIn();
 
-			const redirectUri = Linking.createURL("(auth)/welcome");
-			console.log("🔵 Redirect URI:", redirectUri);
+			// Get tokens separately after sign-in
+			const tokens = await GoogleSignin.getTokens();
+			const { idToken, accessToken } = tokens;
 
+			// Integrate with better-auth
 			const result = await authClient.signIn.social({
 				provider: "google",
-				callbackURL: redirectUri,
+				idToken: { token: idToken, accessToken: accessToken },
 			});
-
-			console.log("🔵 OAuth result:", result);
-
-			// Cool down browser
-			await WebBrowser.coolDownAsync();
 
 			if (result?.data) {
 				console.log("✅ Google login successful!");
 				router.replace("/(auth)/welcome");
 			}
-		} catch (err) {
-			console.log("❌ Google Login Error:", err);
-			await WebBrowser.coolDownAsync();
+		} catch (error: any) {
+			if (error.code === "SIGN_IN_CANCELLED") {
+				console.log("User cancelled sign-in");
+			} else {
+				console.error("Google sign-in error:", error);
+			}
 		}
 	};
 
