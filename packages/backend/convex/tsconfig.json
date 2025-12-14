@@ -1,5 +1,5 @@
 {
-	"extends": "../../../tsconfig.base.json",
+	"extends": "../../../packages/config/tsconfig.base.json",
 	/* This TypeScript project config describes the environment that
 	 * Convex functions run in and is used to typecheck them.
 	 * You can modify it, but some settings required to use Convex.
@@ -8,12 +8,21 @@
 		/* These settings are not required by Convex and can be modified. */
 		"allowJs": true,
 		"allowSyntheticDefaultImports": true,
-
+		"types": [
+			"node"
+		],
 		/* These compiler options are required by Convex */
 		"target": "ESNext",
-		"lib": ["ES2021", "dom"],
+		"lib": [
+			"ES2021",
+			"dom"
+		],
 		"noEmit": true
 	},
-	"include": ["./**/*"],
-	"exclude": ["./_generated"]
+	"include": [
+		"./**/*"
+	],
+	"exclude": [
+		"./_generated"
+	]
 }

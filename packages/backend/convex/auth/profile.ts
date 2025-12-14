@@ -1,6 +1,6 @@
-import { authComponent, createAuth } from "./auth";
-import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
+import { mutation, query } from "../_generated/server";
+import { authComponent, createAuth } from "./auth";
 
 // Sync user profile: ensure user_profiles table record exists for authenticated user
 export const syncUserProfile = mutation({

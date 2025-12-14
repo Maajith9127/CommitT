@@ -1,7 +1,7 @@
-import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
-import { ImageBackground, Text, TouchableOpacity, View } from "react-native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ImageBackground, Text, TouchableOpacity, View } from "react-native";
 import {
 	AuthFooterLegal,
 	AuthHeading,

@@ -1,15 +1,18 @@
-import { registerWebModule, NativeModule } from 'expo';
+import { NativeModule, registerWebModule } from "expo";
 
-import { MonitoringMobileModuleEvents } from './MonitoringMobile.types';
+import type { MonitoringMobileModuleEvents } from "./MonitoringMobile.types";
 
 class MonitoringMobileModule extends NativeModule<MonitoringMobileModuleEvents> {
-  PI = Math.PI;
-  async setValueAsync(value: string): Promise<void> {
-    this.emit('onChange', { value });
-  }
-  hello() {
-    return 'Hello world! 👋';
-  }
+	PI = Math.PI;
+	async setValueAsync(value: string): Promise<void> {
+		this.emit("onChange", { value });
+	}
+	hello() {
+		return "Hello world! 👋";
+	}
 }
 
-export default registerWebModule(MonitoringMobileModule, 'MonitoringMobileModule');
+export default registerWebModule(
+	MonitoringMobileModule,
+	"MonitoringMobileModule",
+);

@@ -10,10 +10,11 @@
 	"description": "",
 	"devDependencies": {
 		"@types/node": "catalog:",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"@mono/config": "workspace:*"
 	},
 	"dependencies": {
-		"@better-auth/expo": "1.3.27",
+		"@better-auth/expo": "catalog:",
 		"@convex-dev/better-auth": "catalog:",
 		"better-auth": "catalog:",
 		"convex": "catalog:"

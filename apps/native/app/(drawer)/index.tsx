@@ -11,7 +11,10 @@ import { authClient } from "@/lib/auth-client";
 export default function Home() {
 	const healthCheck = useQuery(api.healthCheck.get);
 	const { isAuthenticated } = useConvexAuth();
-	const user = useQuery(api.auth.auth.getCurrentUser, isAuthenticated ? {} : "skip");
+	const user = useQuery(
+		api.auth.auth.getCurrentUser,
+		isAuthenticated ? {} : "skip",
+	);
 	const mutedColor = useThemeColor("muted");
 	const successColor = useThemeColor("success");
 	const dangerColor = useThemeColor("danger");

@@ -9,14 +9,16 @@ const config = getDefaultConfig(__dirname);
 config.watchFolders = [path.resolve(__dirname, "../../")];
 
 // Platform-specific extensions (React Native will pick .native.tsx first)
-config.resolver.sourceExts = [...config.resolver.sourceExts, "native.tsx", "native.ts"];
+config.resolver.sourceExts = [
+	...config.resolver.sourceExts,
+	"native.tsx",
+	"native.ts",
+];
 
 const uniwindConfig = withUniwindConfig(config, {
-  configPath: "./uniwind.config.js",
-  cssEntryFile: "./global.css",
-  dtsFile: "./uniwind-types.d.ts",
+	configPath: "./uniwind.config.js",
+	cssEntryFile: "./global.css",
+	dtsFile: "./uniwind-types.d.ts",
 });
 
 module.exports = uniwindConfig;
-
-
