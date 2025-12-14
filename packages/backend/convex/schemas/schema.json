@@ -5,23 +5,43 @@
 		"credit_score": "number"
 	},
 	"tasks": {
+		"id": "string",
 		"assigner_id": "id(users)",
 		"assignee_id": "id(users)",
 		"title": "string",
 		"description": "string",
 		"visibility": "enum(public|private|shared)",
+		"time_window": {
+			"start_at": "number",
+			"due_at": "number"
+		},
 		"conditions": [
 			{
-				"condition_id": "string",
-				"type": "enum(time_bound|app|location|live_video)",
-				"params": "object",
-				"description": "string"
+				"metric": "string",
+				"relation": "enum(eq|neq|gt|gte|lt|lte|in|not_in|within|outside|exists|matches)",
+				"target": {
+					"type": "enum(number|string|boolean|array|range)",
+					"value": "any"
+				}
 			}
 		],
-		"start_at": "optional number",
-		"due_at": "optional number",
-		"status": "enum(pending|in_progress|completed|failed)",
-		"requires_verification": "boolean"
+		"status": "enum(pending|proceeding|proceeded|failed)",
+		"created_at": "number",
+		"updated_at": "number"
+	},
+	"metrics": {
+		"key": "string",
+		"description": "string",
+		"unit": "string",
+		"allowed_relations": [
+			"enum(eq|neq|gt|gte|lt|lte|in|not_in|within|outside|exists|matches|range)"
+		],
+		"allowed_target_types": [
+			"enum(number|string|boolean|array|range|file|log)"
+		],
+		"permissions_required": [
+			"enum(manual|application|system|network|location|media|external)"
+		]
 	},
 	"proofs": {
 		"task_id": "id(tasks)",
