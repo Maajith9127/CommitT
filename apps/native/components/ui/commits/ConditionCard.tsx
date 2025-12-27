@@ -14,7 +14,9 @@ export type ConditionCardProps = {
 	className?: string;
 	width?: number;
 	iconColor?: string;
-	titleColor?: string; //  NEW
+	titleColor?: string;
+	selected?: boolean;
+	selectionColor?: string;
 };
 
 export function ConditionCard({
@@ -25,12 +27,17 @@ export function ConditionCard({
 	className = "",
 	width,
 	iconColor = "#4FA0FF",
-	titleColor = "#FFFFFF", //  default (white)
+	titleColor = "#FFFFFF",
+	selected = false,
+	selectionColor = "#4FA0FF",
 }: ConditionCardProps) {
 	return (
 		<UButton
 			onPress={onPress}
-			style={width ? { width } : undefined}
+			style={[
+				width ? { width } : undefined,
+				selected ? { borderWidth: 3, borderColor: selectionColor } : undefined,
+			]}
 			className={`mb-4 rounded-3xl bg-[#1A1A1A] px-4 py-4 ${className}`}
 			activeOpacity={0.8}
 		>
@@ -47,7 +54,7 @@ export function ConditionCard({
 				<UView className="flex-1">
 					<HeaderTitle
 						className="text-lg"
-						style={{ color: titleColor }} // 🔥 APPLY TITLE COLOR
+						style={{ color: titleColor }}
 					>
 						{title}
 					</HeaderTitle>

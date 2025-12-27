@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { usePathname, useRouter } from "expo-router";
 import { TouchableOpacity, View } from "react-native";
 import { withUniwind } from "uniwind";
-import { FooterText } from "@/components/ui";
+import { FooterText } from "@/components/ui/text";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);

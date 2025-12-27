@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { withUniwind } from "uniwind";
+import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
@@ -8,31 +8,50 @@ const UPressable = withUniwind(TouchableOpacity);
 
 const days = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
 
-export type DaySelectorProps = {
-	value?: string[];
-	onChange?: (days: string[]) => void;
-};
+export function DaySelector() {
+	const { draft, addCondition, updateCondition, removeCondition } =
+		useTaskDraftStore();
 
-export function DaySelector({ value = [], onChange }: DaySelectorProps) {
-	const [selected, setSelected] = useState<string[]>(value);
+	// Find existing day condition (metric: "time", relation: "in")
+	const dayCondition = draft.conditions.find(
+		(c) => c.metric === "time" && c.relation === "in"
+	);
+	const selectedDays: string[] = dayCondition?.target?.value ?? [];
 
 	function toggle(day: string) {
 		let updated: string[];
 
-		if (selected.includes(day)) {
-			updated = selected.filter((d) => d !== day);
+		if (selectedDays.includes(day)) {
+			updated = selectedDays.filter((d) => d !== day);
 		} else {
-			updated = [...selected, day];
+			updated = [...selectedDays, day];
 		}
 
-		setSelected(updated);
-		onChange?.(updated);
+		// Replace or create the day condition
+		if (dayCondition) {
+			if (updated.length === 0) {
+				// Remove condition if no days selected
+				removeCondition(dayCondition.id);
+			} else {
+				// Update existing condition
+				updateCondition(dayCondition.id, {
+					target: { type: "array", value: updated },
+				});
+			}
+		} else if (updated.length > 0) {
+			// Create new condition
+			addCondition({
+				metric: "time",
+				relation: "in",
+				target: { type: "array", value: updated },
+			});
+		}
 	}
 
 	return (
 		<UView className="mt-3 flex-row justify-between">
 			{days.map((day) => {
-				const isActive = selected.includes(day);
+				const isActive = selectedDays.includes(day);
 
 				return (
 					<UPressable

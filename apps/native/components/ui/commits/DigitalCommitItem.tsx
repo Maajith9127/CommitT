@@ -1,45 +1,55 @@
-// components/ui/commits/DigitalCommitItem.tsx
-
-import { Image, Pressable, ScrollView, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image, ScrollView, View } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText, HeaderTitle } from "@/components/ui/text";
 
 const UView = withUniwind(View);
-const UPress = withUniwind(Pressable);
+const UPress = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 
-export type DigitalCommitItemType = {
+type Item = {
 	id: string;
 	name: string;
 	icon?: string;
+	iconName?: string;
+	iconColor?: string;
+	iconSize?: number;
 };
 
 type Props = {
 	title: string;
-	icons: React.ReactNode;
-	items: DigitalCommitItemType[];
+	items: Item[];
+	icons?: React.ReactNode;
 	showBorder?: boolean;
+	accentColor?: string;   // icon color
+	titleColor?: string;    // title color
 };
 
 export function DigitalCommitItem({
 	title,
-	icons,
 	items,
+	icons,
 	showBorder = true,
+	accentColor = "#4FA0FF",
+	titleColor = "#FFFFFF",
 }: Props) {
 	return (
-		<UPress className={`py-4 ${showBorder ? "border-[#2A2A2A] border-b" : ""}`}>
-			{/* -------------------------------------------------- */}
-			{/* TOP ROW — TITLE + RIGHT SIDE ICONS                 */}
-			{/* -------------------------------------------------- */}
+		<UPress className="py-3">
+			{/* TITLE ROW */}
 			<UView className="flex-row items-center justify-between">
-				<HeaderTitle className="text-lg">{title}</HeaderTitle>
-				<UView className="flex-row items-center">{icons}</UView>
+				<HeaderTitle
+					className="text-lg"
+					style={{ color: titleColor }}
+				>
+					{title}
+				</HeaderTitle>
+
+				<UView className="flex-row items-center">
+					{icons}
+				</UView>
 			</UView>
 
-			{/* -------------------------------------------------- */}
-			{/* HORIZONTAL ITEM LIST                               */}
-			{/* -------------------------------------------------- */}
+			{/* ITEMS */}
 			{items.length > 0 && (
 				<UScroll
 					horizontal
@@ -48,20 +58,23 @@ export function DigitalCommitItem({
 					className="mt-3"
 				>
 					{items.map((item) => (
-						<UView key={item.id} className="mr-5 flex-row items-center">
-							{/* Item Icon */}
-							{item.icon && (
+						<UView
+							key={item.id}
+							className="mr-5 flex-row items-center"
+						>
+							{item.iconName ? (
+								<MaterialCommunityIcons
+									name={item.iconName as any}
+									size={item.iconSize ?? 24}
+									color={item.iconColor ?? accentColor}
+								/>
+							) : item.icon ? (
 								<Image
 									source={{ uri: item.icon }}
-									style={{
-										width: 32,
-										height: 32,
-										borderRadius: 8,
-									}}
+									style={{ width: 32, height: 32, borderRadius: 8 }}
 								/>
-							)}
+							) : null}
 
-							{/* Item Label */}
 							<FooterText className="ml-3 text-gray-400 text-sm">
 								{item.name}
 							</FooterText>

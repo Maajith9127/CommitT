@@ -32,7 +32,7 @@ export default function PenaltiesScreen() {
 					iconColor="#FF3B30"
 					title="Money Penalty"
 					subtitle="Lose a fixed amount when you miss"
-					onPress={() => router.push("/(create-commit)/penalty-money")}
+					onPress={() => router.push("/(penalties)/money")}
 				/>
 
 				{/* 2 — EMBARRASSING PHOTO */}

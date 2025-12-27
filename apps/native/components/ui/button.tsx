@@ -11,19 +11,20 @@ type BtnProps = {
 	children: ReactNode;
 	className?: string;
 	onPress?: () => void;
+	textClassName?: string;
 };
 
 // ---------------------------
 // PRIMARY BUTTON
 // ---------------------------
-export function PrimaryButton({ children, className = "", onPress }: BtnProps) {
+export function PrimaryButton({ children, className = "", onPress, textClassName = "" }: BtnProps) {
 	return (
 		<UHeroButton
 			className={`w-full items-center justify-center rounded-full bg-[#4FA0FF] ${className}
       `}
 			onPress={onPress}
 		>
-			<UText className="font-semibold text-lg text-white">{children}</UText>
+			<UText className={`font-semibold text-lg text-white ${textClassName}`}>{children}</UText>
 		</UHeroButton>
 	);
 }
@@ -38,7 +39,7 @@ export function SecondaryButton({
 }: BtnProps) {
 	return (
 		<UHeroButton
-			className={`items-center rounded-xl bg-gray-700 px-4 py-3 ${className}`}
+			className={`items-center rounded-xl bg-gray-800 px-4 py-3 ${className}`}
 			onPress={onPress}
 		>
 			<UText className="font-medium text-base text-white">{children}</UText>

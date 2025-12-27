@@ -2,15 +2,21 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { FlatList, View } from "react-native";
 import { withUniwind } from "uniwind";
+
 import { HeaderTitle, ScreenHeader } from "@/components/ui";
 import { AddButton } from "@/components/ui/button";
 import { CommitCard } from "@/components/ui/commits/CommitCard";
 import { VerificationCard } from "@/components/ui/commits/VerificationCard";
 
+import { useCommitStore } from "@/stores/useCommitStore";
+
 const UView = withUniwind(View);
 
 export default function CommitsScreen() {
 	const router = useRouter();
+
+	// 🔹 Pull commits from Zustand
+	const commits = useCommitStore((state) => state.commits);
 
 	const DATA = [
 		{ type: "quick", key: "quick" },
@@ -22,29 +28,31 @@ export default function CommitsScreen() {
 
 	const stickyHeaders = [0, 1, 3];
 
-	const renderItem = ({ item }) => {
+	const renderItem = ({ item }: { item: { type: string } }) => {
 		switch (item.type) {
 			// -------------------------------------------------------
 			// QUICK HEADER + VERIFICATION CARD
 			// -------------------------------------------------------
 			case "quick":
 				return (
-					<>
-						<ScreenHeader>
-							<UView className="flex-row items-center gap-2">
-								<MaterialCommunityIcons
-									name="rotate-orbit"
-									size={33}
-									color="white"
-								/>
-								<HeaderTitle className="text-2xl text-white">
-									CommitT
-								</HeaderTitle>
-							</UView>
+					<ScreenHeader>
+						<UView className="flex-row items-center gap-2">
+							<MaterialCommunityIcons
+								name="rotate-orbit"
+								size={33}
+								color="white"
+							/>
+							<HeaderTitle className="text-2xl text-white">
+								CommitT
+							</HeaderTitle>
+						</UView>
 
-							<VerificationCard className="mt-3" />
-						</ScreenHeader>
-					</>
+						<VerificationCard
+							className="mt-3"
+							onPress={() => router.push("/(verify-commit)")}
+						/>
+
+					</ScreenHeader>
 				);
 
 			// -------------------------------------------------------
@@ -52,44 +60,34 @@ export default function CommitsScreen() {
 			// -------------------------------------------------------
 			case "schedules_title":
 				return (
-					<ScreenHeader className="border-gray-800 border-b bg-black pb-1">
+					<ScreenHeader className="bg-black pb-1">
 						<UView className="w-full flex-row items-center justify-between">
 							<HeaderTitle>CommitTs</HeaderTitle>
 
-							{/* Add button navigates to the creation flow */}
 							<AddButton
-								onPress={() => router.push("/(create-commit)/conditions")}
+								onPress={() =>
+									router.push("/(create-commit)/conditions")
+								}
 							/>
 						</UView>
 					</ScreenHeader>
 				);
 
 			// -------------------------------------------------------
-			// SCHEDULES CONTENT (Commit Cards)
+			// SCHEDULES CONTENT (FROM ZUSTAND)
 			// -------------------------------------------------------
 			case "schedules_content":
 				return (
-					<UView className="gap-4 bg-[#000000] px-4 py-4">
-						<CommitCard
-							title="Focus"
-							conditions={2}
-							iconName="target"
-							statusLabel="Active"
-						/>
-
-						<CommitCard
-							title="Study"
-							conditions={3}
-							iconName="book-open-page-variant"
-							statusLabel="Active"
-						/>
-
-						<CommitCard
-							title="Gym"
-							conditions={1}
-							iconName="dumbbell"
-							statusLabel="Active"
-						/>
+					<UView className="gap-4 bg-black px-4 py-4">
+						{commits.map((commit) => (
+							<CommitCard
+								key={commit.id}
+								title={commit.title}
+								conditions={commit.conditions}
+								iconName={commit.iconName}
+								statusLabel={commit.statusLabel}
+							/>
+						))}
 					</UView>
 				);
 
@@ -108,7 +106,7 @@ export default function CommitsScreen() {
 			// -------------------------------------------------------
 			case "templates_content":
 				return (
-					<UView className="gap-4 bg-[#000000] px-4 py-4">
+					<UView className="gap-4 bg-black px-4 py-4">
 						<HeaderTitle className="text-gray-300 text-lg">
 							Template A
 						</HeaderTitle>

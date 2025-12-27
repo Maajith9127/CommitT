@@ -1,7 +1,12 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, useWindowDimensions, View } from "react-native";
+import {
+	ScrollView,
+	useWindowDimensions,
+	View,
+	Pressable,
+} from "react-native";
 import { withUniwind } from "uniwind";
 import { AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
@@ -50,7 +55,12 @@ export default function FinalScreen() {
 			title: "Picture",
 			subtitle: "Not added",
 		},
-		{ id: "5", icon: "video-outline", title: "Video", subtitle: "Not added" },
+		{
+			id: "5",
+			icon: "video-outline",
+			title: "Video",
+			subtitle: "Not added",
+		},
 	]);
 
 	const cardWidth =
@@ -62,22 +72,21 @@ export default function FinalScreen() {
 		<UView className="flex-1 bg-black px-4 pt-20">
 			{/* MAIN SCROLL AREA */}
 			<UScroll showsVerticalScrollIndicator={false} className="flex-1">
-				{/* TOP — EMOJI + NAME INPUT */}
+				{/* TOP — ICON + NAME INPUT */}
 				<UView className="mb-10 items-center">
 					<MaterialCommunityIcons
-						name="book" //  choose icon you want
-						size={75} // same style as CommitCard
+						name="book"
+						size={75}
 						color="#4FA0FF"
 						style={{ marginBottom: 16 }}
 					/>
-
 					<Input placeholder="Commitment Name" />
 				</UView>
 
 				{/* CONDITIONS HEADER */}
 				<UView className="mb-3 flex-row items-center justify-between">
 					<HeaderTitle>Conditions</HeaderTitle>
-					<AddButton onPress={() => {}} />
+					<AddButton onPress={() => { }} />
 				</UView>
 
 				{/* HORIZONTAL CONDITION CARDS */}
@@ -93,18 +102,22 @@ export default function FinalScreen() {
 							title={condition.title}
 							subtitle={condition.subtitle}
 							width={cardWidth}
-							className={`h-24 ${index < conditions.length - 1 ? "mr-3" : ""}`}
+							className={`h-24 ${index < conditions.length - 1 ? "mr-3" : ""
+								}`}
 						/>
 					))}
 				</UScroll>
 
-				{/* DIGITAL COMMITMENT HEADER */}
+				{/* DIGITAL COMMITMENT — CLICKABLE AREA */}
 				<UView className="mb-3">
 					<HeaderTitle>Digital Commitment</HeaderTitle>
 				</UView>
 
-				{/* EMPTY COMMIT CARDS */}
-				<CommitCard className="mb-5" />
+				<CommitCard
+					className="mb-5"
+					onPress={() => router.push("/(create-commit)/choose")}
+				/>
+
 
 				{/* PENALTIES HEADER */}
 				<UView className="mt-2 mb-3">

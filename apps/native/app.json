@@ -1,17 +1,35 @@
 {
-	"expo": {
-		"scheme": "mono",
-		"userInterfaceStyle": "automatic",
-		"orientation": "default",
-		"web": {
-			"bundler": "metro"
-		},
-		"name": "mono",
-		"slug": "mono",
-		"plugins": ["expo-font"],
-		"experiments": {
-			"typedRoutes": true,
-			"reactCompiler": true
-		}
-	}
+  "expo": {
+    "scheme": "commit",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "commit",
+    "slug": "commit",
+    "plugins": [
+      "expo-font",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-maps",
+        {
+          "requestLocationPermission": true,
+          "locationPermission": "Allow commit to use your location"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "android": {
+      "package": "com.mono.commit",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAGglXV_tCschDDUJfpfEJyN4DXL8uAUZQ"
+        }
+      }
+    }
+  }
 }

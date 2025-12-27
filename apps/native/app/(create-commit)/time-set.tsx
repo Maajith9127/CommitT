@@ -6,17 +6,65 @@ import { ScreenHeader } from "@/components/ui";
 import { AddButton, PrimaryButton } from "@/components/ui/button";
 import { HeaderTitle } from "@/components/ui/text";
 import { DaySelector } from "@/components/ui/time/DaySelector";
-//  Correct import (named export)
 import { TimePicker } from "@/components/ui/time/TimePicker";
 import { TimeSlotCard } from "@/components/ui/time/TimeSlotCard";
+import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 const UText = withUniwind(Text);
 
+// Helper to convert 12h to 24h format string
+function formatTo24h(hour: number, minute: number, period: "AM" | "PM"): string {
+	let h = hour;
+	if (period === "PM" && hour !== 12) h += 12;
+	if (period === "AM" && hour === 12) h = 0;
+	return `${String(h).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+// Helper to convert 24h string to display format
+function formatToDisplay(time24: string): string {
+	const [h, m] = time24.split(":").map(Number);
+	const period = h >= 12 ? "pm" : "am";
+	const hour12 = h % 12 || 12;
+	return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 export default function TimeSetScreen() {
-	const [selectedDays, setSelectedDays] = useState<string[]>([]);
 	const [pickerVisible, setPickerVisible] = useState(false);
+	const { draft, addCondition, removeCondition } = useTaskDraftStore();
+
+	// Get all time slot conditions (metric: "time", relation: "within"), sorted by start time
+	const timeSlots = draft.conditions
+		.filter((c) => c.metric === "time" && c.relation === "within")
+		.sort((a, b) => a.target.value.start.localeCompare(b.target.value.start));
+
+	function handleSaveTimeSlot(
+		from: { hour: number; minute: number; period: "AM" | "PM" },
+		to: { hour: number; minute: number; period: "AM" | "PM" }
+	) {
+		const start = formatTo24h(from.hour, from.minute, from.period);
+		const end = formatTo24h(to.hour, to.minute, to.period);
+
+		// Check if this exact time slot already exists
+		const isDuplicate = timeSlots.some(
+			(slot) =>
+				slot.target.value.start === start && slot.target.value.end === end
+		);
+
+		if (isDuplicate) {
+			return; // Don't add duplicate
+		}
+
+		addCondition({
+			metric: "time",
+			relation: "within",
+			target: {
+				type: "range",
+				value: { start, end },
+			},
+		});
+	}
 
 	return (
 		<UView className="flex-1 bg-black">
@@ -36,19 +84,22 @@ export default function TimeSetScreen() {
 				{/* DAYS */}
 				<UView className="mb-6">
 					<UText className="mb-3 text-gray-300 text-lg">Days</UText>
-
-					<DaySelector value={selectedDays} onChange={setSelectedDays} />
+					<DaySelector />
 				</UView>
 
 				{/* TIMES */}
 				<UView className="mb-6">
 					<UText className="mb-3 text-gray-300 text-lg">Times</UText>
 
-					<TimeSlotCard startTime="6:00 am" endTime="8:00 am" />
-					<TimeSlotCard startTime="9:00 am" endTime="10:00 am" />
-					<TimeSlotCard startTime="12:00 pm" endTime="2:00 pm" />
-					<TimeSlotCard startTime="4:00 pm" endTime="6:00 pm" />
-					<TimeSlotCard startTime="8:00 pm" endTime="10:00 pm" />
+					{/* Render time slots from Zustand */}
+					{timeSlots.map((slot) => (
+						<TimeSlotCard
+							key={slot.id}
+							startTime={formatToDisplay(slot.target.value.start)}
+							endTime={formatToDisplay(slot.target.value.end)}
+							onRemove={() => removeCondition(slot.id)}
+						/>
+					))}
 
 					{/* ADD BUTTON */}
 					<UView className="mt-2 w-[25%]">
@@ -72,11 +123,7 @@ export default function TimeSetScreen() {
 			<TimePicker
 				visible={pickerVisible}
 				onClose={() => setPickerVisible(false)}
-				onSave={(from, to) => {
-					console.log("Picked Time Range →", { from, to });
-					// from: { hour: 6, minute: 0, period: "AM" }
-					// to: { hour: 8, minute: 0, period: "AM" }
-				}}
+				onSave={handleSaveTimeSlot}
 			/>
 		</UView>
 	);
