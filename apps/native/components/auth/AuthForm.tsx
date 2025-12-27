@@ -1,26 +1,23 @@
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ImageBackground, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { ImageBackground, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import {
   AuthFooterLegal,
   AuthHeading,
   Input,
   PrimaryButton,
   ScreenContainer,
-} from '@/components/ui';
-import { authClient } from '@/lib/auth-client';
-import type { AuthFormErrors, AuthMode } from './types';
+} from "@/components/ui";
+import { authClient } from "@/lib/auth-client";
+import type { AuthFormErrors, AuthMode } from "./types";
 
 export function AuthForm() {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [mode, setMode] = useState<AuthMode>("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<AuthFormErrors>({});
 
@@ -33,22 +30,22 @@ export function AuthForm() {
     const newErrors: AuthFormErrors = {};
 
     if (!email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!validateEmail(email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
 
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     } else if (password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+      newErrors.password = "Password must be at least 8 characters";
     }
 
-    if (mode === 'signup') {
+    if (mode === "signup") {
       if (!confirmPassword) {
-        newErrors.confirmPassword = 'Please confirm your password';
+        newErrors.confirmPassword = "Please confirm your password";
       } else if (confirmPassword !== password) {
-        newErrors.confirmPassword = 'Passwords do not match';
+        newErrors.confirmPassword = "Passwords do not match";
       }
     }
 
@@ -64,7 +61,7 @@ export function AuthForm() {
 
     try {
       let result: any;
-      if (mode === 'signin') {
+      if (mode === "signin") {
         result = await authClient.signIn.email({
           email,
           password,
@@ -73,18 +70,18 @@ export function AuthForm() {
         result = await authClient.signUp.email({
           email,
           password,
-          name: email.split('@')[0],
+          name: email.split("@")[0],
         });
       }
 
       if (result?.data) {
-        router.replace('/(auth)/welcome');
+        router.replace("/(auth)/welcome");
       } else {
-        setErrors({ general: 'Authentication failed. Please try again.' });
+        setErrors({ general: "Authentication failed. Please try again." });
       }
     } catch (err: unknown) {
       console.log(`${mode} error:`, err);
-      const errorMessage = (err as Error)?.message || 'An error occurred. Please try again.';
+      const errorMessage = (err as Error)?.message || "An error occurred. Please try again.";
       setErrors({ general: errorMessage });
     } finally {
       setLoading(false);
@@ -99,12 +96,12 @@ export function AuthForm() {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
 
-      if (userInfo.type === 'success') {
+      if (userInfo.type === "success") {
         const tokens = await GoogleSignin.getTokens();
         const { idToken, accessToken } = tokens;
 
         const result = await authClient.signIn.social({
-          provider: 'google',
+          provider: "google",
           idToken: {
             token: idToken,
             accessToken: accessToken,
@@ -112,12 +109,12 @@ export function AuthForm() {
         });
 
         if (result?.data) {
-          router.replace('/(auth)/welcome');
+          router.replace("/(auth)/welcome");
         }
       }
     } catch (error: any) {
-      console.error('Google sign-in error:', error);
-      setErrors({ general: 'Google sign-in failed. Please try again.' });
+      console.error("Google sign-in error:", error);
+      setErrors({ general: "Google sign-in failed. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -130,7 +127,7 @@ export function AuthForm() {
 
   return (
     <ImageBackground
-      source={require('../../assets/images/signinbg.png')}
+      source={require("../../assets/images/signinbg.png")}
       resizeMode="cover"
       style={{ flex: 1 }}
     >
@@ -141,28 +138,26 @@ export function AuthForm() {
           showsVerticalScrollIndicator={false}
         >
           <View className="mt-30">
-            <AuthHeading className="mb-10 text-4xl">
-              Get started with commitT
-            </AuthHeading>
+            <AuthHeading className="mb-10 text-4xl">Get started with commitT</AuthHeading>
           </View>
 
           <View className="mb-6 flex-row rounded-4xl bg-[#1A1A1A] p-1">
             <TouchableOpacity
-              className={`flex-1 rounded-3xl px-4 py-3 ${mode === 'signin' ? 'bg-[#4FA0FF]' : ''}`}
-              onPress={() => handleModeChange('signin')}
+              className={`flex-1 rounded-3xl px-4 py-3 ${mode === "signin" ? "bg-[#4FA0FF]" : ""}`}
+              onPress={() => handleModeChange("signin")}
             >
               <Text
-                className={`text-center font-semibold text-lg ${mode === 'signin' ? 'text-white' : 'text-gray-400'}`}
+                className={`text-center font-semibold text-lg ${mode === "signin" ? "text-white" : "text-gray-400"}`}
               >
                 Sign In
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className={`flex-1 rounded-3xl px-4 py-3 ${mode === 'signup' ? 'bg-[#4FA0FF]' : ''}`}
-              onPress={() => handleModeChange('signup')}
+              className={`flex-1 rounded-3xl px-4 py-3 ${mode === "signup" ? "bg-[#4FA0FF]" : ""}`}
+              onPress={() => handleModeChange("signup")}
             >
               <Text
-                className={`text-center font-semibold text-lg ${mode === 'signup' ? 'text-white' : 'text-gray-400'}`}
+                className={`text-center font-semibold text-lg ${mode === "signup" ? "text-white" : "text-gray-400"}`}
               >
                 Sign Up
               </Text>
@@ -181,11 +176,7 @@ export function AuthForm() {
               autoCapitalize="none"
               autoCorrect={false}
             />
-            {errors.email && (
-              <Text className="mt-1 ml-4 text-red-400 text-sm">
-                {errors.email}
-              </Text>
-            )}
+            {errors.email && <Text className="mt-1 ml-4 text-red-400 text-sm">{errors.email}</Text>}
           </View>
 
           <View className="mb-4">
@@ -201,49 +192,35 @@ export function AuthForm() {
               autoCorrect={false}
             />
             {errors.password && (
-              <Text className="mt-1 ml-4 text-red-400 text-sm">
-                {errors.password}
-              </Text>
+              <Text className="mt-1 ml-4 text-red-400 text-sm">{errors.password}</Text>
             )}
           </View>
 
-          {mode === 'signup' && (
+          {mode === "signup" && (
             <View className="mb-6">
               <Input
                 placeholder="Confirm Password"
                 value={confirmPassword}
                 onChangeText={(text) => {
                   setConfirmPassword(text);
-                  if (errors.confirmPassword)
-                    setErrors({ ...errors, confirmPassword: undefined });
+                  if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: undefined });
                 }}
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
               />
               {errors.confirmPassword && (
-                <Text className="mt-1 ml-4 text-red-400 text-sm">
-                  {errors.confirmPassword}
-                </Text>
+                <Text className="mt-1 ml-4 text-red-400 text-sm">{errors.confirmPassword}</Text>
               )}
             </View>
           )}
 
           {errors.general && (
-            <Text className="mb-4 text-center text-red-400 text-sm">
-              {errors.general}
-            </Text>
+            <Text className="mb-4 text-center text-red-400 text-sm">{errors.general}</Text>
           )}
 
-          <PrimaryButton
-            className="mb-6"
-            onPress={loading ? undefined : handleEmailAuth}
-          >
-            {loading
-              ? 'Please wait...'
-              : mode === 'signin'
-                ? 'Continue'
-                : 'Sign Up'}
+          <PrimaryButton className="mb-6" onPress={loading ? undefined : handleEmailAuth}>
+            {loading ? "Please wait..." : mode === "signin" ? "Continue" : "Sign Up"}
           </PrimaryButton>
 
           <View className="mb-6 flex-row items-center">
@@ -253,7 +230,7 @@ export function AuthForm() {
           </View>
 
           <PrimaryButton className="mb-3 bg-[#1E1E1E]" onPress={handleGoogle}>
-            {loading ? 'Signing in...' : 'Continue with Google'}
+            {loading ? "Signing in..." : "Continue with Google"}
           </PrimaryButton>
 
           <View className="mb-5 flex-1" />
@@ -262,8 +239,8 @@ export function AuthForm() {
             prefixText="By continuing, you accept our"
             privacyText="Privacy Policy"
             termsText="Terms & Conditions"
-            onPressPrivacy={() => console.log('Privacy')}
-            onPressTerms={() => console.log('Terms')}
+            onPressPrivacy={() => console.log("Privacy")}
+            onPressTerms={() => console.log("Terms")}
             className="mb-5"
           />
         </ScrollView>

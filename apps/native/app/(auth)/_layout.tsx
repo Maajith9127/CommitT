@@ -1,6 +1,6 @@
-import { Stack } from 'expo-router';
-import { useEffect } from 'react';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { Stack } from "expo-router";
+import { useEffect } from "react";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 export default function AuthLayout() {
   useEffect(() => {

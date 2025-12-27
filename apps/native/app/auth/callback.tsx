@@ -1,24 +1,24 @@
-import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { authClient } from '@/lib/auth-client';
+import { useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { useRouter } from "expo-router";
+import { authClient } from "@/lib/auth-client";
 
 export default function AuthCallback() {
   const router = useRouter();
 
   useEffect(() => {
     const checkSession = async () => {
-      console.log('OAuth callback loaded');
+      console.log("OAuth callback loaded");
 
       const session = await authClient.getSession();
-      console.log('Session result:', session);
+      console.log("Session result:", session);
 
       if (session?.data) {
-        console.log('Login success → redirect to welcome');
-        router.replace('/(auth)/welcome');
+        console.log("Login success → redirect to welcome");
+        router.replace("/(auth)/welcome");
       } else {
-        console.log('No session → back to signin');
-        router.replace('/(auth)/signin');
+        console.log("No session → back to signin");
+        router.replace("/(auth)/signin");
       }
     };
 

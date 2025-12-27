@@ -1,12 +1,12 @@
 import { Stack } from "expo-router";
 
 export default function VerifyCommitLayout() {
-    return (
-        <Stack
-            screenOptions={{
-                headerShown: false,
-                animation: "slide_from_bottom",
-            }}
-        />
-    );
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_bottom",
+      }}
+    />
+  );
 }

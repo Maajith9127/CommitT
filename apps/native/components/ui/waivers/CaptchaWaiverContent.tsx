@@ -38,9 +38,7 @@ export function CaptchaWaiverContent({ onConfirm }: CaptchaWaiverContentProps) {
 
       <UView className="items-center justify-center mb-4 flex-row space-x-4">
         <MaterialCommunityIcons name="robot-excited-outline" size={60} color="#4CD964" />
-        <HeaderTitle className="text-5xl text-white ml-4">
-          {captchaCount}
-        </HeaderTitle>
+        <HeaderTitle className="text-5xl text-white ml-4">{captchaCount}</HeaderTitle>
       </UView>
 
       {/* DIFFICULTY LABEL */}
@@ -66,9 +64,7 @@ export function CaptchaWaiverContent({ onConfirm }: CaptchaWaiverContentProps) {
       </UView>
 
       {/* NOISE LEVEL SELECTOR */}
-      <FooterText className="text-gray-400 mb-3">
-        Select Captcha Toughness (Noise Level)
-      </FooterText>
+      <FooterText className="text-gray-400 mb-3">Select Captcha Toughness (Noise Level)</FooterText>
       <UView className="flex-row gap-4 mb-8">
         {["low", "medium", "high"].map((level) => (
           <TouchableOpacity
@@ -92,16 +88,12 @@ export function CaptchaWaiverContent({ onConfirm }: CaptchaWaiverContentProps) {
       </UView>
 
       {/* VISUAL PREVIEW OF NOISE */}
-      <UView 
-          className="items-center mb-8 w-full" 
-          onLayout={(event: LayoutChangeEvent) => setContainerWidth(event.nativeEvent.layout.width)}
+      <UView
+        className="items-center mb-8 w-full"
+        onLayout={(event: LayoutChangeEvent) => setContainerWidth(event.nativeEvent.layout.width)}
       >
         {containerWidth > 0 && (
-            <CaptchaGenerator 
-                difficulty={captchaDifficulty} 
-                width={containerWidth} 
-                height={80}
-            />
+          <CaptchaGenerator difficulty={captchaDifficulty} width={containerWidth} height={80} />
         )}
 
         <FooterText className="mt-3 text-gray-400 text-center">
