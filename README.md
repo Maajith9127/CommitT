@@ -10,9 +10,9 @@ This system allows users to assign tasks to themselves or receive tasks from oth
   The stake is returned.
 
 - ❌ **Task Not Completed:**  
-  The stake is lost and can be:  
-  - Donated to a cause or charity  
-  - Given to the assigner  
+  The stake is lost and can be:
+  - Donated to a cause or charity
+  - Given to the assigner
   - Held in a designated accountability pool
 
 ## Main Processes

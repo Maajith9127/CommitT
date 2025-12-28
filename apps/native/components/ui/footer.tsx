@@ -15,11 +15,7 @@ export function AuthMemberPrompt({
   text?: string;
   className?: string;
 }) {
-  return (
-    <UText className={`text-gray-300 text-base text-center mb-4 ${className}`}>
-      {text}
-    </UText>
-  );
+  return <UText className={`mb-4 text-center text-base text-gray-300 ${className}`}>{text}</UText>;
 }
 
 // -----------------------------
@@ -36,9 +32,7 @@ export function FooterLink({
 }) {
   return (
     <UButton onPress={onPress}>
-      <UText className={`text-blue-400 underline text-base ${className}`}>
-        {children}
-      </UText>
+      <UText className={`text-base text-blue-400 underline ${className}`}>{children}</UText>
     </UButton>
   );
 }
@@ -63,9 +57,7 @@ export function AuthFooterLegal({
 }) {
   return (
     <UView className={`items-center ${className}`}>
-      <UText className="text-gray-400 text-sm text-center mb-1">
-        {prefixText}
-      </UText>
+      <UText className="mb-1 text-center text-gray-400 text-sm">{prefixText}</UText>
 
       <UView className="flex-row space-x-2">
         <FooterLink onPress={onPressPrivacy}>{privacyText}</FooterLink>

@@ -1,5 +1,5 @@
-import { Stack, Slot } from "expo-router";
-import { View, Text } from "react-native";
+import { Slot, Stack } from "expo-router";
+import { Text, View } from "react-native";
 import { withUniwind } from "uniwind";
 import { BottomTabBar } from "@/components/ui/index";
 
@@ -10,21 +10,7 @@ export default function MainLayout() {
   return (
     <UView className="flex-1 bg-black">
       {/* TOP NAVBAR */}
-      <UView
-        className="
-          w-full 
-          flex-row 
-          items-center 
-          justify-between 
-          px-6 
-          py-4 
-          bg-black 
-          border-b 
-          border-gray-800
-        "
-      >
-     
-      </UView>
+      <UView className="w-full flex-row items-center justify-between border-gray-800 border-b bg-black px-6 py-4" />
 
       {/* MAIN SCREEN CONTENT */}
       <UView className="flex-1">

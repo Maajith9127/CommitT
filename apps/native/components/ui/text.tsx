@@ -14,7 +14,7 @@ export function AuthTitle({
   className?: string;
 }) {
   return (
-    <UText className={`text-gray-300 font-light text-base text-center mb-2 ${className}`}>
+    <UText className={`mb-2 text-center font-light text-base text-gray-300 ${className}`}>
       {children}
     </UText>
   );
@@ -31,9 +31,7 @@ export function AuthHeading({
   className?: string;
 }) {
   return (
-    <UText
-      className={`text-white text-3xl font-medium  text-center mb-6 ${className}`}
-    >
+    <UText className={`mb-6 text-center font-medium text-3xl text-white ${className}`}>
       {children}
     </UText>
   );
@@ -49,13 +47,7 @@ export function FooterText({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <UText
-      className={`text-xs  text-gray-400 mt-1 ${className}`}
-    >
-      {children}
-    </UText>
-  );
+  return <UText className={`mt-1 text-gray-400 text-xs ${className}`}>{children}</UText>;
 }
 
 // -----------------------------
@@ -71,12 +63,8 @@ export function HeaderTitle({
   style?: object;
 }) {
   return (
-    <UText
-      className={`text-white text-xl font-semibold ${className}`}
-      style={style}
-    >
+    <UText className={`font-semibold text-white text-xl ${className}`} style={style}>
       {children}
     </UText>
   );
 }
-

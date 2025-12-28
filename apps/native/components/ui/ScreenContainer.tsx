@@ -1,7 +1,7 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import type { ReactNode } from "react";
 import { View } from "react-native";
 import { withUniwind } from "uniwind";
-import type { ReactNode } from "react";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { HeaderTitle } from "./text"; // using your existing titles
 
 const UView = withUniwind(View);
@@ -39,11 +39,7 @@ export function ScreenHeader({
 }) {
   return (
     <UView
-      className={`
-        bg-black
-        pl-4 pr-4 pt-5 pb-5
-      
-        ${className}
+      className={`bg-black pt-5 pr-4 pb-5 pl-4 ${className}
       `}
     >
       {children}

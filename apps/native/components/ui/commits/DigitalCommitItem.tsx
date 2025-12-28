@@ -1,77 +1,77 @@
-// components/ui/commits/DigitalCommitItem.tsx
-
-import { View, Pressable, Image, ScrollView } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image, ScrollView, View } from "react-native";
 import { withUniwind } from "uniwind";
-import { HeaderTitle, FooterText } from "@/components/ui/text";
+import { FooterText, HeaderTitle } from "@/components/ui/text";
 
 const UView = withUniwind(View);
-const UPress = withUniwind(Pressable);
+const UPress = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 
-export type DigitalCommitItemType = {
-    id: string;
-    name: string;
-    icon?: string;
+type Item = {
+  id: string;
+  name: string;
+  icon?: string;
+  iconName?: string;
+  iconColor?: string;
+  iconSize?: number;
 };
 
 type Props = {
-    title: string;
-    icons: React.ReactNode;
-    items: DigitalCommitItemType[];
-    showBorder?: boolean;
+  title: string;
+  items: Item[];
+  icons?: React.ReactNode;
+  showBorder?: boolean;
+  accentColor?: string; // icon color
+  titleColor?: string; // title color
 };
 
 export function DigitalCommitItem({
-    title,
-    icons,
-    items,
-    showBorder = true,
+  title,
+  items,
+  icons,
+  showBorder = true,
+  accentColor = "#4FA0FF",
+  titleColor = "#FFFFFF",
 }: Props) {
-    return (
-        <UPress className={`py-4 ${showBorder ? "border-b border-[#2A2A2A]" : ""}`}>
+  return (
+    <UPress className="py-3">
+      {/* TITLE ROW */}
+      <UView className="flex-row items-center justify-between">
+        <HeaderTitle className="text-lg" style={{ color: titleColor }}>
+          {title}
+        </HeaderTitle>
 
-            {/* -------------------------------------------------- */}
-            {/* TOP ROW — TITLE + RIGHT SIDE ICONS                 */}
-            {/* -------------------------------------------------- */}
-            <UView className="flex-row justify-between items-center">
-                <HeaderTitle className="text-lg">{title}</HeaderTitle>
-                <UView className="flex-row items-center">{icons}</UView>
+        <UView className="flex-row items-center">{icons}</UView>
+      </UView>
+
+      {/* ITEMS */}
+      {items.length > 0 && (
+        <UScroll
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ flexDirection: "row" }}
+          className="mt-3"
+        >
+          {items.map((item) => (
+            <UView key={item.id} className="mr-5 flex-row items-center">
+              {item.iconName ? (
+                <MaterialCommunityIcons
+                  name={item.iconName as any}
+                  size={item.iconSize ?? 24}
+                  color={item.iconColor ?? accentColor}
+                />
+              ) : item.icon ? (
+                <Image
+                  source={{ uri: item.icon }}
+                  style={{ width: 32, height: 32, borderRadius: 8 }}
+                />
+              ) : null}
+
+              <FooterText className="ml-3 text-gray-400 text-sm">{item.name}</FooterText>
             </UView>
-
-            {/* -------------------------------------------------- */}
-            {/* HORIZONTAL ITEM LIST                               */}
-            {/* -------------------------------------------------- */}
-            {items.length > 0 && (
-                <UScroll
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ flexDirection: "row" }}
-                    className="mt-3"
-                >
-                    {items.map((item) => (
-                        <UView key={item.id} className="flex-row items-center mr-5">
-
-                            {/* Item Icon */}
-                            {item.icon && (
-                                <Image
-                                    source={{ uri: item.icon }}
-                                    style={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: 8,
-                                    }}
-                                />
-                            )}
-
-                            {/* Item Label */}
-                            <FooterText className="text-gray-400 text-sm ml-3">
-                                {item.name}
-                            </FooterText>
-
-                        </UView>
-                    ))}
-                </UScroll>
-            )}
-        </UPress>
-    );
+          ))}
+        </UScroll>
+      )}
+    </UPress>
+  );
 }

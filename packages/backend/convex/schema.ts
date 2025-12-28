@@ -1,2 +1,4 @@
-// Main schema export - imports from schemas folder
-export { schema as default } from "./schemas";
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({});

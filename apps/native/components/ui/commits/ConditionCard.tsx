@@ -1,7 +1,7 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TouchableOpacity, View } from "react-native";
 import { withUniwind } from "uniwind";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { HeaderTitle, FooterText } from "@/components/ui/text";
+import { FooterText, HeaderTitle } from "@/components/ui/text";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
@@ -14,7 +14,9 @@ export type ConditionCardProps = {
   className?: string;
   width?: number;
   iconColor?: string;
-  titleColor?: string;   //  NEW
+  titleColor?: string;
+  selected?: boolean;
+  selectionColor?: string;
 };
 
 export function ConditionCard({
@@ -25,17 +27,21 @@ export function ConditionCard({
   className = "",
   width,
   iconColor = "#4FA0FF",
-  titleColor = "#FFFFFF",  //  default (white)
+  titleColor = "#FFFFFF",
+  selected = false,
+  selectionColor = "#4FA0FF",
 }: ConditionCardProps) {
   return (
     <UButton
       onPress={onPress}
-      style={width ? { width } : undefined}
-      className={`bg-[#1A1A1A] rounded-3xl px-4 py-4 mb-4 ${className}`}
+      style={[
+        width ? { width } : undefined,
+        selected ? { borderWidth: 3, borderColor: selectionColor } : undefined,
+      ]}
+      className={`mb-4 rounded-3xl bg-[#1A1A1A] px-4 py-4 ${className}`}
       activeOpacity={0.8}
     >
       <UView className="flex-row items-center">
-
         {/* ICON */}
         <MaterialCommunityIcons
           name={icon}
@@ -46,16 +52,11 @@ export function ConditionCard({
 
         {/* TITLE + SUBTITLE */}
         <UView className="flex-1">
-          <HeaderTitle
-            className="text-lg"
-            style={{ color: titleColor }}    // 🔥 APPLY TITLE COLOR
-          >
+          <HeaderTitle className="text-lg" style={{ color: titleColor }}>
             {title}
           </HeaderTitle>
 
-          <FooterText className="text-gray-400 text-sm mt-1">
-            {subtitle}
-          </FooterText>
+          <FooterText className="mt-1 text-gray-400 text-sm">{subtitle}</FooterText>
         </UView>
       </UView>
     </UButton>

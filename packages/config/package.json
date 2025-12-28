@@ -1,5 +1,5 @@
 {
-	"name": "@mono/config",
-	"version": "0.0.0",
-	"private": true
+  "name": "@commit/config",
+  "version": "0.0.0",
+  "private": true
 }

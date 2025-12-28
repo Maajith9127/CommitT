@@ -7,27 +7,21 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const AnimatedView = Animated.createAnimatedComponent(View);
 
 type Props = AnimatedProps<ViewProps> & {
-	className?: string;
+  className?: string;
 };
 
-export function Container({
-	children,
-	className,
-	...props
-}: PropsWithChildren<Props>) {
-	const insets = useSafeAreaInsets();
+export function Container({ children, className, ...props }: PropsWithChildren<Props>) {
+  const insets = useSafeAreaInsets();
 
-	return (
-		<AnimatedView
-			className={cn("flex-1 bg-background", className)}
-			style={{
-				paddingBottom: insets.bottom,
-			}}
-			{...props}
-		>
-			<ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-				{children}
-			</ScrollView>
-		</AnimatedView>
-	);
+  return (
+    <AnimatedView
+      className={cn("flex-1 bg-background", className)}
+      style={{
+        paddingBottom: insets.bottom,
+      }}
+      {...props}
+    >
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>{children}</ScrollView>
+    </AnimatedView>
+  );
 }

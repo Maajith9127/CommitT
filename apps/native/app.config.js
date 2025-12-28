@@ -1,33 +1,43 @@
-export default {
-	expo: {
-		scheme: "mono",
-		userInterfaceStyle: "automatic",
-		orientation: "default",
-		web: {
-			bundler: "metro",
-		},
-		name: "mono",
-		slug: "mono",
-		plugins: ["expo-font", "@react-native-google-signin/google-signin"],
-		experiments: {
-			typedRoutes: true,
-			reactCompiler: true,
-		},
+import 'dotenv/config';
 
-		//  THIS IS THE FIX
-		newArchEnabled: false,
-		android: {
-			package: "com.anonymous.mono",
-		},
-		ios: {
-			bundleIdentifier: "com.anonymous.mono",
-		},
-
-		//  You can add env support later like this:
-		extra: {
-			// Example:
-			// apiUrl: process.env.API_URL,
-			// wsUrl: process.env.WS_URL,
-		},
-	},
+const config = {
+  expo: {
+    scheme: "commit",
+    userInterfaceStyle: "automatic",
+    orientation: "default",
+    web: {
+      bundler: "metro"
+    },
+    name: "commit",
+    slug: "commit",
+    plugins: [
+      "expo-font",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-maps",
+        {
+          requestLocationPermission: true,
+          locationPermission: "Allow commit to use your location"
+        }
+      ]
+    ],
+    experiments: {
+      typedRoutes: true,
+      reactCompiler: true
+    },
+    android: {
+      package: "com.mono.commit",
+      config: {
+        googleMaps: {
+          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+        }
+      },
+      permissions: [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+  }
 };
+
+export default config;

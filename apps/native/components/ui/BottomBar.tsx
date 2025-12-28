@@ -1,8 +1,8 @@
-import { View, TouchableOpacity } from "react-native";
-import { withUniwind } from "uniwind";
 import { Ionicons } from "@expo/vector-icons";
-import { FooterText } from "@/components/ui";
-import { useRouter, usePathname } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
+import { TouchableOpacity, View } from "react-native";
+import { withUniwind } from "uniwind";
+import { FooterText } from "@/components/ui/text";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
@@ -35,25 +35,19 @@ export function BottomTabBar() {
   ];
 
   return (
-    <UView className="flex-row py-4 pb-7 justify-around">
+    <UView className="flex-row justify-around py-4 pb-7">
       {tabs.map((tab) => {
         const isActive = pathname === tab.path;
 
         return (
           <UButton
             key={tab.name}
-            className="items-center flex-1"
+            className="flex-1 items-center"
             onPress={() => router.push(tab.path)}
           >
-            <Ionicons
-              name={tab.icon}
-              size={26}
-              color={isActive ? "#4FA0FF" : "#9CA3AF"}
-            />
+            <Ionicons name={tab.icon} size={26} color={isActive ? "#4FA0FF" : "#9CA3AF"} />
 
-            <FooterText
-              className={isActive ? "text-[#4FA0FF]" : "text-gray-400"}
-            >
+            <FooterText className={isActive ? "text-[#4FA0FF]" : "text-gray-400"}>
               {tab.name}
             </FooterText>
           </UButton>
