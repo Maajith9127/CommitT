@@ -155,6 +155,19 @@
         "vite": "^6.2.2",
       },
     },
+    "packages/ai": {
+      "name": "@commit/ai",
+      "version": "0.0.0",
+      "dependencies": {
+        "@opencode-ai/sdk": "1.0.207",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@commit/config": "workspace:*",
+        "@types/node": "^24.3.0",
+        "typescript": "^5",
+      },
+    },
     "packages/backend": {
       "name": "@commit/backend",
       "version": "1.0.0",
@@ -464,6 +477,8 @@
 
     "@canvas/image-data": ["@canvas/image-data@1.1.0", "", {}, "sha512-QdObRRjRbcXGmM1tmJ+MrHcaz1MftF2+W7YI+MsphnsCrmtyfS0d5qJbk0MeSbUeyM/jCb0hmnkXPsy026L7dA=="],
 
+    "@commit/ai": ["@commit/ai@workspace:packages/ai"],
+
     "@commit/backend": ["@commit/backend@workspace:packages/backend"],
 
     "@commit/config": ["@commit/config@workspace:packages/config"],
@@ -735,6 +750,8 @@
     "@open-draft/logger": ["@open-draft/logger@0.3.0", "", { "dependencies": { "is-node-process": "^1.2.0", "outvariant": "^1.4.0" } }, "sha512-X2g45fzhxH238HKO4xbSr7+wBS8Fvw6ixhTDuvLd5mqh6bJJCFAPwU9mPDxbcrRtfxv4u5IHCEH77BmxvXmmxQ=="],
 
     "@open-draft/until": ["@open-draft/until@2.1.0", "", {}, "sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg=="],
+
+    "@opencode-ai/sdk": ["@opencode-ai/sdk@1.0.207", "", {}, "sha512-/t4C3+PXZ5NpN7+HwKZmVwJsJmQ1eyub0eQcV8GZh7fuPo2wCxKHCD/lzk82CobW+3jVp2TSBKeDBBTtVvEFeQ=="],
 
     "@orama/orama": ["@orama/orama@3.1.18", "", {}, "sha512-a61ljmRVVyG5MC/698C8/FfFDw5a8LOIvyOLW5fztgUXqUpc1jOfQzOitSCbge657OgXXThmY3Tk8fpiDb4UcA=="],
 

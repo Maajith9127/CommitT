@@ -1,0 +1,23 @@
+{
+  "name": "@commit/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "check-types": "tsc --noEmit",
+    "test": "bun test.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@opencode-ai/sdk": "1.0.207",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@commit/config": "workspace:*",
+    "@types/node": "^24.3.0",
+    "typescript": "^5"
+  }
+}
