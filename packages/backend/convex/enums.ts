@@ -13,7 +13,7 @@ export const relationEnum = v.union(
   v.literal("outside"),
   v.literal("exists"),
   v.literal("matches"),
-  v.literal("range")
+  v.literal("range"),
 );
 
 export const targetTypeEnum = v.union(
@@ -23,7 +23,7 @@ export const targetTypeEnum = v.union(
   v.literal("array"),
   v.literal("range"),
   v.literal("file"),
-  v.literal("log")
+  v.literal("log"),
 );
 
 export const permissionEnum = v.union(
@@ -33,14 +33,18 @@ export const permissionEnum = v.union(
   v.literal("network"),
   v.literal("location"),
   v.literal("media"),
-  v.literal("external")
+  v.literal("external"),
 );
 
-export const visibilityEnum = v.union(v.literal("public"), v.literal("private"), v.literal("shared"));
+export const visibilityEnum = v.union(
+  v.literal("public"),
+  v.literal("private"),
+  v.literal("shared"),
+);
 
 export const taskStatusEnum = v.union(
   v.literal("pending"),
   v.literal("proceeding"),
   v.literal("proceeded"),
-  v.literal("failed")
+  v.literal("failed"),
 );
