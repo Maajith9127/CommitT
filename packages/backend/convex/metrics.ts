@@ -1,12 +1,14 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import {
-  relationEnum,
-  targetTypeEnum,
-  permissionEnum,
-} from "./enums";
+import { mutation, query, internalQuery } from "./_generated/server";
+import { relationEnum, targetTypeEnum, permissionEnum } from "./enums";
 
 export const list = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("metrics").collect();
+  },
+});
+
+export const listInternal = internalQuery({
   handler: async (ctx) => {
     return await ctx.db.query("metrics").collect();
   },

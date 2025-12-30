@@ -21,8 +21,8 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_name", ["name"]),
   tasks: defineTable({
-    assigner_id: v.id("user"),
-    assignee_id: v.id("user"),
+    assigner_id: v.string(),
+    assignee_id: v.string(),
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,

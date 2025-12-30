@@ -1,11 +1,8 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import {
-  relationEnum,
-  targetTypeEnum,
-  visibilityEnum,
-  taskStatusEnum,
-} from "./enums";
+import { action, internalMutation, mutation, query } from "./_generated/server";
+import { relationEnum, targetTypeEnum, visibilityEnum, taskStatusEnum } from "./enums";
+import { generateTaskConditions } from "./opencode";
+import { internal } from "./_generated/api";
 
 export const list = query({
   handler: async (ctx) => {
@@ -80,6 +77,87 @@ export const create = mutation({
       created_at: now,
       updated_at: now,
     });
+  },
+});
+
+export const createInternal = internalMutation({
+  args: {
+    assigner_id: v.string(),
+    assignee_id: v.string(),
+    title: v.string(),
+    description: v.string(),
+    visibility: visibilityEnum,
+    time_window: v.object({
+      start_at: v.number(),
+      due_at: v.number(),
+    }),
+    conditions: v.array(
+      v.object({
+        metric_key: v.string(),
+        relation: relationEnum,
+        target: v.object({
+          type: targetTypeEnum,
+          value: v.any(),
+        }),
+      }),
+    ),
+    status: taskStatusEnum,
+    created_at: v.number(),
+    updated_at: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("tasks", args);
+  },
+});
+
+export const generate = action({
+  args: {
+    assigner_id: v.string(),
+    assignee_id: v.string(),
+    title: v.string(),
+    description: v.string(),
+    visibility: visibilityEnum,
+    time_window: v.object({
+      start_at: v.number(),
+      due_at: v.number(),
+    }),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const metrics = await ctx.runQuery(internal.metrics.listInternal);
+
+      const conditions = await generateTaskConditions({
+        title: args.title,
+        description: args.description,
+        metrics: metrics.map((m: any) => ({
+          key: m.key,
+          name: m.name,
+          description: m.description,
+          unit: m.unit,
+          allowed_relations: m.allowed_relations,
+          allowed_target_types: m.allowed_target_types,
+        })),
+      });
+
+      const now = Date.now();
+      await ctx.runMutation(internal.tasks.createInternal, {
+        assigner_id: args.assigner_id,
+        assignee_id: args.assignee_id,
+        title: args.title,
+        description: args.description,
+        visibility: args.visibility,
+        time_window: args.time_window,
+        conditions: conditions as any,
+        status: "pending",
+        created_at: now,
+        updated_at: now,
+      });
+    } catch (error) {
+      console.error("Failed to generate task:", error);
+      throw new Error(
+        `Failed to generate task: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   },
 });
 

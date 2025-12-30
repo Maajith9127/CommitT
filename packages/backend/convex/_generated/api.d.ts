@@ -13,6 +13,7 @@ import type * as enums from "../enums.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as metrics from "../metrics.js";
+import type * as opencode from "../opencode.js";
 import type * as privateData from "../privateData.js";
 import type * as tasks from "../tasks.js";
 
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   healthCheck: typeof healthCheck;
   http: typeof http;
   metrics: typeof metrics;
+  opencode: typeof opencode;
   privateData: typeof privateData;
   tasks: typeof tasks;
 }>;
