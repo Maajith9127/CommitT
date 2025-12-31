@@ -19,12 +19,7 @@ export type ConditionRelation =
   | "exists"
   | "matches";
 
-export type ConditionTargetType =
-  | "number"
-  | "string"
-  | "boolean"
-  | "array"
-  | "range";
+export type ConditionTargetType = "number" | "string" | "boolean" | "array" | "range";
 
 export type Condition = {
   id: string; // frontend-only, for list rendering
@@ -197,10 +192,7 @@ export const useTaskDraftStore = create<TaskDraftStore>((set) => ({
     set((state) => ({
       draft: {
         ...state.draft,
-        conditions: [
-          ...state.draft.conditions,
-          { ...condition, id: nanoid() },
-        ],
+        conditions: [...state.draft.conditions, { ...condition, id: nanoid() }],
       },
     })),
 
@@ -208,9 +200,7 @@ export const useTaskDraftStore = create<TaskDraftStore>((set) => ({
     set((state) => ({
       draft: {
         ...state.draft,
-        conditions: state.draft.conditions.map((c) =>
-          c.id === id ? { ...c, ...updates } : c
-        ),
+        conditions: state.draft.conditions.map((c) => (c.id === id ? { ...c, ...updates } : c)),
       },
     })),
 
