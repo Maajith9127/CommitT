@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 
 const config = {
   expo: {
@@ -6,7 +6,7 @@ const config = {
     userInterfaceStyle: "automatic",
     orientation: "default",
     web: {
-      bundler: "metro"
+      bundler: "metro",
     },
     name: "commit",
     slug: "commit",
@@ -17,27 +17,27 @@ const config = {
         "expo-maps",
         {
           requestLocationPermission: true,
-          locationPermission: "Allow commit to use your location"
-        }
-      ]
+          locationPermission: "Allow commit to use your location",
+        },
+      ],
     ],
     experiments: {
       typedRoutes: true,
-      reactCompiler: true
+      reactCompiler: true,
     },
     android: {
       package: "com.mono.commit",
       config: {
         googleMaps: {
-          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
-        }
+          apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+        },
       },
       permissions: [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
-      ]
+        "android.permission.ACCESS_FINE_LOCATION",
+      ],
     },
-  }
+  },
 };
 
 export default config;
