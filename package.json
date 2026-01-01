@@ -36,6 +36,7 @@
     "zod": "^4.3.2"
   },
   "devDependencies": {
+    "@commit/config": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "oxfmt": "^0.21.0",

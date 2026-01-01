@@ -1,5 +1,5 @@
 {
-  "name": "fumadocs",
+  "name": "@commit/docs",
   "private": true,
   "type": "module",
   "sideEffects": false,
@@ -24,6 +24,7 @@
     "vite": "^7.2.7"
   },
   "devDependencies": {
+    "@commit/config": "workspace:*",
     "@tailwindcss/vite": "^4.1.18",
     "@types/mdx": "^2.0.13",
     "@types/node": "catalog:",
