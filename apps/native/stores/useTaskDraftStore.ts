@@ -19,7 +19,12 @@ export type ConditionRelation =
   | "exists"
   | "matches";
 
-export type ConditionTargetType = "number" | "string" | "boolean" | "array" | "range";
+export type ConditionTargetType =
+  | "number"
+  | "string"
+  | "boolean"
+  | "array"
+  | "range";
 
 export type Condition = {
   id: string; // frontend-only, for list rendering
@@ -50,6 +55,21 @@ export type TaskDraft = {
 
   // rules
   conditions: Condition[];
+
+  // location draft (newly added for location-set flow)
+  location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+    radius: number;
+    isInverse: boolean;
+  } | null;
+
+  // camera target (ui only)
+  cameraTarget: {
+    latitude: number;
+    longitude: number;
+  } | null;
 };
 
 /* -----------------------------
@@ -67,6 +87,10 @@ type TaskDraftStore = {
 
   setStartAt: (timestamp: number | null) => void;
   setDueAt: (timestamp: number | null) => void;
+
+  // location
+  setLocation: (location: TaskDraft["location"]) => void;
+  setCameraTarget: (target: TaskDraft["cameraTarget"]) => void;
 
   // conditions
   addCondition: (condition: Omit<Condition, "id">) => void;
@@ -97,6 +121,8 @@ const createEmptyDraft = (): TaskDraft => ({
   },
 
   conditions: [],
+  location: null,
+  cameraTarget: null,
 });
 
 /* -----------------------------
@@ -152,13 +178,29 @@ export const useTaskDraftStore = create<TaskDraftStore>((set) => ({
     })),
 
   // -----------------
+  // location
+  // -----------------
+  setLocation: (location) =>
+    set((state) => ({
+      draft: { ...state.draft, location },
+    })),
+
+  setCameraTarget: (target) =>
+    set((state) => ({
+      draft: { ...state.draft, cameraTarget: target },
+    })),
+
+  // -----------------
   // conditions
   // -----------------
   addCondition: (condition) =>
     set((state) => ({
       draft: {
         ...state.draft,
-        conditions: [...state.draft.conditions, { ...condition, id: nanoid() }],
+        conditions: [
+          ...state.draft.conditions,
+          { ...condition, id: nanoid() },
+        ],
       },
     })),
 
@@ -166,7 +208,9 @@ export const useTaskDraftStore = create<TaskDraftStore>((set) => ({
     set((state) => ({
       draft: {
         ...state.draft,
-        conditions: state.draft.conditions.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+        conditions: state.draft.conditions.map((c) =>
+          c.id === id ? { ...c, ...updates } : c
+        ),
       },
     })),
 

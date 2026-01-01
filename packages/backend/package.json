@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@commit/config": "workspace:*",
-    "@types/node": "^24.3.0",
-    "typescript": "^5"
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
   }
 }
