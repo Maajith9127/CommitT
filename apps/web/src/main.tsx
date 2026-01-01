@@ -4,10 +4,11 @@ import { ConvexReactClient } from "convex/react";
 import ReactDOM from "react-dom/client";
 
 import { authClient } from "@/lib/auth-client";
+import { env } from "@commit/env/web";
 
 import Loader from "./components/loader";
 import { routeTree } from "./routeTree.gen";
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convex = new ConvexReactClient(env.VITE_CONVEX_URL);
 
 const router = createRouter({
   routeTree,

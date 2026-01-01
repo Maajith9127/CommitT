@@ -14,6 +14,7 @@
   "dependencies": {
     "@better-auth/expo": "catalog:",
     "@commit/backend": "workspace:*",
+    "@commit/env": "workspace:*",
     "@convex-dev/better-auth": "catalog:",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.3",

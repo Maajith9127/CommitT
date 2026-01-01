@@ -1,11 +1,12 @@
 import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { env } from "@commit/env/native";
 
 export default function AuthLayout() {
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
+      webClientId: env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     });
   }, []);
 

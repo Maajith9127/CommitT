@@ -17,6 +17,7 @@
   "dependencies": {
     "@base-ui/react": "^1.0.0",
     "@commit/backend": "workspace:*",
+    "@commit/env": "workspace:*",
     "@convex-dev/better-auth": "catalog:",
     "@hookform/resolvers": "^5.1.1",
     "@tailwindcss/vite": "^4.0.15",

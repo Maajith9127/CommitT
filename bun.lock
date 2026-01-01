@@ -39,6 +39,7 @@
       "dependencies": {
         "@better-auth/expo": "catalog:",
         "@commit/backend": "workspace:*",
+        "@commit/env": "workspace:*",
         "@convex-dev/better-auth": "catalog:",
         "@expo/metro-runtime": "~6.1.2",
         "@expo/vector-icons": "^15.0.3",
@@ -94,6 +95,7 @@
       "dependencies": {
         "@base-ui/react": "^1.0.0",
         "@commit/backend": "workspace:*",
+        "@commit/env": "workspace:*",
         "@convex-dev/better-auth": "catalog:",
         "@hookform/resolvers": "^5.1.1",
         "@tailwindcss/vite": "^4.0.15",
@@ -136,6 +138,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@better-auth/expo": "catalog:",
+        "@commit/env": "workspace:*",
         "@convex-dev/better-auth": "catalog:",
         "@opencode-ai/sdk": "^1.0.213",
         "better-auth": "catalog:",
@@ -182,10 +185,24 @@
         "vite-tsconfig-paths": "^6.0.0",
       },
     },
+    "packages/env": {
+      "name": "@commit/env",
+      "version": "0.0.1",
+      "dependencies": {
+        "@t3-oss/env-core": "catalog:",
+        "dotenv": "catalog:",
+        "zod": "catalog:",
+      },
+      "devDependencies": {
+        "@commit/config": "workspace:*",
+        "typescript": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@better-auth/expo": "^1.4.10",
     "@convex-dev/better-auth": "^0.10.9",
+    "@t3-oss/env-core": "^0.13.10",
     "@types/node": "^25.0.3",
     "@types/react": "19.2.7",
     "better-auth": "^1.4.10",
@@ -480,6 +497,8 @@
     "@commit/config": ["@commit/config@workspace:packages/config"],
 
     "@commit/docs": ["@commit/docs@workspace:packages/docs"],
+
+    "@commit/env": ["@commit/env@workspace:packages/env"],
 
     "@convex-dev/better-auth": ["@convex-dev/better-auth@0.10.9", "", { "dependencies": { "@better-auth/passkey": "1.4.9", "@better-fetch/fetch": "^1.1.18", "common-tags": "^1.8.2", "convex-helpers": "^0.1.95", "jose": "^6.1.0", "remeda": "^2.32.0", "semver": "^7.7.3", "type-fest": "^4.39.1", "zod": "^4.0.0" }, "peerDependencies": { "better-auth": "1.4.9", "convex": "^1.25.0", "react": "^18.3.1 || ^19.0.0", "react-dom": "^18.3.1 || ^19.0.0" } }, "sha512-GxLQv4oKh9vLAn/LadN8NqY/naAcyP3qmhSli3P5nObtDH1aq/EI/PZ/WpbdJCDrelL0TXg1JvGaWJueuGLXIA=="],
 
@@ -1080,6 +1099,8 @@
     "@standard-schema/utils": ["@standard-schema/utils@0.3.0", "", {}, "sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g=="],
 
     "@surma/rollup-plugin-off-main-thread": ["@surma/rollup-plugin-off-main-thread@2.2.3", "", { "dependencies": { "ejs": "^3.1.6", "json5": "^2.2.0", "magic-string": "^0.25.0", "string.prototype.matchall": "^4.0.6" } }, "sha512-lR8q/9W7hZpMWweNiAKU7NQerBnzQQLvi8qnTDU/fxItPhtZVMbPV3lbCwjhIlNBe9Bbr5V+KHshvWmVSG9cxQ=="],
+
+    "@t3-oss/env-core": ["@t3-oss/env-core@0.13.10", "", { "peerDependencies": { "arktype": "^2.1.0", "typescript": ">=5.0.0", "valibot": "^1.0.0-beta.7 || ^1.0.0", "zod": "^3.24.0 || ^4.0.0" }, "optionalPeers": ["arktype", "typescript", "valibot", "zod"] }, "sha512-NNFfdlJ+HmPHkLi2HKy7nwuat9SIYOxei9K10lO2YlcSObDILY7mHZNSHsieIM3A0/5OOzw/P/b+yLvPdaG52g=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.1.18", "", { "dependencies": { "@jridgewell/remapping": "^2.3.4", "enhanced-resolve": "^5.18.3", "jiti": "^2.6.1", "lightningcss": "1.30.2", "magic-string": "^0.30.21", "source-map-js": "^1.2.1", "tailwindcss": "4.1.18" } }, "sha512-DoR7U1P7iYhw16qJ49fgXUlry1t4CpXeErJHnQ44JgTSKMaZUdf17cfn5mHchfJ4KRBZRFA/Coo+MUF5+gOaCQ=="],
 

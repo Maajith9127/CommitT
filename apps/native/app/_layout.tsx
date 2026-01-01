@@ -7,8 +7,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { authClient } from "@/lib/auth-client";
+import { env } from "@commit/env/native";
 
-const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL || "";
+const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 const convex = new ConvexReactClient(convexUrl, {
   unsavedChangesWarning: false,
 });

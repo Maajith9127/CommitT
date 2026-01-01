@@ -1,0 +1,19 @@
+{
+  "name": "@commit/env",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./native": "./src/native.ts",
+    "./web": "./src/web.ts"
+  },
+  "dependencies": {
+    "@t3-oss/env-core": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@commit/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

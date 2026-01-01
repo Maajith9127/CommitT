@@ -8,12 +8,13 @@ import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { env } from "@commit/env/native";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
 const UScroll = withUniwind(ScrollView);
 
-const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY!;
+const GOOGLE_API_KEY = env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 export default function SearchPacScreen() {
   const router = useRouter();
