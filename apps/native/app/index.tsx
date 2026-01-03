@@ -1,9 +1,34 @@
 import { useRouter } from "expo-router";
-import { Image, ImageBackground, View } from "react-native";
+import { useEffect } from "react";
+import { Image, ImageBackground, Text, View } from "react-native";
 import { AuthHeading, AuthTitle, PrimaryButton, ScreenContainer } from "@/components/ui";
+import { authClient } from "@/lib/auth-client";
 
 export default function Index() {
   const router = useRouter();
+  const { data: session, isPending } = authClient.useSession();
+
+  useEffect(() => {
+    if (!isPending && session) {
+      router.replace("/(main)/commits");
+    }
+  }, [session, isPending, router]);
+
+  if (isPending) {
+    return (
+      <ImageBackground
+        source={require("../assets/images/onboarding.png")}
+        resizeMode="cover"
+        style={{ flex: 1 }}
+      >
+        <ScreenContainer className="">
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-white text-lg">Loading...</Text>
+          </View>
+        </ScreenContainer>
+      </ImageBackground>
+    );
+  }
 
   return (
     <ImageBackground
