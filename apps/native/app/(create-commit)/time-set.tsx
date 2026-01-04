@@ -109,7 +109,7 @@ export default function TimeSetScreen() {
       <UView className="mb-8 px-4">
         <PrimaryButton
           onPress={() => {
-            router.push("/final");
+            router.push("/(create-commit)/final");
           }}
         >
           Save

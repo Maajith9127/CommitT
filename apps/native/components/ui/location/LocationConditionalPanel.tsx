@@ -1,5 +1,6 @@
 import { View, Switch, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
+import { useRouter } from "expo-router";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { PrimaryButton } from "@/components/ui/button";
 
@@ -16,6 +17,7 @@ export function LocationConditionPanel({
   onSearchPress?: () => void;
   onCenterPress?: () => void;
 }) {
+  const router = useRouter();
   const location = useTaskDraftStore((s) => s.draft.location);
   const setLocation = useTaskDraftStore((s) => s.setLocation);
 
@@ -93,7 +95,7 @@ export function LocationConditionPanel({
 
       {/* SAVE BUTTON */}
       <UView className="mt-4">
-        <PrimaryButton onPress={() => {}}>Save</PrimaryButton>
+        <PrimaryButton onPress={() => router.push("/(create-commit)/final")}>Save</PrimaryButton>
       </UView>
     </UView>
   );

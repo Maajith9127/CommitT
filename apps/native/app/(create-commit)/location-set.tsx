@@ -1,7 +1,7 @@
 import { View, Platform, Text } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { GoogleMaps } from "expo-maps";
+import { GoogleMaps, GoogleMapsView } from "expo-maps";
 
 import { LocationConditionPanel } from "@/components/ui/location/LocationConditionalPanel";
 import { LocationMapNavBar } from "@/components/ui/location/LocationMapNavBar";
@@ -39,21 +39,29 @@ export default function LocationSetScreen() {
   const [mapReady, setMapReady] = useState(false);
   const { hasPermission, requestLocation, isLocating } = useLocation();
 
+  // Track if the camera update comes from user interaction to avoid loops
+  const isUserInteracting = useRef(false);
+
   // Determine initial position only on mount to prevent the map from jumping
   const initialPos = useRef({
     latitude: cameraTarget?.latitude ?? location?.latitude ?? 24.543232,
     longitude: cameraTarget?.longitude ?? location?.longitude ?? 46.5108992,
   }).current;
 
+  const initialZoom = useRef(cameraTarget?.zoom ?? 19).current;
+
   // Camera animation effect - responds to cameraTarget changes
+  // Only animate if the change didn't come from the user dragging the map
   useEffect(() => {
-    if (cameraTarget?.latitude && cameraTarget?.longitude && mapReady) {
+    if (cameraTarget?.latitude && cameraTarget?.longitude && mapReady && !isUserInteracting.current) {
       const target = {
         coordinates: {
           latitude: cameraTarget.latitude,
           longitude: cameraTarget.longitude,
         },
-        zoom: 19,
+        zoom: cameraTarget.zoom ?? 19,
+        tilt: cameraTarget.tilt ?? 0,
+        bearing: cameraTarget.bearing ?? 0,
       };
 
       const animate = async () => {
@@ -67,20 +75,30 @@ export default function LocationSetScreen() {
       };
       animate();
     }
-  }, [cameraTarget?.latitude, cameraTarget?.longitude, mapReady]);
+  }, [
+    cameraTarget?.latitude, 
+    cameraTarget?.longitude, 
+    cameraTarget?.zoom,
+    cameraTarget?.tilt,
+    cameraTarget?.bearing,
+    mapReady
+  ]);
 
   const handleLocate = async () => {
     if (isLocating) return;
 
     await requestLocation(async (coords) => {
       const newPos = { latitude: coords.latitude, longitude: coords.longitude };
+      
+      isUserInteracting.current = false; // Programmatic update
+      setCameraTarget({ ...newPos, zoom: 19 });
+      
       setLocation({
         ...newPos,
         address: "Current Location",
         radius: 20,
         isInverse: false,
       });
-      setCameraTarget(newPos);
     });
   };
 
@@ -96,7 +114,7 @@ export default function LocationSetScreen() {
         style={{ flex: 1 }}
         cameraPosition={{
           coordinates: initialPos,
-          zoom: 19,
+          zoom: initialZoom,
         }}
         mapOptions={{
           mapId: "7702036af0cdf4aa60ff733d",
@@ -112,9 +130,42 @@ export default function LocationSetScreen() {
           console.log(" Google map loaded and ready");
           setMapReady(true);
         }}
+        onCameraMoveStarted={() => {
+           isUserInteracting.current = true;
+        }}
+        onCameraMove={(e) => {
+          // Just track locally to avoid crash and rapid store updates
+          if (e?.cameraPosition?.coordinates) {
+             isUserInteracting.current = true;
+             // We could store it in a ref here if needed, but onCameraIdle is better for the final sync
+          }
+        }}
+        onCameraIdle={async () => {
+           if (mapRef.current) {
+             // Get exact camera position when movement stops
+             const pos = await mapRef.current.getCameraPosition();
+             
+             // Update global store so next time we open map, it's here
+             setCameraTarget({
+                latitude: pos.coordinates.latitude,
+                longitude: pos.coordinates.longitude,
+                zoom: pos.zoom,
+                tilt: pos.tilt,
+                bearing: pos.bearing
+             });
+             
+             // Allow programmatic updates again
+             isUserInteracting.current = false;
+           }
+        }}
         onMapClick={(e: { coordinates: { latitude: number; longitude: number } }) => {
-          // Single click moves the CAMERA target
-          setCameraTarget(e.coordinates);
+          isUserInteracting.current = false; // Click is a command to move there
+          setCameraTarget({
+            latitude: e.coordinates.latitude,
+            longitude: e.coordinates.longitude,
+            // Keep current zoom if possible, or default
+            zoom: cameraTarget?.zoom ?? 19
+          });
         }}
         onMapLongClick={(e: { coordinates: { latitude: number; longitude: number } }) => {
           // Long press sets the ACTUAL location for the circle
@@ -186,7 +237,12 @@ export default function LocationSetScreen() {
         onSearchPress={() => router.push("/(create-commit)/searchpac")}
         onCenterPress={() => {
           if (location) {
-            setCameraTarget({ latitude: location.latitude, longitude: location.longitude });
+            isUserInteracting.current = false;
+            setCameraTarget({ 
+              latitude: location.latitude, 
+              longitude: location.longitude,
+              zoom: 19 
+            });
           }
         }}
       />

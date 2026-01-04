@@ -64,6 +64,9 @@ export type TaskDraft = {
   cameraTarget: {
     latitude: number;
     longitude: number;
+    zoom?: number;
+    tilt?: number;
+    bearing?: number;
   } | null;
 };
 

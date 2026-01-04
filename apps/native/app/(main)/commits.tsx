@@ -54,7 +54,7 @@ export default function CommitsScreen() {
             <UView className="w-full flex-row items-center justify-between">
               <HeaderTitle>CommitTs</HeaderTitle>
 
-              <AddButton onPress={() => router.push("/(create-commit)/conditions")} />
+              <AddButton onPress={() => router.push("/(create-commit)/final")} />
             </UView>
           </ScreenHeader>
         );

@@ -1,12 +1,15 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, useWindowDimensions, View, Pressable } from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 import { withUniwind } from "uniwind";
+
 import { AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
+import { MiniConditionCard } from "@/components/ui/commits/MiniConditionCard";
 import { CommitCard } from "@/components/ui/commits/DigitalCommitment";
 import { HeaderTitle } from "@/components/ui/text";
+import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
@@ -15,53 +18,47 @@ type Condition = {
   id: string;
   icon: string;
   title: string;
-  subtitle: string;
+  subtitle?: string; 
 };
 
 export default function FinalScreen() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
+  const draft = useTaskDraftStore((s) => s.draft);
 
+  // Metrics for MiniConditionCard carousel
   const horizontalPadding = 16;
-  const peekWidth = 40;
+  const cardGap = 8; 
+  const visibleCards = 3.2;
+  const cardWidth = (screenWidth - horizontalPadding * 2 - cardGap * Math.floor(visibleCards)) / visibleCards;
 
   const [conditions] = useState<Condition[]>([
     {
       id: "1",
       icon: "clock-outline",
       title: "Time",
-      subtitle: "1:40am – 3:40am",
     },
     {
       id: "2",
       icon: "map-marker-outline",
       title: "Location",
-      subtitle: "Not set",
     },
     {
       id: "3",
       icon: "account-check-outline",
       title: "Partner",
-      subtitle: "None selected",
     },
     {
       id: "4",
       icon: "camera-outline",
       title: "Picture",
-      subtitle: "Not added",
     },
     {
       id: "5",
       icon: "video-outline",
       title: "Video",
-      subtitle: "Not added",
     },
   ]);
-
-  const cardWidth =
-    conditions.length === 1
-      ? screenWidth - horizontalPadding * 2
-      : screenWidth - horizontalPadding * 2 - peekWidth;
 
   return (
     <UView className="flex-1 bg-black px-4 pt-20">
@@ -84,19 +81,41 @@ export default function FinalScreen() {
           <AddButton onPress={() => {}} />
         </UView>
 
-        {/* HORIZONTAL CONDITION CARDS */}
-        <UScroll horizontal showsHorizontalScrollIndicator={false} className="mb-3 flex-row">
-          {conditions.map((condition, index) => (
-            <ConditionCard
-              key={condition.id}
-              icon={condition.icon}
-              title={condition.title}
-              subtitle={condition.subtitle}
-              width={cardWidth}
-              className={`h-24 ${index < conditions.length - 1 ? "mr-3" : ""}`}
-            />
-          ))}
-        </UScroll>
+        {/* HORIZONTAL MINI CONDITION CARDS */}
+        <UView>
+          <UScroll horizontal showsHorizontalScrollIndicator={false} className="mb-6 flex-row">
+            {conditions.map((condition, index) => {
+              let isSelected = false;
+
+              if (condition.title === "Time") {
+                // Check if any time condition exists
+                isSelected = draft.conditions.some(c => c.metric === "time");
+              } else if (condition.title === "Location") {
+                // Check if location is set
+                isSelected = !!draft.location;
+              }
+
+              return (
+                <MiniConditionCard
+                  key={condition.id}
+                  icon={condition.icon}
+                  title={condition.title}
+                  width={cardWidth}
+                  className={`h-20 ${index < conditions.length - 1 ? "mr-2" : ""}`}
+                  selected={isSelected}
+                  selectionColor="#4FA0FF"
+                  onPress={() => {
+                    if (condition.title === "Time") {
+                      router.push("/(create-commit)/time-set");
+                    } else if (condition.title === "Location") {
+                      router.push("/(create-commit)/location-set");
+                    }
+                  }}
+                />
+              );
+            })}
+          </UScroll>
+        </UView>
 
         {/* DIGITAL COMMITMENT — CLICKABLE AREA */}
         <UView className="mb-3">
