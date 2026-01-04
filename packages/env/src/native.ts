@@ -9,6 +9,11 @@ export const env = createEnv({
     EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: z.string().min(1),
     EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().min(1),
   },
-  runtimeEnv: process.env,
+  runtimeEnv: {
+    EXPO_PUBLIC_CONVEX_URL: process.env.EXPO_PUBLIC_CONVEX_URL,
+    EXPO_PUBLIC_CONVEX_SITE_URL: process.env.EXPO_PUBLIC_CONVEX_SITE_URL,
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+  },
   emptyStringAsUndefined: true,
 });

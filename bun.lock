@@ -138,7 +138,6 @@
       "version": "1.0.0",
       "dependencies": {
         "@better-auth/expo": "catalog:",
-        "@commit/env": "workspace:*",
         "@convex-dev/better-auth": "catalog:",
         "@opencode-ai/sdk": "^1.0.213",
         "better-auth": "catalog:",
