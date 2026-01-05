@@ -5,7 +5,7 @@ export function NotFound() {
   return (
     <HomeLayout
       nav={{
-        title: "Tanstack Start",
+        title: "Docs",
       }}
       className="text-center py-32 justify-center"
     >
@@ -17,7 +17,10 @@ export function NotFound() {
           temporarily unavailable.
         </p>
         <Link
-          to="/"
+          to="/$"
+          params={{
+            _splat: "",
+          }}
           className="mt-4 px-4 py-2 rounded-lg bg-fd-primary text-fd-primary-foreground font-medium text-sm hover:opacity-90 transition-opacity"
         >
           Back to Home
