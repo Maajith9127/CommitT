@@ -26,10 +26,6 @@ export default defineSchema({
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,
-    time_window: v.object({
-      start_at: v.number(),
-      due_at: v.number(),
-    }),
     conditions: v.array(
       v.object({
         metric_key: v.string(),
