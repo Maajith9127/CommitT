@@ -18,7 +18,7 @@ export const get = query({
 });
 
 export const listByAssignee = query({
-  args: { assignee_id: v.id("user") },
+  args: { assignee_id: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("tasks")
@@ -28,7 +28,7 @@ export const listByAssignee = query({
 });
 
 export const listByAssigner = query({
-  args: { assigner_id: v.id("user") },
+  args: { assigner_id: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("tasks")
@@ -49,18 +49,15 @@ export const listByStatus = query({
 
 export const create = mutation({
   args: {
-    assigner_id: v.id("user"),
-    assignee_id: v.id("user"),
+    assigner_id: v.string(),
+    assignee_id: v.string(),
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,
-    time_window: v.object({
-      start_at: v.number(),
-      due_at: v.number(),
-    }),
     conditions: v.array(
       v.object({
         metric_key: v.string(),
+        component: v.optional(v.string()),
         relation: relationEnum,
         target: v.object({
           type: targetTypeEnum,
@@ -87,13 +84,10 @@ export const createInternal = internalMutation({
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,
-    time_window: v.object({
-      start_at: v.number(),
-      due_at: v.number(),
-    }),
     conditions: v.array(
       v.object({
         metric_key: v.string(),
+        component: v.optional(v.string()),
         relation: relationEnum,
         target: v.object({
           type: targetTypeEnum,
@@ -117,10 +111,6 @@ export const generate = action({
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,
-    time_window: v.object({
-      start_at: v.number(),
-      due_at: v.number(),
-    }),
   },
   handler: async (ctx, args) => {
     try {
@@ -146,7 +136,6 @@ export const generate = action({
         title: args.title,
         description: args.description,
         visibility: args.visibility,
-        time_window: args.time_window,
         conditions: conditions as any,
         status: "pending",
         created_at: now,
@@ -167,16 +156,11 @@ export const update = mutation({
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     visibility: v.optional(visibilityEnum),
-    time_window: v.optional(
-      v.object({
-        start_at: v.number(),
-        due_at: v.number(),
-      }),
-    ),
     conditions: v.optional(
       v.array(
         v.object({
           metric_key: v.string(),
+          component: v.optional(v.string()),
           relation: relationEnum,
           target: v.object({
             type: targetTypeEnum,

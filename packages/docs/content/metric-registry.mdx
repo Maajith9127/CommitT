@@ -1,0 +1,34 @@
+---
+title: Metric Registry
+description: Available metrics data
+icon: Activity
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+<Tabs items={['Time', 'Location']}>
+  <Tab value="Time">
+    | Property | Value |
+    |----------|-------|
+    | Key | `time` |
+    | Name | Time |
+    | Description | Measures when an activity starts, ends, and how long it lasts. |
+    | Unit | `s` |
+    | Components | `start`, `end`, `duration` |
+    | Allowed Relations | `gte`, `lte`, `range` |
+    | Allowed Target Types | `number`, `range` |
+    | Permissions Required | `system` |
+  </Tab>
+  <Tab value="Location">
+    | Property | Value |
+    |----------|-------|
+    | Key | `location` |
+    | Name | Location |
+    | Description | Measures where an activity occurs and how accurate that location is. |
+    | Unit | `geo` |
+    | Components | `position`, `accuracy` |
+    | Allowed Relations | `within`, `outside`, `lte`, `gte` |
+    | Allowed Target Types | `range`, `number` |
+    | Permissions Required | `location` |
+  </Tab>
+</Tabs>
