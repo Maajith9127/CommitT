@@ -69,6 +69,7 @@ import { TypeTable } from 'fumadocs-ui/components/type-table';
       | 'proceeded'    // Task completed successfully
       | 'failed';      // Task failed
     ```
+
   </Tab>
   <Tab value="Metrics Table">
     The `metrics` table stores information about available metrics that can be used in task conditions.
@@ -89,6 +90,7 @@ import { TypeTable } from 'fumadocs-ui/components/type-table';
     **Indexes:**
     - `by_key`: Indexed on `key` for fast lookups by metric key
     - `by_name`: Indexed on `name` for searching metrics by name
+
   </Tab>
   <Tab value="Tasks Table">
     The `tasks` table stores task definitions with their conditions and metadata.
@@ -170,5 +172,6 @@ import { TypeTable } from 'fumadocs-ui/components/type-table';
       "updated_at": 1640995200000
     }
     ```
+
   </Tab>
 </Tabs>
