@@ -18,7 +18,7 @@ export const get = query({
 });
 
 export const listByAssignee = query({
-  args: { assignee_id: v.id("user") },
+  args: { assignee_id: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("tasks")
@@ -28,7 +28,7 @@ export const listByAssignee = query({
 });
 
 export const listByAssigner = query({
-  args: { assigner_id: v.id("user") },
+  args: { assigner_id: v.string() },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("tasks")
@@ -49,8 +49,8 @@ export const listByStatus = query({
 
 export const create = mutation({
   args: {
-    assigner_id: v.id("user"),
-    assignee_id: v.id("user"),
+    assigner_id: v.string(),
+    assignee_id: v.string(),
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,
