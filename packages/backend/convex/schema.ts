@@ -49,4 +49,14 @@ export default defineSchema({
     .index("by_assigner_status", ["assigner_id", "status"])
     .index("by_created_at", ["created_at"])
     .index("by_updated_at", ["updated_at"]),
+  taskTelemetry: defineTable({
+    task_id: v.id("tasks"),
+    assignee_id: v.string(),
+    metric_key: v.string(),
+    component: v.optional(v.string()),
+    value: v.any(),
+    recorded_at: v.number(),
+  })
+   .index("by_task", ["task_id"])
+   .index("by_assignee", ["assignee_id"]),
 });
