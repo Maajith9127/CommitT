@@ -7,71 +7,8 @@ icon: Database
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 import { TypeTable } from 'fumadocs-ui/components/type-table';
 
-<Tabs items={['Enums', 'Metrics Table', 'Tasks Table']}>
-  <Tab value="Enums">
-    The schema uses several enums to define valid values for certain fields.
-
-    ### Relation Types
-    ```typescript
-    type RelationType =
-      | 'eq'       // Equal to
-      | 'neq'      // Not equal to
-      | 'gt'       // Greater than
-      | 'gte'      // Greater than or equal to
-      | 'lt'       // Less than
-      | 'lte'      // Less than or equal to
-      | 'in'       // Value is in a set
-      | 'not_in'   // Value is not in a set
-      | 'within'   // Within a geographic area
-      | 'outside'  // Outside a geographic area
-      | 'exists'   // Value exists
-      | 'matches'  // Value matches a pattern
-      | 'range';   // Within a numeric range
-    ```
-
-    ### Target Types
-    ```typescript
-    type TargetType =
-      | 'number'   // Numeric value
-      | 'string'   // String value
-      | 'boolean'  // Boolean value
-      | 'array'    // Array of values
-      | 'range'    // Range of values
-      | 'file'     // File reference
-      | 'log';     // Log entry
-    ```
-
-    ### Permissions
-    ```typescript
-    type PermissionType =
-      | 'manual'       // Requires manual user input
-      | 'application'  // Application-level permission
-      | 'system'       // System-level access
-      | 'network'      // Network access
-      | 'location'     // Location access
-      | 'media'        // Media access
-      | 'external';    // External service access
-    ```
-
-    ### Visibility
-    ```typescript
-    type VisibilityType =
-      | 'public'   // Visible to everyone
-      | 'private'  // Visible only to assigner and assignee
-      | 'shared';  // Visible to assigned users
-    ```
-
-    ### Task Status
-    ```typescript
-    type TaskStatus =
-      | 'pending'      // Task created but not started
-      | 'proceeding'   // Task is in progress
-      | 'proceeded'    // Task completed successfully
-      | 'failed';      // Task failed
-    ```
-
-  </Tab>
-  <Tab value="Metrics Table">
+<Tabs items={['Metrics', 'Tasks', 'TaskTelemetry', 'Enums']}>
+   <Tab value="Metrics">
     The `metrics` table stores information about available metrics that can be used in task conditions.
 
     <TypeTable
@@ -92,7 +29,7 @@ import { TypeTable } from 'fumadocs-ui/components/type-table';
     - `by_name`: Indexed on `name` for searching metrics by name
 
   </Tab>
-  <Tab value="Tasks Table">
+   <Tab value="Tasks">
     The `tasks` table stores task definitions with their conditions and metadata.
 
     <TypeTable
@@ -173,5 +110,87 @@ import { TypeTable } from 'fumadocs-ui/components/type-table';
     }
     ```
 
-  </Tab>
+   </Tab>
+   <Tab value="TaskTelemetry">
+     The `taskTelemetry` table stores telemetry data recorded for tasks, tracking metric values over time.
+
+     <TypeTable
+       type={{
+         task_id: { type: 'Id<"tasks">', description: 'ID of the associated task' },
+         assignee_id: { type: 'string', description: 'ID of the user who recorded the telemetry' },
+         metric_key: { type: 'string', description: 'Key of the metric being tracked' },
+         component: { type: 'string?', description: 'Optional component within the metric' },
+         value: { type: 'any', description: 'The recorded metric value' },
+         recorded_at: { type: 'number', description: 'Unix timestamp when the telemetry was recorded' },
+       }}
+     />
+
+     **Indexes:**
+     - `by_task`: Indexed on `task_id` for telemetry associated with a task
+     - `by_assignee`: Indexed on `assignee_id` for telemetry recorded by a user
+
+    </Tab>
+   <Tab value="Enums">
+     The schema uses several enums to define valid values for certain fields.
+
+     ### Relation Types
+     ```typescript
+     type RelationType =
+       | 'eq'       // Equal to
+       | 'neq'      // Not equal to
+       | 'gt'       // Greater than
+       | 'gte'      // Greater than or equal to
+       | 'lt'       // Less than
+       | 'lte'      // Less than or equal to
+       | 'in'       // Value is in a set
+       | 'not_in'   // Value is not in a set
+       | 'within'   // Within a geographic area
+       | 'outside'  // Outside a geographic area
+       | 'exists'   // Value exists
+       | 'matches'  // Value matches a pattern
+       | 'range';   // Within a numeric range
+     ```
+
+     ### Target Types
+     ```typescript
+     type TargetType =
+       | 'number'   // Numeric value
+       | 'string'   // String value
+       | 'boolean'  // Boolean value
+       | 'array'    // Array of values
+       | 'range'    // Range of values
+       | 'file'     // File reference
+       | 'log';     // Log entry
+     ```
+
+     ### Permissions
+     ```typescript
+     type PermissionType =
+       | 'manual'       // Requires manual user input
+       | 'application'  // Application-level permission
+       | 'system'       // System-level access
+       | 'network'      // Network access
+       | 'location'     // Location access
+       | 'media'        // Media access
+       | 'external';    // External service access
+     ```
+
+     ### Visibility
+     ```typescript
+     type VisibilityType =
+       | 'public'   // Visible to everyone
+       | 'private'  // Visible only to assigner and assignee
+       | 'shared';  // Visible to assigned users
+     ```
+
+     ### Task Status
+     ```typescript
+     type TaskStatus =
+       | 'pending'      // Task created but not started
+       | 'proceeding'   // Task is in progress
+       | 'proceeded'    // Task completed successfully
+       | 'failed';      // Task failed
+     ```
+
+   </Tab>
 </Tabs>
