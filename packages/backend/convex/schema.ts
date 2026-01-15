@@ -50,15 +50,11 @@ export default defineSchema({
         }),
       }),
     ),
-    status: taskStatusEnum,
     created_at: v.number(),
     updated_at: v.number(),
   })
     .index("by_assignee_id", ["assignee_id"])
     .index("by_assigner_id", ["assigner_id"])
-    .index("by_status", ["status"])
-    .index("by_assignee_status", ["assignee_id", "status"])
-    .index("by_assigner_status", ["assigner_id", "status"])
     .index("by_created_at", ["created_at"])
     .index("by_updated_at", ["updated_at"]),
   taskTelemetry: defineTable({
@@ -71,4 +67,18 @@ export default defineSchema({
   })
    .index("by_task", ["task_id"])
    .index("by_assignee", ["assignee_id"]),
+  taskInstances: defineTable({
+    task_id: v.id("tasks"),
+    assignee_id: v.string(),
+    status: taskStatusEnum,
+    start: v.number(),
+    end: v.number(),
+  })
+    .index("by_task", ["task_id"])
+    .index("by_assignee", ["assignee_id"])
+    .index("by_status", ["status"])
+    .index("by_task_status", ["task_id", "status"])
+    .index("by_assignee_status", ["assignee_id", "status"])
+    .index("by_start", ["start"])
+    .index("by_end", ["end"]),
 });
