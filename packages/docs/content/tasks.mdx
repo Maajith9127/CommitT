@@ -1,0 +1,160 @@
+---
+title: Tasks
+description: Task management and recurrence patterns
+icon: Calendar
+---
+
+## Overview
+
+Tasks are metric-based assignments that can trigger based on conditions and support flexible recurrence patterns.
+
+## Task Structure
+
+| Field | Type | Description |
+|-------|------|-------------|
+| assigner_id | string | ID of the user who assigned the task |
+| assignee_id | string | ID of the user assigned to the task |
+| title | string | Task title |
+| description | string | Task description |
+| visibility | enum | "public", "private", or "shared" |
+| recurrence | object | Required recurrence configuration (see below) |
+| conditions | array | Metric-based trigger conditions |
+| status | enum | "pending", "proceeding", "proceeded", or "failed" |
+| created_at | number | Timestamp when task was created |
+| updated_at | number | Timestamp when task was last updated |
+
+## Recurrence
+
+All tasks require a recurrence configuration that defines how and when they repeat.
+
+### Recurrence Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| type | enum | "once", "daily", "weekly", "monthly", or "custom" |
+| interval | number | Frequency interval (every N units) |
+| days_of_week | array? | Array of day numbers (0-6, Sunday=0) for weekly/custom patterns |
+| ends | object? | Optional end conditions |
+
+### End Conditions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| type | enum | "never", "after", or "on" |
+| count | number? | Number of occurrences (for "after") |
+| date | number? | End timestamp (for "on") |
+
+## Recurrence Examples
+
+### One-Time Task
+```json
+{
+  "type": "once",
+  "interval": 1
+}
+```
+
+### Daily Task (Every Day)
+```json
+{
+  "type": "daily",
+  "interval": 1
+}
+```
+
+### Daily Task (Every 2 Days)
+```json
+{
+  "type": "daily",
+  "interval": 2
+}
+```
+
+### Weekly Task (Every Monday)
+```json
+{
+  "type": "weekly",
+  "interval": 1,
+  "days_of_week": [1]
+}
+```
+
+### Weekly Task (Mon, Wed, Fri)
+```json
+{
+  "type": "weekly",
+  "interval": 1,
+  "days_of_week": [1, 3, 5]
+}
+```
+
+### Monthly Task (Every Month)
+```json
+{
+  "type": "monthly",
+  "interval": 1
+}
+```
+
+### Task Ending After 10 Occurrences
+```json
+{
+  "type": "daily",
+  "interval": 1,
+  "ends": {
+    "type": "after",
+    "count": 10
+  }
+}
+```
+
+### Task Ending on Specific Date
+```json
+{
+  "type": "weekly",
+  "interval": 1,
+  "days_of_week": [1],
+  "ends": {
+    "type": "on",
+    "date": 1735689600000
+  }
+}
+```
+
+## Conditions
+
+Tasks trigger based on metric conditions. Each condition specifies a metric key, optional component, relation, and target value.
+
+See the [Metric Registry](/docs/metric-registry) for available metrics and their properties.
+
+### Example Condition
+```json
+{
+  "metric_key": "time",
+  "component": "duration",
+  "relation": "gte",
+  "target": {
+    "type": "number",
+    "value": 3600
+  }
+}
+```
+
+This triggers when activity duration >= 1 hour (3600 seconds).
+
+## How Tasks Work
+
+### Task Lifecycle
+1. **Created**: Task is created with conditions and recurrence
+2. **Pending**: Waiting for conditions to be met
+3. **Proceeding**: Conditions met, task is active
+4. **Proceeded**: Task completed successfully
+5. **Failed**: Task completed with failure
+
+### Recurrence Flow
+- For recurring tasks, when a task instance is completed, a new instance is automatically created based on the recurrence pattern
+- One-time tasks (type: "once") have no further instances
+- End conditions determine when recurrence stops
+
+### Metric Integration
+Tasks monitor telemetry data against their conditions. When all conditions are satisfied, the task status updates and notifications can be triggered. Metrics provide the data foundation for automated task activation.
