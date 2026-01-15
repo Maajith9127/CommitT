@@ -6,6 +6,8 @@ import {
   permissionEnum,
   visibilityEnum,
   taskStatusEnum,
+  recurrenceTypeEnum,
+  recurrenceEndsTypeEnum,
 } from "./enums";
 
 export default defineSchema({
@@ -27,6 +29,16 @@ export default defineSchema({
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,
+    recurrence: v.object({
+      type: recurrenceTypeEnum,
+      interval: v.number(),
+      days_of_week: v.optional(v.array(v.number())),
+      ends: v.optional(v.object({
+        type: recurrenceEndsTypeEnum,
+        count: v.optional(v.number()),
+        date: v.optional(v.number()),
+      })),
+    }),
     conditions: v.array(
       v.object({
         metric_key: v.string(),

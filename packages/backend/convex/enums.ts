@@ -48,3 +48,18 @@ export const taskStatusEnum = v.union(
   v.literal("proceeded"),
   v.literal("failed"),
 );
+
+export const recurrenceTypeEnum = v.union(
+  v.literal("once"),
+  v.literal("daily"),
+  v.literal("weekly"),
+  v.literal("monthly"),
+  v.literal("yearly"),
+  v.literal("custom"),
+);
+
+export const recurrenceEndsTypeEnum = v.union(
+  v.literal("never"),
+  v.literal("after"),
+  v.literal("on"),
+);

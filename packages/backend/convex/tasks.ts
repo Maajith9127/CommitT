@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action, internalMutation, mutation, query } from "./_generated/server";
-import { relationEnum, targetTypeEnum, visibilityEnum, taskStatusEnum } from "./enums";
+import { relationEnum, targetTypeEnum, visibilityEnum, taskStatusEnum, recurrenceTypeEnum, recurrenceEndsTypeEnum } from "./enums";
 import { generateTaskConditions } from "./opencode";
 import { internal } from "./_generated/api";
 
@@ -54,6 +54,16 @@ export const create = mutation({
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,
+    recurrence: v.object({
+      type: recurrenceTypeEnum,
+      interval: v.number(),
+      days_of_week: v.optional(v.array(v.number())),
+      ends: v.optional(v.object({
+        type: recurrenceEndsTypeEnum,
+        count: v.optional(v.number()),
+        date: v.optional(v.number()),
+      })),
+    }),
     conditions: v.array(
       v.object({
         metric_key: v.string(),
@@ -84,6 +94,16 @@ export const createInternal = internalMutation({
     title: v.string(),
     description: v.string(),
     visibility: visibilityEnum,
+    recurrence: v.object({
+      type: recurrenceTypeEnum,
+      interval: v.number(),
+      days_of_week: v.optional(v.array(v.number())),
+      ends: v.optional(v.object({
+        type: recurrenceEndsTypeEnum,
+        count: v.optional(v.number()),
+        date: v.optional(v.number()),
+      })),
+    }),
     conditions: v.array(
       v.object({
         metric_key: v.string(),
@@ -136,6 +156,7 @@ export const generate = action({
         title: args.title,
         description: args.description,
         visibility: args.visibility,
+        recurrence: { type: "once", interval: 1 },
         conditions: conditions as any,
         status: "pending",
         created_at: now,
@@ -156,6 +177,16 @@ export const update = mutation({
     title: v.optional(v.string()),
     description: v.optional(v.string()),
     visibility: v.optional(visibilityEnum),
+    recurrence: v.optional(v.object({
+      type: recurrenceTypeEnum,
+      interval: v.number(),
+      days_of_week: v.optional(v.array(v.number())),
+      ends: v.optional(v.object({
+        type: recurrenceEndsTypeEnum,
+        count: v.optional(v.number()),
+        date: v.optional(v.number()),
+      })),
+    })),
     conditions: v.optional(
       v.array(
         v.object({
