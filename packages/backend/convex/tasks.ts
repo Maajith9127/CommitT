@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { action, internalMutation, mutation, query } from "./_generated/server";
-import { relationEnum, targetTypeEnum, visibilityEnum, taskStatusEnum, recurrenceTypeEnum, recurrenceEndsTypeEnum } from "./enums";
+import { relationEnum, targetTypeEnum, visibilityEnum, recurrenceTypeEnum, recurrenceEndsTypeEnum } from "./enums";
 import { generateTaskConditions } from "./opencode";
 import { internal } from "./_generated/api";
 
@@ -33,16 +33,6 @@ export const listByAssigner = query({
     return await ctx.db
       .query("tasks")
       .withIndex("by_assigner_id", (q) => q.eq("assigner_id", args.assigner_id))
-      .collect();
-  },
-});
-
-export const listByStatus = query({
-  args: { status: taskStatusEnum },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("tasks")
-      .withIndex("by_status", (q) => q.eq("status", args.status))
       .collect();
   },
 });
@@ -80,7 +70,6 @@ export const create = mutation({
     const now = Date.now();
     return await ctx.db.insert("tasks", {
       ...args,
-      status: "pending",
       created_at: now,
       updated_at: now,
     });
@@ -115,7 +104,6 @@ export const createInternal = internalMutation({
         }),
       }),
     ),
-    status: taskStatusEnum,
     created_at: v.number(),
     updated_at: v.number(),
   },
@@ -158,7 +146,6 @@ export const generate = action({
         visibility: args.visibility,
         recurrence: { type: "once", interval: 1 },
         conditions: conditions as any,
-        status: "pending",
         created_at: now,
         updated_at: now,
       });
@@ -200,26 +187,11 @@ export const update = mutation({
         }),
       ),
     ),
-    status: v.optional(taskStatusEnum),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
     return await ctx.db.patch(id, {
       ...updates,
-      updated_at: Date.now(),
-    });
-  },
-});
-
-export const updateStatus = mutation({
-  args: {
-    id: v.id("tasks"),
-    status: taskStatusEnum,
-  },
-  handler: async (ctx, args) => {
-    const { id, status } = args;
-    return await ctx.db.patch(id, {
-      status,
       updated_at: Date.now(),
     });
   },
