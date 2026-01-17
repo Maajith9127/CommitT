@@ -30,9 +30,25 @@ const getCirclePoints = (
 
 export default function LocationSetScreen() {
   const router = useRouter();
-  const location = useTaskDraftStore((s) => s.draft.location);
-  const cameraTarget = useTaskDraftStore((s) => s.draft.cameraTarget);
+  const conditions = useTaskDraftStore((s) => s.draft.conditions);
+  const locationCondition = conditions.find((c: any) => c.metric_key === "location");
+  
+  // Extract values from condition or use defaults
+  const location = locationCondition ? {
+    latitude: locationCondition.target.value.lat,
+    longitude: locationCondition.target.value.lng,
+    radius: locationCondition.target.value.radius,
+    address: locationCondition.target.value.address ?? "Selected Location",
+    isInverse: locationCondition.relation === "outside"
+  } : null;
+
   const setLocation = useTaskDraftStore((s) => s.setLocation);
+
+  const radius = location?.radius ?? 20;
+  const isInverse = location?.isInverse ?? false;
+  const address = location?.address ?? "Selected Location";
+
+  const cameraTarget = useTaskDraftStore((s) => s.draft.cameraTarget);
   const setCameraTarget = useTaskDraftStore((s) => s.setCameraTarget);
 
   const mapRef = useRef<GoogleMapsView>(null);

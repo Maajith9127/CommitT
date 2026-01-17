@@ -1,22 +1,35 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { FlatList, View } from "react-native";
+import { FlatList, View, Pressable, Text } from "react-native";
 import { withUniwind } from "uniwind";
+import { useQuery } from "convex/react";
+import { api } from "@commit/backend/convex/_generated/api";
 
-import { HeaderTitle, ScreenHeader } from "@/components/ui";
+import { HeaderTitle } from "@/components/ui/text";
+import { ScreenHeader } from "@/components/ui/ScreenContainer";
 import { AddButton } from "@/components/ui/button";
 import { CommitCard } from "@/components/ui/commits/CommitCard";
 import { VerificationCard } from "@/components/ui/commits/VerificationCard";
 
-import { useCommitStore } from "@/stores/useCommitStore";
+import { authClient } from "@/lib/auth-client";
+import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 
 const UView = withUniwind(View);
+const UText = withUniwind(Text); // Added UText
+const UPressable = withUniwind(Pressable); // Added UPressable
 
 export default function CommitsScreen() {
   const router = useRouter();
+  
+  // Auth & State
+  const { data: session } = authClient.useSession();
+  const setAssigner = useTaskDraftStore((state: any) => state.setAssigner);
+  const setAssignee = useTaskDraftStore((state: any) => state.setAssignee);
+  const resetDraft = useTaskDraftStore((state: any) => state.resetDraft);
+  const setDraft = useTaskDraftStore((state: any) => state.setDraft);
 
-  // 🔹 Pull commits from Zustand
-  const commits = useCommitStore((state) => state.commits);
+  // Fetch real tasks from backend
+  const tasks = useQuery(api.tasks.list);
 
   const DATA = [
     { type: "quick", key: "quick" },
@@ -52,28 +65,47 @@ export default function CommitsScreen() {
         return (
           <ScreenHeader className="bg-black pb-1">
             <UView className="w-full flex-row items-center justify-between">
-              <HeaderTitle>CommitTs</HeaderTitle>
+             <HeaderTitle>CommitTs</HeaderTitle>
 
-              <AddButton onPress={() => router.push("/(create-commit)/final")} />
+              <AddButton
+                onPress={() => {
+                  if (session?.user?.id) {
+                    resetDraft();
+                    setAssigner(session.user.id);
+                    setAssignee(session.user.id);
+                    router.push("/(create-commit)/final");
+                  }
+                }}
+              />
             </UView>
           </ScreenHeader>
         );
 
       // -------------------------------------------------------
-      // SCHEDULES CONTENT (FROM ZUSTAND)
+      // SCHEDULES CONTENT (FROM BACKEND)
       // -------------------------------------------------------
       case "schedules_content":
         return (
           <UView className="gap-4 bg-black px-4 py-4">
-            {commits.map((commit) => (
+            {tasks?.map((task: any) => (
               <CommitCard
-                key={commit.id}
-                title={commit.title}
-                conditions={commit.conditions}
-                iconName={commit.iconName}
-                statusLabel={commit.statusLabel}
+                key={task._id}
+                title={task.title}
+                conditions={task.conditions?.length || 0}
+                iconName="book"
+                statusLabel="Active"
+                onPress={() => {
+                  setDraft({
+                    ...task,
+                    id: task._id,
+                  });
+                  router.push("/(create-commit)/final");
+                }}
               />
             ))}
+            {(!tasks || tasks.length === 0) && (
+              <HeaderTitle>No active commitments found.</HeaderTitle>
+            )}
           </UView>
         );
 

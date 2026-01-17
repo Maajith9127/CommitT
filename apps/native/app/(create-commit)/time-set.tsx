@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View, Pressable } from "react-native";
 import { withUniwind } from "uniwind";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { ScreenHeader } from "@/components/ui";
 import { AddButton, PrimaryButton } from "@/components/ui/button";
 import { HeaderTitle } from "@/components/ui/text";
@@ -13,56 +14,65 @@ import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 const UText = withUniwind(Text);
+const UPressable = withUniwind(Pressable);
 
-// Helper to convert 12h to 24h format string
-function formatTo24h(hour: number, minute: number, period: "AM" | "PM"): string {
-  let h = hour;
-  if (period === "PM" && hour !== 12) h += 12;
-  if (period === "AM" && hour === 12) h = 0;
-  return `${String(h).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+// Helper to convert time to seconds from midnight
+function timeToSeconds(hour: number, minute: number, period: "AM" | "PM"): number {
+  let h = hour % 12;
+  if (period === "PM") h += 12;
+  return h * 3600 + minute * 60;
 }
 
-// Helper to convert 24h string to display format
-function formatToDisplay(time24: string): string {
-  const [h, m] = time24.split(":").map(Number);
-  const period = h >= 12 ? "pm" : "am";
-  const hour12 = h % 12 || 12;
+// Helper to convert seconds to display format
+function secondsToDisplay(totalSeconds: number): string {
+  const h24 = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const period = h24 >= 12 ? "pm" : "am";
+  const hour12 = h24 % 12 || 12;
   return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
 export default function TimeSetScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
-  const { draft, addCondition, removeCondition } = useTaskDraftStore();
+  const { draft, addCondition, updateCondition, removeCondition, setRecurrence } = useTaskDraftStore();
 
-  // Get all time slot conditions (metric: "time", relation: "within"), sorted by start time
-  const timeSlots = draft.conditions
-    .filter((c) => c.metric === "time" && c.relation === "within")
-    .sort((a, b) => a.target.value.start.localeCompare(b.target.value.start));
+  // Find the single time condition (range relation)
+  const timeCondition = draft.conditions.find((c: any) => c.metric_key === "time" && c.relation === "range");
+  const timeSlots: { start: number; end: number }[] = timeCondition?.target?.value ?? [];
 
   function handleSaveTimeSlot(
     from: { hour: number; minute: number; period: "AM" | "PM" },
     to: { hour: number; minute: number; period: "AM" | "PM" },
   ) {
-    const start = formatTo24h(from.hour, from.minute, from.period);
-    const end = formatTo24h(to.hour, to.minute, to.period);
+    const start = timeToSeconds(from.hour, from.minute, from.period);
+    const end = timeToSeconds(to.hour, to.minute, to.period);
 
-    // Check if this exact time slot already exists
-    const isDuplicate = timeSlots.some(
-      (slot) => slot.target.value.start === start && slot.target.value.end === end,
-    );
+    const updatedSlots = [...timeSlots, { start, end }].sort((a, b) => a.start - b.start);
 
-    if (isDuplicate) {
-      return; // Don't add duplicate
+    if (timeCondition) {
+      updateCondition(timeCondition.id, {
+        target: { type: "array", value: updatedSlots },
+      });
+    } else {
+      addCondition({
+        metric_key: "time",
+        relation: "range",
+        target: { type: "array", value: updatedSlots },
+      });
     }
+  }
 
-    addCondition({
-      metric: "time",
-      relation: "within",
-      target: {
-        type: "range",
-        value: { start, end },
-      },
-    });
+  function handleRemoveSlot(index: number) {
+    if (!timeCondition) return;
+    const updatedSlots = timeSlots.filter((_, i) => i !== index);
+    
+    if (updatedSlots.length === 0) {
+      removeCondition(timeCondition.id);
+    } else {
+      updateCondition(timeCondition.id, {
+        target: { type: "array", value: updatedSlots },
+      });
+    }
   }
 
   return (
@@ -70,7 +80,6 @@ export default function TimeSetScreen() {
       {/* HEADER */}
       <ScreenHeader>
         <HeaderTitle className="mt-16 text-3xl text-blue-400">Active Time</HeaderTitle>
-
         <UText className="mt-1 mb-0 text-left text-base text-gray-400">
           Choose when this commitment is active
         </UText>
@@ -78,23 +87,54 @@ export default function TimeSetScreen() {
 
       {/* MAIN CONTENT */}
       <UScroll className="mt-6 flex-1 px-4">
-        {/* DAYS */}
-        <UView className="mb-6">
-          <UText className="mb-3 text-gray-300 text-lg">Days</UText>
+        {/* DAYS HEADER WITH RECURRING TOGGLE */}
+        <UView className="mb-4 flex-row items-center justify-between">
+          <HeaderTitle>Days</HeaderTitle>
+          
+          <UPressable 
+            disabled={!draft.recurrence.days_of_week || draft.recurrence.days_of_week.length === 0}
+            onPress={() => {
+                if (!draft.recurrence.days_of_week || draft.recurrence.days_of_week.length === 0) return;
+                
+                const isRecurring = draft.recurrence.ends?.type === "never";
+                if (isRecurring) {
+                    // Turn Repeat OFF -> Use undefined to clear the property in the merge
+                    setRecurrence({ ends: undefined });
+                } else {
+                    // Turn Repeat ON -> Set to 'never' end
+                    setRecurrence({ ends: { type: "never" } });
+                }
+            }}
+            className={`flex-row items-center gap-2 ${(!draft.recurrence.days_of_week || draft.recurrence.days_of_week.length === 0) ? "opacity-30" : "opacity-100"}`}
+          >
+            <HeaderTitle>Repeat</HeaderTitle>
+            <UView 
+                className={`h-6 w-6 rounded-md border-2 ${draft.recurrence.ends?.type === "never" ? "border-[#4FA0FF] bg-[#4FA0FF]" : "border-gray-600"}`}
+                style={{ justifyContent: 'center', alignItems: 'center' }}
+            >
+                {draft.recurrence.ends?.type === "never" && (
+                    <MaterialCommunityIcons name="check" size={18} color="black" />
+                )}
+            </UView>
+          </UPressable>
+        </UView>
+
+        {/* DAYS SELECTOR (Always visible) */}
+        <UView className="mb-8">
           <DaySelector />
         </UView>
 
         {/* TIMES */}
         <UView className="mb-6">
-          <UText className="mb-3 text-gray-300 text-lg">Times</UText>
+          <HeaderTitle>Times</HeaderTitle>
 
           {/* Render time slots from Zustand */}
-          {timeSlots.map((slot) => (
+          {timeSlots.map((slot, index) => (
             <TimeSlotCard
-              key={slot.id}
-              startTime={formatToDisplay(slot.target.value.start)}
-              endTime={formatToDisplay(slot.target.value.end)}
-              onRemove={() => removeCondition(slot.id)}
+              key={index}
+              startTime={secondsToDisplay(slot.start)}
+              endTime={secondsToDisplay(slot.end)}
+              onRemove={() => handleRemoveSlot(index)}
             />
           ))}
 

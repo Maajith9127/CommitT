@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useRootNavigationState, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Image, ImageBackground, Text, View } from "react-native";
 import { AuthHeading, AuthTitle, PrimaryButton, ScreenContainer } from "@/components/ui";
@@ -6,13 +6,20 @@ import { authClient } from "@/lib/auth-client";
 
 export default function Index() {
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
   const { data: session, isPending } = authClient.useSession();
 
   useEffect(() => {
-    if (!isPending && session) {
-      router.replace("/(main)/commits");
+    // Wait for navigation and session state to be ready
+    if (!rootNavigationState?.key || isPending) return;
+
+    if (session) {
+      const timeout = setTimeout(() => {
+        router.replace("/(main)/commits");
+      }, 0);
+      return () => clearTimeout(timeout);
     }
-  }, [session, isPending, router]);
+  }, [session, isPending, router, rootNavigationState?.key]);
 
   if (isPending) {
     return (

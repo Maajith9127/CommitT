@@ -1,8 +1,10 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, useWindowDimensions, View } from "react-native";
+import { ScrollView, useWindowDimensions, View, Alert } from "react-native";
 import { withUniwind } from "uniwind";
+import { useMutation } from "convex/react";
+import { api } from "@commit/backend/convex/_generated/api";
 
 import { AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
@@ -24,7 +26,10 @@ type Condition = {
 export default function FinalScreen() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
-  const draft = useTaskDraftStore((s) => s.draft);
+  const draft = useTaskDraftStore((s: any) => s.draft);
+  const setTitle = useTaskDraftStore((s: any) => s.setTitle);
+  
+  const create = useMutation(api.tasks.create);
 
   // Metrics for MiniConditionCard carousel
   const horizontalPadding = 16;
@@ -72,7 +77,11 @@ export default function FinalScreen() {
             color="#4FA0FF"
             style={{ marginBottom: 16 }}
           />
-          <Input placeholder="Commitment Name" />
+          <Input 
+            placeholder="Commitment Name" 
+            value={draft.title}
+            onChangeText={setTitle}
+          />
         </UView>
 
         {/* CONDITIONS HEADER */}
@@ -89,10 +98,10 @@ export default function FinalScreen() {
 
               if (condition.title === "Time") {
                 // Check if any time condition exists
-                isSelected = draft.conditions.some(c => c.metric === "time");
+                isSelected = draft.conditions.some((c: any) => c.metric_key === "time");
               } else if (condition.title === "Location") {
-                // Check if location is set
-                isSelected = !!draft.location;
+                // Check if location condition exists
+                isSelected = draft.conditions.some((c: any) => c.metric_key === "location");
               }
 
               return (
@@ -157,7 +166,32 @@ export default function FinalScreen() {
 
       {/* FIXED FOOTER BUTTON */}
       <UView className="mb-10">
-        <PrimaryButton onPress={() => router.push("/(settings)/permissions")}>
+        <PrimaryButton onPress={async () => {
+          try {
+            const payload = {
+              assigner_id: draft.assigner_id,
+              assignee_id: draft.assignee_id,
+              title: draft.title,
+              description: draft.description,
+              visibility: draft.visibility,
+              recurrence: draft.recurrence,
+              conditions: draft.conditions.map((c: any) => {
+                const { id, ...rest } = c;
+                return rest;
+              }),
+            };
+            console.log("PAYLOAD_TO_SEND:", JSON.stringify(payload, null, 2));
+            
+            await create(payload as any);
+            console.log("Task created successfully!");
+            Alert.alert("Success", "Commitment created successfully!");
+            router.push("/(main)/commits");
+            
+          } catch (error) {
+            console.error("Failed to create task:", error);
+            Alert.alert("Error", "Failed to create commitment. Please try again.");
+          }
+        }}>
           CommitT
         </PrimaryButton>
       </UView>

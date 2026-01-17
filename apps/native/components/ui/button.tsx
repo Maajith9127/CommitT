@@ -1,10 +1,11 @@
 import { Button as HeroButton } from "heroui-native";
 import type { ReactNode } from "react";
-import { Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { withUniwind } from "uniwind";
 
 const UHeroButton = withUniwind(HeroButton);
+const UPressable = withUniwind(Pressable);
 const UText = withUniwind(Text);
 
 type BtnProps = {
@@ -64,7 +65,7 @@ export function AddButton({
   onPress?: () => void;
 }) {
   return (
-    <UHeroButton
+    <UPressable
       className={`h-fit flex-row items-center rounded-full bg-[#1A1A1A] px-2.5 py-1 ${className}`}
       onPress={onPress}
     >
@@ -88,6 +89,6 @@ export function AddButton({
 
       {/* TEXT */}
       <UText className="ml-[2px] font-semibold text-base text-blue-400">Add</UText>
-    </UHeroButton>
+    </UPressable>
   );
 }

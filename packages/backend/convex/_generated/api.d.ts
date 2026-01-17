@@ -12,6 +12,7 @@ import type * as auth from "../auth.js";
 import type * as enums from "../enums.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
+import type * as localSeed from "../localSeed.js";
 import type * as metrics from "../metrics.js";
 import type * as opencode from "../opencode.js";
 import type * as privateData from "../privateData.js";
@@ -29,6 +30,7 @@ declare const fullApi: ApiFromModules<{
   enums: typeof enums;
   healthCheck: typeof healthCheck;
   http: typeof http;
+  localSeed: typeof localSeed;
   metrics: typeof metrics;
   opencode: typeof opencode;
   privateData: typeof privateData;

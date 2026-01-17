@@ -18,42 +18,42 @@ export function LocationConditionPanel({
   onCenterPress?: () => void;
 }) {
   const router = useRouter();
-  const location = useTaskDraftStore((s) => s.draft.location);
+  const conditions = useTaskDraftStore((s) => s.draft.conditions);
+  const locationCondition = conditions.find((c: any) => c.metric_key === "location");
+  
+  const location = locationCondition ? {
+    latitude: locationCondition.target.value.lat,
+    longitude: locationCondition.target.value.lng,
+    radius: locationCondition.target.value.radius,
+    address: locationCondition.target.value.address ?? "Selected Location",
+    isInverse: locationCondition.relation === "outside"
+  } : null;
+
   const setLocation = useTaskDraftStore((s) => s.setLocation);
 
   const radius = location?.radius ?? 20;
   const isInverse = location?.isInverse ?? false;
-  const address = location?.address ?? "Kadayannallur, Parasuramapuram South Street";
+  const address = location?.address ?? "Selected Location";
 
   const handleRadiusChange = (val: number) => {
     const rounded = Math.round(val);
-    if (!location) {
-      // Initialize if null
-      setLocation({
-        latitude: 24.543232,
-        longitude: 46.5108992,
-        address: "Kadayannallur, Parasuramapuram South Street",
-        radius: rounded,
-        isInverse: false,
-      });
-      return;
-    }
-    setLocation({ ...location, radius: rounded });
+    setLocation({
+      latitude: location?.latitude ?? 24.543232,
+      longitude: location?.longitude ?? 46.5108992,
+      address: location?.address ?? "Selected Location",
+      radius: rounded,
+      isInverse: isInverse,
+    });
   };
 
   const handleInverseToggle = (val: boolean) => {
-    if (!location) {
-      // Initialize if null
-      setLocation({
-        latitude: 24.543232,
-        longitude: 46.5108992,
-        address: "Kadayannallur, Parasuramapuram South Street",
-        radius: 20,
-        isInverse: val,
-      });
-      return;
-    }
-    setLocation({ ...location, isInverse: val });
+    setLocation({
+      latitude: location?.latitude ?? 24.543232,
+      longitude: location?.longitude ?? 46.5108992,
+      address: location?.address ?? "Selected Location",
+      radius: radius,
+      isInverse: val,
+    });
   };
 
   return (

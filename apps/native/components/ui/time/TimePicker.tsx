@@ -4,7 +4,6 @@ import { withUniwind } from "uniwind";
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
-const UPress = withUniwind(Pressable);
 const UScroll = withUniwind(ScrollView);
 
 type Props = {
@@ -41,32 +40,47 @@ export function TimePicker({ visible, onClose, onSave }: Props) {
     activeTab === "FROM" ? setFromPeriod(p) : setToPeriod(p);
 
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <UView className="flex-1 items-center justify-center bg-black/70">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View 
+        style={{ 
+          flex: 1, 
+          alignItems: "center", 
+          justifyContent: "center", 
+          backgroundColor: "rgba(0,0,0,0.7)" 
+        }}
+      >
         {/* PICKER CARD */}
         <UView className="w-[85%] overflow-hidden rounded-2xl bg-[#1A1A1A] shadow-2xl">
           {/* FROM/TO TABS */}
           <UView className="flex-row">
-            <UPress
+            <Pressable
               onPress={() => setActiveTab("FROM")}
-              className={`flex-1 py-4 ${activeTab === "FROM" ? "bg-[#4FA0FF]" : "bg-gray-700"}`}
+              style={({ pressed }: { pressed: boolean }) => ({
+                flex: 1,
+                paddingVertical: 16,
+                backgroundColor: activeTab === "FROM" ? "#4FA0FF" : pressed ? "#444" : "#374151"
+              })}
             >
               <UText
                 className={`text-center font-bold text-lg ${activeTab === "FROM" ? "text-white" : "text-gray-400"}`}
               >
                 FROM
               </UText>
-            </UPress>
-            <UPress
+            </Pressable>
+            <Pressable
               onPress={() => setActiveTab("TO")}
-              className={`flex-1 py-4 ${activeTab === "TO" ? "bg-[#4FA0FF]" : "bg-gray-700"}`}
+              style={({ pressed }: { pressed: boolean }) => ({
+                flex: 1,
+                paddingVertical: 16,
+                backgroundColor: activeTab === "TO" ? "#4FA0FF" : pressed ? "#444" : "#374151"
+              })}
             >
               <UText
                 className={`text-center font-bold text-lg ${activeTab === "TO" ? "text-white" : "text-gray-400"}`}
               >
                 TO
               </UText>
-            </UPress>
+            </Pressable>
           </UView>
 
           {/* TIME DISPLAY */}
@@ -84,17 +98,23 @@ export function TimePicker({ visible, onClose, onSave }: Props) {
               <UText className="mb-2 font-semibold text-gray-400 text-xs">HOUR</UText>
               <UScroll className="h-40" showsVerticalScrollIndicator={false}>
                 {hours.map((h) => (
-                  <UPress
+                  <Pressable
                     key={h}
                     onPress={() => setCurrentHour(h)}
-                    className={`mx-2 rounded-lg px-4 py-3 ${h === currentHour ? "bg-[#4FA0FF]" : ""}`}
+                    style={({ pressed }: { pressed: boolean }) => ({
+                      marginHorizontal: 8,
+                      borderRadius: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      backgroundColor: h === currentHour ? "#4FA0FF" : pressed ? "#333" : "transparent"
+                    })}
                   >
                     <UText
                       className={`text-center text-lg ${h === currentHour ? "font-bold text-white" : "text-gray-400"}`}
                     >
                       {h}
                     </UText>
-                  </UPress>
+                  </Pressable>
                 ))}
               </UScroll>
             </UView>
@@ -106,17 +126,23 @@ export function TimePicker({ visible, onClose, onSave }: Props) {
                 {minutes
                   .filter((m) => m % 5 === 0)
                   .map((m) => (
-                    <UPress
+                    <Pressable
                       key={m}
                       onPress={() => setCurrentMinute(m)}
-                      className={`mx-2 rounded-lg px-4 py-3 ${m === currentMinute ? "bg-[#4FA0FF]" : ""}`}
+                      style={({ pressed }: { pressed: boolean }) => ({
+                        marginHorizontal: 8,
+                        borderRadius: 8,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        backgroundColor: m === currentMinute ? "#4FA0FF" : pressed ? "#333" : "transparent"
+                      })}
                     >
                       <UText
                         className={`text-center text-lg ${m === currentMinute ? "font-bold text-white" : "text-gray-400"}`}
                       >
                         {String(m).padStart(2, "0")}
                       </UText>
-                    </UPress>
+                    </Pressable>
                   ))}
               </UScroll>
             </UView>
@@ -125,36 +151,47 @@ export function TimePicker({ visible, onClose, onSave }: Props) {
             <UView className="flex-1 items-center">
               <UText className="mb-2 font-semibold text-gray-400 text-xs">PERIOD</UText>
               <UView className="h-40 justify-center">
-                <UPress
+                <Pressable
                   onPress={() => setCurrentPeriod("AM")}
-                  className={`mb-3 rounded-lg px-4 py-3 ${currentPeriod === "AM" ? "bg-[#4FA0FF]" : ""}`}
+                  style={({ pressed }: { pressed: boolean }) => ({
+                    marginBottom: 12,
+                    borderRadius: 8,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    backgroundColor: currentPeriod === "AM" ? "#4FA0FF" : pressed ? "#333" : "transparent"
+                  })}
                 >
                   <UText
                     className={`text-center text-lg ${currentPeriod === "AM" ? "font-bold text-white" : "text-gray-400"}`}
                   >
                     AM
                   </UText>
-                </UPress>
-                <UPress
+                </Pressable>
+                <Pressable
                   onPress={() => setCurrentPeriod("PM")}
-                  className={`rounded-lg px-4 py-3 ${currentPeriod === "PM" ? "bg-[#4FA0FF]" : ""}`}
+                  style={({ pressed }: { pressed: boolean }) => ({
+                    borderRadius: 8,
+                    paddingHorizontal: 16,
+                    paddingVertical: 12,
+                    backgroundColor: currentPeriod === "PM" ? "#4FA0FF" : pressed ? "#333" : "transparent"
+                  })}
                 >
                   <UText
                     className={`text-center text-lg ${currentPeriod === "PM" ? "font-bold text-white" : "text-gray-400"}`}
                   >
                     PM
                   </UText>
-                </UPress>
+                </Pressable>
               </UView>
             </UView>
           </UView>
 
           {/* FOOTER BUTTONS */}
           <UView className="flex-row justify-end border-gray-800 border-t bg-[#1A1A1A] px-6 py-4">
-            <UPress onPress={onClose} className="mr-8 px-4 py-2">
+            <Pressable onPress={onClose} style={{ marginRight: 32, paddingHorizontal: 16, paddingVertical: 8 }}>
               <UText className="font-semibold text-base text-gray-400">CANCEL</UText>
-            </UPress>
-            <UPress
+            </Pressable>
+            <Pressable
               onPress={() => {
                 onSave(
                   { hour: fromHour, minute: fromMinute, period: fromPeriod },
@@ -162,13 +199,13 @@ export function TimePicker({ visible, onClose, onSave }: Props) {
                 );
                 onClose();
               }}
-              className="px-4 py-2"
+              style={{ paddingHorizontal: 16, paddingVertical: 8 }}
             >
               <UText className="font-semibold text-[#4FA0FF] text-base">OK</UText>
-            </UPress>
+            </Pressable>
           </UView>
         </UView>
-      </UView>
+      </View>
     </Modal>
   );
 }

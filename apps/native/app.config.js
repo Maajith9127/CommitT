@@ -37,6 +37,9 @@ const config = {
         "android.permission.ACCESS_FINE_LOCATION",
       ],
     },
+    ios: {
+      bundleIdentifier: "com.mono.commit",
+    },
   },
 };
 
