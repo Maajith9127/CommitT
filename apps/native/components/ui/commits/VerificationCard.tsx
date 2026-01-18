@@ -49,11 +49,11 @@ export function VerificationCard({
 
           {/* CHALLENGE + TIME */}
           <UView className="flex-row items-center justify-between">
-            <SecondaryButton className="mr-2 flex-1 bg-[#2D3037] rounded-4xl">
+            <SecondaryButton className="mr-2 flex-1 bg-[#2A2A2A] rounded-4xl">
               {challenge}
             </SecondaryButton>
 
-            <SecondaryButton className="ml-2 flex-1 bg-[#2D3037] rounded-4xl">
+            <SecondaryButton className="ml-2 flex-1 bg-[#2A2A2A] rounded-4xl">
               {timeUntil}
             </SecondaryButton>
           </UView>

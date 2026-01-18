@@ -10,6 +10,7 @@ import { AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { MiniConditionCard } from "@/components/ui/commits/MiniConditionCard";
 import { CommitCard } from "@/components/ui/commits/DigitalCommitment";
+import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 
@@ -28,14 +29,23 @@ export default function FinalScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const draft = useTaskDraftStore((s: any) => s.draft);
   const setTitle = useTaskDraftStore((s: any) => s.setTitle);
+  const setLocation = useTaskDraftStore((s: any) => s.setLocation);
+  const setAssignee = useTaskDraftStore((s: any) => s.setAssignee);
+  const setDraft = useTaskDraftStore((s: any) => s.setDraft);
+  
+  // Detect if we're editing an existing task (has an id from backend)
+  const isEditMode = Boolean(draft.id);
   
   const create = useMutation(api.tasks.create);
+  const update = useMutation(api.tasks.update);
 
   // Metrics for MiniConditionCard carousel
   const horizontalPadding = 16;
   const cardGap = 8; 
   const visibleCards = 3.2;
   const cardWidth = (screenWidth - horizontalPadding * 2 - cardGap * Math.floor(visibleCards)) / visibleCards;
+
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
 
   const [conditions] = useState<Condition[]>([
     {
@@ -70,7 +80,7 @@ export default function FinalScreen() {
       {/* MAIN SCROLL AREA */}
       <UScroll showsVerticalScrollIndicator={false} className="flex-1">
         {/* TOP — ICON + NAME INPUT */}
-        <UView className="mb-10 items-center">
+        <UView className="mb-7 items-center">
           <MaterialCommunityIcons
             name="book"
             size={75}
@@ -85,23 +95,51 @@ export default function FinalScreen() {
         </UView>
 
         {/* CONDITIONS HEADER */}
-        <UView className="mb-3 flex-row items-center justify-between">
+        <UView className="mb-1 flex-row items-center justify-between">
           <HeaderTitle>Conditions</HeaderTitle>
           <AddButton onPress={() => {}} />
         </UView>
 
         {/* HORIZONTAL MINI CONDITION CARDS */}
         <UView>
-          <UScroll horizontal showsHorizontalScrollIndicator={false} className="mb-6 flex-row">
+          <UScroll horizontal showsHorizontalScrollIndicator={false} className="mb-1 flex-row py-3">
             {conditions.map((condition, index) => {
               let isSelected = false;
+
+              let onClear: (() => void) | undefined = undefined;
 
               if (condition.title === "Time") {
                 // Check if any time condition exists
                 isSelected = draft.conditions.some((c: any) => c.metric_key === "time");
+                
+                if (isSelected) {
+                   onClear = () => {
+                      setDraft({
+                         recurrence: { type: "once", interval: 1 },
+                         time_window: { start_at: null, due_at: null },
+                         conditions: draft.conditions.filter((c: any) => c.metric_key !== "time")
+                      });
+                   };
+                }
+
               } else if (condition.title === "Location") {
                 // Check if location condition exists
                 isSelected = draft.conditions.some((c: any) => c.metric_key === "location");
+                
+                if (isSelected) {
+                   onClear = () => setLocation(null);
+                }
+
+              } else if (condition.title === "Partner") {
+                 // Check if assignee is set and different from self (if needed) or just set
+                 // Assuming "Partner" means assignee_id is set
+                 isSelected = Boolean(draft.assignee_id && draft.assignee_id !== draft.assigner_id); 
+                 // Note: If assigning to self, is it "Partner"? Usually Partner means someone else.
+                 // But let's assume if assignee_id is truthy.
+                 
+                 if (isSelected) {
+                    onClear = () => setAssignee(null);
+                 }
               }
 
               return (
@@ -118,8 +156,11 @@ export default function FinalScreen() {
                       router.push("/(create-commit)/time-set");
                     } else if (condition.title === "Location") {
                       router.push("/(create-commit)/location-set");
+                    } else if (condition.title === "Partner") {
+                      router.push("/(create-commit)/partner-select");
                     }
                   }}
+                  onClear={onClear}
                 />
               );
             })}
@@ -166,35 +207,60 @@ export default function FinalScreen() {
 
       {/* FIXED FOOTER BUTTON */}
       <UView className="mb-10">
-        <PrimaryButton onPress={async () => {
-          try {
-            const payload = {
-              assigner_id: draft.assigner_id,
-              assignee_id: draft.assignee_id,
-              title: draft.title,
-              description: draft.description,
-              visibility: draft.visibility,
-              recurrence: draft.recurrence,
-              conditions: draft.conditions.map((c: any) => {
-                const { id, ...rest } = c;
-                return rest;
-              }),
-            };
-            console.log("PAYLOAD_TO_SEND:", JSON.stringify(payload, null, 2));
-            
-            await create(payload as any);
-            console.log("Task created successfully!");
-            Alert.alert("Success", "Commitment created successfully!");
-            router.push("/(main)/commits");
-            
-          } catch (error) {
-            console.error("Failed to create task:", error);
-            Alert.alert("Error", "Failed to create commitment. Please try again.");
-          }
-        }}>
-          CommitT
+        <PrimaryButton onPress={() => setConfirmModalVisible(true)}>
+          {isEditMode ? "Save" : "CommitT"}
         </PrimaryButton>
       </UView>
+
+      <ConfirmationModal
+        visible={confirmModalVisible}
+        title={isEditMode ? "Update this CommitT?" : "Create this CommitT?"}
+        confirmText="Commit"
+        cancelText="Cancel"
+        confirmColor="#4FA0FF" 
+        cancelColor="#FF3B30"
+        onConfirm={async () => {
+          setConfirmModalVisible(false);
+          try {
+             // Prepare conditions without local 'id' field
+             const cleanedConditions = draft.conditions.map((c: any) => {
+               const { id, ...rest } = c;
+               return rest;
+             });
+ 
+             if (isEditMode) {
+               const updatePayload = {
+                 id: draft.id,
+                 title: draft.title,
+                 description: draft.description,
+                 visibility: draft.visibility,
+                 recurrence: draft.recurrence,
+                 conditions: cleanedConditions,
+               };
+               await update(updatePayload as any);
+             
+             } else {
+               const createPayload = {
+                 assigner_id: draft.assigner_id,
+                 assignee_id: draft.assignee_id,
+                 title: draft.title,
+                 description: draft.description,
+                 visibility: draft.visibility,
+                 recurrence: draft.recurrence,
+                 conditions: cleanedConditions,
+               };
+               await create(createPayload as any);
+             
+             }
+             router.push("/(main)/commits");
+             
+           } catch (error) {
+             console.error("Failed to save task:", error);
+             Alert.alert("Error", "Failed to save commitment. Please try again.");
+           }
+        }}
+        onCancel={() => setConfirmModalVisible(false)}
+      />
     </UView>
   );
 }

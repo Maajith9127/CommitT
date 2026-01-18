@@ -43,11 +43,13 @@ export function AuthHeading({
 export function FooterText({
   children,
   className = "",
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
+  style?: any;
 }) {
-  return <UText className={`mt-1 text-gray-400 text-xs ${className}`}>{children}</UText>;
+  return <UText className={`mt-1 text-gray-400 text-xs ${className}`} style={style}>{children}</UText>;
 }
 
 // -----------------------------

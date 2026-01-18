@@ -10,7 +10,7 @@ export default function MainLayout() {
   return (
     <UView className="flex-1 bg-black">
       {/* TOP NAVBAR */}
-      <UView className="w-full flex-row items-center justify-between border-gray-800 border-b bg-black px-6 py-4" />
+      <UView className="w-full flex-row items-center justify-between border-gray-800  bg-black px-6 py-4" />
 
       {/* MAIN SCREEN CONTENT */}
       <UView className="flex-1">

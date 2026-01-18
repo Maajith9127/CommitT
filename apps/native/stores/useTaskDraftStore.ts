@@ -120,7 +120,7 @@ type TaskDraftStore = {
 --------------------------------*/
 
 const createEmptyDraft = (): TaskDraft => ({
-  id: nanoid(),
+  id: "",
 
   assigner_id: null,
   assignee_id: null,
@@ -148,10 +148,10 @@ const createEmptyDraft = (): TaskDraft => ({
 const logger = (config: any) => (set: any, get: any, api: any) =>
   config(
     (...args: any[]) => {
-      const name = args[2] ?? "anonymous";
-      console.log(`\n[Zustand] Action: ${name}`);
+      // const name = args[2] ?? "anonymous";
+      // console.log(`\n[Zustand] Action: ${name}`);
       set(...args);
-      console.log("  New State:", JSON.stringify(get().draft, null, 2));
+      // console.log("  New State:", JSON.stringify(get().draft, null, 2));
     },
     get,
     api
@@ -389,9 +389,15 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
       
     setDraft: (newDraft: Partial<TaskDraft>) =>
       set(
-        (state: TaskDraftStore) => ({
-          draft: { ...state.draft, ...newDraft },
-        }),
+        (state: TaskDraftStore) => {
+          const conditions = newDraft.conditions
+            ? newDraft.conditions.map((c) => ({ ...c, id: c.id || nanoid() }))
+            : state.draft.conditions;
+
+          return {
+            draft: { ...state.draft, ...newDraft, conditions },
+          };
+        },
         false,
         "draft/setDraft"
       ),

@@ -3,6 +3,7 @@ import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { PrimaryButton } from "@/components/ui/button";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { CustomSlider } from "@/components/ui/CustomSlider";

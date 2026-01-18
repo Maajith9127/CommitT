@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Pressable, View } from "react-native";
+import { useRef } from "react";
+import { Pressable, View, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
 
 import { FooterText, HeaderTitle } from "@/components/ui/text";
@@ -14,6 +15,7 @@ export type CommitCardProps = {
   statusLabel?: string;
   className?: string;
   onPress?: () => void;
+  onOptionsPress?: (position: { x: number; y: number }) => void;
 };
 
 export function CommitCard({
@@ -23,7 +25,20 @@ export function CommitCard({
   statusLabel = "Active",
   className = "",
   onPress,
+  onOptionsPress,
 }: CommitCardProps) {
+  const dotsRef = useRef<View>(null);
+
+  const handleOptionsPress = () => {
+    if (dotsRef.current) {
+      dotsRef.current.measureInWindow((x, y, width, height) => {
+        onOptionsPress?.({ x: x + width, y: y + height });
+      });
+    } else {
+      onOptionsPress?.({ x: 0, y: 200 });
+    }
+  };
+
   return (
     <Pressable onPress={onPress}>
       {({ pressed }: { pressed: boolean }) => (
@@ -61,7 +76,14 @@ export function CommitCard({
             {/* RIGHT COLUMN — OPTIONS MENU (3 DOTS)                           */}
             {/* -------------------------------------------------------------- */}
             <UView className="w-[25%] items-end pt-1 pr-1">
-              <MaterialCommunityIcons name="dots-vertical" size={26} color="#A0A0A0" />
+              <TouchableOpacity
+                onPress={handleOptionsPress}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <View ref={dotsRef} collapsable={false}>
+                  <MaterialCommunityIcons name="dots-vertical" size={26} color="#A0A0A0" />
+                </View>
+              </TouchableOpacity>
             </UView>
           </UView>
 
@@ -86,3 +108,4 @@ export function CommitCard({
     </Pressable>
   );
 }
+

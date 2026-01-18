@@ -15,6 +15,7 @@ export type MiniConditionCardProps = {
   iconColor?: string;
   selected?: boolean;
   selectionColor?: string;
+  onClear?: () => void;
 };
 
 export function MiniConditionCard({
@@ -26,6 +27,7 @@ export function MiniConditionCard({
   iconColor = "#4FA0FF",
   selected = false,
   selectionColor = "#4FA0FF",
+  onClear,
 }: MiniConditionCardProps) {
   return (
     <UButton
@@ -37,6 +39,20 @@ export function MiniConditionCard({
       className={`items-center justify-center rounded-[20px] bg-[#1A1A1A] py-3 ${className}`}
       activeOpacity={0.8}
     >
+      {selected && onClear && (
+        <UButton
+          onPress={(e) => {
+             e.stopPropagation();
+             onClear();
+          }}
+          className="absolute -top-2 -right-2 z-20 h-7 w-7 items-center justify-center rounded-full bg-[#2A2A2A]"
+          style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.3, shadowRadius: 2, elevation: 3 }}
+          hitSlop={12}
+        >
+          <MaterialCommunityIcons name="close" size={16} color="#A0A0A0" />
+        </UButton>
+      )}
+
       <MaterialCommunityIcons name={icon} size={35} color={iconColor} style={{ marginBottom: 4 }} />
       <FooterText className="font-semibold text-white text-xs">{title}</FooterText>
     </UButton>

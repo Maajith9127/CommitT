@@ -30,6 +30,10 @@ export function ScreenContainer({
 // ------------------------------------------
 // SCREEN HEADER (new, added as you asked)
 // ------------------------------------------
+import { SafeAreaView } from "react-native-safe-area-context";
+
+const USafeAreaView = withUniwind(SafeAreaView);
+
 export function ScreenHeader({
   children,
   className = "",
@@ -38,11 +42,11 @@ export function ScreenHeader({
   className?: string;
 }) {
   return (
-    <UView
-      className={`bg-black pt-5 pr-4 pb-5 pl-4 ${className}
-      `}
+    <USafeAreaView
+      edges={['top']}
+      className={`bg-black pr-4 pb-5 pl-4 ${className}`}
     >
       {children}
-    </UView>
+    </USafeAreaView>
   );
 }
