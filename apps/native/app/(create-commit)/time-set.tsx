@@ -1,54 +1,101 @@
+/**
+ * Time Set Screen
+ *
+ * Allows user to configure:
+ * - Days of the week for the task
+ * - Time slots (windows when task is active)
+ * - Recurrence settings (repeat on/off)
+ *
+ * Data is stored in Zustand (useTaskDraftStore) and validated
+ * before saving using lib/validation/timeSlot.ts.
+ */
+
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, Text, View, Pressable } from "react-native";
 import { withUniwind } from "uniwind";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+// Components
 import { ScreenHeader } from "@/components/ui";
 import { AddButton, PrimaryButton } from "@/components/ui/button";
 import { HeaderTitle } from "@/components/ui/text";
 import { DaySelector } from "@/components/ui/time/DaySelector";
 import { TimePicker } from "@/components/ui/time/TimePicker";
 import { TimeSlotCard } from "@/components/ui/time/TimeSlotCard";
-import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 
+// State & Utilities
+import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { validateTimeSlot } from "@/lib/validation/timeSlot";
+import { timeToSeconds, secondsToDisplay, type TimeInput } from "@/lib/time";
+
+// Styled components
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 const UText = withUniwind(Text);
 const UPressable = withUniwind(Pressable);
 
-// Helper to convert time to seconds from midnight
-function timeToSeconds(hour: number, minute: number, period: "AM" | "PM"): number {
-  let h = hour % 12;
-  if (period === "PM") h += 12;
-  return h * 3600 + minute * 60;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Helper to convert seconds to display format
-function secondsToDisplay(totalSeconds: number): string {
-  const h24 = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const period = h24 >= 12 ? "pm" : "am";
-  const hour12 = h24 % 12 || 12;
-  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
-}
+type TimeSlot = {
+  start: number;
+  end: number;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function TimeSetScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
-  const { draft, addCondition, updateCondition, removeCondition, setRecurrence } = useTaskDraftStore();
+  
+  // Error modal state for validation failures
+  const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({
+    visible: false,
+    message: "",
+  });
 
-  // Find the single time condition (range relation)
-  const timeCondition = draft.conditions.find((c: any) => c.metric_key === "time" && c.relation === "range");
-  const timeSlots: { start: number; end: number }[] = timeCondition?.target?.value ?? [];
+  // Zustand selectors
+  const draft = useTaskDraftStore((s) => s.draft);
+  const addCondition = useTaskDraftStore((s) => s.addCondition);
+  const updateCondition = useTaskDraftStore((s) => s.updateCondition);
+  const removeCondition = useTaskDraftStore((s) => s.removeCondition);
+  const setRecurrence = useTaskDraftStore((s) => s.setRecurrence);
 
-  function handleSaveTimeSlot(
-    from: { hour: number; minute: number; period: "AM" | "PM" },
-    to: { hour: number; minute: number; period: "AM" | "PM" },
-  ) {
+  // Extract time slots from conditions
+  const timeCondition = draft.conditions.find(
+    (c) => c.metric_key === "time" && c.relation === "range"
+  );
+  const timeSlots: TimeSlot[] = timeCondition?.target?.value ?? [];
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Handlers
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Handle saving a new time slot from the picker.
+   * Validates before updating Zustand state.
+   */
+  function handleSaveTimeSlot(from: TimeInput, to: TimeInput) {
     const start = timeToSeconds(from.hour, from.minute, from.period);
     const end = timeToSeconds(to.hour, to.minute, to.period);
 
-    const updatedSlots = [...timeSlots, { start, end }].sort((a, b) => a.start - b.start);
+    // Validate before updating state
+    const validation = validateTimeSlot(start, end, timeSlots);
+    if (!validation.valid) {
+      setErrorModal({ visible: true, message: validation.error });
+      return;
+    }
 
+    // Add new slot and sort by start time
+    const updatedSlots = [...timeSlots, { start, end }].sort(
+      (a, b) => a.start - b.start
+    );
+
+    // Update or create the time condition
     if (timeCondition) {
       updateCondition(timeCondition.id, {
         target: { type: "array", value: updatedSlots },
@@ -62,10 +109,15 @@ export default function TimeSetScreen() {
     }
   }
 
+  /**
+   * Remove a time slot by index.
+   * If last slot is removed, removes the entire time condition.
+   */
   function handleRemoveSlot(index: number) {
     if (!timeCondition) return;
+
     const updatedSlots = timeSlots.filter((_, i) => i !== index);
-    
+
     if (updatedSlots.length === 0) {
       removeCondition(timeCondition.id);
     } else {
@@ -75,9 +127,36 @@ export default function TimeSetScreen() {
     }
   }
 
+  /**
+   * Toggle the "Repeat" setting for recurrence.
+   * Only enabled when at least one day is selected.
+   */
+  function handleToggleRepeat() {
+    const hasDays = draft.recurrence.days_of_week && draft.recurrence.days_of_week.length > 0;
+    if (!hasDays) return;
+
+    const isRecurring = draft.recurrence.ends?.type === "never";
+    if (isRecurring) {
+      setRecurrence({ ends: undefined });
+    } else {
+      setRecurrence({ ends: { type: "never" } });
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Derived State
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const hasDaysSelected = draft.recurrence.days_of_week && draft.recurrence.days_of_week.length > 0;
+  const isRepeatEnabled = draft.recurrence.ends?.type === "never";
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Render
+  // ───────────────────────────────────────────────────────────────────────────
+
   return (
     <UView className="flex-1 bg-black">
-      {/* HEADER */}
+      {/* Header */}
       <ScreenHeader>
         <HeaderTitle className="mt-16 text-3xl text-blue-400">Active Time</HeaderTitle>
         <UText className="mt-1 mb-0 text-left text-base text-gray-400">
@@ -85,50 +164,51 @@ export default function TimeSetScreen() {
         </UText>
       </ScreenHeader>
 
-      {/* MAIN CONTENT */}
+      {/* Main Content */}
       <UScroll className="mt-6 flex-1 px-4">
-        {/* DAYS HEADER WITH RECURRING TOGGLE */}
+        {/* Days Section */}
         <UView className="mb-4 flex-row items-center justify-between">
           <HeaderTitle>Days</HeaderTitle>
-          
-          <UPressable 
-            disabled={!draft.recurrence.days_of_week || draft.recurrence.days_of_week.length === 0}
-            onPress={() => {
-                if (!draft.recurrence.days_of_week || draft.recurrence.days_of_week.length === 0) return;
-                
-                const isRecurring = draft.recurrence.ends?.type === "never";
-                if (isRecurring) {
-                    // Turn Repeat OFF -> Use undefined to clear the property in the merge
-                    setRecurrence({ ends: undefined });
-                } else {
-                    // Turn Repeat ON -> Set to 'never' end
-                    setRecurrence({ ends: { type: "never" } });
-                }
-            }}
-            className={`flex-row items-center gap-2 ${(!draft.recurrence.days_of_week || draft.recurrence.days_of_week.length === 0) ? "opacity-30" : "opacity-100"}`}
+
+          {/* Repeat Toggle */}
+          <UPressable
+            disabled={!hasDaysSelected}
+            onPress={handleToggleRepeat}
+            className={`flex-row items-center gap-2 ${hasDaysSelected ? "opacity-100" : "opacity-25"}`}
           >
             <HeaderTitle>Repeat</HeaderTitle>
-            <UView 
-                className={`h-6 w-6 rounded-md border-2 ${draft.recurrence.ends?.type === "never" ? "border-[#4FA0FF] bg-[#4FA0FF]" : "border-gray-600"}`}
-                style={{ justifyContent: 'center', alignItems: 'center' }}
+            <UView
+              className={`h-6 w-6 rounded-md border-2 ${
+                isRepeatEnabled ? "border-[#4FA0FF] bg-[#4FA0FF]" : "border-gray-600"
+              }`}
+              style={{ justifyContent: "center", alignItems: "center" }}
             >
-                {draft.recurrence.ends?.type === "never" && (
-                    <MaterialCommunityIcons name="check" size={18} color="black" />
-                )}
+              {isRepeatEnabled && (
+                <MaterialCommunityIcons name="check" size={18} color="black" />
+              )}
             </UView>
           </UPressable>
         </UView>
 
-        {/* DAYS SELECTOR (Always visible) */}
+        {/* Day Selector */}
         <UView className="mb-8">
           <DaySelector />
         </UView>
 
-        {/* TIMES */}
+        {/* Times Section */}
         <UView className="mb-6">
-          <HeaderTitle>Times</HeaderTitle>
+          {/* Times Header with Add Button */}
+          <UView className="mb-2 flex-row items-center justify-between">
+            <HeaderTitle>Times</HeaderTitle>
+            <UView className={hasDaysSelected ? "opacity-100" : "opacity-25"}>
+              <AddButton 
+                onPress={() => setPickerVisible(true)} 
+                disabled={!hasDaysSelected}
+              />
+            </UView>
+          </UView>
 
-          {/* Render time slots from Zustand */}
+          {/* Existing Time Slots */}
           {timeSlots.map((slot, index) => (
             <TimeSlotCard
               key={index}
@@ -137,30 +217,37 @@ export default function TimeSetScreen() {
               onRemove={() => handleRemoveSlot(index)}
             />
           ))}
-
-          {/* ADD BUTTON */}
-          <UView className="mt-2 w-[25%]">
-            <AddButton onPress={() => setPickerVisible(true)} />
-          </UView>
         </UView>
       </UScroll>
 
-      {/* SAVE BUTTON */}
-      <UView className="mb-8 px-4">
-        <PrimaryButton
-          onPress={() => {
-            router.push("/(create-commit)/final");
-          }}
+      {/* Save Button - disabled if no days selected */}
+      <UView className={`mb-8 px-4 ${hasDaysSelected ? "opacity-100" : "opacity-25"}`}>
+        <PrimaryButton 
+          onPress={() => router.push("/(create-commit)/final")}
+          disabled={!hasDaysSelected}
         >
           Save
         </PrimaryButton>
       </UView>
 
-      {/* POPUP */}
+      {/* Time Picker Modal */}
       <TimePicker
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
         onSave={handleSaveTimeSlot}
+      />
+
+      {/* Validation Error Modal */}
+      <ConfirmationModal
+        visible={errorModal.visible}
+        title={errorModal.message}
+        cancelText="Cancel"
+        confirmText="Change"
+        onCancel={() => setErrorModal({ visible: false, message: "" })}
+        onConfirm={() => {
+          setErrorModal({ visible: false, message: "" });
+          setPickerVisible(true); // Re-open picker to change time
+        }}
       />
     </UView>
   );

@@ -13,17 +13,18 @@ type BtnProps = {
   className?: string;
   onPress?: () => void;
   textClassName?: string;
+  disabled?: boolean;
 };
 
 // ---------------------------
 // PRIMARY BUTTON
 // ---------------------------
-export function PrimaryButton({ children, className = "", onPress, textClassName = "" }: BtnProps) {
+export function PrimaryButton({ children, className = "", onPress, textClassName = "", disabled = false }: BtnProps) {
   return (
     <UHeroButton
-      className={`w-full items-center justify-center rounded-full bg-[#4FA0FF] ${className}
-      `}
-      onPress={onPress}
+      className={`w-full items-center justify-center rounded-full bg-[#4FA0FF] ${className}`}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
     >
       <UText className={`font-semibold text-lg text-white ${textClassName}`}>{children}</UText>
     </UHeroButton>
@@ -60,14 +61,17 @@ export function LinkButton({ children, className = "", onPress }: BtnProps) {
 export function AddButton({
   className = "",
   onPress,
+  disabled = false,
 }: {
   className?: string;
   onPress?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <UPressable
       className={`h-fit flex-row items-center rounded-full bg-[#1A1A1A] px-2.5 py-1 ${className}`}
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
     >
       {/* SVG ICON */}
       <Svg width={16} height={16} viewBox="0 0 24 24" className="-mr-0.5">
