@@ -14,6 +14,7 @@ export type ConfirmationModalProps = {
   cancelText?: string;
   confirmColor?: string; // Color prop for confirm button
   cancelColor?: string;  // Color prop for cancel button
+  singleButton?: boolean; // If true, only shows confirm button (for acknowledgement modals)
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -26,6 +27,7 @@ export function ConfirmationModal({
   cancelText = "Cancel",
   confirmColor = "#4FA0FF",
   cancelColor = "#4FA0FF", // Default cancel to blue
+  singleButton = false,
   onConfirm,
   onCancel,
 }: ConfirmationModalProps) {
@@ -57,17 +59,19 @@ export function ConfirmationModal({
           
 
 
-          {/* Buttons Row - RIGHT ALIGNED */}
-          <UView className="flex-row justify-end space-x-6 gap-8">
-            {/* 2. Cancel Button */}
-            <UPressable onPress={onCancel} hitSlop={10}>
-                <FooterText 
-                    className="text-base font-bold uppercase"
-                    style={{ color: cancelColor }}
-                >
-                    {cancelText}
-                </FooterText>
-            </UPressable>
+          {/* Buttons Row - RIGHT ALIGNED (or centered if single button) */}
+          <UView className={`flex-row ${singleButton ? "justify-center" : "justify-end"} space-x-6 gap-8`}>
+            {/* 2. Cancel Button - only show if not single button mode */}
+            {!singleButton && (
+              <UPressable onPress={onCancel} hitSlop={10}>
+                  <FooterText 
+                      className="text-base font-bold uppercase"
+                      style={{ color: cancelColor }}
+                  >
+                      {cancelText}
+                  </FooterText>
+              </UPressable>
+            )}
 
             {/* 3. Confirm Button */}
             <UPressable onPress={onConfirm} hitSlop={10}>

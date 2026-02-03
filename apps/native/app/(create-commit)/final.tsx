@@ -13,6 +13,7 @@ import { CommitCard } from "@/components/ui/commits/DigitalCommitment";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { validateTaskDraft } from "@/lib/validation/taskDraft";
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
@@ -46,6 +47,28 @@ export default function FinalScreen() {
   const cardWidth = (screenWidth - horizontalPadding * 2 - cardGap * Math.floor(visibleCards)) / visibleCards;
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  
+  // Error modal state for validation failures
+  const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({
+    visible: false,
+    message: "",
+  });
+
+  /**
+   * Validate the draft before showing commit confirmation.
+   * Uses centralized validation from lib/validation/taskDraft.
+   */
+  function handleCommitPress() {
+    const validation = validateTaskDraft(draft);
+    
+    if (!validation.valid) {
+      setErrorModal({ visible: true, message: validation.error });
+      return;
+    }
+
+    // All validations passed - show confirmation modal
+    setConfirmModalVisible(true);
+  }
 
   const [conditions] = useState<Condition[]>([
     {
@@ -207,15 +230,16 @@ export default function FinalScreen() {
 
       {/* FIXED FOOTER BUTTON */}
       <UView className="mb-10">
-        <PrimaryButton onPress={() => setConfirmModalVisible(true)}>
+        <PrimaryButton onPress={handleCommitPress}>
           {isEditMode ? "Save" : "CommitT"}
         </PrimaryButton>
       </UView>
 
+      {/* Commit Confirmation Modal */}
       <ConfirmationModal
         visible={confirmModalVisible}
         title={isEditMode ? "Update this CommitT?" : "Create this CommitT?"}
-        confirmText="Commit"
+        confirmText={isEditMode ? "Update" : "Commit"}
         cancelText="Cancel"
         confirmColor="#4FA0FF" 
         cancelColor="#FF3B30"
@@ -260,6 +284,16 @@ export default function FinalScreen() {
            }
         }}
         onCancel={() => setConfirmModalVisible(false)}
+      />
+
+      {/* Validation Error Modal - Single "Ok" button */}
+      <ConfirmationModal
+        visible={errorModal.visible}
+        title={errorModal.message}
+        confirmText="Ok"
+        singleButton={true}
+        onConfirm={() => setErrorModal({ visible: false, message: "" })}
+        onCancel={() => setErrorModal({ visible: false, message: "" })}
       />
     </UView>
   );

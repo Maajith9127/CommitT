@@ -148,6 +148,8 @@ export default function TimeSetScreen() {
   // ───────────────────────────────────────────────────────────────────────────
 
   const hasDaysSelected = draft.recurrence.days_of_week && draft.recurrence.days_of_week.length > 0;
+  const hasTimeSlots = timeSlots.length > 0;
+  const canSave = hasDaysSelected && hasTimeSlots;
   const isRepeatEnabled = draft.recurrence.ends?.type === "never";
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -220,11 +222,11 @@ export default function TimeSetScreen() {
         </UView>
       </UScroll>
 
-      {/* Save Button - disabled if no days selected */}
-      <UView className={`mb-8 px-4 ${hasDaysSelected ? "opacity-100" : "opacity-25"}`}>
+      {/* Save Button - disabled if no days or no time slots */}
+      <UView className={`mb-8 px-4 ${canSave ? "opacity-100" : "opacity-25"}`}>
         <PrimaryButton 
           onPress={() => router.push("/(create-commit)/final")}
-          disabled={!hasDaysSelected}
+          disabled={!canSave}
         >
           Save
         </PrimaryButton>
