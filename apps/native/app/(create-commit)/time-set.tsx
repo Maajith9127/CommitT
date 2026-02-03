@@ -226,7 +226,7 @@ export default function TimeSetScreen() {
           onPress={() => router.push("/(create-commit)/final")}
           disabled={!hasDaysSelected}
         >
-          Save
+          Sav
         </PrimaryButton>
       </UView>
 
