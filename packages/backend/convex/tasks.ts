@@ -48,6 +48,10 @@ export const create = mutation({
       type: recurrenceTypeEnum,
       interval: v.number(),
       days_of_week: v.optional(v.array(v.number())),
+      time_windows: v.array(v.object({
+        start: v.number(),
+        end: v.number(),
+      })),
       ends: v.optional(v.object({
         type: recurrenceEndsTypeEnum,
         count: v.optional(v.number()),
@@ -87,6 +91,10 @@ export const createInternal = internalMutation({
       type: recurrenceTypeEnum,
       interval: v.number(),
       days_of_week: v.optional(v.array(v.number())),
+      time_windows: v.array(v.object({
+        start: v.number(),
+        end: v.number(),
+      })),
       ends: v.optional(v.object({
         type: recurrenceEndsTypeEnum,
         count: v.optional(v.number()),
@@ -144,7 +152,7 @@ export const generate = action({
         title: args.title,
         description: args.description,
         visibility: args.visibility,
-        recurrence: { type: "once", interval: 1 },
+        recurrence: { type: "once", interval: 1, time_windows: [] },
         conditions: conditions as any,
         created_at: now,
         updated_at: now,
@@ -168,6 +176,10 @@ export const update = mutation({
       type: recurrenceTypeEnum,
       interval: v.number(),
       days_of_week: v.optional(v.array(v.number())),
+      time_windows: v.array(v.object({
+        start: v.number(),
+        end: v.number(),
+      })),
       ends: v.optional(v.object({
         type: recurrenceEndsTypeEnum,
         count: v.optional(v.number()),

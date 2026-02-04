@@ -60,16 +60,13 @@ export default function TimeSetScreen() {
 
   // Zustand selectors
   const draft = useTaskDraftStore((s) => s.draft);
-  const addCondition = useTaskDraftStore((s) => s.addCondition);
-  const updateCondition = useTaskDraftStore((s) => s.updateCondition);
-  const removeCondition = useTaskDraftStore((s) => s.removeCondition);
   const setRecurrence = useTaskDraftStore((s) => s.setRecurrence);
+  const setTimeWindows = useTaskDraftStore((s) => s.setTimeWindows);
+  const addTimeWindow = useTaskDraftStore((s) => s.addTimeWindow);
+  const removeTimeWindow = useTaskDraftStore((s) => s.removeTimeWindow);
 
-  // Extract time slots from conditions
-  const timeCondition = draft.conditions.find(
-    (c) => c.metric_key === "time" && c.relation === "range"
-  );
-  const timeSlots: TimeSlot[] = timeCondition?.target?.value ?? [];
+  // Get time slots directly from recurrence.time_windows
+  const timeSlots: TimeSlot[] = draft.recurrence.time_windows;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Handlers
@@ -95,36 +92,15 @@ export default function TimeSetScreen() {
       (a, b) => a.start - b.start
     );
 
-    // Update or create the time condition
-    if (timeCondition) {
-      updateCondition(timeCondition.id, {
-        target: { type: "array", value: updatedSlots },
-      });
-    } else {
-      addCondition({
-        metric_key: "time",
-        relation: "range",
-        target: { type: "array", value: updatedSlots },
-      });
-    }
+    // Update time_windows in recurrence
+    setTimeWindows(updatedSlots);
   }
 
   /**
    * Remove a time slot by index.
-   * If last slot is removed, removes the entire time condition.
    */
   function handleRemoveSlot(index: number) {
-    if (!timeCondition) return;
-
-    const updatedSlots = timeSlots.filter((_, i) => i !== index);
-
-    if (updatedSlots.length === 0) {
-      removeCondition(timeCondition.id);
-    } else {
-      updateCondition(timeCondition.id, {
-        target: { type: "array", value: updatedSlots },
-      });
-    }
+    removeTimeWindow(index);
   }
 
   /**

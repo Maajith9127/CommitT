@@ -33,6 +33,10 @@ export default defineSchema({
       type: recurrenceTypeEnum,
       interval: v.number(),
       days_of_week: v.optional(v.array(v.number())),
+      time_windows: v.array(v.object({
+        start: v.number(),  // seconds from midnight
+        end: v.number(),    // seconds from midnight
+      })),
       ends: v.optional(v.object({
         type: recurrenceEndsTypeEnum,
         count: v.optional(v.number()),

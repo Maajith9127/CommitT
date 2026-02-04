@@ -1,76 +1,70 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid/non-secure";
 
+// Import Convex-generated types - single source of truth for backend schema
+import type { Doc } from "@commit/backend/convex/_generated/dataModel";
+
 /* -----------------------------
-   Types
+   Types - Derived from Convex Schema
 --------------------------------*/
 
-export type ConditionRelation =
-  | "eq"
-  | "neq"
-  | "gt"
-  | "gte"
-  | "lt"
-  | "lte"
-  | "in"
-  | "not_in"
-  | "within"
-  | "outside"
-  | "exists"
-  | "matches";
+// Extract core types from Convex schema
+type ConvexTask = Doc<"tasks">;
 
-export type ConditionTargetType = "number" | "string" | "boolean" | "array" | "range" | "object";
+// Re-export Convex types for use elsewhere
+export type Recurrence = ConvexTask["recurrence"];
+export type TimeWindow = Recurrence["time_windows"][number];
+export type RecurrenceType = Recurrence["type"];
+export type RecurrenceEnds = NonNullable<Recurrence["ends"]>;
 
-export type Condition = {
-  id: string; // frontend-only, for list rendering
-  metric_key: string;
-  relation: ConditionRelation;
-  target: {
-    type: ConditionTargetType;
-    value: any;
-  };
+// Condition types from Convex, with UI extension
+type ConvexCondition = ConvexTask["conditions"][number];
+export type ConditionRelation = ConvexCondition["relation"];
+export type ConditionTargetType = ConvexCondition["target"]["type"];
+
+// Extended Condition with UI-only fields
+export type Condition = ConvexCondition & {
+  id: string; // frontend-only, for React list keys
 };
 
-export type RecurrenceType = "once" | "daily" | "weekly" | "monthly" | "yearly" | "custom";
+// Visibility type from Convex
+export type Visibility = ConvexTask["visibility"];
 
-export type RecurrenceEnds = {
-  type: "never" | "after" | "on";
-  count?: number;
-  date?: number; // timestamp
-};
+/* -----------------------------
+   TaskDraft - Frontend-only Type
+--------------------------------*/
 
-export type Recurrence = {
-  type: RecurrenceType;
-  interval: number;
-  days_of_week?: number[];
-  ends?: RecurrenceEnds;
-};
-
+/**
+ * TaskDraft is the frontend representation of a task being created/edited.
+ * It mirrors the Convex schema but includes:
+ * - UI-only fields (cameraTarget, condition ids)
+ * - Nullable assignment fields (filled during creation flow)
+ */
 export type TaskDraft = {
-  id: string;
+  id: string; // local draft ID (not persisted to Convex)
 
-  // assignment (frontend-controlled)
+  // Assignment (frontend-controlled, nullable until set)
   assigner_id: string | null;
   assignee_id: string | null;
 
-  // core details
+  // Core details (matches Convex schema)
   title: string;
   description?: string;
-  visibility: "public" | "private" | "shared";
+  visibility: Visibility;
 
-  // recurrence (new)
+  // Recurrence (matches Convex schema exactly)
   recurrence: Recurrence;
 
-  // time window (legacy or session-specific)
+  // Time window (legacy/session-specific, not in main Convex schema)
   time_window: {
     start_at: number | null;
     due_at: number | null;
   };
 
-  // rules
+  // Conditions with UI extension (id for React keys)
   conditions: Condition[];
 
-  // camera target (ui only)
+  // UI-only: camera target for map components
   cameraTarget: {
     latitude: number;
     longitude: number;
@@ -99,6 +93,10 @@ type TaskDraftStore = {
 
   // recurrence
   setRecurrence: (updates: Partial<Recurrence>) => void;
+  setTimeWindows: (windows: TimeWindow[]) => void;
+  addTimeWindow: (window: TimeWindow) => void;
+  removeTimeWindow: (index: number) => void;
+  updateTimeWindow: (index: number, window: TimeWindow) => void;
 
   // location
   setLocation: (updates: { latitude: number; longitude: number; radius: number; address: string; isInverse: boolean } | null) => void;
@@ -132,6 +130,7 @@ const createEmptyDraft = (): TaskDraft => ({
   recurrence: {
     type: "once",
     interval: 1,
+    time_windows: [],  // Required - starts empty
   },
 
   time_window: {
@@ -293,6 +292,71 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
         },
         false,
         "draft/setRecurrence"
+      ),
+
+    // -----------------
+    // time windows (in recurrence)
+    // -----------------
+    setTimeWindows: (windows: TimeWindow[]) =>
+      set(
+        (state: TaskDraftStore) => ({
+          draft: {
+            ...state.draft,
+            recurrence: {
+              ...state.draft.recurrence,
+              time_windows: windows,
+            },
+          },
+        }),
+        false,
+        "draft/setTimeWindows"
+      ),
+
+    addTimeWindow: (window: TimeWindow) =>
+      set(
+        (state: TaskDraftStore) => ({
+          draft: {
+            ...state.draft,
+            recurrence: {
+              ...state.draft.recurrence,
+              time_windows: [...state.draft.recurrence.time_windows, window],
+            },
+          },
+        }),
+        false,
+        "draft/addTimeWindow"
+      ),
+
+    removeTimeWindow: (index: number) =>
+      set(
+        (state: TaskDraftStore) => ({
+          draft: {
+            ...state.draft,
+            recurrence: {
+              ...state.draft.recurrence,
+              time_windows: state.draft.recurrence.time_windows.filter((_, i) => i !== index),
+            },
+          },
+        }),
+        false,
+        "draft/removeTimeWindow"
+      ),
+
+    updateTimeWindow: (index: number, window: TimeWindow) =>
+      set(
+        (state: TaskDraftStore) => ({
+          draft: {
+            ...state.draft,
+            recurrence: {
+              ...state.draft.recurrence,
+              time_windows: state.draft.recurrence.time_windows.map((w, i) =>
+                i === index ? window : w
+              ),
+            },
+          },
+        }),
+        false,
+        "draft/updateTimeWindow"
       ),
 
     // -----------------

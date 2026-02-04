@@ -132,15 +132,18 @@ export default function FinalScreen() {
               let onClear: (() => void) | undefined = undefined;
 
               if (condition.title === "Time") {
-                // Check if any time condition exists
-                isSelected = draft.conditions.some((c: any) => c.metric_key === "time");
+                // Check if time_windows exists in recurrence
+                isSelected = draft.recurrence.time_windows?.length > 0;
                 
                 if (isSelected) {
                    onClear = () => {
                       setDraft({
-                         recurrence: { type: "once", interval: 1 },
+                         recurrence: { 
+                           type: "once", 
+                           interval: 1, 
+                           time_windows: []  // Clear time windows
+                         },
                          time_window: { start_at: null, due_at: null },
-                         conditions: draft.conditions.filter((c: any) => c.metric_key !== "time")
                       });
                    };
                 }

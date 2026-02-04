@@ -13,7 +13,7 @@
  *    where X can be: location, partner, picture, or video
  */
 
-import type { TaskDraft, Condition } from "@/stores/useTaskDraftStore";
+import type { TaskDraft, Condition, Recurrence } from "@/stores/useTaskDraftStore";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -104,15 +104,15 @@ export function hasAnyXCondition(
 }
 
 /**
- * Validates that a time condition is present.
+ * Validates that time_windows are present in recurrence.
  * Time is required for all commitments.
  *
  * @example
- * validateTimeRequired([]) // { valid: false, error: "...", errorCode: "TIME_REQUIRED" }
- * validateTimeRequired([{ metric_key: "time", ... }]) // { valid: true }
+ * validateTimeRequired({ time_windows: [] }) // { valid: false, error: "...", errorCode: "TIME_REQUIRED" }
+ * validateTimeRequired({ time_windows: [{ start: 0, end: 3600 }] }) // { valid: true }
  */
-export function validateTimeRequired(conditions: Condition[]): ValidationResult {
-  const hasTime = hasCondition(conditions, "time");
+export function validateTimeRequired(recurrence: Recurrence): ValidationResult {
+  const hasTime = recurrence.time_windows && recurrence.time_windows.length > 0;
 
   if (!hasTime) {
     return {
@@ -185,8 +185,8 @@ export function validateTaskDraft(draft: TaskDraft): ValidationResult {
     return titleCheck;
   }
 
-  // Check 2: Time is required
-  const timeCheck = validateTimeRequired(draft.conditions);
+  // Check 2: Time is required (from recurrence.time_windows)
+  const timeCheck = validateTimeRequired(draft.recurrence);
   if (!timeCheck.valid) {
     return timeCheck;
   }
@@ -224,7 +224,7 @@ export function getConditionSummary(
   hasAnyX: boolean;
 } {
   return {
-    hasTime: hasCondition(draft.conditions, "time"),
+    hasTime: draft.recurrence.time_windows?.length > 0,
     hasLocation: hasCondition(draft.conditions, "location"),
     hasPartner: hasPartnerCondition(draft.assignee_id, draft.assigner_id),
     hasPicture: hasCondition(draft.conditions, "picture"),
