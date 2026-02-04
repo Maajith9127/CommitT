@@ -34,9 +34,9 @@ export type Condition = {
 export type RecurrenceType = "once" | "daily" | "weekly" | "monthly" | "yearly" | "custom";
 
 export type RecurrenceEnds = {
-  type: "never" | "count" | "date";
+  type: "never" | "after" | "on";
   count?: number;
-  date?: number;
+  date?: number; // timestamp
 };
 
 export type Recurrence = {
@@ -143,15 +143,30 @@ const createEmptyDraft = (): TaskDraft => ({
   cameraTarget: null,
 });
 
-// Simple logger middleware to see actions in the terminal
-// Simple logger middleware to see actions in the terminal
+// Logger middleware - pretty-print state in schema format
 const logger = (config: any) => (set: any, get: any, api: any) =>
   config(
     (...args: any[]) => {
-      // const name = args[2] ?? "anonymous";
-      // console.log(`\n[Zustand] Action: ${name}`);
+      const actionName = args[2] ?? "anonymous";
+      
+      // Execute the state update
       set(...args);
-      // console.log("  New State:", JSON.stringify(get().draft, null, 2));
+      
+      // Get the new state
+      const d = get().draft;
+      
+      console.log(`\n[Zustand] 🔄 ${actionName}`);
+      console.log("─────────────────────────────────────────────────────────");
+      console.log(`{
+  assigner_id: ${JSON.stringify(d.assigner_id)},
+  assignee_id: ${JSON.stringify(d.assignee_id)},
+  title: ${JSON.stringify(d.title)},
+  description: ${JSON.stringify(d.description)},
+  visibility: ${JSON.stringify(d.visibility)},
+  recurrence: ${JSON.stringify(d.recurrence, null, 4).split('\n').join('\n  ')},
+  conditions: ${JSON.stringify(d.conditions, null, 4).split('\n').join('\n  ')}
+}`);
+      console.log("─────────────────────────────────────────────────────────\n");
     },
     get,
     api
@@ -242,26 +257,31 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
     setRecurrence: (updates: Partial<Recurrence>) =>
       set(
         (state: TaskDraftStore) => {
+          // Merge updates
           const newRecurrence = { ...state.draft.recurrence, ...updates };
 
-          // 1. If days are selected, it must be weekly
+          // 1. Logic for Weekly vs Once based on Days
+          // If days are selected, it implies "Weekly" (recur on these days)
           if (newRecurrence.days_of_week && newRecurrence.days_of_week.length > 0) {
             newRecurrence.type = "weekly";
+            
+            // 2. Intelligent "Ends" Strategy
+            // If explicit "Repeat Forever" is NOT set (ends.type != "never"),
+            // we default to "Run limited times" (No Repeat mode).
+            // Count = number of days selected (e.g., M,W,F = 3 instances for this week).
+            if (newRecurrence.ends?.type !== "never") {
+               newRecurrence.ends = {
+                 type: "after",
+                 count: newRecurrence.days_of_week.length
+               };
+            }
           } 
-          // 2. If no days, it might be a single "once" task
+          // 3. If no days, revert to Once (unless explicitly Daily/Monthly)
           else if (newRecurrence.type !== "daily" && (!newRecurrence.days_of_week || newRecurrence.days_of_week.length === 0)) {
             newRecurrence.type = "once";
-          }
-
-          // 3. Clean up fields based on type
-          if (newRecurrence.type === "once") {
-            delete newRecurrence.days_of_week;
+            // Once tasks don't have 'ends' (they end after 1)
             delete newRecurrence.ends;
-          } else if (newRecurrence.type === "weekly" || newRecurrence.type === "daily") {
-            // Initialize days_of_week for weekly if missing
-            if (newRecurrence.type === "weekly" && !newRecurrence.days_of_week) {
-              newRecurrence.days_of_week = [];
-            }
+            delete newRecurrence.days_of_week;
           }
 
           return {
