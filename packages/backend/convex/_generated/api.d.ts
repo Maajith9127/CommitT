@@ -14,6 +14,7 @@ import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as lib_conflictDetection from "../lib/conflictDetection.js";
 import type * as lib_index from "../lib/index.js";
+import type * as lib_scheduling from "../lib/scheduling.js";
 import type * as localSeed from "../localSeed.js";
 import type * as metrics from "../metrics.js";
 import type * as opencode from "../opencode.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/conflictDetection": typeof lib_conflictDetection;
   "lib/index": typeof lib_index;
+  "lib/scheduling": typeof lib_scheduling;
   localSeed: typeof localSeed;
   metrics: typeof metrics;
   opencode: typeof opencode;

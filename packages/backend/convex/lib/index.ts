@@ -6,6 +6,7 @@
  *
  * @example
  * import { findConflict, formatConflictMessage } from "./lib";
+ * import { findNextTimeSlot, calculateDelay } from "./lib";
  */
 
 export {
@@ -30,3 +31,19 @@ export {
   type ConflictResult,
   type ConflictDetails,
 } from "./conflictDetection";
+
+export {
+  // Scheduling utilities
+  findNextTimeSlot,
+  calculateDelay,
+  getStartOfDay,
+  getSecondsFromMidnight,
+  getDayOfWeek,
+  timeWindowToTimestamp,
+  formatTimeSlot,
+
+  // Types
+  type Recurrence,
+  type NextTimeSlot,
+  type TimeWindow as SchedulingTimeWindow,
+} from "./scheduling";

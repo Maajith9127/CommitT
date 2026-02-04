@@ -4,6 +4,7 @@ import { relationEnum, targetTypeEnum, visibilityEnum, recurrenceTypeEnum, recur
 import { generateTaskConditions } from "./opencode";
 import { internal } from "./_generated/api";
 import { findConflict, formatConflictMessage } from "./lib/conflictDetection";
+import { findNextTimeSlot } from "./lib/scheduling";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Queries
@@ -131,6 +132,40 @@ export const create = mutation({
       created_at: now,
       updated_at: now,
     });
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Schedule Next Verification Check
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Convert recurrence to the format expected by scheduling utility
+    const recurrenceForScheduling = {
+      type: args.recurrence.type as "once" | "daily" | "weekly" | "monthly",
+      interval: args.recurrence.interval,
+      days_of_week: args.recurrence.days_of_week,
+      time_windows: args.recurrence.time_windows,
+      ends: args.recurrence.ends,
+    };
+
+    // TODO: Get user's timezone offset from their profile or session
+    // For now, using IST (+330 minutes) as default
+    const userTimezoneOffset = 330; // IST
+
+    // Find the next time slot
+    const nextSlot = findNextTimeSlot(recurrenceForScheduling, now, userTimezoneOffset);
+
+    if (nextSlot) {
+      // Schedule the verification check at the exact end time of the time slot
+      // Using runAt() for precise scheduling at the target timestamp
+      await ctx.scheduler.runAt(nextSlot.endTime, internal.tasks.runScheduledCheck, {
+        taskId,
+        scheduledEndTime: nextSlot.endTime,
+      });
+
+      console.log(
+        `[Tasks] Scheduled verification check for task ${taskId} ` +
+        `at ${new Date(nextSlot.endTime).toISOString()}`
+      );
+    }
 
     return {
       success: true as const,
@@ -337,5 +372,59 @@ export const remove = mutation({
   args: { id: v.id("tasks") },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scheduled Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Internal scheduled function that runs at the end of a task's time slot.
+ *
+ * This function is scheduled by the `create` mutation to run at the end time
+ * of the next occurrence of the task's time window.
+ *
+ * In the future, this will:
+ * - Check if the task conditions were met
+ * - Apply penalties if conditions were not met
+ * - Schedule the next occurrence
+ *
+ * For now, it just prints "hellllooo" as a placeholder.
+ */
+export const runScheduledCheck = internalMutation({
+  args: {
+    taskId: v.id("tasks"),
+    scheduledEndTime: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { taskId, scheduledEndTime } = args;
+
+    // Fetch the task to ensure it still exists
+    const task = await ctx.db.get(taskId);
+
+    if (!task) {
+      console.log(`[runScheduledCheck] Task ${taskId} no longer exists, skipping check`);
+      return;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PLACEHOLDER: Verification Logic
+    // ─────────────────────────────────────────────────────────────────────────
+
+    console.log("═══════════════════════════════════════════════════════════════");
+    console.log("hellllooo");
+    console.log("═══════════════════════════════════════════════════════════════");
+    console.log(`[runScheduledCheck] Task: ${task.title}`);
+    console.log(`[runScheduledCheck] Task ID: ${taskId}`);
+    console.log(`[runScheduledCheck] Scheduled End Time: ${new Date(scheduledEndTime).toISOString()}`);
+    console.log(`[runScheduledCheck] Current Time: ${new Date().toISOString()}`);
+    console.log("═══════════════════════════════════════════════════════════════");
+
+    // TODO: Future implementation
+    // 1. Fetch task telemetry/verification data
+    // 2. Check if all conditions were met
+    // 3. If not met, apply penalties
+    // 4. Schedule the next occurrence
   },
 });
