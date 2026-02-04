@@ -3,6 +3,11 @@ import { action, internalMutation, mutation, query } from "./_generated/server";
 import { relationEnum, targetTypeEnum, visibilityEnum, recurrenceTypeEnum, recurrenceEndsTypeEnum } from "./enums";
 import { generateTaskConditions } from "./opencode";
 import { internal } from "./_generated/api";
+import { findConflict, formatConflictMessage } from "./lib/conflictDetection";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Queries
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const list = query({
   handler: async (ctx) => {
@@ -37,6 +42,19 @@ export const listByAssigner = query({
   },
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Mutations
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Create a new task with conflict detection.
+ *
+ * Returns a result object instead of throwing to avoid triggering
+ * React Native's error overlay in development mode.
+ *
+ * @returns { success: true, taskId: Id } on success
+ * @returns { success: false, error: { code, message, details } } on conflict
+ */
 export const create = mutation({
   args: {
     assigner_id: v.string(),
@@ -71,12 +89,53 @@ export const create = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    // ─────────────────────────────────────────────────────────────────────────
+    // Conflict Detection
+    // ─────────────────────────────────────────────────────────────────────────
+    
+    // Fetch all existing tasks for this assignee
+    const existingTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_assignee_id", (q) => q.eq("assignee_id", args.assignee_id))
+      .collect();
+
+    // Check for scheduling conflicts
+    const conflictResult = findConflict(
+      {
+        assignee_id: args.assignee_id,
+        title: args.title,
+        recurrence: args.recurrence,
+      },
+      existingTasks
+    );
+
+    if (conflictResult.hasConflict) {
+      // Return error result instead of throwing
+      return {
+        success: false as const,
+        error: {
+          code: "SCHEDULE_CONFLICT",
+          message: formatConflictMessage(conflictResult.details),
+          details: conflictResult.details,
+        },
+      };
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Insert Task
+    // ─────────────────────────────────────────────────────────────────────────
+    
     const now = Date.now();
-    return await ctx.db.insert("tasks", {
+    const taskId = await ctx.db.insert("tasks", {
       ...args,
       created_at: now,
       updated_at: now,
     });
+
+    return {
+      success: true as const,
+      taskId,
+    };
   },
 });
 
@@ -166,6 +225,15 @@ export const generate = action({
   },
 });
 
+/**
+ * Update an existing task with conflict detection.
+ *
+ * Returns a result object instead of throwing to avoid triggering
+ * React Native's error overlay in development mode.
+ *
+ * @returns { success: true } on success
+ * @returns { success: false, error: { code, message, details? } } on conflict or not found
+ */
 export const update = mutation({
   args: {
     id: v.id("tasks"),
@@ -202,10 +270,66 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    return await ctx.db.patch(id, {
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Conflict Detection (only if recurrence is being updated)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    if (updates.recurrence) {
+      // Get the existing task to find assignee_id
+      const existingTask = await ctx.db.get(id);
+      if (!existingTask) {
+        return {
+          success: false as const,
+          error: {
+            code: "TASK_NOT_FOUND",
+            message: "Task not found",
+          },
+        };
+      }
+
+      // Fetch all existing tasks for this assignee
+      const allTasks = await ctx.db
+        .query("tasks")
+        .withIndex("by_assignee_id", (q) => q.eq("assignee_id", existingTask.assignee_id))
+        .collect();
+
+      // Check for scheduling conflicts (excluding this task)
+      const conflictResult = findConflict(
+        {
+          _id: id,
+          assignee_id: existingTask.assignee_id,
+          title: updates.title ?? existingTask.title,
+          recurrence: updates.recurrence,
+        },
+        allTasks,
+        id // Exclude self
+      );
+
+      if (conflictResult.hasConflict) {
+        return {
+          success: false as const,
+          error: {
+            code: "SCHEDULE_CONFLICT",
+            message: formatConflictMessage(conflictResult.details),
+            details: conflictResult.details,
+          },
+        };
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Update Task
+    // ─────────────────────────────────────────────────────────────────────────
+
+    await ctx.db.patch(id, {
       ...updates,
       updated_at: Date.now(),
     });
+
+    return {
+      success: true as const,
+    };
   },
 });
 

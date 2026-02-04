@@ -9,6 +9,12 @@
  * 2. Overlapping days of the week
  * 3. Overlapping time slots on those days
  *
+ * Architecture:
+ * - All functions are pure (no side effects, no DB access)
+ * - Types are derived from Convex schema for type safety
+ * - Fail-fast: returns first conflict found for performance
+ * - Human-readable error messages for UI display
+ *
  * @module lib/conflictDetection
  */
 
@@ -19,17 +25,26 @@ import type { Doc } from "../_generated/dataModel";
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Represents a time slot with start and end in seconds from midnight.
- * 0 = midnight, 32400 = 9:00 AM, 43200 = 12:00 PM, etc.
+ * Represents a time window with start and end in seconds from midnight.
+ * Matches the schema: recurrence.time_windows[].{start, end}
+ *
+ * Examples:
+ * - { start: 0, end: 3600 }       → 12:00 AM - 1:00 AM
+ * - { start: 32400, end: 43200 }  → 9:00 AM - 12:00 PM
+ * - { start: 64800, end: 75600 }  → 6:00 PM - 9:00 PM
  */
-export type TimeSlot = {
-  start: number;
-  end: number;
+export type TimeWindow = {
+  start: number; // seconds from midnight (0-86399)
+  end: number;   // seconds from midnight (0-86400)
 };
 
 /**
  * Minimal task data needed for conflict detection.
- * Can be a new task draft or an existing task from DB.
+ * Derived from Convex Doc<"tasks"> but only includes required fields.
+ *
+ * This allows the function to work with:
+ * - New task drafts (before DB insertion)
+ * - Existing tasks from DB queries
  */
 export type TaskForConflictCheck = {
   _id?: string;
@@ -37,137 +52,116 @@ export type TaskForConflictCheck = {
   title?: string;
   recurrence: {
     type: string;
+    interval?: number;
     days_of_week?: number[];
+    time_windows: TimeWindow[];
   };
-  conditions: Array<{
-    metric_key: string;
-    relation: string;
-    target: {
-      type: string;
-      value: any;
-    };
+};
+
+/**
+ * Detailed conflict information for error messages.
+ * Provides enough context for meaningful UI feedback.
+ */
+export type ConflictDetails = {
+  conflictingTaskId: string;
+  conflictingTaskTitle: string;
+  overlappingDays: number[];
+  overlappingWindows: Array<{
+    newWindow: TimeWindow;
+    existingWindow: TimeWindow;
+    day: number;
   }>;
 };
 
 /**
  * Result of conflict detection.
+ * Discriminated union for type-safe handling.
  */
 export type ConflictResult =
   | { hasConflict: false }
-  | {
-      hasConflict: true;
-      conflictingTaskId: string;
-      conflictingTaskTitle: string;
-      overlappingDays: number[];
-      overlappingSlots: Array<{
-        newSlot: TimeSlot;
-        existingSlot: TimeSlot;
-      }>;
-    };
+  | { hasConflict: true; details: ConflictDetails };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Core Functions
+// Core Pure Functions
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Find overlapping days between two arrays of weekday numbers.
  *
- * @param daysA - First array of days (0 = Sunday, 1 = Monday, etc.)
+ * Days use JavaScript convention: 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+ *
+ * @param daysA - First array of days
  * @param daysB - Second array of days
  * @returns Array of days that appear in both
  *
  * @example
- * getOverlappingDays([1, 3, 5], [1, 2]) // → [1] (Monday)
- * getOverlappingDays([0, 6], [1, 2, 3]) // → [] (no overlap)
+ * getOverlappingDays([1, 3, 5], [1, 2])     // → [1] (Monday)
+ * getOverlappingDays([0, 6], [1, 2, 3])    // → [] (no overlap)
+ * getOverlappingDays([1, 2, 3], [3, 4, 5]) // → [3] (Wednesday)
  */
 export function getOverlappingDays(
   daysA: number[] | undefined,
   daysB: number[] | undefined
 ): number[] {
-  if (!daysA || !daysB || daysA.length === 0 || daysB.length === 0) {
+  // Early return for undefined or empty arrays
+  if (!daysA?.length || !daysB?.length) {
     return [];
   }
 
+  // Use Set for O(n) lookup instead of O(n²)
   const setB = new Set(daysB);
   return daysA.filter((day) => setB.has(day));
 }
 
 /**
- * Check if two time slots overlap.
+ * Check if two time windows overlap.
  *
- * Two slots overlap when: slotA.start < slotB.end AND slotB.start < slotA.end
+ * Two windows overlap when: windowA.start < windowB.end AND windowB.start < windowA.end
  *
- * @param slotA - First time slot
- * @param slotB - Second time slot
- * @returns true if slots overlap
+ * Edge case: Adjacent windows (e.g., 9-10 AM and 10-11 AM) do NOT overlap.
+ * This allows users to schedule back-to-back commitments.
+ *
+ * @param windowA - First time window
+ * @param windowB - Second time window
+ * @returns true if windows overlap
  *
  * @example
- * // 9-11 AM and 10-12 PM → overlap (10-11 AM)
- * slotsOverlap({ start: 32400, end: 39600 }, { start: 36000, end: 43200 }) // → true
+ * // Overlap: 9-11 AM and 10-12 PM (10-11 AM overlaps)
+ * windowsOverlap({ start: 32400, end: 39600 }, { start: 36000, end: 43200 }) // → true
  *
- * // 9-10 AM and 11-12 PM → no overlap
- * slotsOverlap({ start: 32400, end: 36000 }, { start: 39600, end: 43200 }) // → false
+ * // No overlap: 9-10 AM and 11-12 PM
+ * windowsOverlap({ start: 32400, end: 36000 }, { start: 39600, end: 43200 }) // → false
  *
- * // Adjacent slots (10 AM end, 10 AM start) → no overlap (edge case)
- * slotsOverlap({ start: 32400, end: 36000 }, { start: 36000, end: 39600 }) // → false
+ * // Adjacent (no overlap): 9-10 AM ends at 10, 10-11 AM starts at 10
+ * windowsOverlap({ start: 32400, end: 36000 }, { start: 36000, end: 39600 }) // → false
  */
-export function slotsOverlap(slotA: TimeSlot, slotB: TimeSlot): boolean {
-  return slotA.start < slotB.end && slotB.start < slotA.end;
+export function windowsOverlap(windowA: TimeWindow, windowB: TimeWindow): boolean {
+  return windowA.start < windowB.end && windowB.start < windowA.end;
 }
 
 /**
- * Extract time slots from task conditions.
+ * Find all overlapping window pairs between two sets of time windows.
  *
- * Looks for conditions with:
- * - metric_key: "time"
- * - relation: "range"
- * - target.value: array of { start, end } objects
- *
- * @param conditions - Array of task conditions
- * @returns Array of time slots, or empty array if none found
+ * @param windowsA - First array of time windows (new task)
+ * @param windowsB - Second array of time windows (existing task)
+ * @param day - The day these windows are being compared on (for error context)
+ * @returns Array of overlapping window pairs with day context
  */
-export function extractTimeSlots(
-  conditions: TaskForConflictCheck["conditions"]
-): TimeSlot[] {
-  const timeCondition = conditions.find(
-    (c) => c.metric_key === "time" && c.relation === "range"
-  );
+export function findOverlappingWindows(
+  windowsA: TimeWindow[],
+  windowsB: TimeWindow[],
+  day: number
+): Array<{ newWindow: TimeWindow; existingWindow: TimeWindow; day: number }> {
+  const overlaps: Array<{ newWindow: TimeWindow; existingWindow: TimeWindow; day: number }> = [];
 
-  if (!timeCondition || !Array.isArray(timeCondition.target?.value)) {
-    return [];
-  }
-
-  // Validate and extract slots
-  return timeCondition.target.value
-    .filter(
-      (slot: any) =>
-        typeof slot === "object" &&
-        typeof slot.start === "number" &&
-        typeof slot.end === "number"
-    )
-    .map((slot: any) => ({
-      start: slot.start,
-      end: slot.end,
-    }));
-}
-
-/**
- * Find all overlapping slot pairs between two sets of time slots.
- *
- * @param slotsA - First array of time slots
- * @param slotsB - Second array of time slots
- * @returns Array of overlapping slot pairs
- */
-export function findOverlappingSlots(
-  slotsA: TimeSlot[],
-  slotsB: TimeSlot[]
-): Array<{ newSlot: TimeSlot; existingSlot: TimeSlot }> {
-  const overlaps: Array<{ newSlot: TimeSlot; existingSlot: TimeSlot }> = [];
-
-  for (const slotA of slotsA) {
-    for (const slotB of slotsB) {
-      if (slotsOverlap(slotA, slotB)) {
-        overlaps.push({ newSlot: slotA, existingSlot: slotB });
+  for (const windowA of windowsA) {
+    for (const windowB of windowsB) {
+      if (windowsOverlap(windowA, windowB)) {
+        overlaps.push({
+          newWindow: windowA,
+          existingWindow: windowB,
+          day,
+        });
       }
     }
   }
@@ -180,25 +174,26 @@ export function findOverlappingSlots(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Find conflicts between a new task and existing tasks.
+ * Find scheduling conflicts between a new task and existing tasks.
  *
- * A conflict exists when:
- * 1. Tasks have overlapping days of the week
- * 2. Time slots overlap on those days
- *
- * Returns the FIRST conflict found (fail-fast for performance).
+ * Algorithm:
+ * 1. Skip tasks with no days (once-type) - no weekly recurrence to conflict
+ * 2. Skip tasks with no time windows - nothing to conflict with
+ * 3. For each existing task, check for overlapping days
+ * 4. If days overlap, check for overlapping time windows
+ * 5. Return FIRST conflict found (fail-fast for performance)
  *
  * @param newTask - The task being created/updated
  * @param existingTasks - Array of existing tasks for the same assignee
- * @param excludeTaskId - Optional task ID to exclude (for updates)
- * @returns ConflictResult with details if conflict found
+ * @param excludeTaskId - Optional task ID to exclude (for updates - don't conflict with self)
+ * @returns ConflictResult with detailed info if conflict found
  *
  * @example
  * const result = findConflict(newTask, existingTasks);
  * if (result.hasConflict) {
  *   throw new ConvexError({
  *     code: "SCHEDULE_CONFLICT",
- *     message: `Conflicts with "${result.conflictingTaskTitle}"`,
+ *     message: formatConflictMessage(result.details),
  *   });
  * }
  */
@@ -207,22 +202,29 @@ export function findConflict(
   existingTasks: Doc<"tasks">[],
   excludeTaskId?: string
 ): ConflictResult {
-  // Extract data from new task
+  // Extract scheduling data from new task
   const newDays = newTask.recurrence.days_of_week;
-  const newSlots = extractTimeSlots(newTask.conditions);
+  const newWindows = newTask.recurrence.time_windows;
 
-  // No time slots = no possible conflict (edge case)
-  if (newSlots.length === 0) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Early returns for non-conflictable tasks
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // No time windows = nothing can conflict
+  if (!newWindows?.length) {
     return { hasConflict: false };
   }
 
-  // No days = "once" type, no weekly recurrence conflict
-  // (For "once" tasks, we might need date-based conflict detection in future)
-  if (!newDays || newDays.length === 0) {
+  // No days = "once" type task, no weekly recurrence conflict
+  // Future: Could add date-based conflict detection for one-time tasks
+  if (!newDays?.length) {
     return { hasConflict: false };
   }
 
-  // Check each existing task
+  // ─────────────────────────────────────────────────────────────────────────
+  // Check each existing task for conflicts
+  // ─────────────────────────────────────────────────────────────────────────
+
   for (const existing of existingTasks) {
     // Skip self (for update operations)
     if (excludeTaskId && existing._id === excludeTaskId) {
@@ -231,7 +233,13 @@ export function findConflict(
 
     // Skip tasks with no days (once-type tasks)
     const existingDays = existing.recurrence.days_of_week;
-    if (!existingDays || existingDays.length === 0) {
+    if (!existingDays?.length) {
+      continue;
+    }
+
+    // Skip tasks with no time windows
+    const existingWindows = existing.recurrence.time_windows;
+    if (!existingWindows?.length) {
       continue;
     }
 
@@ -241,22 +249,25 @@ export function findConflict(
       continue; // No day overlap, skip to next task
     }
 
-    // Step 2: Extract time slots from existing task
-    const existingSlots = extractTimeSlots(existing.conditions);
-    if (existingSlots.length === 0) {
-      continue; // No time slots in existing task, skip
+    // Step 2: Check for overlapping time windows on each overlapping day
+    // (Time windows apply to ALL selected days, so we check once)
+    const allOverlappingWindows: ConflictDetails["overlappingWindows"] = [];
+
+    for (const day of overlappingDays) {
+      const dayOverlaps = findOverlappingWindows(newWindows, existingWindows, day);
+      allOverlappingWindows.push(...dayOverlaps);
     }
 
-    // Step 3: Check for overlapping time slots
-    const overlappingSlots = findOverlappingSlots(newSlots, existingSlots);
-    if (overlappingSlots.length > 0) {
+    if (allOverlappingWindows.length > 0) {
       // CONFLICT FOUND!
       return {
         hasConflict: true,
-        conflictingTaskId: existing._id,
-        conflictingTaskTitle: existing.title || "Untitled Task",
-        overlappingDays,
-        overlappingSlots,
+        details: {
+          conflictingTaskId: existing._id,
+          conflictingTaskTitle: existing.title || "Untitled Commitment",
+          overlappingDays,
+          overlappingWindows: allOverlappingWindows,
+        },
       };
     }
   }
@@ -266,16 +277,17 @@ export function findConflict(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Utility Functions (for debugging/logging)
+// Formatting Utilities
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Format seconds from midnight to human-readable time string.
- * Useful for error messages.
  *
  * @example
- * formatTimeSlot(32400) // → "9:00 AM"
- * formatTimeSlot(43200) // → "12:00 PM"
+ * formatTime(0)      // → "12:00 AM"
+ * formatTime(32400)  // → "9:00 AM"
+ * formatTime(43200)  // → "12:00 PM"
+ * formatTime(75600)  // → "9:00 PM"
  */
 export function formatTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
@@ -286,32 +298,117 @@ export function formatTime(seconds: number): string {
 }
 
 /**
- * Format a time slot range for display.
+ * Format a time window range for display.
  *
  * @example
- * formatSlotRange({ start: 32400, end: 39600 }) // → "9:00 AM - 11:00 AM"
+ * formatWindowRange({ start: 32400, end: 39600 }) // → "9:00 AM - 11:00 AM"
  */
-export function formatSlotRange(slot: TimeSlot): string {
-  return `${formatTime(slot.start)} - ${formatTime(slot.end)}`;
+export function formatWindowRange(window: TimeWindow): string {
+  return `${formatTime(window.start)} - ${formatTime(window.end)}`;
 }
 
 /**
  * Get day name from number.
  *
  * @example
+ * getDayName(0) // → "Sunday"
  * getDayName(1) // → "Monday"
  */
 export function getDayName(day: number): string {
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  return days[day] || `Day ${day}`;
+  return days[day] ?? `Day ${day}`;
+}
+
+/**
+ * Get short day name from number.
+ *
+ * @example
+ * getDayShortName(0) // → "Sun"
+ * getDayShortName(1) // → "Mon"
+ */
+export function getDayShortName(day: number): string {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return days[day] ?? `D${day}`;
 }
 
 /**
  * Format overlapping days for display.
  *
  * @example
- * formatOverlappingDays([1, 3, 5]) // → "Monday, Wednesday, Friday"
+ * formatDays([1, 3, 5])        // → "Monday, Wednesday, Friday"
+ * formatDays([1, 3, 5], true)  // → "Mon, Wed, Fri"
  */
-export function formatOverlappingDays(days: number[]): string {
-  return days.map(getDayName).join(", ");
+export function formatDays(days: number[], short = false): string {
+  const formatter = short ? getDayShortName : getDayName;
+  return days.map(formatter).join(", ");
+}
+
+/**
+ * Build a user-friendly conflict error message.
+ *
+ * This is the main function to use when displaying errors to users.
+ * It creates a clear, actionable message explaining the conflict.
+ *
+ * @param details - Conflict details from findConflict()
+ * @returns Human-readable error message
+ *
+ * @example
+ * // Single overlap
+ * 'Conflicts with "Morning Run" on Monday (6:00 AM - 8:00 AM overlaps with 7:00 AM - 9:00 AM)'
+ *
+ * // Multiple overlaps
+ * 'Conflicts with "Morning Run" on Mon, Wed, Fri. 2 time slots overlap.'
+ */
+export function formatConflictMessage(details: ConflictDetails): string {
+  const { conflictingTaskTitle, overlappingDays, overlappingWindows } = details;
+
+  // Single day, single overlap - show full details
+  if (overlappingDays.length === 1 && overlappingWindows.length === 1) {
+    const day = getDayName(overlappingDays[0]);
+    const overlap = overlappingWindows[0];
+    return (
+      `Conflicts with "${conflictingTaskTitle}" on ${day}. ` +
+      `Your time (${formatWindowRange(overlap.newWindow)}) overlaps with ` +
+      `existing time (${formatWindowRange(overlap.existingWindow)}).`
+    );
+  }
+
+  // Multiple days or overlaps - summarize
+  const daysText = formatDays(overlappingDays, overlappingDays.length > 3);
+  const overlapCount = overlappingWindows.length;
+  const slotWord = overlapCount === 1 ? "time slot" : "time slots";
+
+  return (
+    `Conflicts with "${conflictingTaskTitle}" on ${daysText}. ` +
+    `${overlapCount} ${slotWord} overlap.`
+  );
+}
+
+/**
+ * Build a detailed conflict error message with all overlapping times.
+ *
+ * Use this for debugging or detailed error views.
+ *
+ * @param details - Conflict details from findConflict()
+ * @returns Detailed multi-line error message
+ */
+export function formatConflictMessageDetailed(details: ConflictDetails): string {
+  const { conflictingTaskTitle, overlappingDays, overlappingWindows } = details;
+
+  const lines = [
+    `Schedule conflict with "${conflictingTaskTitle}"`,
+    ``,
+    `Conflicting days: ${formatDays(overlappingDays)}`,
+    ``,
+    `Overlapping times:`,
+  ];
+
+  for (const overlap of overlappingWindows) {
+    const day = getDayShortName(overlap.day);
+    lines.push(
+      `  • ${day}: ${formatWindowRange(overlap.newWindow)} conflicts with ${formatWindowRange(overlap.existingWindow)}`
+    );
+  }
+
+  return lines.join("\n");
 }

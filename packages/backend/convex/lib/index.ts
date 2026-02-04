@@ -5,25 +5,28 @@
  * Import from this file for cleaner imports.
  *
  * @example
- * import { findConflict, formatSlotRange } from "./lib";
+ * import { findConflict, formatConflictMessage } from "./lib";
  */
 
 export {
   // Core conflict detection
   findConflict,
   getOverlappingDays,
-  slotsOverlap,
-  extractTimeSlots,
-  findOverlappingSlots,
+  windowsOverlap,
+  findOverlappingWindows,
 
   // Formatting utilities
   formatTime,
-  formatSlotRange,
+  formatWindowRange,
   getDayName,
-  formatOverlappingDays,
+  getDayShortName,
+  formatDays,
+  formatConflictMessage,
+  formatConflictMessageDetailed,
 
   // Types
-  type TimeSlot,
+  type TimeWindow,
   type TaskForConflictCheck,
   type ConflictResult,
+  type ConflictDetails,
 } from "./conflictDetection";
