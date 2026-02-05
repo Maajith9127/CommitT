@@ -354,7 +354,10 @@ export const createInternal = internalMutation({
  * This function runs automatically at the end of every time slot.
  */
 export const runScheduledCheck = internalMutation({
-  args: { instanceId: v.id("taskInstances") },
+  args: { 
+    instanceId: v.id("taskInstances"),
+    taskTitle: v.optional(v.string()) // Metadata for debugging/logs
+  },
   handler: async (ctx, args) => {
     // 1. Fetch the Instance
     const instance = await ctx.db.get(args.instanceId);
@@ -363,7 +366,7 @@ export const runScheduledCheck = internalMutation({
       return;
     }
 
-    // 2. Fetch the Parent Task (for context, though instance has snapshot)
+    // 2. Fetch the Parent Task (for context)
     const task = await ctx.db.get(instance.task_id);
     if (!task) {
         console.log(`[runScheduledCheck] Parent Task ${instance.task_id} deleted. stopping chain.`);
@@ -389,9 +392,10 @@ export const runScheduledCheck = internalMutation({
     // -------------------------------------------------------------------------
     // STEP 2: CONTINUE THE CHAIN
     // -------------------------------------------------------------------------
-    // Schedule the NEXT instance based on the parent task's rules.
-    // We start looking for slots *after* the current instance ended.
-    await scheduleNextInstance(ctx, task._id, instance.end);
+    // Schedule the NEXT instance.
+    // KEY CHANGE: We pass 'instance.recurrence' (the snapshot) so the
+    // scheduling logic sees the *decremented* count from this instance.
+    await scheduleNextInstance(ctx, task._id, instance.end, instance.recurrence);
   },
 });
 

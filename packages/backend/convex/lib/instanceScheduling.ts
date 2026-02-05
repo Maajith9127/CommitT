@@ -22,23 +22,36 @@ import { findNextTimeSlot } from "./scheduling";
 export async function scheduleNextInstance(
   ctx: MutationCtx,
   taskId: Id<"tasks">,
-  fromTime: number = Date.now()
+  fromTime: number = Date.now(),
+  previousRecurrenceState?: Doc<"tasks">["recurrence"]
 ) {
-  // 1. Fetch the Parent Task to get the Rules
+  // 1. Fetch the Parent Task to get the Rules (or use override base)
   const task = await ctx.db.get(taskId);
   if (!task) {
     console.log(`[scheduleNextInstance] Task ${taskId} not found. Stopping chain.`);
     return;
   }
 
-  // 2. Calculate Next Time Slot
-  // We need to map the DB recurrence schema to the helper's expected type
+  // Determine which recurrence config to use (Parent's or Chain's)
+  const recurrenceToUse = previousRecurrenceState ?? task.recurrence;
+
+  // 2. Cancellation Check: "Count" based
+  // If the previous state says we have 0 left, we stop.
+  if (recurrenceToUse.ends?.type === "after") {
+    const currentCount = recurrenceToUse.ends.count ?? 0;
+    if (currentCount <= 0) {
+      console.log(`[scheduleNextInstance] Task ${taskId} reached recurrence limit. Stopping chain.`);
+      return;
+    }
+  }
+
+  // 3. Calculate Next Time Slot
   const recurrenceConfig = {
-    type: task.recurrence.type as any,
-    interval: task.recurrence.interval,
-    days_of_week: task.recurrence.days_of_week,
-    time_windows: task.recurrence.time_windows,
-    ends: task.recurrence.ends as any,
+    type: recurrenceToUse.type as any,
+    interval: recurrenceToUse.interval,
+    days_of_week: recurrenceToUse.days_of_week,
+    time_windows: recurrenceToUse.time_windows,
+    ends: recurrenceToUse.ends as any,
   };
 
   // TODO: Get timezone from user profile. defaulting to IST (330 minutes) for now.
@@ -50,9 +63,31 @@ export async function scheduleNextInstance(
     return;
   }
 
+  // 4. Cancellation Check: "Date" based
+  if (recurrenceToUse.ends?.type === "on" && recurrenceToUse.ends.date) {
+    if (nextSlot.startTime > recurrenceToUse.ends.date) {
+        console.log(`[scheduleNextInstance] Task ${taskId} past end date. Stopping chain.`);
+        return;
+    }
+  }
+
   console.log(`[scheduleNextInstance] Scheduling next for ${taskId} at ${new Date(nextSlot.startTime).toISOString()}`);
 
-  // 3. Create the "Pending" Instance (Snapshotting everything)
+  // 5. Prepare Snapshot (Decrement count if needed)
+  let snapshotRecurrence = { ...recurrenceToUse };
+  
+  if (recurrenceToUse.ends?.type === "after") {
+     const currentCount = recurrenceToUse.ends.count ?? 0;
+     snapshotRecurrence = {
+        ...recurrenceToUse,
+        ends: {
+            ...recurrenceToUse.ends,
+            count: Math.max(0, currentCount - 1) // Decrement for the NEXT child
+        }
+     };
+  }
+
+  // 6. Create the "Pending" Instance
   const instanceId = await ctx.db.insert("taskInstances", {
     task_id: taskId,
     assignee_id: task.assignee_id,
@@ -60,10 +95,10 @@ export async function scheduleNextInstance(
     start: nextSlot.startTime,
     end: nextSlot.endTime,
     
-    // SNAPSHOT: Copy rules from Parent -> Child
+    // SNAPSHOT: Copy rules (using the possibly decremented version)
     title: task.title,
     description: task.description,
-    recurrence: task.recurrence,
+    recurrence: snapshotRecurrence,
     conditions: task.conditions,
   });
 
@@ -72,7 +107,7 @@ export async function scheduleNextInstance(
   const scheduledJobId = await ctx.scheduler.runAt(
     nextSlot.endTime,
     internal.tasks.runScheduledCheck,
-    { instanceId }
+    { instanceId, taskTitle: task.title }
   );
 
   // 5. Link the Job ID (For cancellation)

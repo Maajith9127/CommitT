@@ -269,9 +269,13 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
             // we default to "Run limited times" (No Repeat mode).
             // Count = number of days selected (e.g., M,W,F = 3 instances for this week).
             if (newRecurrence.ends?.type !== "never") {
+               const numDays = newRecurrence.days_of_week.length;
+               const numSlots = newRecurrence.time_windows?.length || 0;
+               const totalCount = numDays * numSlots;
+               
                newRecurrence.ends = {
                  type: "after",
-                 count: newRecurrence.days_of_week.length
+                 count: totalCount > 0 ? totalCount : 1
                };
             }
           } 
@@ -305,6 +309,12 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
             recurrence: {
               ...state.draft.recurrence,
               time_windows: windows,
+              ends: state.draft.recurrence.ends?.type === "after" 
+                ? { 
+                    type: "after", 
+                    count: Math.max(1, (state.draft.recurrence.days_of_week?.length || 0) * windows.length) 
+                  }
+                : state.draft.recurrence.ends
             },
           },
         }),
@@ -320,6 +330,12 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
             recurrence: {
               ...state.draft.recurrence,
               time_windows: [...state.draft.recurrence.time_windows, window],
+              ends: state.draft.recurrence.ends?.type === "after" 
+                ? { 
+                    type: "after", 
+                    count: Math.max(1, (state.draft.recurrence.days_of_week?.length || 0) * (state.draft.recurrence.time_windows.length + 1)) 
+                  }
+                : state.draft.recurrence.ends
             },
           },
         }),
@@ -335,6 +351,12 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
             recurrence: {
               ...state.draft.recurrence,
               time_windows: state.draft.recurrence.time_windows.filter((_, i) => i !== index),
+              ends: state.draft.recurrence.ends?.type === "after" 
+                ? { 
+                    type: "after", 
+                    count: Math.max(1, (state.draft.recurrence.days_of_week?.length || 0) * (state.draft.recurrence.time_windows.length - 1)) 
+                  }
+                : state.draft.recurrence.ends
             },
           },
         }),

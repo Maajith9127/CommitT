@@ -94,6 +94,8 @@ export default function TimeSetScreen() {
 
     // Update time_windows in recurrence
     setTimeWindows(updatedSlots);
+
+
   }
 
   /**
@@ -112,9 +114,16 @@ export default function TimeSetScreen() {
     if (!hasDays) return;
 
     const isRecurring = draft.recurrence.ends?.type === "never";
+    
     if (isRecurring) {
-      setRecurrence({ ends: undefined });
+      setRecurrence({ 
+        ends: { 
+          type: "after", 
+          count: 1 // Store will recalculate based on days * slots
+        } 
+      });
     } else {
+      // Logic: Turn REPEAT ON -> Never Ends
       setRecurrence({ ends: { type: "never" } });
     }
   }
