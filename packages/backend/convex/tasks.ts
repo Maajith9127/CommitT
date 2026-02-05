@@ -295,6 +295,15 @@ export const update = mutation({
     // 4. Update DB
     await ctx.db.patch(id, { ...updates, updated_at: Date.now() });
 
+    // 5. RESCHEDULE LOGIC (The "Reset" Button)
+    // If we updated the task, the old timeline is invalid.
+    // We must:
+    // a) Cancel any pending future checks (e.g., the old 9am check).
+    // b) Delete the pending instance associated with that check.
+    // c) Start a fresh chain with the NEW rules.
+    await cleanupPendingInstances(ctx, id);
+    await scheduleNextInstance(ctx, id);
+
     return { success: true as const };
   },
 });
@@ -319,6 +328,11 @@ export const remove = mutation({
         throw new Error("UNAUTHORIZED: You do not have permission to delete this task");
     }
 
+    // 2. CLEANUP: Remove future/pending work
+    // We don't want the scheduler to wake up and try to verify a deleted task.
+    await cleanupPendingInstances(ctx, args.id);
+
+    // 3. Delete the Task
     await ctx.db.delete(args.id);
   },
 });
@@ -327,6 +341,26 @@ export const remove = mutation({
 // 4. INTERNAL SYSTEM FUNCTIONS (Internal Use Only)
 // ─────────────────────────────────────────────────────────────────────────────
 // These functions are NOT accessible from the frontend. Secure by design.
+
+/**
+ * Helper: cleanupPendingInstances
+ * Finds all "pending" instances for a task, cancels their scheduled jobs,
+ * and deletes the instances. This is used during Update and Delete.
+ */
+async function cleanupPendingInstances(ctx: any, taskId: any) {
+  const pendingInstances = await ctx.db
+    .query("taskInstances")
+    .withIndex("by_task_status", (q: any) => q.eq("task_id", taskId).eq("status", "pending"))
+    .collect();
+
+  for (const instance of pendingInstances) {
+    if (instance.scheduled_job_id) {
+       console.log(`[cleanup] Cancelling job ${instance.scheduled_job_id} for instance ${instance._id}`);
+       await ctx.scheduler.cancel(instance.scheduled_job_id);
+    }
+    await ctx.db.delete(instance._id);
+  }
+}
 
 /**
  * createInternal(): Used by AI or System processes to create tasks.
@@ -370,6 +404,7 @@ export const runScheduledCheck = internalMutation({
     const task = await ctx.db.get(instance.task_id);
     if (!task) {
         console.log(`[runScheduledCheck] Parent Task ${instance.task_id} deleted. stopping chain.`);
+        // Note: We normally catch this in 'remove', but this is a safety net.
         return;
     }
 
