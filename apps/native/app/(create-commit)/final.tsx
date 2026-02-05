@@ -212,7 +212,7 @@ export default function FinalScreen() {
   /**
    * Submit the task to the backend (create or update).
    */
-  const submitTask = useCallback(() => {
+  const submitTask = useCallback(async () => {
     setConfirmModalVisible(false);
 
     // Strip local 'id' field from conditions (not part of backend schema)
@@ -221,25 +221,43 @@ export default function FinalScreen() {
       return conditionData;
     });
 
-    if (isEditMode) {
-      updateTask({
-        id: draft.id as Id<"tasks">,
-        title: draft.title,
-        description: draft.description,
-        visibility: draft.visibility,
-        recurrence: draft.recurrence,
-        conditions: cleanedConditions,
-      }).then(handleMutationResult);
-    } else {
-      createTask({
-        assigner_id: draft.assigner_id,
-        assignee_id: draft.assignee_id,
-        title: draft.title,
-        description: draft.description,
-        visibility: draft.visibility,
-        recurrence: draft.recurrence,
-        conditions: cleanedConditions,
-      }).then(handleMutationResult);
+    try {
+      let result: MutationResult;
+
+      if (isEditMode) {
+        result = await updateTask({
+          id: draft.id as Id<"tasks">,
+          title: draft.title,
+          description: draft.description,
+          visibility: draft.visibility,
+          recurrence: draft.recurrence,
+          conditions: cleanedConditions,
+        });
+      } else {
+        result = await createTask({
+          assignee_id: draft.assignee_id,
+          title: draft.title,
+          description: draft.description,
+          visibility: draft.visibility,
+          recurrence: draft.recurrence,
+          conditions: cleanedConditions,
+        });
+      }
+
+      handleMutationResult(result);
+    } catch (error) {
+      console.error("[submitTask] Error:", error);
+      // Determine if it's a Convex error or network error
+      const message = error instanceof Error 
+        ? error.message 
+        : "Something went wrong. Please check your connection and try again.";
+      
+      setErrorModal({
+        visible: true,
+        message: message.includes("Unauthenticated") 
+          ? "Please log in to continue." 
+          : "Network error. Please check your connection.",
+      });
     }
   }, [draft, isEditMode, createTask, updateTask, handleMutationResult]);
 

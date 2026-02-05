@@ -114,7 +114,7 @@ export const listByAssigner = query({
  */
 export const create = mutation({
   args: {
-    assigner_id: v.string(),
+    // assigner_id is removed - we get it from auth
     assignee_id: v.string(),
     title: v.string(),
     description: v.string(),
@@ -124,10 +124,25 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     // -------------------------------------------------------------------------
+    // STEP 0: AUTHENTICATION
+    // -------------------------------------------------------------------------
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return {
+        success: false as const,
+        error: {
+          code: "UNAUTHENTICATED",
+          message: "You must be logged in to create a task",
+        },
+      };
+    }
+    const assigner_id = identity.subject;
+
+    // -------------------------------------------------------------------------
     // STEP 1: VALIDATE INPUT
     // -------------------------------------------------------------------------
     // We never trust the frontend. We re-validate everything here.
-    const validation = validateTaskInput(args);
+    const validation = validateTaskInput({ ...args, assigner_id });
     if (!validation.valid) {
       return { 
         success: false as const, 
@@ -167,6 +182,7 @@ export const create = mutation({
     const now = Date.now();
     const taskId = await ctx.db.insert("tasks", {
       ...args,
+      assigner_id, // Force the real user ID
       created_at: now,
       updated_at: now,
     });
@@ -210,13 +226,36 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
 
+    // 0. Authentication
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return {
+        success: false as const,
+        error: {
+          code: "UNAUTHENTICATED",
+          message: "You must be logged in to update a task",
+        },
+      };
+    }
+
     // 1. Fetch Existing
     const existingTask = await ctx.db.get(id);
     if (!existingTask) {
       return { success: false as const, error: { code: "TASK_NOT_FOUND", message: "Task not found" } };
     }
 
-    // 2. Validate Update (Merged with existing data)
+    // 2. Authorization
+    if (existingTask.assigner_id !== identity.subject) {
+       return {
+        success: false as const,
+        error: {
+          code: "UNAUTHORIZED",
+          message: "You do not have permission to update this task",
+        },
+      };
+    }
+
+    // 3. Validate Update (Merged with existing data)
     const validation = validateTaskUpdate(updates, {
       assigner_id: existingTask.assigner_id,
       assignee_id: existingTask.assignee_id,
@@ -270,6 +309,20 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("tasks") },
   handler: async (ctx, args) => {
+    // 0. Authentication
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+       throw new Error("UNAUTHENTICATED: You must be logged in to delete a task");
+    }
+
+    const task = await ctx.db.get(args.id);
+    if (!task) return; // Already deleted
+
+    // 1. Authorization
+    if (task.assigner_id !== identity.subject) {
+        throw new Error("UNAUTHORIZED: You do not have permission to delete this task");
+    }
+
     await ctx.db.delete(args.id);
   },
 });
