@@ -77,6 +77,35 @@ export default defineSchema({
     status: taskStatusEnum,
     start: v.number(),
     end: v.number(),
+    // Snapshot of rules at creation time
+    title: v.string(),
+    description: v.string(),
+    recurrence: v.object({
+      type: recurrenceTypeEnum,
+      interval: v.number(),
+      days_of_week: v.optional(v.array(v.number())),
+      time_windows: v.array(v.object({
+        start: v.number(),  // seconds from midnight
+        end: v.number(),    // seconds from midnight
+      })),
+      ends: v.optional(v.object({
+        type: recurrenceEndsTypeEnum,
+        count: v.optional(v.number()),
+        date: v.optional(v.number()),
+      })),
+    }),
+    conditions: v.array(
+      v.object({
+        metric_key: v.string(),
+        component: v.optional(v.string()),
+        relation: relationEnum,
+        target: v.object({
+          type: targetTypeEnum,
+          value: v.any(),
+        }),
+      }),
+    ),
+    scheduled_job_id: v.optional(v.id("_scheduled_functions")),
   })
     .index("by_task", ["task_id"])
     .index("by_assignee", ["assignee_id"])

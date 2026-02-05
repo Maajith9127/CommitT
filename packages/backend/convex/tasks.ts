@@ -21,6 +21,7 @@ import { internal } from "./_generated/api";
 import { findConflict, formatConflictMessage } from "./lib/conflictDetection";
 import { findNextTimeSlot } from "./lib/scheduling";
 import { validateTaskInput, validateTaskUpdate } from "./lib/validation";
+import { scheduleNextInstance } from "./lib/instanceScheduling";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. REUSABLE SCHEMAS (Validation Rules)
@@ -154,6 +155,15 @@ export const create = mutation({
     // STEP 2: CHECK FOR SCHEDULE CONFLICTS
     // -------------------------------------------------------------------------
     // A user cannot have two tasks at the exact same time.
+    //
+    // TRANSACTION SAFETY NOTE:
+    // This is race-condition safe because Convex mutations are serializable.
+    // If two requests try to create conflicting tasks simultaneously:
+    // 1. Req A reads existing tasks -> sees None -> Inserts Task A
+    // 2. Req B reads existing tasks -> sees None -> ...
+    //    Convex detects Req A changed the data Req B read.
+    //    Req B is automatically RETRIED.
+    // 3. Req B runs again -> reads tasks -> sees Task A -> Returns CONFLICT.
     const existingTasks = await ctx.db
       .query("tasks")
       .withIndex("by_assignee_id", (q) => q.eq("assignee_id", args.assignee_id))
@@ -188,24 +198,10 @@ export const create = mutation({
     });
 
     // -------------------------------------------------------------------------
-    // STEP 4: SCHEDULE FIRST CHECK
+    // STEP 4: SCHEDULE FIRST INSTANCE
     // -------------------------------------------------------------------------
-    // We calculate when the first "Active Window" ends, and schedule a check.
-    const recurrenceForScheduling = {
-      type: args.recurrence.type as "once" | "daily" | "weekly" | "monthly",
-      interval: args.recurrence.interval,
-      days_of_week: args.recurrence.days_of_week,
-      time_windows: args.recurrence.time_windows,
-      ends: args.recurrence.ends,
-    };
-    const userTimezoneOffset = 330; // TODO: Get from user profile (Default: IST)
-    const nextSlot = findNextTimeSlot(recurrenceForScheduling, now, userTimezoneOffset);
-
-    if (nextSlot) {
-      // Schedule the 'runScheduledCheck' internal mutation to run exactly when the slot ends
-      await ctx.scheduler.runAt(nextSlot.endTime, internal.tasks.runScheduledCheck, { taskId });
-      console.log(`[Tasks] Scheduled check for ${taskId} at ${new Date(nextSlot.endTime).toISOString()}`);
-    }
+    // We kickstart the "Verification Chain" by scheduling the first instance.
+    await scheduleNextInstance(ctx, taskId, now);
 
     return { success: true as const, taskId };
   },
@@ -358,24 +354,44 @@ export const createInternal = internalMutation({
  * This function runs automatically at the end of every time slot.
  */
 export const runScheduledCheck = internalMutation({
-  args: { taskId: v.id("tasks") },
+  args: { instanceId: v.id("taskInstances") },
   handler: async (ctx, args) => {
-    const task = await ctx.db.get(args.taskId);
-    if (!task) {
-      console.log(`[runScheduledCheck] Task ${args.taskId} was deleted. Skipping.`);
+    // 1. Fetch the Instance
+    const instance = await ctx.db.get(args.instanceId);
+    if (!instance) {
+      console.log(`[runScheduledCheck] Instance ${args.instanceId} not found. Chain broken.`);
       return;
     }
 
+    // 2. Fetch the Parent Task (for context, though instance has snapshot)
+    const task = await ctx.db.get(instance.task_id);
+    if (!task) {
+        console.log(`[runScheduledCheck] Parent Task ${instance.task_id} deleted. stopping chain.`);
+        return;
+    }
+
     console.log("═══════════════════════════════════════════════════════════════");
-    console.log(`[runScheduledCheck] VERIFYING: ${task.title}`);
+    console.log(`[runScheduledCheck] VERIFYING: ${instance.title}`);
     console.log(`[runScheduledCheck] Time     : ${new Date().toISOString()}`);
     console.log("═══════════════════════════════════════════════════════════════");
 
-    // TODO: 
-    // 1. Fetch telemetry (GPS, Photos, etc)
-    // 2. Compare against 'task.conditions'
-    // 3. Mark instance as "Success" or "Failed"
-    // 4. Schedule the NEXT occurrence
+    // -------------------------------------------------------------------------
+    // STEP 1: VERIFY & GRADE
+    // -------------------------------------------------------------------------
+    // TODO: Implement actual verification logic (GPS, Photos, etc)
+    // For now, we assume success if it ran.
+    
+    // Update status to PROCEEDED (or FAILED based on checks)
+    await ctx.db.patch(args.instanceId, { 
+      status: "proceeded" 
+    });
+
+    // -------------------------------------------------------------------------
+    // STEP 2: CONTINUE THE CHAIN
+    // -------------------------------------------------------------------------
+    // Schedule the NEXT instance based on the parent task's rules.
+    // We start looking for slots *after* the current instance ended.
+    await scheduleNextInstance(ctx, task._id, instance.end);
   },
 });
 
@@ -389,7 +405,7 @@ export const runScheduledCheck = internalMutation({
 export const generate = action({
   // Simplified for brevity, same logic as before
   args: {
-    assigner_id: v.string(),
+    // assigner_id removed - secured via auth
     assignee_id: v.string(),
     title: v.string(),
     description: v.string(),
@@ -397,6 +413,12 @@ export const generate = action({
   },
   handler: async (ctx, args) => {
     try {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        throw new Error("UNAUTHENTICATED: You must be logged in to generate a task");
+      }
+      const assigner_id = identity.subject;
+
       const metrics = await ctx.runQuery(internal.metrics.listInternal);
       // AI Logic to generate conditions...
       const conditions = await generateTaskConditions({
@@ -414,7 +436,7 @@ export const generate = action({
 
       const now = Date.now();
       await ctx.runMutation(internal.tasks.createInternal, {
-        assigner_id: args.assigner_id,
+        assigner_id: assigner_id,
         assignee_id: args.assignee_id,
         title: args.title,
         description: args.description,

@@ -289,35 +289,40 @@ export function validateAssignee(assigneeId: string | null | undefined): Validat
  * // Proceed with insert...
  */
 export function validateTaskInput(input: TaskInput): ValidationResult {
-  // 1. Assigner ID is required
+  // ───────────────────────────────────────────────────────────────────────────
+  // 1. Identity & Permissions
+  // ───────────────────────────────────────────────────────────────────────────
   const assignerCheck = validateAssigner(input.assigner_id);
   if (!assignerCheck.valid) return assignerCheck;
 
-  // 2. Assignee ID is required
   const assigneeCheck = validateAssignee(input.assignee_id);
   if (!assigneeCheck.valid) return assigneeCheck;
 
-  // 3. Title is required and within limits
+  // ───────────────────────────────────────────────────────────────────────────
+  // 2. Content Validation
+  // ───────────────────────────────────────────────────────────────────────────
   const titleCheck = validateTitle(input.title);
   if (!titleCheck.valid) return titleCheck;
 
-  // 4. At least one day must be selected
+  // ───────────────────────────────────────────────────────────────────────────
+  // 3. Schedule Logic (Recurrence)
+  // ───────────────────────────────────────────────────────────────────────────
   const daysCheck = validateDaysRequired(input.recurrence);
   if (!daysCheck.valid) return daysCheck;
 
-  // 5. At least one time slot must exist
   const slotsCheck = validateTimeSlotsRequired(input.recurrence);
   if (!slotsCheck.valid) return slotsCheck;
 
-  // 6. Each time slot must have start < end
   const orderCheck = validateTimeSlotOrder(input.recurrence.time_windows);
   if (!orderCheck.valid) return orderCheck;
 
-  // 7. No time slots can overlap
   const overlapCheck = validateNoOverlap(input.recurrence.time_windows);
   if (!overlapCheck.valid) return overlapCheck;
 
-  // 8. Time + X rule
+  // ───────────────────────────────────────────────────────────────────────────
+  // 4. Business Rules
+  // ───────────────────────────────────────────────────────────────────────────
+  // Rule: You must have at least one verifier (Location, Partner, Photo, Video)
   const timeXCheck = validateTimeXRule(
     input.conditions,
     input.assignee_id,

@@ -362,26 +362,22 @@ export function formatDays(days: number[], short = false): string {
 export function formatConflictMessage(details: ConflictDetails): string {
   const { conflictingTaskTitle, overlappingDays, overlappingWindows } = details;
 
-  // Single day, single overlap - show full details
+  // Case 1: Simple conflict (Single day, single overlap)
   if (overlappingDays.length === 1 && overlappingWindows.length === 1) {
     const day = getDayName(overlappingDays[0]);
     const overlap = overlappingWindows[0];
-    return (
-      `Conflicts with "${conflictingTaskTitle}" on ${day}. ` +
-      `Your time (${formatWindowRange(overlap.newWindow)}) overlaps with ` +
-      `existing time (${formatWindowRange(overlap.existingWindow)}).`
-    );
+    const newTime = formatWindowRange(overlap.newWindow);
+    const existingTime = formatWindowRange(overlap.existingWindow);
+    
+    return `Conflicts with "${conflictingTaskTitle}" on ${day}. Your time (${newTime}) overlaps with existing time (${existingTime}).`;
   }
 
-  // Multiple days or overlaps - summarize
+  // Case 2: Complex conflict (Multiple days or overlaps)
   const daysText = formatDays(overlappingDays, overlappingDays.length > 3);
   const overlapCount = overlappingWindows.length;
   const slotWord = overlapCount === 1 ? "time slot" : "time slots";
 
-  return (
-    `Conflicts with "${conflictingTaskTitle}" on ${daysText}. ` +
-    `${overlapCount} ${slotWord} overlap.`
-  );
+  return `Conflicts with "${conflictingTaskTitle}" on ${daysText}. ${overlapCount} ${slotWord} overlap.`;
 }
 
 /**
