@@ -1,0 +1,453 @@
+---
+title: Engineering Standards & Best Practices
+description: The "Golden Standard" for writing clean, maintainable, and production-ready code in this codebase.
+---
+
+# Engineering Standards & Best Practices
+
+**"The Golden Standard"**
+
+This document establishes the non-negotiable standards for software engineering within this repository. It is the single source of truth for architectural decisions, coding style, and rigorous production practices. When in doubt, or when instructing AI, refer to this document.
+
+---
+
+## 1. Core Philosophy
+
+### 1.1 Readability > Cleverness
+Code is read 10x more than it is written.
+- **Bad:** One-liners that perform 3 distinct operations to save space.
+- **Good:** Verbose, explicit steps that clearly outline the flow of logic.
+
+### 1.2 The "New Employee" Test
+Any file you write should be understandable by a new engineer on their first day without them needing to ask you questions. This requires:
+- Clear file headers explaining *responsibilities*.
+- Comments explaining *why*, not *what*.
+- Meaningful variable names.
+
+### 1.3 Modularization & Separation of Concerns
+- **Rule of Thumb:** If a file exceeds 300 lines of functional code (excluding imports/types), it is likely doing too much.
+- **Layering:**
+  - **Data Layer:** Schema definitions, raw types.
+  - **Logic Layer:** Pure functions, business rules, validation.
+  - **Service Layer:** API endpoints, Mutations, Actions (which call the Logic Layer).
+  - **UI Layer:** Components (which call the Service Layer).
+
+---
+
+## 2. Backend Standards (Convex)
+
+### 2.1 The "Secure by Default" Pattern
+Every public mutation/query MUST follow this structure:
+1.  **Authentication:** Verify the user immediately.
+2.  **Authorization:** explicit check (e.g., `task.assigner_id === user.id`).
+3.  **Validation:** Call a dedicated validator function (never validate inline for complex logic).
+4.  **Execution:** Perform the DB operation.
+
+### 2.2 Validation
+- **Centralized Schemas:** Never define Zod or Convex schemas inside a mutation file if they are shared. Move them to `schema.ts`, `shared.ts`, or `lib/validation.ts`.
+- **Validation First:** All inputs must be sanitized and validated before any DB reads occur (where possible).
+
+### 2.3 Scheduler Patterns (Chaining)
+- **Atomicity:** A chain of events (System Start -> Wait -> Check -> Repeat) must be robust.
+- **Independence:** The "Runner" function (e.g., `runScheduledCheck`) should be separate from the "Definition" module (`tasks.ts`).
+- **Idempotency:** Scheduled jobs should be safe to retry. Check status before acting.
+
+### 2.4 Modular Architecture
+- **Core Domain:** `tasks.ts`, `users.ts` (Handles User Intent).
+- **Execution Engine:** `instances.ts` (Handles System Execution/Background Jobs).
+- **Intelligence:** `ai.ts` (Handles Volatile/Undeterministic Logic).
+- **Shared Lib:** `lib/` (Pure functions, helpers, math, conflict detection).
+
+---
+
+## 3. Frontend Standards (React Native)
+
+### 3.1 Component Structure
+- **Container/View Pattern:**
+    - `TaskScreen.tsx`: Handles data fetching, state, and passing props.
+    - `TaskView.tsx`: pure UI component, receives data, renders it.
+- **Hooks:** Complex logic (more than 10 lines of `useEffect`/`useState`) moves to a custom hook (e.g., `useTaskLogic.ts`).
+
+### 3.2 State Management (Zustand)
+- **Selectors:** Always use specific selectors. `const { setTitle } = useStore(state => state)` is bad. `const setTitle = useStore(state => state.setTitle)` is good.
+- **Business Logic in Store:** Stores should hold *state* and *actions*. Complex calculations should be in `lib/` functions imported by the store.
+
+### 3.3 Styling
+- **Tailwind/NativeWind:** Use utility classes for 95% of styling.
+- **Consistency:** Use the theme tokens (colors, spacing) defined in `tailwind.config.js`. Do not hardcode hex values like `#333` in components.
+
+---
+
+## 4. Coding Style Guide
+
+### 4.1 Naming Conventions
+- **Variables:** Nouns (`user`, `pendingTasks`).
+- **Booleans:** Prefix with `is`, `has`, `should`, `can` (`isValid`, `hasConflict`).
+- **Functions:** Verbs (`validateInput`, `createUser`, `calculateNextSlot`).
+- **Event Handlers:** `handle[Event]` (e.g., `handleSubmit`, `handlePress`).
+- **Files:**
+    - TypeScript: `camelCase.ts` (e.g., `taskValidation.ts`).
+    - React Components: `PascalCase.tsx` (e.g., `Button.tsx`).
+
+### 4.2 Comments & Documentation
+- **File Headers:** Every file MUST start with a block comment:
+  ```typescript
+  /**
+   * Module Name
+   * ==========================
+   * Responsibility: What this file does.
+   * Key Exports: Main functions.
+   */
+  ```
+- **The "Why":**
+  ```typescript
+  // BAD: Increment count
+  count++;
+
+  // GOOD: Decrement the remaining recurrence count for the NEXT instance
+  count--;
+  ```
+
+### 4.3 Types
+- **No `any`:** `any` is strictly forbidden in production code. Use `unknown` or define the type.
+- **Shared Types:** If a type is used in 2+ files, move it to a `types.ts` file.
+
+---
+
+## 5. Production Readiness Checklist
+
+Before merging/deploying, ask:
+1.  **Error Handling:** Are we catching errors? Do we show a user-friendly message (`toast`) or just crash?
+2.  **Logs:** distinct logs for `[System]` events. Remove `console.log("here")` debug markers.
+3.  **Performance:** Are we fetching too much data? Can we use an index?
+4.  **Security:** Did I add the Authorization check? Can User A delete User B's stuff?
+
+---
+
+
+---
+
+## 6. Production-Level Directory Structure
+
+To maintain sanity as the project scales to 100+ files, we adhere to a strict folder hierarchy.
+
+### 6.1 Backend (Convex) Structure
+We adhere to a Domain-Driven Design (DDD) approach, ensuring separation of concerns between core logic, execution, and external integrations.
+
+```text
+convex/
+├── config/
+│   ├── env.ts                    # Validated env (Zod)
+│   ├── limits.ts                 # Rate limits, quotas
+│   ├── constants.ts              # App constants
+│   ├── feature-flags.ts          # Feature toggles
+│   └── verification-rules.ts     # GPS accuracy, AI confidence thresholds
+│
+├── types/
+│   ├── domain/
+│   │   ├── commitment.ts         # Core domain model
+│   │   ├── proof.ts              # Proof submission types
+│   │   ├── penalty.ts            # Penalty types & states
+│   │   ├── partner.ts            # Buddy verification
+│   │   └── user.ts               # User entity
+│   ├── api/
+│   │   ├── requests.ts           # Input schemas
+│   │   ├── responses.ts          # Output schemas
+│   │   └── webhooks.ts           # External event schemas
+│   ├── events.ts                 # Domain events (CommitmentCreated, ProofRejected, etc)
+│   └── errors.ts                 # Typed error codes
+│
+├── lib/
+│   ├── errorHandler.ts           # AppError class
+│   ├── logger.ts                 # Structured logging
+│   ├── formatters.ts             # Response formatting
+│   ├── validators.ts             # Zod schemas
+│   ├── rateLimiter.ts            # Rate limiting
+│   ├── cache.ts                  # Caching layer
+│   ├── telemetry.ts              # OpenTelemetry
+│   ├── encryption.ts             # Data encryption (GPS coords, photos)
+│   └── idempotency.ts            # Prevent duplicate penalties
+│
+├── middleware/
+│   ├── auth.ts                   # JWT/session validation
+│   ├── validation.ts             # Request schema validation
+│   ├── rateLimit.ts              # Per-user/IP limits
+│   ├── errorCatcher.ts           # Global error boundary
+│   ├── auditLog.ts               # Track all commitment changes
+│   └── index.ts                  # Middleware chain
+│
+├── core/                         #  BUSINESS LOGIC (Pure Functions)
+│   ├── commitments/
+│   │   ├── service.ts            # CRUD operations
+│   │   ├── stateMachine.ts       # Lifecycle FSM (ACTIVE → VERIFIED → FAILED)
+│   │   ├── validator.ts          # Business rule validation
+│   │   ├── scheduler.ts          # Deadline calculations
+│   │   └── queries.ts            # Complex read operations
+│   │
+│   ├── verification/
+│   │   ├── orchestrator.ts       #  Main verification coordinator
+│   │   ├── strategies/
+│   │   │   ├── gps.ts            # Geofence verification
+│   │   │   ├── media.ts          # Photo/video proof
+│   │   │   ├── partner.ts        # Buddy confirmation
+│   │   │   ├── composite.ts      # Multi-proof (GPS + Photo)
+│   │   │   └── base.ts           # Strategy interface
+│   │   ├── proofAggregator.ts    # Combine multiple proofs
+│   │   ├── fraudDetector.ts      # Anomaly detection
+│   │   └── consensusEngine.ts    # Multi-partner voting logic
+│   │
+│   ├── enforcement/
+│   │   ├── penaltyEngine.ts      #  Execute stakes
+│   │   ├── strategies/
+│   │   │   ├── payment.ts        # Razorpay integration
+│   │   │   ├── captcha.ts        # CAPTCHA queue generation
+│   │   │   ├── social.ts         # Auto-post failure to X/LinkedIn
+│   │   │   └── timelock.ts       # App usage restriction
+│   │   ├── escrowManager.ts      # Hold funds until verification
+│   │   ├── refundService.ts      # Handle appeals/disputes
+│   │   └── gracePeriod.ts        # Last-chance submission window
+│   │
+│   ├── partners/
+│   │   ├── service.ts            # Buddy CRUD
+│   │   ├── inviteManager.ts      # Send/accept invites
+│   │   ├── trustScore.ts         # Track buddy reliability
+│   │   └── notificationRouter.ts # Push alerts to buddies
+│   │
+│   ├── analytics/
+│   │   ├── service.ts            # User insights
+│   │   ├── streaks.ts            # Completion streaks
+│   │   ├── patterns.ts           # Failure pattern detection
+│   │   └── leaderboard.ts        # Community rankings
+│   │
+│   └── users/
+│       ├── service.ts            # User management
+│       ├── preferences.ts        # Notification settings
+│       └── reputation.ts         # User trust score
+│
+├── execution/                    #  REAL-TIME OPERATIONS
+│   ├── watchers/
+│   │   ├── deadlineMonitor.ts    # Cron: Check every 60s for missed deadlines
+│   │   ├── proofExpiryChecker.ts # Auto-fail if proof not submitted in time
+│   │   ├── escrowReleaser.ts     # Release funds after grace period
+│   │   └── staleCommitmentCleaner.ts
+│   │
+│   ├── ai/
+│   │   ├── visionVerifier.ts     # Claude/GPT-4V for image analysis
+│   │   ├── promptTemplates.ts    # Optimized prompts per task type
+│   │   ├── confidenceScorer.ts   # Threshold logic (>85% = pass)
+│   │   └── feedbackLoop.ts       # Learn from user disputes
+│   │
+│   ├── notifications/
+│   │   ├── queue.ts              # Bull/BullMQ job queue
+│   │   ├── templates/
+│   │   │   ├── deadlineReminder.ts
+│   │   │   ├── proofRequired.ts
+│   │   │   ├── penaltyEnforced.ts
+│   │   │   └── buddyRequest.ts
+│   │   ├── channels/
+│   │   │   ├── push.ts           # FCM/APNS
+│   │   │   ├── sms.ts            # Twilio
+│   │   │   ├── email.ts          # Resend
+│   │   │   └── webhook.ts        # User-defined webhooks
+│   │   └── scheduler.ts          # Time-based triggers
+│   │
+│   ├── background-jobs/
+│   │   ├── dailyDigest.ts        # Summary emails
+│   │   ├── weeklyReport.ts       # Analytics PDF
+│   │   ├── dataExport.ts         # GDPR compliance
+│   │   └── mlTraining.ts         # Retrain fraud models
+│   │
+│   └── cleanup/
+│       ├── retention.ts          # Delete old proofs (90 days)
+│       ├── archiver.ts           # Move completed commitments
+│       └── gdprEraser.ts         # Right to be forgotten
+│
+├── integrations/                 #  EXTERNAL SERVICES
+│   ├── payments/
+│   │   ├── razorpay.ts           # Indian market
+│   │   ├── stripe.ts             # International
+│   │   ├── webhookHandler.ts     # Payment confirmations
+│   │   └── disputeManager.ts     # Chargebacks
+│   │
+│   ├── maps/
+│   │   ├── geofencing.ts         # Google Maps Geofencing API
+│   │   ├── distanceCalculator.ts # Haversine formula
+│   │   └── placeVerifier.ts      # Confirm "Gym" is actually a gym
+│   │
+│   ├── ai/
+│   │   ├── anthropic.ts          # Claude API wrapper
+│   │   ├── openai.ts             # GPT-4V fallback
+│   │   └── moderationFilter.ts   # Block NSFW proof uploads
+│   │
+│   ├── storage/
+│   │   ├── s3.ts                 # AWS S3 for proof media
+│   │   ├── cdn.ts                # CloudFront URLs
+│   │   └── encryption.ts         # At-rest encryption
+│   │
+│   └── captcha/
+│       ├── generator.ts          # hCaptcha API
+│       └── validator.ts          # Verify CAPTCHA completion
+│
+├── api/                          #  HTTP ENDPOINTS
+│   ├── commitments/
+│   │   ├── create.ts             # POST /commitments
+│   │   ├── list.ts               # GET /commitments
+│   │   ├── get.ts                # GET /commitments/:id
+│   │   ├── update.ts             # PATCH /commitments/:id
+│   │   ├── delete.ts             # DELETE /commitments/:id
+│   │   ├── submitProof.ts        # POST /commitments/:id/proof
+│   │   └── requestExtension.ts   # POST /commitments/:id/extend
+│   │
+│   ├── partners/
+│   │   ├── invite.ts             # POST /partners/invite
+│   │   ├── accept.ts             # POST /partners/:id/accept
+│   │   ├── verify.ts             # POST /commitments/:id/partner-verify
+│   │   └── list.ts               # GET /partners
+│   │
+│   ├── enforcement/
+│   │   ├── appeal.ts             # POST /penalties/:id/appeal
+│   │   ├── status.ts             # GET /penalties/:id
+│   │   └── history.ts            # GET /users/me/penalties
+│   │
+│   ├── analytics/
+│   │   ├── dashboard.ts          # GET /analytics/dashboard
+│   │   ├── streaks.ts            # GET /analytics/streaks
+│   │   └── insights.ts           # GET /analytics/insights
+│   │
+│   ├── auth/
+│   │   ├── register.ts           # POST /auth/register
+│   │   ├── login.ts              # POST /auth/login
+│   │   ├── logout.ts             # POST /auth/logout
+│   │   └── refresh.ts            # POST /auth/refresh
+│   │
+│   ├── webhooks/
+│   │   ├── razorpay.ts           # POST /webhooks/razorpay
+│   │   ├── ai-callback.ts        # POST /webhooks/ai
+│   │   └── partner-response.ts   # POST /webhooks/partner/:token
+│   │
+│   └── health/
+│       ├── status.ts             # GET /health
+│       ├── readiness.ts          # GET /health/ready
+│       └── metrics.ts            # GET /metrics (Prometheus)
+│
+├── db/
+│   ├── schema.ts                 # Convex schema definitions
+│   ├── indexes.ts                #  CRITICAL: Compound indexes
+│   │                             # - (userId, deadline) for watcher queries
+│   │                             # - (state, deadline) for batch processing
+│   │                             # - (partnerId, status) for buddy dashboard
+│   ├── migrations/
+│   │   ├── helpers.ts            # Migration utilities
+│   │   └── rollback.ts           # Rollback scripts
+│   └── seeds/
+│       ├── dev.ts                # Development data
+│       └── test.ts               # Test fixtures
+│
+├── migrations/                   # Schema change documentation
+│   ├── 001_initial.md
+│   ├── 002_add_partners.md
+│   ├── 003_penalty_escrow.md
+│   └── 004_ai_verification.md
+│
+├── __tests__/
+│   ├── unit/
+│   │   ├── core/                 # Pure business logic tests
+│   │   ├── lib/                  # Utility tests
+│   │   └── integrations/         # Mock external services
+│   │
+│   ├── integration/
+│   │   ├── commitment-flow.test.ts
+│   │   ├── verification-pipeline.test.ts
+│   │   ├── penalty-execution.test.ts
+│   │   └── partner-workflow.test.ts
+│   │
+│   ├── e2e/
+│   │   ├── happy-path.test.ts    # User completes commitment
+│   │   ├── failure-path.test.ts  # User misses deadline
+│   │   ├── dispute-flow.test.ts  # User appeals penalty
+│   │   └── fraud-attempts.test.ts
+│   │
+│   ├── chaos/
+│   │   ├── gps-spoofing.test.ts  # Mock location attacks
+│   │   ├── ai-adversarial.test.ts # Deepfake detection
+│   │   ├── race-conditions.test.ts # Concurrent proof submissions
+│   │   └── payment-failures.test.ts
+│   │
+│   ├── compliance/
+│   │   ├── gdpr.test.ts          # Data export/deletion
+│   │   ├── pci-dss.test.ts       # Payment security
+│   │   └── accessibility.test.ts
+│   │
+│   └── fixtures/
+│       ├── commitments.ts
+│       ├── proofs.ts
+│       └── users.ts
+│
+├── monitoring/
+│   ├── dashboards/
+│   │   ├── slo.ts                # Service Level Objectives
+│   │   ├── commitment-funnel.ts  # Creation → Completion metrics
+│   │   ├── verification-accuracy.ts # tracking
+│   │   └── penalty-revenue.ts    # Financial metrics
+│   │
+│   ├── alerts/
+│   │   ├── thresholds.ts         # Alert rules
+│   │   ├── escalation.ts         # PagerDuty integration
+│   │   └── anomaly-detection.ts  # ML-based alerting
+│   │
+│   └── tracing/
+│       ├── instrumentation.ts    # OpenTelemetry spans
+│       └── baggage.ts            # Context propagation
+│
+├── scripts/
+│   ├── seed-db.ts                # Populate dev data
+│   ├── analyze-indexes.ts        # Query performance analyzer
+│   ├── backup.ts                 # Database backup
+│   └── disaster-recovery.ts      # Restore procedures
+```
+
+**Key Principle:**
+- `core/` files handle User Intent (API layer).
+- `execution/` files handle System Background Work.
+- `lib/` files contain **pure** logic (no side effects, no DB calls).
+
+### 6.2 Frontend (React Native / Expo) Structure
+We follow a feature-based organization combined with the Expo Router file-based routing.
+
+```text
+apps/native/
+├── app/                 # ROUTING LAYER (Expo Router)
+│   ├── (auth)/          # Authentication Routes
+│   ├── (main)/          # Main App Flow
+│   │   ├── (tabs)/      # Bottom Tabs
+│   │   ├── home.tsx
+│   │   └── profile.tsx
+│   ├── _layout.tsx      # Root Layout
+│   └── index.tsx        # Entry point
+├── components/          # UI LAYER (Visuals)
+│   ├── ui/              # Primitive Atoms (Button, Input, Card)
+│   ├── forms/           # Complex Form Organisms
+│   └── screens/         # Screen-specific complex views (if not in app/)
+├── features/            # LOGIC LAYER (Domain Specific)
+│   ├── tasks/           # "Tasks" Domain
+│   │   ├── hooks/       # useTaskActions, useTaskQuery
+│   │   ├── components/  # TaskCard, TaskList (Specific to tasks)
+│   │   └── utils.ts     # Task-specific helpers
+│   ├── auth/            # "Auth" Domain
+│   │   └── ...
+├── lib/                 # INFRASTRUCTURE
+│   ├── convex.tsx       # Convex Client Provider
+│   ├── store.ts         # Global Zustand Store
+│   ├── theme.ts         # Design Tokens / Tailwind Config
+│   └── utils.ts         # Generic Helpers (cn, formats)
+└── assets/              # Images, Fonts
+```
+
+**Key Principle:**
+- **`app/`** is *only* for Routing and Layout configuration. Keep logic out of here.
+- **`features/`** encapsulates domain logic. If you delete the `tasks/` folder, you delete the Tasks feature cleanly.
+- **`components/ui/`** is your Design System (Dumb components).
+
+---
+
+> **Note to AI:** When asked to refactor or write code, strictly adhere to these guidelines. Prioritize modularity and readability above all else.

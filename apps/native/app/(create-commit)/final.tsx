@@ -101,8 +101,8 @@ export default function FinalScreen() {
   // Mutations
   // ─────────────────────────────────────────────────────────────────────────
 
-  const createTask = useMutation(api.tasks.create);
-  const updateTask = useMutation(api.tasks.update);
+  const createTask = useMutation(api.api.commitments.create.default);
+  const updateTask = useMutation(api.api.commitments.update.default);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Computed Values

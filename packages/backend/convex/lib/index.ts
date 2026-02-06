@@ -32,18 +32,4 @@ export {
   type ConflictDetails,
 } from "./conflictDetection";
 
-export {
-  // Scheduling utilities
-  findNextTimeSlot,
-  calculateDelay,
-  getStartOfDay,
-  getSecondsFromMidnight,
-  getDayOfWeek,
-  timeWindowToTimestamp,
-  formatTimeSlot,
 
-  // Types
-  type Recurrence,
-  type NextTimeSlot,
-  type TimeWindow as SchedulingTimeWindow,
-} from "./scheduling";

@@ -1,9 +1,8 @@
-
 import { v } from "convex/values";
-import { internalMutation, MutationCtx } from "../_generated/server";
-import { internal } from "../_generated/api";
-import { Doc, Id } from "../_generated/dataModel";
-import { findNextTimeSlot } from "./scheduling";
+import { internalMutation, MutationCtx } from "../../_generated/server";
+import { internal } from "../../_generated/api";
+import { Doc, Id } from "../../_generated/dataModel";
+import { findNextTimeSlot } from "../../core/commitments/scheduler"; // Domain Logic
 
 /**
  * scheduleNextInstance
@@ -13,11 +12,7 @@ import { findNextTimeSlot } from "./scheduling";
  * It performs 3 atomic steps:
  * 1. Calculates the NEXT time slot for this task.
  * 2. Creates a "Pending" TaskInstance for that slot (Snapshotting rules).
- * 3. Schedules the 'runScheduledCheck' to run at the end of that slot.
- * 
- * @param ctx - Mutation Context
- * @param taskId - The parent task ID
- * @param fromTime - (Optional) When to start looking for the next slot. Defaults to Now.
+ * 3. Schedules the 'runVerification' to run at the end of that slot.
  */
 export async function scheduleNextInstance(
   ctx: MutationCtx,
@@ -36,7 +31,6 @@ export async function scheduleNextInstance(
   const recurrenceToUse = previousRecurrenceState ?? task.recurrence;
 
   // 2. Cancellation Check: "Count" based
-  // If the previous state says we have 0 left, we stop.
   if (recurrenceToUse.ends?.type === "after") {
     const currentCount = recurrenceToUse.ends.count ?? 0;
     if (currentCount <= 0) {
@@ -102,15 +96,15 @@ export async function scheduleNextInstance(
     conditions: task.conditions,
   });
 
-  // 4. Schedule the Verification Check (The "Spark")
+  // 7. Schedule the Verification Check (The "Spark")
   // We pass the instanceId so the scheduler knows EXACTLY what to verify.
   const scheduledJobId = await ctx.scheduler.runAt(
     nextSlot.endTime,
-    internal.tasks.runScheduledCheck,
+    internal.execution.verification.runner.runVerification, // POINTING TO NEW LOCATION
     { instanceId, taskTitle: task.title }
   );
 
-  // 5. Link the Job ID (For cancellation)
+  // 8. Link the Job ID (For cancellation)
   await ctx.db.patch(instanceId, { scheduled_job_id: scheduledJobId });
   
   return instanceId;

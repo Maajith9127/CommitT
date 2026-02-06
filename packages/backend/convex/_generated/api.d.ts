@@ -8,21 +8,36 @@
  * @module
  */
 
-import type * as auth from "../auth.js";
-import type * as enums from "../enums.js";
+import type * as ai_client from "../ai/client.js";
+import type * as ai_taskGeneration_generate from "../ai/taskGeneration/generate.js";
+import type * as api_commitments_create from "../api/commitments/create.js";
+import type * as api_commitments_delete from "../api/commitments/delete.js";
+import type * as api_commitments_get from "../api/commitments/get.js";
+import type * as api_commitments_list from "../api/commitments/list.js";
+import type * as api_commitments_update from "../api/commitments/update.js";
+import type * as config_constants from "../config/constants.js";
+import type * as config_enums from "../config/enums.js";
+import type * as core_commitments_queries from "../core/commitments/queries.js";
+import type * as core_commitments_scheduler from "../core/commitments/scheduler.js";
+import type * as core_commitments_service from "../core/commitments/service.js";
+import type * as core_commitments_validator from "../core/commitments/validator.js";
+import type * as execution_scheduling_scheduler from "../execution/scheduling/scheduler.js";
+import type * as execution_verification_runner from "../execution/verification/runner.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as lib_conflictDetection from "../lib/conflictDetection.js";
+import type * as lib_errorHandler from "../lib/errorHandler.js";
 import type * as lib_index from "../lib/index.js";
-import type * as lib_instanceScheduling from "../lib/instanceScheduling.js";
-import type * as lib_scheduling from "../lib/scheduling.js";
-import type * as lib_validation from "../lib/validation.js";
+import type * as lib_logger from "../lib/logger.js";
+import type * as lib_validators from "../lib/validators.js";
 import type * as localSeed from "../localSeed.js";
 import type * as metrics from "../metrics.js";
+import type * as middleware_auth from "../middleware/auth.js";
+import type * as middleware_index from "../middleware/index.js";
 import type * as opencode from "../opencode.js";
 import type * as privateData from "../privateData.js";
 import type * as taskTelemetry from "../taskTelemetry.js";
-import type * as tasks from "../tasks.js";
+import type * as types_domain_commitment from "../types/domain/commitment.js";
 
 import type {
   ApiFromModules,
@@ -31,21 +46,36 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth;
-  enums: typeof enums;
+  "ai/client": typeof ai_client;
+  "ai/taskGeneration/generate": typeof ai_taskGeneration_generate;
+  "api/commitments/create": typeof api_commitments_create;
+  "api/commitments/delete": typeof api_commitments_delete;
+  "api/commitments/get": typeof api_commitments_get;
+  "api/commitments/list": typeof api_commitments_list;
+  "api/commitments/update": typeof api_commitments_update;
+  "config/constants": typeof config_constants;
+  "config/enums": typeof config_enums;
+  "core/commitments/queries": typeof core_commitments_queries;
+  "core/commitments/scheduler": typeof core_commitments_scheduler;
+  "core/commitments/service": typeof core_commitments_service;
+  "core/commitments/validator": typeof core_commitments_validator;
+  "execution/scheduling/scheduler": typeof execution_scheduling_scheduler;
+  "execution/verification/runner": typeof execution_verification_runner;
   healthCheck: typeof healthCheck;
   http: typeof http;
   "lib/conflictDetection": typeof lib_conflictDetection;
+  "lib/errorHandler": typeof lib_errorHandler;
   "lib/index": typeof lib_index;
-  "lib/instanceScheduling": typeof lib_instanceScheduling;
-  "lib/scheduling": typeof lib_scheduling;
-  "lib/validation": typeof lib_validation;
+  "lib/logger": typeof lib_logger;
+  "lib/validators": typeof lib_validators;
   localSeed: typeof localSeed;
   metrics: typeof metrics;
+  "middleware/auth": typeof middleware_auth;
+  "middleware/index": typeof middleware_index;
   opencode: typeof opencode;
   privateData: typeof privateData;
   taskTelemetry: typeof taskTelemetry;
-  tasks: typeof tasks;
+  "types/domain/commitment": typeof types_domain_commitment;
 }>;
 
 /**
