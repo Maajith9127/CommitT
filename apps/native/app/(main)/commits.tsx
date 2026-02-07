@@ -299,15 +299,16 @@ export default function CommitsScreen() {
   /**
    * Render the app header with branding and verification card.
    */
+  /**
+   * Render the app header with branding and verification card.
+   * REMOVED: Branding is now in _layout.tsx
+   */
   const renderQuickSection = useCallback(
     () => (
-      <ScreenHeader>
-        <UView className="flex-row items-center gap-2">
-          <MaterialCommunityIcons name="rotate-orbit" size={33} color="white" />
-          <HeaderTitle className="text-2xl text-white">CommitT</HeaderTitle>
-        </UView>
-        <VerificationCard className="mt-3" onPress={() => router.push("/(verify-commit)")} />
-      </ScreenHeader>
+      <UView className="bg-black px-4 pb-2">
+          {/* Header moved to _layout.tsx */}
+          <VerificationCard className="mt-0" onPress={() => router.push("/verify")} />
+      </UView>
     ),
     [router]
   );
@@ -317,12 +318,12 @@ export default function CommitsScreen() {
    */
   const renderSchedulesHeader = useCallback(
     () => (
-      <ScreenHeader className="bg-black">
+      <UView className="bg-black px-4 py-2 pb-4">
         <UView className="w-full flex-row items-center justify-between">
           <HeaderTitle>CommitTs</HeaderTitle>
           <AddButton onPress={handleCreateNew} />
         </UView>
-      </ScreenHeader>
+      </UView>
     ),
     [handleCreateNew]
   );

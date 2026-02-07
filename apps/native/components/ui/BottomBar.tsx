@@ -16,34 +16,41 @@ export function BottomTabBar() {
       name: "Commits",
       icon: "shield-outline",
       iconFilled: "shield",
-      path: "/(main)/commits",
+      path: "/commits",
+    },
+    {
+      name: "Verify",
+      icon: "checkbox-outline",     
+      iconFilled: "checkbox",       
+      path: "/verify",       
     },
     {
       name: "Strict",
       icon: "lock-closed-outline",
       iconFilled: "lock-closed",
-      path: "/(main)/strict",
+      path: "/strict",
     },
     {
       name: "Insights",
       icon: "stats-chart-outline",
       iconFilled: "stats-chart",
-      path: "/(main)/insights",
+      path: "/insights",
     },
     {
       name: "Profile",
       icon: "person-outline",
       iconFilled: "person",
-      path: "/(main)/profile",
+      path: "/profile",
     },
   ];
 
   return (
     <UView className="flex-row justify-around py-4 pb-7">
       {tabs.map((tab) => {
-        // pathname might be "/commits" or "/(main)/commits" depending on expo-router version
-        const routeName = tab.path.split("/").pop(); // gets "commits", "strict", etc.
-        const isActive = pathname.endsWith(routeName || "");
+        // With Expo Router groups, pathname often doesn't match the simplified path
+        // e.g., pathname might be "/(main)/commits" while path is "/commits"
+        // We need a robust check.
+        const isActive = pathname.includes(tab.path) || pathname === tab.path || pathname.endsWith(tab.path);
 
         return (
           <UButton
@@ -56,7 +63,6 @@ export function BottomTabBar() {
               size={26} 
               color={isActive ? "#4FA0FF" : "#9CA3AF"} 
             />
-
             <FooterText className={isActive ? "text-[#4FA0FF]" : "text-gray-400"}>
               {tab.name}
             </FooterText>
