@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { StyleSheet, SafeAreaView as RNSafeAreaView, View, Text, Button } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CalendarKit, { 
@@ -11,38 +11,10 @@ import CalendarKit, {
   CalendarKitRef,
 } from '@howljs/calendar-kit';
 import dayjs from 'dayjs';
+import { useCalendarStore } from '../../stores/useCalendarStore';
 
-const INITIAL_EVENTS = [
-  {
-    id: '1',
-    title: 'Briefing',
-    start: { dateTime: dayjs().set('hour', 9).set('minute', 0).toISOString() },
-    end: { dateTime: dayjs().set('hour', 9).set('minute', 30).toISOString() },
-    color: '#4FA0FF',
-  },
-  {
-    id: '2',
-    title: 'Meetingg',
-    start: { dateTime: dayjs().set('hour', 10).set('minute', 0).toISOString() },
-    end: { dateTime: dayjs().set('hour', 12).set('minute', 0).toISOString() },
-    color: '#4FA0FF',
-  },
-  {
-    id: '3',
-    title: 'Lunchhh',
-    start: { dateTime: dayjs().set('hour', 13).set('minute', 0).toISOString() },
-    end: { dateTime: dayjs().set('hour', 14).set('minute', 0).toISOString() },
-    color: '#4FA0FF',
-    recurrenceRule: 'RRULE:FREQ=DAILY',
-  },
-  {
-    id: '4',
-    title: 'Retreatttt',
-    start: { date: dayjs().add(2, 'day').format('YYYY-MM-DD') },
-    end: { date: dayjs().add(2, 'day').format('YYYY-MM-DD') },
-    color: '#4FA0FF',
-  },
-];
+
+
 
 const initialLocales = {
   en: {
@@ -71,16 +43,13 @@ const customTheme = {
   timeLabel: { color: '#ffffff' },
 };
 
-
-const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React.Dispatch<React.SetStateAction<any[]>> }) => {
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+export default function VerifyScreen() {
+  const { events, selectedEvent, setEvents, updateEvent, addEvent, setSelectedEvent } = useCalendarStore();
   const calendarRef = useRef<CalendarKitRef>(null);
 
   const zoomIn = () => {
     calendarRef.current?.zoom({ scale: 1.5 });
   };
-
 
   const zoomOut = () => {
     calendarRef.current?.zoom({ scale: 0.75 });
@@ -90,22 +59,59 @@ const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React
     calendarRef.current?.zoom({ height: 90 });
   };
 
-  const onDragEventEnd = (event: any, newStart: string, newEnd: string) => {
-    if (!newStart || !newEnd) return;
-    setEvents((prev) => 
-      prev.map((e) => 
-        e.id === event.id 
-          ? { ...e, start: { ...e.start, dateTime: newStart }, end: { ...e.end, dateTime: newEnd } } 
-          : e
-      )
-    );
-     if (selectedEvent?.id === event.id) {
-         setSelectedEvent((prev: any) => ({ ...prev, start: { ...prev.start, dateTime: newStart }, end: { ...prev.end, dateTime: newEnd } }));
+
+  const onDragEventEnd = (event: any, newStart: any, newEnd: any) => {
+    console.log('[Verify] onDragEventEnd hit', { eventId: event.id, newStart, newEnd });
+
+    // Fallback: If newStart/newEnd are undefined, the library might have updated 'event' directly
+    // or passed them in a different way. Let's try to find the best source.
+    const startSource = newStart ?? event.start;
+    const endSource = newEnd ?? event.end;
+
+    // Helper to get ISO string from various possible formats (Date, object, string)
+    const getIso = (val: any) => {
+        if (!val) return undefined;
+        if (typeof val === 'string') return val;
+        if (val instanceof Date) return val.toISOString();
+        if (val.dateTime) return val.dateTime;
+        if (val.date) return val.date; // Use date if dateTime is missing (all-day fallback)
+        return undefined;
+    };
+
+    const finalStart = getIso(startSource);
+    const finalEnd = getIso(endSource);
+
+    console.log('[Verify] Resolved times:', { finalStart, finalEnd });
+
+    if (!finalStart || !finalEnd) {
+        console.warn('[Verify] Could not resolve start or end time during drag');
+        return;
     }
-    setRefreshKey(prev => prev + 1);
+
+    // Determine if we should use dateTime (timed) or date (all-day)
+    // Heuristic: If it looks like a full ISO string with time, use dateTime.
+    // If it's YYYY-MM-DD, use date. 
+    // For now, assuming granular drag implies dateTime.
+    const isIsoDate = finalStart.includes('T');
+    
+    const timeUpdate = isIsoDate 
+        ? { 
+            start: { dateTime: finalStart, date: undefined }, 
+            end: { dateTime: finalEnd, date: undefined } 
+          }
+        : { 
+            start: { date: finalStart, dateTime: undefined }, 
+            end: { date: finalEnd, dateTime: undefined } 
+          };
+
+    const existingEvent = events.find(e => e.id === event.id);
+    if (existingEvent) {
+      updateEvent(event.id, timeUpdate);
+    }
   };
 
   const onDragCreateEventEnd = (event: any) => {
+    console.log('[Verify] onDragCreateEventEnd', event);
     const newEvent = {
       id: Math.random().toString(),
       title: 'New Event',
@@ -113,22 +119,46 @@ const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React
       end: event.end,
       color: '#333',
     };
-    setEvents((prev) => [...prev, newEvent]);
-    setRefreshKey(prev => prev + 1);
+    addEvent(newEvent);
   };
 
-  const onDragSelectedEventEnd = (event: any, newStart: string, newEnd: string) => {
-    if (!newStart || !newEnd) return;
-    setEvents((prev) => 
-      prev.map((e) => 
-        e.id === event.id 
-          ? { ...e, start: { ...e.start, dateTime: newStart }, end: { ...e.end, dateTime: newEnd } } 
-          : e
-      )
-    );
-    // Directly update selectedEvent state with new values to keep it in sync
-    setSelectedEvent((prev: any) => prev ? { ...prev, start: { ...prev.start, dateTime: newStart }, end: { ...prev.end, dateTime: newEnd } } : null);
-    setRefreshKey(prev => prev + 1);
+  const onDragSelectedEventEnd = (event: any, newStart: any, newEnd: any) => {
+    console.log('[Verify] onDragSelectedEventEnd', { eventId: event.id, newStart, newEnd });
+
+    const startSource = newStart ?? event.start;
+    const endSource = newEnd ?? event.end;
+
+    const getIso = (val: any) => {
+        if (!val) return undefined;
+        if (typeof val === 'string') return val;
+        if (val instanceof Date) return val.toISOString();
+        if (val.dateTime) return val.dateTime;
+        if (val.date) return val.date;
+        return undefined;
+    };
+
+    const finalStart = getIso(startSource);
+    const finalEnd = getIso(endSource);
+    
+    if (!finalStart || !finalEnd) {
+         return;
+    }
+
+    const isIsoDate = finalStart.includes('T');
+    const timeUpdate = isIsoDate 
+        ? { 
+            start: { dateTime: finalStart, date: undefined }, 
+            end: { dateTime: finalEnd, date: undefined } 
+          }
+        : { 
+            start: { date: finalStart, dateTime: undefined }, 
+            end: { date: finalEnd, dateTime: undefined } 
+          };
+
+    const existingEvent = events.find(e => e.id === event.id);
+    if (existingEvent) {
+      updateEvent(existingEvent.id, timeUpdate);
+    }
   };
 
   const onPressEvent = (event: any) => {
@@ -144,7 +174,7 @@ const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React
             style={{
               height: 10,
               width: '100%',
-              backgroundColor: 'red', // Keep red as per request
+              backgroundColor: 'red',
               position: 'absolute',
             }}
           />
@@ -154,7 +184,7 @@ const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React
             style={{
               height: 10,
               width: '100%',
-              backgroundColor: 'red', // Keep red as per request
+              backgroundColor: 'red',
               bottom: 0,
               position: 'absolute',
             }}
@@ -172,7 +202,7 @@ const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React
           <View
             style={{
               height: 15,
-              backgroundColor: 'red', // Keep red as per request
+              backgroundColor: 'red',
               position: 'absolute',
               width: '100%',
               zIndex: 100,
@@ -184,7 +214,7 @@ const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React
           <View
             style={{
               height: 15,
-              backgroundColor: 'red', // Keep red as per request
+              backgroundColor: 'red',
               position: 'absolute',
               bottom: 0,
               width: '100%',
@@ -199,15 +229,15 @@ const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React
   );
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <RNSafeAreaView style={styles.container}>
         <CalendarKit
-          key={refreshKey}
           ref={calendarRef}
           numberOfDays={3}
           locale="en"
           initialLocales={initialLocales}
           hourFormat="hh:mm a"
-          events={events} // Events passed from parent
+          events={events}
           allowDragToEdit={true}
           allowDragToCreate={true}
           onDragEventEnd={onDragEventEnd}
@@ -233,15 +263,6 @@ const VerifyCalendar = ({ events, setEvents }: { events: any[], setEvents: React
           <Button title="Set Height 90" onPress={setSpecificZoom} />
         </View>
       </RNSafeAreaView>
-  );
-};
-
-export default function VerifyScreen() {
-  const [events, setEvents] = useState(INITIAL_EVENTS);
-
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <VerifyCalendar events={events} setEvents={setEvents} />
     </GestureHandlerRootView>
   );
 }
