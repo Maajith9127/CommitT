@@ -36,7 +36,6 @@ import type * as middleware_auth from "../middleware/auth.js";
 import type * as middleware_index from "../middleware/index.js";
 import type * as opencode from "../opencode.js";
 import type * as privateData from "../privateData.js";
-import type * as taskTelemetry from "../taskTelemetry.js";
 import type * as types_domain_commitment from "../types/domain/commitment.js";
 
 import type {
@@ -74,7 +73,6 @@ declare const fullApi: ApiFromModules<{
   "middleware/index": typeof middleware_index;
   opencode: typeof opencode;
   privateData: typeof privateData;
-  taskTelemetry: typeof taskTelemetry;
   "types/domain/commitment": typeof types_domain_commitment;
 }>;
 
