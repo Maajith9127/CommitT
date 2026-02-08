@@ -1,70 +1,91 @@
 import { Ionicons } from "@expo/vector-icons";
-import { usePathname, useRouter } from "expo-router";
-import { TouchableOpacity, View } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText } from "@/components/ui/text";
+import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
 
-export function BottomTabBar() {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  const tabs = [
-    {
-      name: "Commits",
+export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  
+  // Map route names to icons
+  const icons: Record<string, { icon: any; iconFilled: any; label: string }> = {
+    commits: {
       icon: "shield-outline",
       iconFilled: "shield",
-      path: "/commits",
+      label: "Commits",
     },
-    {
-      name: "Verify",
-      icon: "checkbox-outline",     
-      iconFilled: "checkbox",       
-      path: "/schedules",       
+    schedules: { // This maps to "Verify" in UI
+      icon: "checkbox-outline",
+      iconFilled: "checkbox",
+      label: "Verify",
     },
-    {
-      name: "Strict",
+    strict: {
       icon: "lock-closed-outline",
       iconFilled: "lock-closed",
-      path: "/strict",
+      label: "Strict",
     },
-    {
-      name: "Insights",
+    insights: {
       icon: "stats-chart-outline",
       iconFilled: "stats-chart",
-      path: "/insights",
+      label: "Insights",
     },
-    {
-      name: "Profile",
+    profile: {
       icon: "person-outline",
       iconFilled: "person",
-      path: "/profile",
+      label: "Profile",
     },
-  ];
+  };
 
   return (
-    <UView className="flex-row justify-around py-4 pb-7">
-      {tabs.map((tab) => {
-        // With Expo Router groups, pathname often doesn't match the simplified path
-        // e.g., pathname might be "/(main)/commits" while path is "/commits"
-        // We need a robust check.
-        const isActive = pathname.includes(tab.path) || pathname === tab.path || pathname.endsWith(tab.path);
+    <UView className="flex-row justify-around py-4 pb-7 bg-black">
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
+        
+        // Skip routes that don't have an icon mapping (e.g. index if it exists and isn't mapped)
+        if (!icons[route.name]) return null;
+
+        const { icon, iconFilled, label } = icons[route.name];
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+             navigation.navigate(route.name, route.params);
+          }
+        };
+
+        const onLongPress = () => {
+          navigation.emit({
+            type: 'tabLongPress',
+            target: route.key,
+          });
+        };
 
         return (
           <UButton
-            key={tab.name}
+            key={route.key}
+            accessibilityRole="button"
+            accessibilityState={isFocused ? { selected: true } : {}}
+            accessibilityLabel={options.tabBarAccessibilityLabel}
+            testID={options.tabBarTestID}
+            onPress={onPress}
+            onLongPress={onLongPress}
             className="flex-1 items-center"
-            onPress={() => router.push(tab.path)}
           >
             <Ionicons 
-              name={isActive ? tab.iconFilled : tab.icon} 
+              name={isFocused ? iconFilled : icon} 
               size={26} 
-              color={isActive ? "#4FA0FF" : "#9CA3AF"} 
+              color={isFocused ? "#4FA0FF" : "#9CA3AF"} 
             />
-            <FooterText className={isActive ? "text-[#4FA0FF]" : "text-gray-400"}>
-              {tab.name}
+            <FooterText className={isFocused ? "text-[#4FA0FF]" : "text-gray-400"}>
+              {label}
             </FooterText>
           </UButton>
         );

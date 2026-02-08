@@ -1,4 +1,4 @@
-import { Slot, usePathname, useRouter } from "expo-router";
+import { Tabs, usePathname, useRouter } from "expo-router";
 import { Text, View, Pressable } from "react-native";
 import { withUniwind } from "uniwind";
 import { BottomTabBar } from "@/components/ui/index";
@@ -124,12 +124,31 @@ export default function MainLayout() {
 
       {/* MAIN SCREEN CONTENT */}
       <UView className="flex-1 bg-black">
-        <Slot />
+        <Tabs
+          tabBar={(props) => <BottomTabBar {...props} />}
+          screenOptions={{
+            headerShown: false, // We use our own custom header above
+            tabBarStyle: {
+              backgroundColor: "#000000",
+              borderTopWidth: 0,
+            },
+          }}
+          sceneContainerStyle={{
+            backgroundColor: "#000000",
+          }}
+        >
+            <Tabs.Screen name="commits" />
+            <Tabs.Screen name="schedules" />
+            <Tabs.Screen name="strict" />
+            <Tabs.Screen name="insights" />
+            <Tabs.Screen name="profile" />
+            
+            {/* Exclude other routes from the tab bar if they happen to be in (main) group but not tabs */}
+            <Tabs.Screen name="verify" options={{ href: null }} />
+            <Tabs.Screen name="calendar" options={{ href: null }} />
+        </Tabs>
       </UView>
 
-      {/* BOTTOM TAB BAR */}
-      <BottomTabBar />
-      
       <DatePickerModal 
         isVisible={isDatePickerVisible}
         onClose={() => setDatePickerVisible(false)}

@@ -424,7 +424,7 @@ export default function CommitsScreen() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <>
+    <UView className="flex-1 bg-black">
       {/* Main Content List */}
       <FlatList
         data={listData}
@@ -453,6 +453,6 @@ export default function CommitsScreen() {
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
       />
-    </>
+    </UView>
   );
 }
