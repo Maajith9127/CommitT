@@ -22,7 +22,7 @@ export function BottomTabBar() {
       name: "Verify",
       icon: "checkbox-outline",     
       iconFilled: "checkbox",       
-      path: "/verify",       
+      path: "/schedules",       
     },
     {
       name: "Strict",

@@ -50,6 +50,8 @@ type CalendarStore = {
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   addEvent: (event: CalendarEvent) => void;
   setSelectedEvent: (event: CalendarEvent | null) => void;
+  selectedDate: string;
+  setSelectedDate: (date: string) => void;
 };
 
 // Logger middleware
@@ -100,5 +102,7 @@ export const useCalendarStore = create<CalendarStore>()(
       ),
     setSelectedEvent: (event: CalendarEvent | null) => 
       set({ selectedEvent: event }, false, "calendar/setSelectedEvent"),
+    selectedDate: dayjs().toISOString(),
+    setSelectedDate: (date: string) => set({ selectedDate: date }, false, "calendar/setSelectedDate"),
   }))
 );

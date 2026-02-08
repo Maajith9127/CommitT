@@ -1,21 +1,23 @@
-import React, { useCallback, useRef } from 'react';
-import { StyleSheet, SafeAreaView as RNSafeAreaView, View, Text, Button } from 'react-native';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { View, Text, SafeAreaView, TouchableOpacity, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CalendarKit, { 
   CalendarBody, 
   CalendarHeader,
+  CalendarKitRef,
   DraggableEvent,
   DraggingEvent,
   DraggableEventProps,
   DraggingEventProps,
-  CalendarKitRef,
 } from '@howljs/calendar-kit';
 import dayjs from 'dayjs';
-import { useCalendarStore } from '../../stores/useCalendarStore';
+import { withUniwind } from 'uniwind';
 
+// Uniwind components
+const UView = withUniwind(View);
+const UText = withUniwind(Text);
 
-
-
+// Configuration
 const initialLocales = {
   en: {
     weekDayShort: 'Sun_Mon_Tue_Wed_Thu_Fri_Sat'.split('_'),
@@ -40,58 +42,46 @@ const customTheme = {
   headerBackgroundColor: '#000000',
   dayName: { color: '#ffffff' },
   dayNumber: { color: '#ffffff' },
-  timeLabel: { color: '#ffffff' },
+  hourTextStyle: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
 };
 
-export default function VerifyScreen() {
-  const { events, selectedEvent, setEvents, updateEvent, addEvent, setSelectedEvent } = useCalendarStore();
+import { useCalendarStore } from '@/stores/useCalendarStore';
+
+
+export default function SchedulesScreen() {
   const calendarRef = useRef<CalendarKitRef>(null);
+  const { events, selectedEvent, updateEvent, addEvent, setSelectedEvent, selectedDate } = useCalendarStore();
 
-  const zoomIn = () => {
-    calendarRef.current?.zoom({ scale: 1.5 });
-  };
+  useEffect(() => {
+    if (calendarRef.current && selectedDate) {
+        calendarRef.current?.goToDate({ date: selectedDate, animatedDate: true });
+    }
+  }, [selectedDate]);
 
-  const zoomOut = () => {
-    calendarRef.current?.zoom({ scale: 0.75 });
-  };
-
-  const setSpecificZoom = () => {
-    calendarRef.current?.zoom({ height: 90 });
-  };
-
-
+  // Event Handlers from verify.tsx
   const onDragEventEnd = (event: any, newStart: any, newEnd: any) => {
-    console.log('[Verify] onDragEventEnd hit', { eventId: event.id, newStart, newEnd });
+    console.log('[Schedules] onDragEventEnd hit', { eventId: event.id, newStart, newEnd });
 
-    // Fallback: If newStart/newEnd are undefined, the library might have updated 'event' directly
-    // or passed them in a different way. Let's try to find the best source.
     const startSource = newStart ?? event.start;
     const endSource = newEnd ?? event.end;
 
-    // Helper to get ISO string from various possible formats (Date, object, string)
     const getIso = (val: any) => {
         if (!val) return undefined;
         if (typeof val === 'string') return val;
         if (val instanceof Date) return val.toISOString();
         if (val.dateTime) return val.dateTime;
-        if (val.date) return val.date; // Use date if dateTime is missing (all-day fallback)
+        if (val.date) return val.date;
         return undefined;
     };
 
     const finalStart = getIso(startSource);
     const finalEnd = getIso(endSource);
 
-    console.log('[Verify] Resolved times:', { finalStart, finalEnd });
-
     if (!finalStart || !finalEnd) {
-        console.warn('[Verify] Could not resolve start or end time during drag');
+        console.warn('[Schedules] Could not resolve start or end time during drag');
         return;
     }
 
-    // Determine if we should use dateTime (timed) or date (all-day)
-    // Heuristic: If it looks like a full ISO string with time, use dateTime.
-    // If it's YYYY-MM-DD, use date. 
-    // For now, assuming granular drag implies dateTime.
     const isIsoDate = finalStart.includes('T');
     
     const timeUpdate = isIsoDate 
@@ -111,7 +101,7 @@ export default function VerifyScreen() {
   };
 
   const onDragCreateEventEnd = (event: any) => {
-    console.log('[Verify] onDragCreateEventEnd', event);
+    console.log('[Schedules] onDragCreateEventEnd', event);
     const newEvent = {
       id: Math.random().toString(),
       title: 'New Event',
@@ -123,7 +113,7 @@ export default function VerifyScreen() {
   };
 
   const onDragSelectedEventEnd = (event: any, newStart: any, newEnd: any) => {
-    console.log('[Verify] onDragSelectedEventEnd', { eventId: event.id, newStart, newEnd });
+    console.log('[Schedules] onDragSelectedEventEnd', { eventId: event.id, newStart, newEnd });
 
     const startSource = newStart ?? event.start;
     const endSource = newEnd ?? event.end;
@@ -165,30 +155,16 @@ export default function VerifyScreen() {
     setSelectedEvent(event);
   };
 
+  // Renderers
   const renderDraggingEvent = useCallback((props: DraggingEventProps) => {
     return (
       <DraggingEvent
         {...props}
         TopEdgeComponent={
-          <View
-            style={{
-              height: 10,
-              width: '100%',
-              backgroundColor: 'red',
-              position: 'absolute',
-            }}
-          />
+          <View style={styles.dragEdgeTop} />
         }
         BottomEdgeComponent={
-          <View
-            style={{
-              height: 10,
-              width: '100%',
-              backgroundColor: 'red',
-              bottom: 0,
-              position: 'absolute',
-            }}
-          />
+          <View style={styles.dragEdgeBottom} />
         }
       />
     );
@@ -199,28 +175,13 @@ export default function VerifyScreen() {
       <DraggableEvent
         {...props}
         TopEdgeComponent={
-          <View
-            style={{
-              height: 15,
-              backgroundColor: 'red',
-              position: 'absolute',
-              width: '100%',
-              zIndex: 100,
-            }}>
-            <Text style={{ textAlign: 'center', fontSize: 10, color: 'white', fontWeight: 'bold' }}>Drag</Text>
+          <View style={styles.dragHandleTop}>
+            <Text style={styles.dragText}>Drag</Text>
           </View>
         }
         BottomEdgeComponent={
-          <View
-            style={{
-              height: 15,
-              backgroundColor: 'red',
-              position: 'absolute',
-              bottom: 0,
-              width: '100%',
-              zIndex: 100,
-            }}>
-            <Text style={{ textAlign: 'center', fontSize: 10, color: 'white', fontWeight: 'bold' }}>Drag</Text>
+          <View style={styles.dragHandleBottom}>
+            <Text style={styles.dragText}>Drag</Text>
           </View>
         }
       />
@@ -230,46 +191,86 @@ export default function VerifyScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <RNSafeAreaView style={styles.container}>
-        <CalendarKit
-          ref={calendarRef}
-          numberOfDays={3}
-          locale="en"
-          initialLocales={initialLocales}
-          hourFormat="hh:mm a"
-          events={events}
-          allowDragToEdit={true}
-          allowDragToCreate={true}
-          onDragEventEnd={onDragEventEnd}
-          onDragCreateEventEnd={onDragCreateEventEnd}
-          onDragSelectedEventEnd={onDragSelectedEventEnd}
-          selectedEvent={selectedEvent}
-          onPressEvent={onPressEvent}
-          useHaptic={true}
-          theme={customTheme}
-          allowPinchToZoom={true}
-          minTimeIntervalHeight={30}
-          initialTimeIntervalHeight={60}
-        >
-          <CalendarHeader />
-          <CalendarBody 
-            renderDraggingEvent={renderDraggingEvent}
-            renderDraggableEvent={renderDraggableEvent}
-          />
-        </CalendarKit>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-around', padding: 10 }}>
-          <Button title="Zoom In" onPress={zoomIn} />
-          <Button title="Zoom Out" onPress={zoomOut} />
-          <Button title="Set Height 90" onPress={setSpecificZoom} />
-        </View>
-      </RNSafeAreaView>
+      <UView className="flex-1 bg-black relative">
+          {/* Corner Label - kept from original as part of calendar visual structure */}
+          <UView className="absolute top-5 left-0 w-[60px] items-center z-10">
+               <UText className="text-white font-bold">Time</UText>
+          </UView>
+
+          <CalendarKit
+            ref={calendarRef}
+            numberOfDays={3}
+            locale="en"
+            initialLocales={initialLocales}
+            hourFormat="h a"
+            theme={customTheme}
+            minTimeIntervalHeight={30}
+            initialTimeIntervalHeight={60}
+            events={events} // Pass events
+            selectedEvent={selectedEvent} // Pass selected event
+            allowDragToEdit={true}
+            allowDragToCreate={true}
+            onDragEventEnd={onDragEventEnd}
+            onDragCreateEventEnd={onDragCreateEventEnd}
+            onDragSelectedEventEnd={onDragSelectedEventEnd}
+            onPressEvent={onPressEvent}
+            onPressBackground={() => setSelectedEvent(null)}
+            useHaptic={true}
+            allowPinchToZoom={true} // Why not also enable this since it was in verify?
+            onChange={({ date }) => {
+              // Optional: Update store if two-way binding desired, but layout drives this mostly.
+            }}
+          >
+            <CalendarHeader />
+            <CalendarBody 
+                renderDraggingEvent={renderDraggingEvent}
+                renderDraggableEvent={renderDraggableEvent}
+            />
+          </CalendarKit>
+      </UView>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000ff',
+  dragEdgeTop: {
+    height: 10,
+    width: '100%',
+    backgroundColor: '#4FA0FF',
+    position: 'absolute',
   },
+  dragEdgeBottom: {
+    height: 10,
+    width: '100%',
+    backgroundColor: '#4FA0FF',
+    bottom: 0,
+    position: 'absolute',
+  },
+  dragHandleTop: {
+    height: 15,
+    backgroundColor: '#4FA0FF',
+    position: 'absolute',
+    width: '100%',
+    zIndex: 100,
+    justifyContent: 'center',
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4
+  },
+  dragHandleBottom: {
+    height: 15,
+    backgroundColor: '#4FA0FF',
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    zIndex: 100,
+    justifyContent: 'center',
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4
+  },
+  dragText: {
+    textAlign: 'center', 
+    fontSize: 10, 
+    color: 'white', 
+    fontWeight: 'bold'
+  }
 });
