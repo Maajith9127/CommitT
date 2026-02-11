@@ -56,19 +56,19 @@ const customTheme = {
   colors: {
     primary: '#4FA0FF',
     onPrimary: '#ffffff',
-    background: '#000000',
+    background: '#1A1A1A',
     onBackground: '#ffffff',
     border: '#333333',
     text: '#ffffff',
-    surface: '#000000',
+    surface: '#1A1A1A',
     onSurface: '#cccccc',
   },
   hourBackgroundColor: '#000000',
   minuteBackgroundColor: '#000000',
   headerBackgroundColor: '#000000',
-  dayName: { color: '#ffffff' },
-  dayNumber: { color: '#ffffff' },
-  hourTextStyle: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
+  dayName: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
+  dayNumber: { color: '#ffffff', fontSize: 15, fontWeight: 'bold' },
+  hourTextStyle: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
   eventContainerStyle: { borderRadius:7,padding:5},
     eventTitleStyle: {
       fontSize: 15,
@@ -129,38 +129,7 @@ export default function SchedulesScreen() {
   }, [instances]);
 
   // Renderers
-  const renderDraggingEvent = useCallback((props: DraggingEventProps) => {
-    return (
-      <DraggingEvent
-        {...props}
-        TopEdgeComponent={
-          <View style={styles.dragEdgeTop} />
-        }
-        BottomEdgeComponent={
-          <View style={styles.dragEdgeBottom} />
-        }
-      />
-    );
-  }, []);
-
-  const renderDraggableEvent = useCallback(
-    (props: DraggableEventProps) => (
-      <DraggableEvent
-        {...props}
-        TopEdgeComponent={
-          <View style={styles.dragHandleTop}>
-            <Text style={styles.dragText}>Drag</Text>
-          </View>
-        }
-        BottomEdgeComponent={
-          <View style={styles.dragHandleBottom}>
-            <Text style={styles.dragText}>Drag</Text>
-          </View>
-        }
-      />
-    ),
-    []
-  );
+  // Renderers
 
   const renderEvent = useCallback((event: any) => {
     return (
@@ -184,15 +153,13 @@ export default function SchedulesScreen() {
             numberOfDays={7}
             locale="en"
             initialLocales={initialLocales}
-            hourFormat="h a"
+            hourFormat="h A"
             theme={customTheme}
             minTimeIntervalHeight={30}
-            initialTimeIntervalHeight={60}
+            initialTimeIntervalHeight={30}
             events={events}
-            allowDragToEdit={true}
-            allowDragToCreate={true}
             useHaptic={true}
-            allowPinchToZoom={true}
+            allowPinchToZoom={false}
             onChange={() => {
               if (debounceRef.current) clearTimeout(debounceRef.current);
               debounceRef.current = setTimeout(() => {
@@ -218,8 +185,6 @@ export default function SchedulesScreen() {
             <CalendarHeader />
             <CalendarBody 
                 renderEvent={renderEvent}
-                renderDraggingEvent={renderDraggingEvent}
-                renderDraggableEvent={renderDraggableEvent}
             />
           </CalendarKit>
       </UView>
@@ -227,45 +192,4 @@ export default function SchedulesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  dragEdgeTop: {
-    height: 10,
-    width: '100%',
-    backgroundColor: '#4FA0FF',
-    position: 'absolute',
-  },
-  dragEdgeBottom: {
-    height: 10,
-    width: '100%',
-    backgroundColor: '#4FA0FF',
-    bottom: 0,
-    position: 'absolute',
-  },
-  dragHandleTop: {
-    height: 15,
-    backgroundColor: '#4FA0FF',
-    position: 'absolute',
-    width: '100%',
-    zIndex: 100,
-    justifyContent: 'center',
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4
-  },
-  dragHandleBottom: {
-    height: 15,
-    backgroundColor: '#4FA0FF',
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    zIndex: 100,
-    justifyContent: 'center',
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4
-  },
-  dragText: {
-    textAlign: 'center', 
-    fontSize: 10, 
-    color: 'white', 
-    fontWeight: 'bold'
-  }
-});
+
