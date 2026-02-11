@@ -70,3 +70,22 @@ export function HeaderTitle({
     </UText>
   );
 }
+
+// -----------------------------
+// 5. Body Text (General Content)
+// -----------------------------
+export function BodyText({
+  children,
+  className = "",
+  style,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: any;
+}) {
+  return (
+    <UText className={`text-white text-base ${className}`} style={style}>
+      {children}
+    </UText>
+  );
+}

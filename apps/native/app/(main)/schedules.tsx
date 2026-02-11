@@ -22,6 +22,7 @@ import { api } from '@commit/backend/convex/_generated/api';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CalendarShimmer } from '@/components/ui/skeletons/CalendarShimmer';
+import { EventDetailModal } from '@/components/ui/modal/EventDetailModal';
 
 // Uniwind components
 const UView = withUniwind(View);
@@ -90,6 +91,9 @@ export default function SchedulesScreen() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevEventsRef = useRef<any[]>([]);
 
+  // Selected event for modal
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+
   // Listen to Zustand selectedDate for "Today" button navigation
   const selectedDate = useCalendarStore((state) => state.selectedDate);
   useEffect(() => {
@@ -151,6 +155,7 @@ export default function SchedulesScreen() {
         start: { dateTime: new Date(inst.start).toISOString() },
         end: { dateTime: new Date(inst.end).toISOString() },
         color: taskColorMap.get(inst.task_id) || '#4FA0FF',
+        originalData: inst, // Store full instance for click handling
       };
     });
     console.log(`[Calendar] Transformed events sample:`, mapped);
@@ -192,6 +197,10 @@ export default function SchedulesScreen() {
             events={events}
             useHaptic={true}
             allowPinchToZoom={false}
+            onPressEvent={(event: any) => {
+              console.log("[Calendar] Event Pressed:", JSON.stringify(event.originalData || event, null, 2));
+              setSelectedEvent(event.originalData || event); 
+            }}
             onChange={() => {
               if (debounceRef.current) clearTimeout(debounceRef.current);
               debounceRef.current = setTimeout(() => {
@@ -232,6 +241,12 @@ export default function SchedulesScreen() {
               <CalendarShimmer />
             </Animated.View>
           )}
+
+          <EventDetailModal 
+            visible={!!selectedEvent} 
+            event={selectedEvent} 
+            onClose={() => setSelectedEvent(null)} 
+          />
       </UView>
     </GestureHandlerRootView>
   );
