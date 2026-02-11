@@ -1,5 +1,5 @@
-import React, { useRef, useEffect, useCallback } from 'react';
-import { View, Text, SafeAreaView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CalendarKit, { 
   CalendarBody, 
@@ -10,12 +10,38 @@ import CalendarKit, {
   DraggableEventProps,
   DraggingEventProps,
 } from '@howljs/calendar-kit';
-import dayjs from 'dayjs';
 import { withUniwind } from 'uniwind';
+import { useQuery } from 'convex/react';
+import { api } from '@commit/backend/convex/_generated/api';
+import { useCalendarStore } from '@/stores/useCalendarStore';
 
 // Uniwind components
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
+
+// Color palette for cycling through task colors
+const TASK_COLORS = [
+  '#4FA0FF', '#FF6B6B', '#4CD964', '#FFD93D', '#6C5CE7',
+  '#A29BFE', '#FD79A8', '#00CEC9', '#E17055', '#0984E3',
+];
+
+// Buffer threshold: refetch when within 2 weeks of range edge
+const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
+
+// Compute a ±2 month range centered on a given timestamp
+function computeRange(centerMs: number) {
+  const start = new Date(centerMs);
+  start.setMonth(start.getMonth() - 2);
+  const end = new Date(centerMs);
+  end.setDate(end.getDate() + 6);
+  end.setMonth(end.getMonth() + 2);
+  return { rangeStart: start.getTime(), rangeEnd: end.getTime() };
+}
+
+// Helper: get initial range (today ± 2 months)
+function getInitialRange() {
+  return computeRange(Date.now());
+}
 
 // Configuration
 const initialLocales = {
@@ -43,117 +69,64 @@ const customTheme = {
   dayName: { color: '#ffffff' },
   dayNumber: { color: '#ffffff' },
   hourTextStyle: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
+  eventContainerStyle: { borderRadius:7,padding:5},
+    eventTitleStyle: {
+      fontSize: 15,
+      color:"#ffffff"
+    },
 };
-
-import { useCalendarStore } from '@/stores/useCalendarStore';
 
 
 export default function SchedulesScreen() {
   const calendarRef = useRef<CalendarKitRef>(null);
-  const { events, selectedEvent, updateEvent, addEvent, setSelectedEvent, selectedDate } = useCalendarStore();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevEventsRef = useRef<any[]>([]);
 
+  // Listen to Zustand selectedDate for "Today" button navigation
+  const selectedDate = useCalendarStore((state) => state.selectedDate);
   useEffect(() => {
     if (calendarRef.current && selectedDate) {
-        calendarRef.current?.goToDate({ date: selectedDate, animatedDate: true });
+      calendarRef.current.goToDate({ date: selectedDate, animatedDate: true });
     }
   }, [selectedDate]);
 
-  // Event Handlers from verify.tsx
-  const onDragEventEnd = (event: any, newStart: any, newEnd: any) => {
-    console.log('[Schedules] onDragEventEnd hit', { eventId: event.id, newStart, newEnd });
+  // Range state — drives the Convex subscription
+  const [range, setRange] = useState(getInitialRange);
 
-    const startSource = newStart ?? event.start;
-    const endSource = newEnd ?? event.end;
+  // Convex reactive subscription — re-fetches when range changes
+  const instances = useQuery(api.api.instances.list.byRange, {
+    rangeStart: range.rangeStart,
+    rangeEnd: range.rangeEnd,
+  });
+  
+  console.log(`[Calendar] Render: instances=${instances ? instances.length : 'undefined'}, range=${range.rangeStart}-${range.rangeEnd}`);
 
-    const getIso = (val: any) => {
-        if (!val) return undefined;
-        if (typeof val === 'string') return val;
-        if (val instanceof Date) return val.toISOString();
-        if (val.dateTime) return val.dateTime;
-        if (val.date) return val.date;
-        return undefined;
-    };
+  // Transform DB instances → CalendarKit events (no Zustand)
+  const events = useMemo(() => {
+    if (!instances) return prevEventsRef.current; // Keep old events while loading
+    console.log(`[Calendar] Fetched ${instances.length} instances:`, JSON.stringify(instances.slice(0, 3)));
 
-    const finalStart = getIso(startSource);
-    const finalEnd = getIso(endSource);
 
-    if (!finalStart || !finalEnd) {
-        console.warn('[Schedules] Could not resolve start or end time during drag');
-        return;
-    }
+    const taskColorMap = new Map<string, string>();
+    let colorIndex = 0;
 
-    const isIsoDate = finalStart.includes('T');
-    
-    const timeUpdate = isIsoDate 
-        ? { 
-            start: { dateTime: finalStart, date: undefined }, 
-            end: { dateTime: finalEnd, date: undefined } 
-          }
-        : { 
-            start: { date: finalStart, dateTime: undefined }, 
-            end: { date: finalEnd, dateTime: undefined } 
-          };
-
-    const existingEvent = events.find(e => e.id === event.id);
-    if (existingEvent) {
-      updateEvent(event.id, timeUpdate);
-    }
-  };
-
-  const onDragCreateEventEnd = (event: any) => {
-    console.log('[Schedules] onDragCreateEventEnd', event);
-    const newEvent = {
-      id: Math.random().toString(),
-      title: 'New Event',
-      start: event.start,
-      end: event.end,
-      color: '#333',
-    };
-    addEvent(newEvent);
-  };
-
-  const onDragSelectedEventEnd = (event: any, newStart: any, newEnd: any) => {
-    console.log('[Schedules] onDragSelectedEventEnd', { eventId: event.id, newStart, newEnd });
-
-    const startSource = newStart ?? event.start;
-    const endSource = newEnd ?? event.end;
-
-    const getIso = (val: any) => {
-        if (!val) return undefined;
-        if (typeof val === 'string') return val;
-        if (val instanceof Date) return val.toISOString();
-        if (val.dateTime) return val.dateTime;
-        if (val.date) return val.date;
-        return undefined;
-    };
-
-    const finalStart = getIso(startSource);
-    const finalEnd = getIso(endSource);
-    
-    if (!finalStart || !finalEnd) {
-         return;
-    }
-
-    const isIsoDate = finalStart.includes('T');
-    const timeUpdate = isIsoDate 
-        ? { 
-            start: { dateTime: finalStart, date: undefined }, 
-            end: { dateTime: finalEnd, date: undefined } 
-          }
-        : { 
-            start: { date: finalStart, dateTime: undefined }, 
-            end: { date: finalEnd, dateTime: undefined } 
-          };
-
-    const existingEvent = events.find(e => e.id === event.id);
-    if (existingEvent) {
-      updateEvent(existingEvent.id, timeUpdate);
-    }
-  };
-
-  const onPressEvent = (event: any) => {
-    setSelectedEvent(event);
-  };
+    const mapped = instances.map((inst: any) => {
+      if (!taskColorMap.has(inst.task_id)) {
+        taskColorMap.set(inst.task_id, TASK_COLORS[colorIndex % TASK_COLORS.length]);
+        colorIndex++;
+      }
+      return {
+        id: inst._id,
+        title: inst.title,
+        start: { dateTime: new Date(inst.start).toISOString() },
+        end: { dateTime: new Date(inst.end).toISOString() },
+        color: taskColorMap.get(inst.task_id) || '#4FA0FF',
+      };
+    });
+    console.log(`[Calendar] Transformed events sample:`, mapped);
+    prevEventsRef.current = mapped; // Cache for next refetch
+    return mapped;
+  }, [instances]);
 
   // Renderers
   const renderDraggingEvent = useCallback((props: DraggingEventProps) => {
@@ -189,40 +162,62 @@ export default function SchedulesScreen() {
     []
   );
 
+  const renderEvent = useCallback((event: any) => {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14, textAlign: 'center' }}>
+          {event.title}
+        </Text>
+      </View>
+    );
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UView className="flex-1 bg-black relative">
-          {/* Corner Label - kept from original as part of calendar visual structure */}
           <UView className="absolute top-5 left-0 w-[60px] items-center z-10">
                <UText className="text-white font-bold">Time</UText>
           </UView>
 
           <CalendarKit
             ref={calendarRef}
-            numberOfDays={3}
+            numberOfDays={7}
             locale="en"
             initialLocales={initialLocales}
             hourFormat="h a"
             theme={customTheme}
             minTimeIntervalHeight={30}
             initialTimeIntervalHeight={60}
-            events={events} // Pass events
-            selectedEvent={selectedEvent} // Pass selected event
+            events={events}
             allowDragToEdit={true}
             allowDragToCreate={true}
-            onDragEventEnd={onDragEventEnd}
-            onDragCreateEventEnd={onDragCreateEventEnd}
-            onDragSelectedEventEnd={onDragSelectedEventEnd}
-            onPressEvent={onPressEvent}
-            onPressBackground={() => setSelectedEvent(null)}
             useHaptic={true}
-            allowPinchToZoom={true} // Why not also enable this since it was in verify?
-            onChange={({ date }) => {
-              // Optional: Update store if two-way binding desired, but layout drives this mostly.
+            allowPinchToZoom={true}
+            onChange={() => {
+              if (debounceRef.current) clearTimeout(debounceRef.current);
+              debounceRef.current = setTimeout(() => {
+                const visibleStart = calendarRef.current?.getVisibleStart();
+                if (!visibleStart) return;
+                const visibleMs = new Date(visibleStart).getTime();
+
+                // Check if we're within 2 weeks of either edge
+                const nearStart = visibleMs < range.rangeStart + TWO_WEEKS_MS;
+                const nearEnd = visibleMs > range.rangeEnd - TWO_WEEKS_MS;
+
+                if (nearStart || nearEnd) {
+                  // Re-center the range around current visible date
+                  const newRange = computeRange(visibleMs);
+                  setRange(newRange);
+                  console.log(`[Calendar] REFETCH — near ${nearStart ? 'start' : 'end'} edge. New range: ${new Date(newRange.rangeStart).toISOString()} → ${new Date(newRange.rangeEnd).toISOString()}`);
+                } else {
+                  console.log(`[Calendar] Safe — no refetch needed`);
+                }
+              }, 1000);
             }}
           >
             <CalendarHeader />
             <CalendarBody 
+                renderEvent={renderEvent}
                 renderDraggingEvent={renderDraggingEvent}
                 renderDraggableEvent={renderDraggableEvent}
             />

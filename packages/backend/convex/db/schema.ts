@@ -101,6 +101,7 @@ export default defineSchema({
   })
     .index("by_task", ["task_id"])
     .index("by_assignee", ["assignee_id"])
+    .index("by_assignee_start", ["assignee_id", "start"])
     .index("by_status", ["status"])
     .index("by_task_status", ["task_id", "status"])
     .index("by_assignee_status", ["assignee_id", "status"])
