@@ -1,7 +1,13 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import { FlatList, View, Pressable, Text } from "react-native";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  runOnJS 
+} from 'react-native-reanimated';
 import { withUniwind } from "uniwind";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
@@ -16,6 +22,8 @@ import { ActionMenu, ActionMenuItem } from "@/components/ui/commits/ActionMenu";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { authClient } from "@/lib/auth-client";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { CommitCardSkeleton } from '@/components/ui/skeletons/CommitCardSkeleton';
+import { SkeletonBlock } from '@/components/ui/skeletons/SkeletonBlock';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Styled Components
@@ -129,6 +137,26 @@ export default function CommitsScreen() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [menuPosition, setMenuPosition] = useState<AnchorPosition>({ x: 0, y: 0 });
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+
+  // Animated skeleton state
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const skeletonOpacity = useSharedValue(1);
+
+  const animatedOverlayStyle = useAnimatedStyle(() => ({
+    opacity: skeletonOpacity.value,
+  }));
+
+  useEffect(() => {
+    // Keep skeleton for 4 seconds, then fade out
+    const timer = setTimeout(() => {
+      skeletonOpacity.value = withTiming(0, { duration: 800 }, (finished) => {
+        if (finished) {
+          runOnJS(setShowSkeleton)(false);
+        }
+      });
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Computed Values
@@ -433,7 +461,35 @@ export default function CommitsScreen() {
         stickyHeaderIndices={stickyHeaderIndices}
         contentContainerStyle={{ paddingBottom: LAYOUT.bottomPadding }}
         showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
       />
+      
+      {/* Skeleton Overlay */}
+      {showSkeleton && (
+        <Animated.View 
+          style={[
+            { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 50, backgroundColor: 'black' }, 
+            animatedOverlayStyle
+          ]}
+          pointerEvents="none"
+        >
+          <UView className="flex-1 px-4 pt-2">
+            {/* Quick Section Skeleton */}
+            <SkeletonBlock width="100%" height={140} borderRadius={16} className="mb-6" />
+
+            {/* CommitTs Header Skeleton */}
+            <UView className="flex-row justify-between mb-4 items-center">
+              <SkeletonBlock width={120} height={24} borderRadius={4} />
+              <SkeletonBlock width={80} height={36} borderRadius={18} />
+            </UView>
+
+            {/* Commit Cards */}
+            <CommitCardSkeleton />
+            <CommitCardSkeleton />
+            <CommitCardSkeleton />
+          </UView>
+        </Animated.View>
+      )}
 
       {/* Context Menu for Task Actions */}
       <ActionMenu

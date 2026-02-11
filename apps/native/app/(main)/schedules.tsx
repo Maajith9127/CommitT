@@ -1,4 +1,10 @@
 import React, { useRef, useState, useMemo, useCallback, useEffect } from 'react';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  runOnJS 
+} from 'react-native-reanimated';
 import { View, Text, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CalendarKit, { 
@@ -14,6 +20,8 @@ import { withUniwind } from 'uniwind';
 import { useQuery } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import { useCalendarStore } from '@/stores/useCalendarStore';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CalendarShimmer } from '@/components/ui/skeletons/CalendarShimmer';
 
 // Uniwind components
 const UView = withUniwind(View);
@@ -90,6 +98,26 @@ export default function SchedulesScreen() {
     }
   }, [selectedDate]);
 
+  // Animated skeleton state
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const skeletonOpacity = useSharedValue(1);
+
+  const animatedOverlayStyle = useAnimatedStyle(() => ({
+    opacity: skeletonOpacity.value,
+  }));
+
+  useEffect(() => {
+    // Keep skeleton for 4 seconds, then fade out
+    const timer = setTimeout(() => {
+      skeletonOpacity.value = withTiming(0, { duration: 800 }, (finished) => {
+        if (finished) {
+          runOnJS(setShowSkeleton)(false);
+        }
+      });
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Range state — drives the Convex subscription
   const [range, setRange] = useState(getInitialRange);
 
@@ -98,6 +126,8 @@ export default function SchedulesScreen() {
     rangeStart: range.rangeStart,
     rangeEnd: range.rangeEnd,
   });
+
+
   
   console.log(`[Calendar] Render: instances=${instances ? instances.length : 'undefined'}, range=${range.rangeStart}-${range.rangeEnd}`);
 
@@ -141,6 +171,8 @@ export default function SchedulesScreen() {
     );
   }, []);
 
+
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UView className="flex-1 bg-black relative">
@@ -156,7 +188,7 @@ export default function SchedulesScreen() {
             hourFormat="h A"
             theme={customTheme}
             minTimeIntervalHeight={30}
-            initialTimeIntervalHeight={30}
+            initialTimeIntervalHeight={40}
             events={events}
             useHaptic={true}
             allowPinchToZoom={false}
@@ -187,6 +219,19 @@ export default function SchedulesScreen() {
                 renderEvent={renderEvent}
             />
           </CalendarKit>
+
+          {/* Skeleton Overlay */}
+          {showSkeleton && (
+            <Animated.View 
+              style={[
+                { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 50 }, 
+                animatedOverlayStyle
+              ]}
+              pointerEvents="none" // Allow touches to pass through during fade out? No, block touches until gone.
+            >
+              <CalendarShimmer />
+            </Animated.View>
+          )}
       </UView>
     </GestureHandlerRootView>
   );
