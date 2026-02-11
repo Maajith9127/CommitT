@@ -17,6 +17,7 @@ import type * as api_commitments_list from "../api/commitments/list.js";
 import type * as api_commitments_update from "../api/commitments/update.js";
 import type * as config_constants from "../config/constants.js";
 import type * as config_enums from "../config/enums.js";
+import type * as core_commitments_instanceGenerator from "../core/commitments/instanceGenerator.js";
 import type * as core_commitments_queries from "../core/commitments/queries.js";
 import type * as core_commitments_scheduler from "../core/commitments/scheduler.js";
 import type * as core_commitments_service from "../core/commitments/service.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   "api/commitments/update": typeof api_commitments_update;
   "config/constants": typeof config_constants;
   "config/enums": typeof config_enums;
+  "core/commitments/instanceGenerator": typeof core_commitments_instanceGenerator;
   "core/commitments/queries": typeof core_commitments_queries;
   "core/commitments/scheduler": typeof core_commitments_scheduler;
   "core/commitments/service": typeof core_commitments_service;

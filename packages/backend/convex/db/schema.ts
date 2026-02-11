@@ -97,6 +97,7 @@ export default defineSchema({
       }),
     ),
     scheduled_job_id: v.optional(v.id("_scheduled_functions")),
+    next_instance_id: v.optional(v.id("taskInstances")),
   })
     .index("by_task", ["task_id"])
     .index("by_assignee", ["assignee_id"])
