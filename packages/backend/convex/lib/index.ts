@@ -30,6 +30,6 @@ export {
   type TaskForConflictCheck,
   type ConflictResult,
   type ConflictDetails,
-} from "./conflictDetection";
+} from "../core/commitments/conflictDetection";
 
 

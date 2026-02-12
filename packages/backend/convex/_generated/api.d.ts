@@ -18,6 +18,7 @@ import type * as api_commitments_update from "../api/commitments/update.js";
 import type * as api_instances_list from "../api/instances/list.js";
 import type * as config_constants from "../config/constants.js";
 import type * as config_enums from "../config/enums.js";
+import type * as core_commitments_conflictDetection from "../core/commitments/conflictDetection.js";
 import type * as core_commitments_instanceGenerator from "../core/commitments/instanceGenerator.js";
 import type * as core_commitments_instanceQueries from "../core/commitments/instanceQueries.js";
 import type * as core_commitments_queries from "../core/commitments/queries.js";
@@ -28,7 +29,6 @@ import type * as execution_scheduling_scheduler from "../execution/scheduling/sc
 import type * as execution_verification_runner from "../execution/verification/runner.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
-import type * as lib_conflictDetection from "../lib/conflictDetection.js";
 import type * as lib_errorHandler from "../lib/errorHandler.js";
 import type * as lib_index from "../lib/index.js";
 import type * as lib_logger from "../lib/logger.js";
@@ -58,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   "api/instances/list": typeof api_instances_list;
   "config/constants": typeof config_constants;
   "config/enums": typeof config_enums;
+  "core/commitments/conflictDetection": typeof core_commitments_conflictDetection;
   "core/commitments/instanceGenerator": typeof core_commitments_instanceGenerator;
   "core/commitments/instanceQueries": typeof core_commitments_instanceQueries;
   "core/commitments/queries": typeof core_commitments_queries;
@@ -68,7 +69,6 @@ declare const fullApi: ApiFromModules<{
   "execution/verification/runner": typeof execution_verification_runner;
   healthCheck: typeof healthCheck;
   http: typeof http;
-  "lib/conflictDetection": typeof lib_conflictDetection;
   "lib/errorHandler": typeof lib_errorHandler;
   "lib/index": typeof lib_index;
   "lib/logger": typeof lib_logger;

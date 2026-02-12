@@ -18,7 +18,7 @@
  * @module lib/conflictDetection
  */
 
-import type { Doc } from "../_generated/dataModel";
+import type { Doc } from "../../_generated/dataModel";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

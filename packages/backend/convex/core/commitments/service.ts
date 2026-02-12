@@ -1,7 +1,7 @@
 
 import { MutationCtx } from "../../_generated/server";
 import { Id, Doc } from "../../_generated/dataModel";
-import { findConflict, formatConflictMessage } from "../../lib/conflictDetection";
+import { findConflict, formatConflictMessage } from "./conflictDetection";
 import { createAllInstances, scheduleFirstInstance } from "../../execution/scheduling/scheduler";
 import { validateCommitment } from "./validator";
 
@@ -15,6 +15,18 @@ export type CreateArgs = {
   assigner_id: string; // Passed from API layer after auth
 };
 
+/**
+ * Core business logic for creating a commitment.
+ * 
+ * Orchestrates the entire creation flow:
+ * 1. Validates domain rules (title length, recurrence validity, etc).
+ * 2. Checks for scheduling conflicts with existing tasks.
+ * 3. Persists the task definition to the database.
+ * 4. Triggers the generation of task instances (occurrences) for the next year.
+ * 5. Schedules the first occurrence if applicable.
+ * 
+ * @throws Error with code [TITLE_REQUIRED], [SCHEDULE_CONFLICT], etc. if validation fails.
+ */
 export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
   // 1. VALIDATE INPUT (Domain Logic)
   const validation = validateCommitment({
@@ -78,6 +90,20 @@ export type UpdateArgs = {
   user_id: string; // For authorization check inside logic if needed, or API handles it.
 };
 
+/**
+ * Core business logic for updating a commitment.
+ * 
+ * Handles partial updates and side effects:
+ * 1. Verifies existence and ownership (Assigner Only).
+ * 2. Re-validates domain rules if relevant fields change.
+ * 3. Checks for conflicts if recurrence is updated.
+ * 4. Updates the task record.
+ * 5. If schedule changes (recurrence), it performs a "Reschedule":
+ *    - Cleans up future instances of the old schedule.
+ *    - Generates new instances based on the new schedule.
+ * 
+ * @throws Error [TASK_NOT_FOUND], [UNAUTHORIZED], [SCHEDULE_CONFLICT]
+ */
 export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
   const { id, user_id, ...updates } = args;
 
@@ -131,6 +157,16 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
   }
 }
 
+/**
+ * Core business logic for deleting a commitment.
+ * 
+ * Performs a clean deletion:
+ * 1. Verify ownership.
+ * 2. Cancels any scheduled jobs and deletes future instances.
+ * 3. Deletes the task definition itself.
+ * 
+ * Note: Past instances are preserved for history validation.
+ */
 export async function removeInternal(ctx: MutationCtx, args: { id: Id<"tasks">, user_id: string }) {
   const task = await ctx.db.get(args.id);
   if (!task) return;

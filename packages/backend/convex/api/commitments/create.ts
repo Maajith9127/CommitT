@@ -6,6 +6,15 @@ import { createInternal } from "../../core/commitments/service";
 
 import { authedMutation } from "../../middleware";
 
+/**
+ * Creates a new commitment (task) for the authenticated user.
+ * 
+ * This mutation handles the API layer responsibilities:
+ * 1. Validating the input arguments using Convex schemas.
+ * 2. Authenticating the user via middleware.
+ * 3. Delegating the business logic to `createInternal` service.
+ * 4. Formatting any errors into a standardized response for the client.
+ */
 export default authedMutation({
   args: {
     assignee_id: v.string(),
@@ -16,22 +25,27 @@ export default authedMutation({
     conditions: ConditionsSchema,
   },
   handler: async (ctx, args) => {
-    // Identity is now guaranteed by middleware
+    // Identity is guaranteed by the `authedMutation` middleware.
     const { user } = ctx;
     
-
     try {
-      // Call Core Logic
+      // Delegate the creation logic to the core service layer.
+      // This separates the API interface from the domain logic.
       const result = await createInternal(ctx, {
         ...args,
         assigner_id: user._id,
       });
+
       return { success: true, taskId: result.taskId };
     } catch (e: any) {
-      // Return formatted error for UI to handle gracefully if preferred, or just throw
-      // The user's code previously returned { success: false, error: ... }
-      // I will allow logic errors to be returned as values for easier UI handling
+      // Graceful Error Handling:
+      // Instead of throwing a raw Convex error, we catch it and return a structured object.
+      // This allows the UI to handle specific error codes (e.g., displaying a specific toast for conflicts)
+      // rather than a generic opaque error.
+      
       const message = e.message || "Unknown error";
+      
+      // Parse our structured error format: "[CODE] Message"
       const codeMatch = message.match(/^\[(.*?)\] (.*)/);
       const code = codeMatch ? codeMatch[1] : "UNKNOWN";
       const msg = codeMatch ? codeMatch[2] : message;

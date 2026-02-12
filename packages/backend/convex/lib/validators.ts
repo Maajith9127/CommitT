@@ -1,6 +1,16 @@
 import { v } from "convex/values";
 import { recurrenceTypeEnum, recurrenceEndsTypeEnum, relationEnum, targetTypeEnum } from "../config/enums";
 
+/**
+ * Convex Schema Definitions (Structural Validation)
+ * 
+ * These schemas define the Expected Shape (Type System) of the data
+ * at the API boundary and in the Database.
+ * 
+ * They ensure "Is this a number?" but not "Is this start time before end time?".
+ * For complex business rules and logic checks, see `core/commitments/validator.ts`.
+ */
+
 /** Defines how often a task repeats (e.g., "Every 2 days from 9am-5pm") */
 export const RecurrenceSchema = v.object({
   type: recurrenceTypeEnum,                // "daily", "weekly", etc.
