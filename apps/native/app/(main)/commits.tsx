@@ -126,7 +126,7 @@ export default function CommitsScreen() {
   // Data Fetching & Mutations
   // ─────────────────────────────────────────────────────────────────────────
 
-  const tasks = useQuery(api.api.commitments.list.byAssignee, session?.user?.id ? { assignee_id: session.user.id } : "skip");
+  const tasks = useQuery(api.api.commitments.read.byAssignee, session?.user?.id ? { assignee_id: session.user.id } : "skip");
   const removeTask = useMutation(api.api.commitments.delete.default);
 
   // ─────────────────────────────────────────────────────────────────────────

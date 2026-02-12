@@ -1,8 +1,20 @@
 import { v } from "convex/values";
-
-import { listByAssigneeInternal } from "../../core/commitments/queries";
-
 import { authedQuery } from "../../middleware";
+
+/**
+ * Retrieves a single commitment (task) by its ID.
+ * 
+ * This query:
+ * 1. Ensures the user is authenticated.
+ * 2. Fetches the task document directly from the database.
+ * 3. Returns a single task object or null/undefined if not found.
+ */
+export const get = authedQuery({
+  args: { id: v.id("tasks") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
 
 /**
  * Lists commitments assigned to a specific user.
@@ -12,7 +24,6 @@ import { authedQuery } from "../../middleware";
  * 
  * Note: This query is authenticated, but currently allows viewing any user's tasks 
  * if their ID is known (or at least queries for them). 
- * Authorization logic should be verified in the core layer if cross-user viewing is restricted.
  */
 export const byAssignee = authedQuery({
   args: { assignee_id: v.optional(v.string()) },
@@ -21,21 +32,26 @@ export const byAssignee = authedQuery({
      // Default to current user if no specific assignee is requested
      const targetId = args.assignee_id || user.id;
     
-    return await listByAssigneeInternal(ctx, { assignee_id: targetId });
+    return await ctx.db
+      .query("tasks")
+      .withIndex("by_assignee_id", (q) => q.eq("assignee_id", targetId))
+      .collect();
   },
 });
 
 /**
  * Default query: Lists all commitments assigned to the currently authenticated user.
  * 
- * This is a convenience wrapper around `listByAssigneeInternal` 
- * specifically for "my tasks".
+ * This is a convenience wrapper specifically for "my tasks".
  */
-export default authedQuery({
+export const list = authedQuery({
   args: {},
   handler: async (ctx) => {
      const { user } = ctx;
      // Strictly force the assignee to be the authenticated user
-     return await listByAssigneeInternal(ctx, { assignee_id: user.id });
+     return await ctx.db
+      .query("tasks")
+      .withIndex("by_assignee_id", (q) => q.eq("assignee_id", user.id))
+      .collect();
   }
 });
