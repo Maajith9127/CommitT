@@ -126,7 +126,7 @@ export default function SchedulesScreen() {
   const [range, setRange] = useState(getInitialRange);
 
   // Convex reactive subscription — re-fetches when range changes
-  const instances = useQuery(api.api.instances.list.byRange, {
+  const instances = useQuery(api.api.instances.read.byRange, {
     rangeStart: range.rangeStart,
     rangeEnd: range.rangeEnd,
   });
