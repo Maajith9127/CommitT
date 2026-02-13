@@ -1,8 +1,7 @@
-
 import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { Id, Doc } from "../../_generated/dataModel";
-import { createInstanceInternal } from "../../core/commitments/instanceService";
+import { Instances } from "../../core/instances/service";
 
 /**
  * Manually create a single task instance.
@@ -20,7 +19,7 @@ export default authedMutation({
     const { user } = ctx;
     
     // 1. Verify task ownership/existence
-    const task = await ctx.db.get(args.task_id);
+    const task = (await ctx.db.get(args.task_id)) as Doc<"tasks"> | null;
     if (!task) {
       throw new Error("[TASK_NOT_FOUND] Task not found");
     }
@@ -34,7 +33,7 @@ export default authedMutation({
     }
 
     // 2. Create the instance
-    const instanceId = await createInstanceInternal(ctx, {
+    const instanceId = await Instances.createOne(ctx, {
       task_id: args.task_id,
       assignee_id: task.assignee_id,
       start: args.start,

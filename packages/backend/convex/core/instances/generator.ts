@@ -8,7 +8,7 @@
  */
 
 import { Recurrence } from "../../types/domain/commitment";
-import { findNextTimeSlot } from "./scheduler";
+import { findNextTimeSlot } from "../commitments/scheduler";
 
 const MS_PER_YEAR = 365 * 24 * 60 * 60 * 1000;
 

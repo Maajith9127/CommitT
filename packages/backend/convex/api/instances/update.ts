@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { Id, Doc } from "../../_generated/dataModel";
+import { Instances } from "../../core/instances/service";
 
 /**
  * Update an existing task instance.
@@ -25,10 +26,7 @@ export default authedMutation({
       throw new Error("[UNAUTHORIZED] You can only update your own instances");
     }
 
-    await ctx.db.patch(id, {
-      ...updates,
-      // You might want to track updated_at time here if needed
-    });
+    await Instances.update(ctx, id, updates);
 
     return { success: true };
   },

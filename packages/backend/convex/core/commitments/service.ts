@@ -1,8 +1,8 @@
-
 import { MutationCtx } from "../../_generated/server";
 import { Id, Doc } from "../../_generated/dataModel";
 import { findConflict, formatConflictMessage } from "./conflictDetection";
-import { createAllInstances, scheduleFirstInstance } from "../../execution/scheduling/scheduler";
+import { Instances } from "../instances/service";
+import { scheduleFirstInstance } from "../../execution/scheduling/scheduler";
 import { validateCommitment } from "./validator";
 
 export type CreateArgs = {
@@ -72,7 +72,7 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
   });
 
   // 4. GENERATE ALL INSTANCES FOR 1 YEAR + SCHEDULE FIRST
-  const firstInstanceId = await createAllInstances(ctx, taskId, now);
+  const firstInstanceId = await Instances.generateSeries(ctx, taskId, now);
   if (firstInstanceId) {
     await scheduleFirstInstance(ctx, firstInstanceId);
   }
@@ -150,8 +150,8 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
   await ctx.db.patch(id, { ...updates, updated_at: Date.now() });
 
   // 6. Reschedule: Clean up old instances, regenerate for 1 year
-  await cleanupFutureInstances(ctx, id);
-  const firstInstanceId = await createAllInstances(ctx, id);
+  await Instances.cleanupFuture(ctx, id);
+  const firstInstanceId = await Instances.generateSeries(ctx, id);
   if (firstInstanceId) {
     await scheduleFirstInstance(ctx, firstInstanceId);
   }
@@ -174,34 +174,9 @@ export async function removeInternal(ctx: MutationCtx, args: { id: Id<"tasks">, 
   if (task.assigner_id !== args.user_id) throw new Error("[UNAUTHORIZED] Permission denied");
 
   // 1. Clean up all future instances + cancel any active scheduled job
-  await cleanupFutureInstances(ctx, args.id);
+  await Instances.cleanupFuture(ctx, args.id);
   
   // 2. Delete the task itself
   await ctx.db.delete(args.id);
-}
-
-/**
- * Deletes all FUTURE instances for a task and cancels any active scheduled jobs.
- * Past instances (status === "proceeded") are preserved as history.
- */
-async function cleanupFutureInstances(ctx: MutationCtx, taskId: Id<"tasks">) {
-  const now = Date.now();
-
-  // Get ALL instances for this task
-  const allInstances = await ctx.db
-    .query("taskInstances")
-    .withIndex("by_task", (q) => q.eq("task_id", taskId))
-    .collect();
-
-  for (const instance of allInstances) {
-    // Only delete future/pending instances — keep past ones as history
-    if (instance.start >= now || instance.status === "pending") {
-      // Cancel any active scheduled job
-      if (instance.scheduled_job_id) {
-        await ctx.scheduler.cancel(instance.scheduled_job_id);
-      }
-      await ctx.db.delete(instance._id);
-    }
-  }
 }
 

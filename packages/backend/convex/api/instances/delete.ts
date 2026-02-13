@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { Doc } from "../../_generated/dataModel";
+import { Instances } from "../../core/instances/service";
 
 /**
  * Delete a specific task instance.
@@ -23,13 +24,7 @@ export default authedMutation({
       throw new Error("[UNAUTHORIZED] You can only delete your own instances");
     }
 
-    // Cancel any scheduled jobs associated with this instance
-    if (instance.scheduled_job_id) {
-      await ctx.scheduler.cancel(instance.scheduled_job_id);
-    }
-
-
-    await ctx.db.delete(args.id);
+    await Instances.delete(ctx, args.id);
 
     return { success: true };
   },
