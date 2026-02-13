@@ -2,9 +2,10 @@ import React, { useCallback, useMemo } from "react";
 import { View, FlatList, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router"; // Essential for navigation
 import { withUniwind } from "uniwind";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // UI Components
-import { HeaderTitle } from "@/components/ui/text";
+import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { ScreenHeader } from "@/components/ui/ScreenContainer";
 import { AddButton } from "@/components/ui/button";
 import { CommitCard } from "@/components/ui/commits/CommitCard";
@@ -17,6 +18,7 @@ import { CommitCardSkeleton } from '@/components/ui/skeletons/CommitCardSkeleton
 import { useTasks, Task } from "@/hooks/commits/useTasks";
 import { useTaskActions } from "@/hooks/commits/useTaskActions";
 import { useTaskSelection, AnchorPosition } from "@/hooks/commits/useTaskSelection";
+import { DEFAULT_TASKS } from "@/data/defaults";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuration & Stylings
@@ -39,9 +41,7 @@ type ListItemType =
   | "quick"
   | "schedules_title"
   | "task_item"
-  | "schedules_empty"
-  | "templates_title"
-  | "templates_content";
+  | "schedules_empty";
 
 /** Unified list item structure for FlatList */
 interface ListItem {
@@ -79,7 +79,7 @@ export default function CommitsScreen() {
   const { tasks: sortedTasks, isLoading, hasTasks, session } = useTasks();
 
   // 2. Action Layer
-  const { handleCreateNew, handleEditTask, deleteTask } = useTaskActions();
+  const { handleCreateNew, handleEditTask, deleteTask, setDraft, resetDraft } = useTaskActions();
 
   // 3. UI State Layer
   const {
@@ -110,7 +110,9 @@ export default function CommitsScreen() {
       { type: "schedules_title", subId: "title" },
     ];
 
-    if (hasTasks) {
+    if (isLoading) {
+      items.push({ type: "schedules_empty", subId: "loading" });
+    } else if (hasTasks) {
       sortedTasks.forEach((task) => {
         items.push({
           type: "task_item",
@@ -119,13 +121,15 @@ export default function CommitsScreen() {
         });
       });
     } else {
-      items.push({ type: "schedules_empty", subId: "empty" });
+      // Use DEFAULT_TASKS when empty
+      DEFAULT_TASKS.forEach((task) => {
+        items.push({
+          type: "task_item",
+          subId: task._id,
+          data: task,
+        });
+      });
     }
-
-    items.push(
-      { type: "templates_title", subId: "templates_title" },
-      { type: "templates_content", subId: "templates_content" }
-    );
 
     return items;
   }, [hasTasks, sortedTasks]);
@@ -136,8 +140,8 @@ export default function CommitsScreen() {
    * N = Templates Header (dynamic based on task count)
    */
   const stickyHeaderIndices = useMemo(() => {
-    return [1, hasTasks ? sortedTasks.length + 2 : 3];
-  }, [hasTasks, sortedTasks.length]);
+    return [1];
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Action Handlers
@@ -174,6 +178,8 @@ export default function CommitsScreen() {
     clearSelection();
   }, [selectedTask, deleteTask, clearSelection]);
 
+
+
   // ─────────────────────────────────────────────────────────────────────────
   // Render Helpers
   // ─────────────────────────────────────────────────────────────────────────
@@ -198,46 +204,40 @@ export default function CommitsScreen() {
           );
         case "task_item":
           return item.data ? (
-            <UView className="bg-black px-4 pb-4">
+            <UView className="bg-black px-4 p-2">
               <CommitCard
                 title={item.data.title}
                 conditions={item.data.conditions?.length ?? 0}
                 iconName="book"
-                statusLabel="Active"
-                onPress={() => handleEditTask(item.data!)}
+                statusLabel={item.data.status === "active" ? "Active" : "Done"}
+                onPress={() => {
+                  if (item.data!._id.startsWith("default_")) {
+                    // Treat as template/example: Create new from this
+                    if (!session?.user?.id) return;
+                    resetDraft();
+                    setDraft({
+                      ...item.data!,
+                      _id: undefined, // Clear fake ID
+                      id: undefined,
+                      assigner_id: session.user.id,
+                      assignee_id: session.user.id,
+                    });
+                    router.push("/(create-commit)/final");
+                  } else {
+                    handleEditTask(item.data!);
+                  }
+                }}
                 onOptionsPress={(pos) => openMenu(item.data!, pos)}
               />
             </UView>
           ) : null;
         case "schedules_empty":
-          if (isLoading) {
-            return (
-              <UView className="w-full px-4 pt-2">
-                 <CommitCardSkeleton />
-                 <CommitCardSkeleton />
-                 <CommitCardSkeleton />
-              </UView>
-            );
-          }
+          // Only used for loading skeletons now
           return (
-            <UView className="bg-black px-4 py-8">
-              <HeaderTitle className="text-gray-500 text-center">
-                No active commitments found.
-              </HeaderTitle>
-            </UView>
-          );
-        case "templates_title":
-          return (
-            <ScreenHeader className="border-gray-800 border-b">
-              <HeaderTitle>Templates</HeaderTitle>
-            </ScreenHeader>
-          );
-        case "templates_content":
-          return (
-            <UView className="gap-4 bg-black px-4 py-4">
-              <HeaderTitle className="text-gray-300 text-lg">Template A</HeaderTitle>
-              <HeaderTitle className="text-gray-300 text-lg">Template B</HeaderTitle>
-              <HeaderTitle className="text-gray-300 text-lg">Template C</HeaderTitle>
+            <UView className="w-full px-4 pt-2">
+               <CommitCardSkeleton />
+               <CommitCardSkeleton />
+               <CommitCardSkeleton />
             </UView>
           );
         default:

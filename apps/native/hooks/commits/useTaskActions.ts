@@ -61,5 +61,7 @@ export function useTaskActions() {
     deleteTask,
     pauseTask,
     duplicateTask,
+    setDraft,
+    resetDraft,
   };
 }
