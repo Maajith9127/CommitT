@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { View, FlatList, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router"; // Essential for navigation
-import Animated from 'react-native-reanimated';
 import { withUniwind } from "uniwind";
 
 // UI Components
@@ -13,13 +12,11 @@ import { VerificationCard } from "@/components/ui/commits/VerificationCard";
 import { ActionMenu, ActionMenuItem } from "@/components/ui/commits/ActionMenu";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { CommitCardSkeleton } from '@/components/ui/skeletons/CommitCardSkeleton';
-import { SkeletonBlock } from '@/components/ui/skeletons/SkeletonBlock';
 
 // Extracted Domain Logic Hooks
 import { useTasks, Task } from "@/hooks/commits/useTasks";
 import { useTaskActions } from "@/hooks/commits/useTaskActions";
 import { useTaskSelection, AnchorPosition } from "@/hooks/commits/useTaskSelection";
-import { useSkeletonAnimation } from "@/hooks/calendar/useSkeletonAnimation";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Configuration & Stylings
@@ -97,8 +94,7 @@ export default function CommitsScreen() {
     clearSelection,
   } = useTaskSelection();
 
-  // 4. Visual Layer (Skeleton Animation)
-  const { showSkeleton, animatedOverlayStyle } = useSkeletonAnimation(2000);
+  // 4. Visual Layer (Skeleton logic moved to list render)
 
   // ─────────────────────────────────────────────────────────────────────────
   // Computations
@@ -214,10 +210,19 @@ export default function CommitsScreen() {
             </UView>
           ) : null;
         case "schedules_empty":
+          if (isLoading) {
+            return (
+              <UView className="w-full px-4 pt-2">
+                 <CommitCardSkeleton />
+                 <CommitCardSkeleton />
+                 <CommitCardSkeleton />
+              </UView>
+            );
+          }
           return (
             <UView className="bg-black px-4 py-8">
               <HeaderTitle className="text-gray-500 text-center">
-                {isLoading ? "Loading..." : "No active commitments found."}
+                No active commitments found.
               </HeaderTitle>
             </UView>
           );
@@ -258,27 +263,7 @@ export default function CommitsScreen() {
         showsVerticalScrollIndicator={false}
       />
       
-      {/* 2. Skeleton Overlay (Visual State) */}
-      {showSkeleton && (
-        <Animated.View 
-          style={[
-            { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 50, backgroundColor: 'black' }, 
-            animatedOverlayStyle
-          ]}
-          pointerEvents="none"
-        >
-          <UView className="flex-1 px-4 pt-2">
-            <SkeletonBlock width="100%" height={140} borderRadius={16} className="mb-6" />
-            <UView className="flex-row justify-between mb-4 items-center">
-              <SkeletonBlock width={120} height={24} borderRadius={4} />
-              <SkeletonBlock width={80} height={36} borderRadius={18} />
-            </UView>
-            <CommitCardSkeleton />
-            <CommitCardSkeleton />
-            <CommitCardSkeleton />
-          </UView>
-        </Animated.View>
-      )}
+      {/* 2. Skeleton Overlay (Removed) */}
 
       {/* 3. Global Context Menu */}
       <ActionMenu
