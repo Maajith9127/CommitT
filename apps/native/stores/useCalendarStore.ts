@@ -71,6 +71,7 @@ const logger = (config: any) => (set: any, get: any, api: any) =>
       console.log(`{
   eventsCount: ${state.events.length},
   selectedEventId: ${state.selectedEvent?.id || 'null'},
+  selectedEvent: ${JSON.stringify(state.selectedEvent, null, 2)},
   lastEvent: ${JSON.stringify(state.events[state.events.length - 1] || null, null, 2)}
 }`);
       console.log("─────────────────────────────────────────────────────────\n");

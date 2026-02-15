@@ -70,8 +70,10 @@ export default function SchedulesScreen() {
   }, []);
 
   const handleEventPress = useCallback((event: any) => {
-    console.log("[Calendar] Event Pressed:", JSON.stringify(event.originalData || event, null, 2));
-    setSelectedEvent(event.originalData || event);
+    // Store the entire original data as requested
+    const eventData = event.originalData || event;
+    console.log("[Calendar] Event Pressed:", JSON.stringify(eventData, null, 2));
+    setSelectedEvent(eventData);
   }, []);
 
   return (
