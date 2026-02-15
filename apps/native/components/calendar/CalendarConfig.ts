@@ -6,14 +6,12 @@
  */
 
 // Color palette for cycling through task colors.
-// Selected for high contrast against dark backgrounds.
 export const TASK_COLORS = [
   '#4FA0FF', '#FF6B6B', '#4CD964', '#FFD93D', '#6C5CE7',
   '#A29BFE', '#FD79A8', '#00CEC9', '#E17055', '#0984E3',
 ];
 
 // Buffer threshold for infinite scrolling.
-// We refetch when the user scrolls within 2 weeks of the currently loaded range edge.
 export const REF_FETCH_BUFFER_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks
 
 // CalendarKit Locale Configuration
@@ -32,20 +30,55 @@ export const CUSTOM_THEME = {
     onPrimary: '#ffffff',
     background: '#1A1A1A',
     onBackground: '#ffffff',
-    border: '#333333',
+    border: '#000000ff',
     text: '#ffffff',
     surface: '#1A1A1A',
     onSurface: '#cccccc',
   },
+
   hourBackgroundColor: '#000000',
   minuteBackgroundColor: '#000000',
   headerBackgroundColor: '#000000',
+
+  hourBorderColor: '#000000',
+  headerBorderColor: '#000000',
+  dayBarBorderColor: '#000000',
+
   dayName: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
-  dayNumber: { color: '#ffffff', fontSize: 15, fontWeight: 'bold' },
+  dayNumber: { color: '#ffffff', fontSize: 25, fontWeight: 'bold' },
   hourTextStyle: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
-  eventContainerStyle: { borderRadius: 7, padding: 5 },
+
+  eventContainerStyle: { borderRadius: 15, padding: 10 },
   eventTitleStyle: {
     fontSize: 15,
     color: "#ffffff"
+  },
+
+  /**
+   * WORKAROUND: visually thicker grid
+   * CalendarKit internally fixes grid width at 1px,
+   * so we overlay borders on containers.
+   */
+
+  dayContainer: {
+    borderRightWidth: 2,
+    borderColor: '#000000',
+  },
+
+  singleDayContainer: {
+    borderRightWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: '#000000',
+  },
+
+  unavailableHourContainerStyle: {
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderColor: '#000000',
+  },
+
+  headerContainer: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#000000',
   },
 };

@@ -74,19 +74,19 @@ export default function SchedulesScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UView className="flex-1 bg-black relative">
           {/* Fixed Time Axis Header */}
-          <UView className="absolute top-5 left-0 w-[60px] items-center z-10">
+          {/* <UView className="absolute top-5 left-0 w-[60px] items-center z-10">
                <UText className="text-white font-bold">Time</UText>
-          </UView>
+          </UView> */}
 
           <CalendarKit
             ref={calendarRef}
-            numberOfDays={7}
+            numberOfDays={1}
             locale="en"
             initialLocales={INITIAL_LOCALES}
             hourFormat="h A"
             theme={CUSTOM_THEME}
-            minTimeIntervalHeight={30}
-            initialTimeIntervalHeight={40}
+            minTimeIntervalHeight={80}
+            initialTimeIntervalHeight={80}
             events={events}
             useHaptic={true}
             allowPinchToZoom={false}

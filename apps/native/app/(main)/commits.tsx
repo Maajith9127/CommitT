@@ -2,11 +2,9 @@ import React, { useCallback, useMemo } from "react";
 import { View, FlatList, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router"; // Essential for navigation
 import { withUniwind } from "uniwind";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // UI Components
 import { HeaderTitle, FooterText } from "@/components/ui/text";
-import { ScreenHeader } from "@/components/ui/ScreenContainer";
 import { AddButton } from "@/components/ui/button";
 import { CommitCard } from "@/components/ui/commits/CommitCard";
 import { VerificationCard } from "@/components/ui/commits/VerificationCard";
