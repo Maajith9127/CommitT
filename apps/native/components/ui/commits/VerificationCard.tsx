@@ -9,6 +9,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useFocusEffect } from "expo-router";
 import dayjs from "dayjs";
 
+import { SkeletonBlock } from '@/components/ui/skeletons/SkeletonBlock';
+
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
 
@@ -142,8 +144,17 @@ export function VerificationCard({
 
           {/* CHALLENGE + TIME MERGED */}
           <UView className="w-full flex-row items-center justify-between bg-[#2A2A2A] rounded-4xl border border-dashed border-white/30 px-6 py-3">
-            <UText className="text-white font-bold text-base">{title}</UText>
-            <UText className="text-white font-bold text-base">{displayTime}</UText>
+            {isLoading && !nextEvent ? (
+                <>
+                    <SkeletonBlock width={80} height={20} borderRadius={4} />
+                    <SkeletonBlock width={60} height={20} borderRadius={4} />
+                </>
+            ) : (
+                <>
+                    <UText className="text-white font-bold text-base">{title}</UText>
+                    <UText className="text-white font-bold text-base">{displayTime}</UText>
+                </>
+            )}
           </UView>
         </UView>
       </UView>
