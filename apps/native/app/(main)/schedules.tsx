@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import Animated from 'react-native-reanimated';
 import { View, Text } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -11,6 +11,7 @@ import { withUniwind } from 'uniwind';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { CalendarShimmer } from '@/components/ui/skeletons/CalendarShimmer';
 import { EventDetailModal } from '@/components/ui/modal/EventDetailModal';
+
 
 // Extracted Configuration & Hooks
 import { INITIAL_LOCALES, CUSTOM_THEME } from '@/components/calendar/CalendarConfig';
@@ -43,10 +44,13 @@ export default function SchedulesScreen() {
 
   // 3. Visual State
   const { showSkeleton, animatedOverlayStyle } = useSkeletonAnimation();
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
+    
   // 4. Navigation Control (Sync with Global Store)
   const selectedDate = useCalendarStore((state) => state.selectedDate);
+  const selectedEvent = useCalendarStore((state) => state.selectedEvent);
+  const setSelectedEvent = useCalendarStore((state) => state.setSelectedEvent);
+
   useEffect(() => {
     if (calendarRef.current && selectedDate) {
       calendarRef.current.goToDate({ date: selectedDate, animatedDate: true });
@@ -67,7 +71,7 @@ export default function SchedulesScreen() {
 
   const handleEventPress = useCallback((event: any) => {
     console.log("[Calendar] Event Pressed:", JSON.stringify(event.originalData || event, null, 2));
-    setSelectedEvent(event.originalData || event); 
+    setSelectedEvent(event.originalData || event);
   }, []);
 
   return (
@@ -118,6 +122,7 @@ export default function SchedulesScreen() {
             event={selectedEvent} 
             onClose={() => setSelectedEvent(null)} 
           />
+
       </UView>
     </GestureHandlerRootView>
   );

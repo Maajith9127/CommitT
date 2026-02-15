@@ -45,11 +45,11 @@ const INITIAL_EVENTS: CalendarEvent[] = [
 
 type CalendarStore = {
   events: CalendarEvent[];
-  selectedEvent: CalendarEvent | null;
+  selectedEvent: any | null;
   setEvents: (events: CalendarEvent[]) => void;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   addEvent: (event: CalendarEvent) => void;
-  setSelectedEvent: (event: CalendarEvent | null) => void;
+  setSelectedEvent: (event: any | null) => void;
   selectedDate: string;
   setSelectedDate: (date: string) => void;
 };
@@ -100,7 +100,7 @@ export const useCalendarStore = create<CalendarStore>()(
         false,
         "calendar/addEvent"
       ),
-    setSelectedEvent: (event: CalendarEvent | null) => 
+    setSelectedEvent: (event: any | null) => 
       set({ selectedEvent: event }, false, "calendar/setSelectedEvent"),
     selectedDate: dayjs().toISOString(),
     setSelectedDate: (date: string) => set({ selectedDate: date }, false, "calendar/setSelectedDate"),
