@@ -16,10 +16,10 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       iconFilled: "shield",
       label: "Commits",
     },
-    schedules: { // This maps to "Verify" in UI
-      icon: "checkbox-outline",
-      iconFilled: "checkbox",
-      label: "Verify",
+    schedules: { // This maps to "Calendar" in UI
+      icon: "calendar-outline",
+      iconFilled: "calendar",
+      label: "Calendar",
     },
     strict: {
       icon: "lock-closed-outline",
