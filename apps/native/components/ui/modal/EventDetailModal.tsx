@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, StyleSheet, Pressable, Text, Platform, ActivityIndicator } from 'react-native';
+import { Modal, View, StyleSheet, Pressable, Text, Platform, ActivityIndicator, ScrollView } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GoogleMaps } from 'expo-maps';
@@ -11,6 +11,53 @@ import dayjs from 'dayjs';
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
 const UText = withUniwind(Text);
+const UScroll = withUniwind(ScrollView);
+
+const PENALTY_MAP: Record<string, { icon: any; title: string; subtitle: string }> = {
+  money: { icon: 'currency-inr', title: 'Money Penalty', subtitle: 'Lose a fixed amount when you miss' },
+  photo: { icon: 'camera-enhance-outline', title: 'Embarrassing Photo', subtitle: 'Send a cringe picture to someone' },
+  message: { icon: 'message-alert-outline', title: 'Cringe Message', subtitle: 'A shameful message gets sent to a contact' },
+  blockapp: { icon: 'cellphone-off', title: 'Block Favourite App', subtitle: 'Your chosen app gets blocked temporarily' },
+};
+
+const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: string }> = {
+  captcha: { icon: 'shield-check-outline', title: 'Solve CAPTCHAs', subtitle: 'Solve a set number of CAPTCHAs' },
+  paragraph: { icon: 'pencil-outline', title: 'Write a Long Paragraph', subtitle: 'Type a 3000-word paragraph' },
+  intense: { icon: 'fire', title: 'Redo With More Intensity', subtitle: 'Repeat tomorrow with a harder version' },
+  run: { icon: 'run-fast', title: 'Run 5 KM', subtitle: 'Choose a location and complete the run' },
+};
+
+const InfoSection = ({ icon, color, title, subtitle }: { icon: any; color: string; title: string; subtitle: string }) => (
+  <UView className="border-b border-white/20 flex-row p-6 items-center">
+    <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
+    <UView className="flex-1">
+      <BodyText className="text-white text-lg font-semibold">{title}</BodyText>
+      <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
+    </UView>
+  </UView>
+);
+
+const PenaltySection = ({ event }: { event: any }) => {
+  // Find a condition that matches a penalty key
+  const penaltyCondition = event?.conditions?.find((c: any) => PENALTY_MAP[c.metric_key] || c.type === 'penalty');
+  
+  // default to 'money' for show purpose
+  const key = penaltyCondition?.metric_key || 'money';
+  const info = PENALTY_MAP[key] || PENALTY_MAP['money'];
+
+  return <InfoSection icon={info.icon} color="#FF3B30" title={info.title} subtitle={info.subtitle} />;
+};
+
+const WaiverSection = ({ event }: { event: any }) => {
+  // Find a condition that matches a waiver key
+  const waiverCondition = event?.conditions?.find((c: any) => WAIVER_MAP[c.metric_key] || c.type === 'waiver');
+
+  // default to 'captcha' for show purpose
+  const key = waiverCondition?.metric_key || 'captcha';
+  const info = WAIVER_MAP[key] || WAIVER_MAP['captcha'];
+
+  return <InfoSection icon={info.icon} color="#4CD964" title={info.title} subtitle={info.subtitle} />;
+};
 
 const getCirclePoints = (
   center: { latitude: number; longitude: number },
@@ -172,7 +219,11 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
           </UView>
 
           {/* Empty Body as requested ("plain popup , dotn add anytjin g in there") */}
-          <UView className="flex-1 bg-[#1A1A1A] ">
+          <UScroll 
+            className="flex-1 bg-[#1A1A1A] " 
+            contentContainerStyle={{ paddingBottom: 0 }}
+            showsVerticalScrollIndicator={false}
+          >
             <UView className="px-6 flex-row justify-between items-start mt-2">
                 <UView className="flex-1 mr-4">
                     <AuthHeading className="text-left text-3xl">
@@ -235,8 +286,15 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
             {/* Location Section Container */}
             {/* Location Section Container */}
             {/* Location Section Container */}
+            {/* Location Section Container */}
             <LocationSection event={event} />
-          </UView>
+            
+            {/* Penalty Section */}
+            <PenaltySection event={event} />
+
+            {/* Waiver Section */}
+            <WaiverSection event={event} />
+          </UScroll>
 
         </UView>
       </View>
