@@ -7,8 +7,7 @@
 
 // Color palette for cycling through task colors.
 export const TASK_COLORS = [
-  '#4FA0FF', '#FF6B6B', '#4CD964', '#FFD93D', '#6C5CE7',
-  '#A29BFE', '#FD79A8', '#00CEC9', '#E17055', '#0984E3',
+  '#4FA0FF', 
 ];
 
 // Buffer threshold for infinite scrolling.
@@ -48,7 +47,7 @@ export const CUSTOM_THEME = {
   dayNumber: { color: '#ffffff', fontSize: 25, fontWeight: 'bold' },
   hourTextStyle: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
 
-  eventContainerStyle: { borderRadius: 15, padding: 10 },
+  eventContainerStyle: { borderRadius: 0, padding: 10 },
   eventTitleStyle: {
     fontSize: 15,
     color: "#ffffff"

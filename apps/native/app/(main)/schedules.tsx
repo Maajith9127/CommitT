@@ -58,9 +58,9 @@ export default function SchedulesScreen() {
   const renderEvent = useCallback((event: any) => {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14, textAlign: 'center' }}>
+        <UText className="text-white font-bold text-center text-[10px]">
           {event.title}
-        </Text>
+        </UText>
       </View>
     );
   }, []);
@@ -74,13 +74,13 @@ export default function SchedulesScreen() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UView className="flex-1 bg-black relative">
           {/* Fixed Time Axis Header */}
-          {/* <UView className="absolute top-5 left-0 w-[60px] items-center z-10">
+          <UView className="absolute top-5 left-0 w-[20%] items-center z-10">
                <UText className="text-white font-bold">Time</UText>
-          </UView> */}
+          </UView>
 
           <CalendarKit
             ref={calendarRef}
-            numberOfDays={1}
+            numberOfDays={4}
             locale="en"
             initialLocales={INITIAL_LOCALES}
             hourFormat="h A"
@@ -89,7 +89,7 @@ export default function SchedulesScreen() {
             initialTimeIntervalHeight={80}
             events={events}
             useHaptic={true}
-            allowPinchToZoom={false}
+            allowPinchToZoom={true}
             onPressEvent={handleEventPress}
             onChange={(event) => handleVisibleDateChange(calendarRef)}
           >

@@ -59,12 +59,11 @@ export default function MainLayout() {
         title: dayjs().format("MMMM D, YYYY"), 
         icon,
         rightAction: (
-            <SecondaryButton 
+            <UPressable 
                 onPress={() => setSelectedDate(dayjs().toISOString())}
-                className="bg-[#4FA0FF] py-1 px-4 rounded-full min-h-0 h-8 justify-center"
             >
-                <UText className="text-white font-bold text-xs">Today</UText>
-            </SecondaryButton>
+                <MaterialCommunityIcons name="calendar-today" size={34} color="white" />
+            </UPressable>
         )
       };
     }
