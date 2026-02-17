@@ -27,6 +27,9 @@ export default authedMutation({
   handler: async (ctx, args) => {
     // Identity is guaranteed by the `authedMutation` middleware.
     const { user } = ctx;
+
+    console.log("[API:create] Received create request with args:", JSON.stringify(args, null, 2));
+    console.log("[API:create] Authenticated user:", user._id);
     
     try {
       // Delegate the creation logic to the core service layer.

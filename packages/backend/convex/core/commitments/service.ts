@@ -37,6 +37,8 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     assignee_id: args.assignee_id,
   });
 
+  console.log("[Service:createInternal] Validation result:", JSON.stringify(validation, null, 2));
+
   if (!validation.valid) {
     throw new Error(`[${validation.errorCode}] ${validation.error}`);
   }
@@ -47,6 +49,8 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     .withIndex("by_assignee_id", (q) => q.eq("assignee_id", args.assignee_id))
     .collect();
 
+  console.log(`[Service:createInternal] Checking conflicts against ${existingTasks.length} existing tasks`);
+
   const conflictResult = findConflict({
     assignee_id: args.assignee_id,
     title: args.title,
@@ -54,8 +58,11 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
   }, existingTasks);
 
   if (conflictResult.hasConflict) {
+    console.warn("[Service:createInternal] Conflict detected:", JSON.stringify(conflictResult, null, 2));
     throw new Error(`[SCHEDULE_CONFLICT] ${formatConflictMessage(conflictResult.details)}`);
   }
+
+  console.log("[Service:createInternal] No conflicts found. Proceeding to insert.");
 
   // 3. INSERT INTO DB
   const now = Date.now();
@@ -70,6 +77,8 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     created_at: now,
     updated_at: now,
   });
+
+  console.log("[Service:createInternal] Task inserted with ID:", taskId);
 
   // 4. GENERATE ALL INSTANCES FOR 1 YEAR + SCHEDULE FIRST
   const firstInstanceId = await Instances.generateSeries(ctx, taskId, now);

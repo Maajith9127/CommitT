@@ -27,6 +27,8 @@ export function findNextTimeSlot(
 
   const { type, days_of_week, time_windows } = recurrence;
 
+  console.log(`[Scheduler] Finding next slot. Type: ${type}, CurrentTime: ${new Date(currentTime).toISOString()}`);
+  
   // Sort time windows by start time
   const sortedWindows = [...time_windows].sort((a, b) => a.start - b.start);
 
@@ -34,6 +36,8 @@ export function findNextTimeSlot(
   const currentDayOfWeek = getDayOfWeek(currentTime, timezoneOffset);
   const currentSecondsFromMidnight = getSecondsFromMidnight(currentTime, timezoneOffset);
   const todayStart = getStartOfDay(currentTime, timezoneOffset);
+
+  console.log(`[Scheduler] Context: Day=${currentDayOfWeek}, SecsFromMidnight=${currentSecondsFromMidnight}`);
 
   // Determine which days to check based on recurrence type
   let daysToCheck: number[] = [];
@@ -61,6 +65,12 @@ export function findNextTimeSlot(
       daysToCheck = days_of_week && days_of_week.length > 0 ? [...days_of_week].sort() : [0, 1, 2, 3, 4, 5, 6];
       break;
   }
+
+  // Normalize ISO-8601 day numbering (Mon=1..Sun=7) to JS convention (Sun=0..Sat=6)
+  // The frontend may send 7 for Sunday, but getDay() returns 0 for Sunday.
+  daysToCheck = daysToCheck.map(d => d === 7 ? 0 : d);
+
+  console.log(`[Scheduler] Days to check (normalized): ${JSON.stringify(daysToCheck)}`);
 
   // Search for the next valid time slot
   // We'll check up to 7 days ahead (one full week cycle)
