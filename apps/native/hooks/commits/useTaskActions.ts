@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { useMutation } from 'convex/react';
+import { useSQLiteContext } from 'expo-sqlite';
 import { api } from '@commit/backend/convex/_generated/api';
 import { useTaskDraftStore } from '@/stores/useTaskDraftStore';
 import type { Task } from './useTasks';
@@ -21,6 +22,7 @@ export function useTaskActions() {
   const setAssignee = useTaskDraftStore((state) => state.setAssignee);
 
   const removeTaskMutation = useMutation(api.api.commitments.delete.default);
+  const db = useSQLiteContext();
 
   // Navigate to Create Screen
   const handleCreateNew = useCallback((userId: string) => {
@@ -39,11 +41,18 @@ export function useTaskActions() {
     router.push("/(create-commit)/final");
   }, [setDraft, router]);
 
-  // Delete Task
   const deleteTask = useCallback(async (taskId: string) => {
-    // Cast to Id<"tasks"> if stricter typing is needed, but string works for args usually
+    // Delete from Convex
     await removeTaskMutation({ id: taskId as any });
-  }, [removeTaskMutation]);
+
+    // Delete from local DB
+    try {
+      await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [taskId]);
+      console.log('[useTaskActions] Local DB delete OK for:', taskId);
+    } catch (localError) {
+      console.error('[useTaskActions] Local DB delete failed (non-critical):', localError);
+    }
+  }, [removeTaskMutation, db]);
 
   // Pause Task (Placeholder)
   const pauseTask = useCallback((taskId: string) => {

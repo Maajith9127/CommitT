@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { ScrollView, useWindowDimensions, View } from "react-native";
 import { withUniwind } from "uniwind";
 import { useMutation } from "convex/react";
+import { useSQLiteContext } from "expo-sqlite";
 import { api } from "@commit/backend/convex/_generated/api";
 import type { Id } from "@commit/backend/convex/_generated/dataModel";
 
@@ -96,6 +97,9 @@ export default function FinalScreen() {
   const setLocation = useTaskDraftStore((state) => state.setLocation);
   const setAssignee = useTaskDraftStore((state) => state.setAssignee);
   const setDraft = useTaskDraftStore((state) => state.setDraft);
+
+  // Local DB
+  const db = useSQLiteContext();
 
   // ─────────────────────────────────────────────────────────────────────────
   // Mutations
@@ -221,10 +225,13 @@ export default function FinalScreen() {
       return conditionData;
     });
 
+    const now = Date.now();
+
     try {
       let result: MutationResult;
 
       if (isEditMode) {
+        // ── UPDATE: Convex first, then local DB ──────────────────────────
         result = await updateTask({
           id: draft.id as Id<"tasks">,
           title: draft.title,
@@ -233,7 +240,34 @@ export default function FinalScreen() {
           recurrence: draft.recurrence,
           conditions: cleanedConditions,
         });
+
+        if (result.success) {
+          try {
+            await db.runAsync(
+              `UPDATE local_tasks SET
+                title = ?, description = ?, visibility = ?,
+                recurrence_json = ?, conditions_json = ?,
+                updated_at = ?, synced_at = ?
+              WHERE convex_id = ?`,
+              [
+                draft.title,
+                draft.description,
+                draft.visibility,
+                JSON.stringify(draft.recurrence),
+                JSON.stringify(cleanedConditions),
+                now,
+                now,
+                draft.id as string,
+              ]
+            );
+            console.log('[submitTask] Local DB updated for task:', draft.id);
+          } catch (localError) {
+            console.error('[submitTask] Local DB update failed (non-critical):', localError);
+            // Update succeeded on Convex — local DB will re-sync on next app open
+          }
+        }
       } else {
+        // ── CREATE: Convex first, then local DB ──────────────────────────
         result = await createTask({
           assignee_id: draft.assignee_id,
           title: draft.title,
@@ -242,12 +276,41 @@ export default function FinalScreen() {
           recurrence: draft.recurrence,
           conditions: cleanedConditions,
         });
+
+        if (result.success && result.taskId) {
+          const localId = `local_${now}_${Math.random().toString(36).slice(2, 9)}`;
+          try {
+            await db.runAsync(
+              `INSERT INTO local_tasks
+                (id, convex_id, assigner_id, assignee_id, title, description,
+                 visibility, recurrence_json, conditions_json, created_at, updated_at, synced_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [
+                localId,
+                result.taskId,
+                draft.assigner_id,
+                draft.assignee_id,
+                draft.title,
+                draft.description,
+                draft.visibility,
+                JSON.stringify(draft.recurrence),
+                JSON.stringify(cleanedConditions),
+                now,
+                now,
+                now,
+              ]
+            );
+            console.log('[submitTask] Local DB insert OK. convex_id:', result.taskId);
+          } catch (localError) {
+            console.error('[submitTask] Local DB insert failed (non-critical):', localError);
+            // Create succeeded on Convex — local DB will re-sync on next app open
+          }
+        }
       }
 
       handleMutationResult(result);
     } catch (error) {
       console.error("[submitTask] Error:", error);
-      // Determine if it's a Convex error or network error
       const message = error instanceof Error 
         ? error.message 
         : "Something went wrong. Please check your connection and try again.";
@@ -259,7 +322,7 @@ export default function FinalScreen() {
           : "Network error. Please check your connection.",
       });
     }
-  }, [draft, isEditMode, createTask, updateTask, handleMutationResult]);
+  }, [draft, isEditMode, createTask, updateTask, handleMutationResult, db]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render

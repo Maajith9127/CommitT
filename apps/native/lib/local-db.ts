@@ -1,10 +1,8 @@
 /**
  * Local Database (expo-sqlite)
  *
- * Initializes and manages the local SQLite database used for:
- * - Storing tasks with recurrence rules (for offline alarm scheduling)
- * - Tracking scheduled alarms and their state
- * - Storing alarm overrides (single-instance drag-and-drop changes)
+ * Initializes and manages the local SQLite database.
+ * Schema mirrors the Convex `tasks` table exactly.
  *
  * @module lib/local-db
  */
@@ -14,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -30,30 +28,47 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     return;
   }
 
-  // ── Migration 0 → 1 ────────────────────────────────────────────────────
+  // ── Migration 0 → 1 (initial, may have old schema) ─────────────────────
   if (currentVersion === 0) {
     await db.execAsync(`
       PRAGMA journal_mode = 'wal';
       PRAGMA foreign_keys = ON;
+    `);
+    currentVersion = 1;
+  }
+
+  // ── Migration 1 → 2 (drop old tables, recreate with correct schema) ────
+  if (currentVersion === 1) {
+    await db.execAsync(`
+      PRAGMA foreign_keys = OFF;
+      DROP TABLE IF EXISTS blocked_apps;
+      DROP TABLE IF EXISTS alarm_overrides;
+      DROP TABLE IF EXISTS scheduled_alarms;
+      DROP TABLE IF EXISTS local_tasks;
+      PRAGMA foreign_keys = ON;
 
       -- ═══════════════════════════════════════════════════════════════════
-      -- local_tasks: Mirror of Convex tasks (only the fields needed locally)
+      -- local_tasks: Exact mirror of Convex tasks table
       -- ═══════════════════════════════════════════════════════════════════
       CREATE TABLE IF NOT EXISTS local_tasks (
         id TEXT PRIMARY KEY,
         convex_id TEXT UNIQUE NOT NULL,
+        assigner_id TEXT NOT NULL,
+        assignee_id TEXT NOT NULL,
         title TEXT NOT NULL,
-        description TEXT,
+        description TEXT NOT NULL,
+        visibility TEXT NOT NULL,
         recurrence_json TEXT NOT NULL,
         conditions_json TEXT NOT NULL,
-        alarm_offset_ms INTEGER DEFAULT 900000,
-        alarm_repeat_ms INTEGER DEFAULT 120000,
-        synced_at INTEGER,
-        created_at INTEGER NOT NULL
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        synced_at INTEGER
       );
+      CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON local_tasks(assignee_id);
+      CREATE INDEX IF NOT EXISTS idx_tasks_assigner ON local_tasks(assigner_id);
 
       -- ═══════════════════════════════════════════════════════════════════
-      -- scheduled_alarms: Currently scheduled alarms with AlarmManager
+      -- scheduled_alarms
       -- ═══════════════════════════════════════════════════════════════════
       CREATE TABLE IF NOT EXISTS scheduled_alarms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +85,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_alarm_task ON scheduled_alarms(task_id);
 
       -- ═══════════════════════════════════════════════════════════════════
-      -- alarm_overrides: Single-instance exceptions (drag-and-drop changes)
+      -- alarm_overrides
       -- ═══════════════════════════════════════════════════════════════════
       CREATE TABLE IF NOT EXISTS alarm_overrides (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,7 +100,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_override_task ON alarm_overrides(task_id);
 
       -- ═══════════════════════════════════════════════════════════════════
-      -- blocked_apps: App blocking rules (future use)
+      -- blocked_apps (future use)
       -- ═══════════════════════════════════════════════════════════════════
       CREATE TABLE IF NOT EXISTS blocked_apps (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,13 +112,13 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_blocked_package ON blocked_apps(package_name, active_until);
     `);
 
-    currentVersion = 1;
+    currentVersion = 2;
   }
 
   // ── Future migrations go here ──────────────────────────────────────────
-  // if (currentVersion === 1) {
+  // if (currentVersion === 2) {
   //   await db.execAsync(`ALTER TABLE ...`);
-  //   currentVersion = 2;
+  //   currentVersion = 3;
   // }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
