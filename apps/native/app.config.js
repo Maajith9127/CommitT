@@ -12,6 +12,7 @@ const config = {
     slug: "commit",
     plugins: [
       "expo-font",
+      "expo-sqlite",
       "@react-native-google-signin/google-signin",
       [
         "expo-maps",
