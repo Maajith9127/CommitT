@@ -16,6 +16,7 @@ import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
+import { scheduleForTask, rescheduleForTask } from "@/modules/scheduler-module";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -261,6 +262,14 @@ export default function FinalScreen() {
               ]
             );
             console.log('[submitTask] Local DB updated for task:', draft.id);
+
+            // Schedule alarm via native module
+            try {
+              const scheduleResult = rescheduleForTask(draft.id as string);
+              console.log('[submitTask] Schedule result:', JSON.stringify(scheduleResult));
+            } catch (schedError) {
+              console.error('[submitTask] Scheduling failed (non-critical):', schedError);
+            }
           } catch (localError) {
             console.error('[submitTask] Local DB update failed (non-critical):', localError);
             // Update succeeded on Convex — local DB will re-sync on next app open
@@ -301,6 +310,14 @@ export default function FinalScreen() {
               ]
             );
             console.log('[submitTask] Local DB insert OK. convex_id:', result.taskId);
+
+            // Schedule alarm via native module
+            try {
+              const scheduleResult = scheduleForTask(result.taskId as string);
+              console.log('[submitTask] Schedule result:', JSON.stringify(scheduleResult));
+            } catch (schedError) {
+              console.error('[submitTask] Scheduling failed (non-critical):', schedError);
+            }
           } catch (localError) {
             console.error('[submitTask] Local DB insert failed (non-critical):', localError);
             // Create succeeded on Convex — local DB will re-sync on next app open

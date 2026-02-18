@@ -15,3 +15,18 @@ const AlarmModule = requireNativeModule("AlarmModule");
 export function showToast(message: string): void {
   AlarmModule.showToast(message);
 }
+
+/**
+ * Read all tasks from the local SQLite database (commit.db).
+ * Returns an array of task objects with all columns.
+ */
+export function getLocalTasks(): Record<string, any>[] {
+  return AlarmModule.getLocalTasks();
+}
+
+/**
+ * Read tasks from local DB and show their titles as a native Toast.
+ */
+export function showTasksToast(): void {
+  AlarmModule.showTasksToast();
+}

@@ -13,7 +13,7 @@ import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { authClient } from "@/lib/auth-client";
 import { LOCAL_DB_NAME, migrateDbIfNeeded } from "@/lib/local-db";
 import { env } from "@commit/env/native";
-import { showToast } from "@/modules/alarm-module";
+import { showTasksToast } from "@/modules/alarm-module";
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 const convex = new ConvexReactClient(convexUrl, {
@@ -171,7 +171,7 @@ function AlarmFab() {
   const handleAlarmPress = () => {
     console.log("[Alarm] Alarm button pressed!");
     try {
-      showToast("Hello World from AlarmModule! 🔔");
+      showTasksToast();
     } catch (e) {
       console.error("[Alarm] Error calling native module:", e);
       Alert.alert("AlarmModule Error", String(e));

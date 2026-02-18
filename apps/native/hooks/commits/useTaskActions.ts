@@ -4,6 +4,7 @@ import { useMutation } from 'convex/react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { api } from '@commit/backend/convex/_generated/api';
 import { useTaskDraftStore } from '@/stores/useTaskDraftStore';
+import { cancelForTask } from '@/modules/scheduler-module';
 import type { Task } from './useTasks';
 
 /**
@@ -42,6 +43,14 @@ export function useTaskActions() {
   }, [setDraft, router]);
 
   const deleteTask = useCallback(async (taskId: string) => {
+    // Cancel any active scheduling chain for this task
+    try {
+      cancelForTask(taskId);
+      console.log('[useTaskActions] Cancelled schedule chain for:', taskId);
+    } catch (schedError) {
+      console.error('[useTaskActions] Cancel schedule failed (non-critical):', schedError);
+    }
+
     // Delete from Convex
     await removeTaskMutation({ id: taskId as any });
 
