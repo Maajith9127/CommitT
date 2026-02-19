@@ -1,15 +1,16 @@
 import { requireNativeModule } from "expo-modules-core";
 
 /**
- * SchedulerModule - Native scheduling chain for tasks.
+ * SchedulerModule - Native alarm scheduling chain.
  *
- * Each task gets its own self-perpetuating chain:
- *   Toast fires → calculate next slot → schedule next toast → repeat
+ * Uses Android AlarmManager for OS-level scheduling that survives:
+ * - App being swiped away / killed
+ * - Phone restart (via BootReceiver)
  *
- * Lifecycle:
- *   CREATE → scheduleForTask(convexId)     — starts the chain
- *   UPDATE → rescheduleForTask(convexId)   — cancels old chain + starts new
- *   DELETE → cancelForTask(convexId)       — cancels the chain
+ * Flow:
+ *   JS → SchedulerModule → AlarmScheduler → AlarmManager
+ *     → AlarmReceiver → AlarmActivity (overlay + sound + vibration)
+ *     → User taps DISMISS → chains next alarm automatically
  */
 const SchedulerModule = requireNativeModule("SchedulerModule");
 
@@ -19,39 +20,33 @@ export interface ScheduleResult {
   nextAlarmMs?: number;
   nextAlarmReadable?: string;
   delayMs?: number;
-  dayOfWeek?: number;
-  activeChainsCount?: number;
+  alarmId?: number;
   error?: string;
 }
 
 /**
- * CREATE: Start a new scheduling chain for a task.
- * Reads recurrence from local DB, calculates next slot, schedules toast.
- * When toast fires, chains to the next slot automatically.
+ * CREATE: Schedule the next alarm for a task.
+ * Reads recurrence from local DB, calculates next time slot,
+ * sets an AlarmManager alarm, and persists to scheduled_alarms table.
  */
 export function scheduleForTask(convexId: string): ScheduleResult {
   return SchedulerModule.scheduleForTask(convexId);
 }
 
 /**
- * UPDATE: Cancel the existing chain and start a new one.
- * Call this after updating a task's recurrence rules.
+ * UPDATE: Cancel existing alarm chain and start a new one.
+ * Call after updating a task's recurrence rules in the local DB.
  */
 export function rescheduleForTask(convexId: string): ScheduleResult {
   return SchedulerModule.rescheduleForTask(convexId);
 }
 
 /**
- * DELETE: Cancel and remove the chain for a task.
- * Call this before/after deleting the task from the DB.
+ * DELETE: Cancel all alarms for a task.
+ * Call before/after deleting the task from the DB.
  */
-export function cancelForTask(convexId: string): { success: boolean; cancelled: string } {
+export function cancelForTask(
+  convexId: string
+): { success: boolean; cancelled?: string; error?: string } {
   return SchedulerModule.cancelForTask(convexId);
-}
-
-/**
- * DEBUG: Get all currently active chain IDs (convex_ids).
- */
-export function getActiveChains(): string[] {
-  return SchedulerModule.getActiveChains();
 }

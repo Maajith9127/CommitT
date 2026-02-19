@@ -21,6 +21,7 @@ const config = {
           locationPermission: "Allow commit to use your location",
         },
       ],
+      "./plugins/withAlarmPermissions/withAlarmPermissions",
     ],
     experiments: {
       typedRoutes: true,
