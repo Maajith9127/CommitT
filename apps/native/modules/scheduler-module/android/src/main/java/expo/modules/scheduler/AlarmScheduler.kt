@@ -16,6 +16,7 @@ import java.util.Calendar
 /**
  * Shared alarm scheduling logic.
  * Used by SchedulerModule (from JS), AlarmReceiver (chain), and BootReceiver (restart).
+ * Now supports repeating pre-alarms that skip if overlapping with prior tasks.
  */
 object AlarmScheduler {
     private const val TAG = "AlarmScheduler"
@@ -61,24 +62,60 @@ object AlarmScheduler {
             val nextSlot = findNextTimeSlot(recurrence, now)
                 ?: return mapOf("success" to false, "error" to "No upcoming slot for '$title'")
 
-            // Cancel any existing alarm for this task
+            // Cancel any existing alarm for this task (Main + Pre-alarms)
             cancelAlarmForTask(context, db, localId, convexId)
 
-            // Generate a stable alarm ID from convex ID
+            // Generate a stable alarm ID from convex ID for MAIN ALARM
             val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
 
-            // Persist to scheduled_alarms table
+            // Persist Main Alarm to scheduled_alarms table
             db.execSQL(
                 """INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 arrayOf<Any>(localId, nextSlot.startTimeMs, nextSlot.startTimeMs, nextSlot.endTimeMs, alarmId, now)
             )
 
-            // Set OS-level alarm
+            // Set OS-level alarm for MAIN ALARM
             setAlarm(context, alarmId, nextSlot.startTimeMs, convexId, title, recurrenceJson, nextSlot.endTimeMs)
 
+            // ==========================================
+            // Pre-Alarm Logic
+            // ==========================================
+            val preAlarmsToSave = mutableListOf<Map<String, Any>>()
+            for (offset in 15 downTo 1 step 2) {
+                val preAlarmTimeMs = nextSlot.startTimeMs - (offset * 60 * 1000L)
+                if (preAlarmTimeMs <= now) continue
+
+                // Check for conflicts: Any OTHER task overlapping with [preAlarmTime - 5m, preAlarmTime + 5m]?
+                val minTime = preAlarmTimeMs - 5 * 60 * 1000L
+                val maxTime = preAlarmTimeMs + 5 * 60 * 1000L
+                val conflictCursor = db.rawQuery(
+                    "SELECT COUNT(*) FROM scheduled_alarms WHERE task_id != ? AND instance_end >= ? AND instance_start <= ?",
+                    arrayOf(localId, minTime.toString(), maxTime.toString())
+                )
+                var hasConflict = false
+                if (conflictCursor.moveToFirst()) {
+                    hasConflict = conflictCursor.getInt(0) > 0
+                }
+                conflictCursor.close()
+
+                if (!hasConflict) {
+                    val preAlarmId = ("${convexId}_pre_${offset}").hashCode() and 0x7FFFFFFF
+                    db.execSQL(
+                        "INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                        arrayOf<Any>(localId, preAlarmTimeMs, nextSlot.startTimeMs, nextSlot.endTimeMs, preAlarmId, now)
+                    )
+                    setAlarm(context, preAlarmId, preAlarmTimeMs, convexId, title, recurrenceJson, nextSlot.endTimeMs, true, offset)
+                    preAlarmsToSave.add(mapOf("offset" to offset, "fireAtMs" to preAlarmTimeMs, "alarmId" to preAlarmId))
+                    Log.d(TAG, "🔔 Scheduled Pre-Alarm: $offset mins prior at ${formatTime(preAlarmTimeMs)}")
+                } else {
+                    Log.d(TAG, "⏭️ Pre-Alarm skipped due to adjacent/overlapping task conflict ($offset mins prior)")
+                }
+            }
+            // ==========================================
+
             // Persist to device-protected storage (accessible before unlock)
-            saveToBootStorage(context, convexId, title, recurrenceJson, nextSlot.startTimeMs, nextSlot.endTimeMs)
+            saveToBootStorage(context, convexId, title, recurrenceJson, nextSlot.startTimeMs, nextSlot.endTimeMs, preAlarmsToSave)
 
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             Log.d(TAG, "📋 Scheduled: '$title'")
@@ -194,19 +231,50 @@ object AlarmScheduler {
             val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
             val now = System.currentTimeMillis()
 
-            // Persist
+            // Persist Main Alarm
             db.execSQL(
                 """INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at)
                    VALUES (?, ?, ?, ?, ?, ?)""",
                 arrayOf<Any>(localId, nextSlot.startTimeMs, nextSlot.startTimeMs, nextSlot.endTimeMs, alarmId, now)
             )
-            Log.d(TAG, "🔗 Persisted to scheduled_alarms table")
+            Log.d(TAG, "🔗 Persisted main alarm to scheduled_alarms table")
 
             // Set OS alarm
             setAlarm(context, alarmId, nextSlot.startTimeMs, convexId, title, recurrenceJson, nextSlot.endTimeMs)
 
+            // ==========================================
+            // Pre-Alarm Logic (Chain)
+            // ==========================================
+            val preAlarmsToSave = mutableListOf<Map<String, Any>>()
+            for (offset in 15 downTo 1 step 2) {
+                val preAlarmTimeMs = nextSlot.startTimeMs - (offset * 60 * 1000L)
+                if (preAlarmTimeMs <= now) continue
+
+                val minTime = preAlarmTimeMs - 5 * 60 * 1000L
+                val maxTime = preAlarmTimeMs + 5 * 60 * 1000L
+                val conflictCursor = db.rawQuery(
+                    "SELECT COUNT(*) FROM scheduled_alarms WHERE task_id != ? AND instance_end >= ? AND instance_start <= ?",
+                    arrayOf(localId, minTime.toString(), maxTime.toString())
+                )
+                var hasConflict = false
+                if (conflictCursor.moveToFirst()) {
+                    hasConflict = conflictCursor.getInt(0) > 0
+                }
+                conflictCursor.close()
+
+                if (!hasConflict) {
+                    val preAlarmId = ("${convexId}_pre_${offset}").hashCode() and 0x7FFFFFFF
+                    db.execSQL(
+                        "INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                        arrayOf<Any>(localId, preAlarmTimeMs, nextSlot.startTimeMs, nextSlot.endTimeMs, preAlarmId, now)
+                    )
+                    setAlarm(context, preAlarmId, preAlarmTimeMs, convexId, title, recurrenceJson, nextSlot.endTimeMs, true, offset)
+                    preAlarmsToSave.add(mapOf("offset" to offset, "fireAtMs" to preAlarmTimeMs, "alarmId" to preAlarmId))
+                }
+            }
+
             // Update device-protected storage
-            saveToBootStorage(context, convexId, title, recurrenceJson, nextSlot.startTimeMs, nextSlot.endTimeMs)
+            saveToBootStorage(context, convexId, title, recurrenceJson, nextSlot.startTimeMs, nextSlot.endTimeMs, preAlarmsToSave)
 
             Log.d(TAG, "✅ Chained: '$title' → ${formatTime(nextSlot.startTimeMs)} (delay: ${(nextSlot.startTimeMs - now) / 1000}s)")
             Log.d(TAG, "═══════════════════════════════════════════════")
@@ -263,9 +331,11 @@ object AlarmScheduler {
         convexId: String,
         title: String,
         recurrenceJson: String,
-        endTimeMs: Long
+        endTimeMs: Long,
+        isPreAlarm: Boolean = false,
+        preAlarmOffset: Int = 0
     ) {
-        Log.d(TAG, "⏰ setAlarm() → alarmId=$alarmId, fireAt=${formatTime(fireAtMs)}, title='$title'")
+        Log.d(TAG, "⏰ setAlarm() → alarmId=$alarmId, fireAt=${formatTime(fireAtMs)}, title='$title', isPre=$isPreAlarm")
 
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("convex_id", convexId)
@@ -273,6 +343,8 @@ object AlarmScheduler {
             putExtra("recurrence_json", recurrenceJson)
             putExtra("alarm_id", alarmId)
             putExtra("end_time_ms", endTimeMs)
+            putExtra("is_pre_alarm", isPreAlarm)
+            putExtra("pre_alarm_offset", preAlarmOffset)
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -308,23 +380,35 @@ object AlarmScheduler {
     private fun cancelAlarmForTask(context: Context, db: SQLiteDatabase, localId: String, convexId: String) {
         Log.d(TAG, "🚫 cancelAlarmForTask() → localId=$localId, convexId=$convexId")
 
-        // Cancel the PendingIntent
-        val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context, alarmId, intent,
+
+        // Cancel Main Alarm
+        val mainAlarmId = (convexId.hashCode() and 0x7FFFFFFF)
+        val mainPendingIntent = PendingIntent.getBroadcast(
+            context, mainAlarmId, intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
-        if (pendingIntent != null) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.cancel(pendingIntent)
-            pendingIntent.cancel()
-            Log.d(TAG, "🚫 Cancelled existing PendingIntent for alarmId=$alarmId")
-        } else {
-            Log.d(TAG, "🚫 No existing PendingIntent found for alarmId=$alarmId (already cancelled or never set)")
+        if (mainPendingIntent != null) {
+            alarmManager.cancel(mainPendingIntent)
+            mainPendingIntent.cancel()
+            Log.d(TAG, "🚫 Cancelled existing Main PendingIntent for alarmId=$mainAlarmId")
         }
 
-        // Remove from DB
+        // Cancel Pre-Alarms
+        for (offset in 1..15 step 2) {
+            val preAlarmId = ("${convexId}_pre_${offset}").hashCode() and 0x7FFFFFFF
+            val prePendingIntent = PendingIntent.getBroadcast(
+                context, preAlarmId, intent,
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+            )
+            if (prePendingIntent != null) {
+                alarmManager.cancel(prePendingIntent)
+                prePendingIntent.cancel()
+            }
+        }
+
+        // Remove from DB (will remove both main and pre-alarms since they share localId)
         db.execSQL("DELETE FROM scheduled_alarms WHERE task_id = ?", arrayOf<Any>(localId))
         Log.d(TAG, "🚫 Deleted scheduled_alarms rows for task_id=$localId")
     }
@@ -449,12 +533,22 @@ object AlarmScheduler {
         title: String,
         recurrenceJson: String,
         fireAtMs: Long,
-        endTimeMs: Long
+        endTimeMs: Long,
+        preAlarms: List<Map<String, Any>> = emptyList()
     ) {
         try {
             val prefs = getBootPrefs(context)
             val alarmsJson = prefs.getString(KEY_ALARMS, "{}")
             val alarms = JSONObject(alarmsJson)
+
+            val preAlarmsArray = JSONArray()
+            for (pa in preAlarms) {
+                val pObj = JSONObject()
+                pObj.put("offset", pa["offset"])
+                pObj.put("fireAtMs", pa["fireAtMs"])
+                pObj.put("alarmId", pa["alarmId"])
+                preAlarmsArray.put(pObj)
+            }
 
             val entry = JSONObject().apply {
                 put("convexId", convexId)
@@ -462,6 +556,7 @@ object AlarmScheduler {
                 put("recurrenceJson", recurrenceJson)
                 put("fireAtMs", fireAtMs)
                 put("endTimeMs", endTimeMs)
+                put("preAlarms", preAlarmsArray)
             }
             alarms.put(convexId, entry)
 
@@ -491,10 +586,6 @@ object AlarmScheduler {
     /**
      * Re-schedule all alarms from device-protected storage.
      * Called by BootReceiver — works even before the phone is unlocked.
-     *
-     * IMPORTANT: If the saved fireAtMs is still in the future, we reuse it
-     * instead of recalculating. This prevents BOOT_COMPLETED from overriding
-     * an alarm that LOCKED_BOOT_COMPLETED already set correctly.
      */
     fun rescheduleAllFromBootStorage(context: Context) {
         try {
@@ -520,8 +611,9 @@ object AlarmScheduler {
                     val recurrenceJson = entry.getString("recurrenceJson")
                     val savedFireAtMs = entry.optLong("fireAtMs", 0L)
                     val savedEndTimeMs = entry.getLong("endTimeMs")
-
+                    
                     val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
+                    val preAlarmsArray = entry.optJSONArray("preAlarms") ?: JSONArray()
 
                     // If saved fire time is still in the future, reuse it directly
                     // This prevents BOOT_COMPLETED from overriding LOCKED_BOOT's alarm
@@ -529,6 +621,17 @@ object AlarmScheduler {
                         Log.d(TAG, "⏰ '$title': saved fire time ${formatTime(savedFireAtMs)} is still in the future (${(savedFireAtMs - now) / 1000}s away). Reusing it.")
                         setAlarm(context, alarmId, savedFireAtMs, convexId, title, recurrenceJson, savedEndTimeMs)
                         Log.d(TAG, "✅ Re-scheduled '$title' → ${formatTime(savedFireAtMs)} (reused saved time)")
+                        
+                        // Reuse future pre-alarms
+                        for (i in 0 until preAlarmsArray.length()) {
+                            val pObj = preAlarmsArray.getJSONObject(i)
+                            val offset = pObj.getInt("offset")
+                            val pFireAtMs = pObj.getLong("fireAtMs")
+                            val pAlarmId = pObj.getInt("alarmId")
+                            if (pFireAtMs > now) {
+                                setAlarm(context, pAlarmId, pFireAtMs, convexId, title, recurrenceJson, savedEndTimeMs, true, offset)
+                            }
+                        }
 
                     } else {
                         // Saved time has passed — check how recently
@@ -549,8 +652,20 @@ object AlarmScheduler {
                                 put("recurrenceJson", recurrenceJson)
                                 put("fireAtMs", fireNow)
                                 put("endTimeMs", savedEndTimeMs)
+                                put("preAlarms", preAlarmsArray) // maintain them, some might still be future
                             }
                             alarms.put(convexId, updatedEntry)
+                            
+                            // Re-schedule future prealarms (though unlikely since main is missed, some might exist theoretically)
+                            for (i in 0 until preAlarmsArray.length()) {
+                                val pObj = preAlarmsArray.getJSONObject(i)
+                                val offset = pObj.getInt("offset")
+                                val pFireAtMs = pObj.getLong("fireAtMs")
+                                val pAlarmId = pObj.getInt("alarmId")
+                                if (pFireAtMs > now) {
+                                    setAlarm(context, pAlarmId, pFireAtMs, convexId, title, recurrenceJson, savedEndTimeMs, true, offset)
+                                }
+                            }
 
                             Log.d(TAG, "✅ Re-scheduled '$title' → ${formatTime(fireNow)} (immediate — missed during boot)")
 
@@ -563,6 +678,23 @@ object AlarmScheduler {
                             if (nextSlot != null) {
                                 setAlarm(context, alarmId, nextSlot.startTimeMs, convexId, title, recurrenceJson, nextSlot.endTimeMs)
 
+                                // Create new prealarms array
+                                val newPreAlarms = JSONArray()
+                                for (i in 0 until preAlarmsArray.length()) {
+                                    val pObj = preAlarmsArray.getJSONObject(i)
+                                    val offset = pObj.getInt("offset")
+                                    val pAlarmId = pObj.getInt("alarmId")
+                                    val newPFireAtMs = nextSlot.startTimeMs - (offset * 60 * 1000L)
+                                    if (newPFireAtMs > now) {
+                                        setAlarm(context, pAlarmId, newPFireAtMs, convexId, title, recurrenceJson, nextSlot.endTimeMs, true, offset)
+                                        val newPObj = JSONObject()
+                                        newPObj.put("offset", offset)
+                                        newPObj.put("fireAtMs", newPFireAtMs)
+                                        newPObj.put("alarmId", pAlarmId)
+                                        newPreAlarms.put(newPObj)
+                                    }
+                                }
+
                                 // Update boot storage with new fire time
                                 val updatedEntry = JSONObject().apply {
                                     put("convexId", convexId)
@@ -570,6 +702,7 @@ object AlarmScheduler {
                                     put("recurrenceJson", recurrenceJson)
                                     put("fireAtMs", nextSlot.startTimeMs)
                                     put("endTimeMs", nextSlot.endTimeMs)
+                                    put("preAlarms", newPreAlarms)
                                 }
                                 alarms.put(convexId, updatedEntry)
 

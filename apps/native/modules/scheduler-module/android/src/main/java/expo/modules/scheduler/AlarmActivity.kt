@@ -58,6 +58,8 @@ class AlarmActivity : Activity() {
         val title = intent.getStringExtra("title") ?: "Alarm"
         val recurrenceJson = intent.getStringExtra("recurrence_json") ?: ""
         val endTimeMs = intent.getLongExtra("end_time_ms", 0L)
+        val isPreAlarm = intent.getBooleanExtra("is_pre_alarm", false)
+        val preAlarmOffset = intent.getIntExtra("pre_alarm_offset", 0)
 
         Log.d(TAG, "🔔 convexId=$convexId")
         Log.d(TAG, "🔔 title='$title'")
@@ -88,7 +90,7 @@ class AlarmActivity : Activity() {
 
         // "Time for:" label
         val labelText = TextView(this).apply {
-            text = "Time for"
+            text = if (isPreAlarm) "Upcoming in $preAlarmOffset mins" else "Time for"
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             setTextColor(Color.parseColor("#AAAAAA"))
             gravity = Gravity.CENTER
@@ -135,15 +137,19 @@ class AlarmActivity : Activity() {
 
             // Stop alarm
             stopAlarm()
-            Log.d(TAG, "👆 Alarm stopped, now chaining next...")
 
-            // Chain the next alarm
-            try {
-                AlarmScheduler.chainNextAlarm(this, convexId, recurrenceJson, endTimeMs)
-                Log.d(TAG, "✅ chainNextAlarm() completed")
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ chainNextAlarm() FAILED: ${e.message}")
-                Log.e(TAG, "❌ Stack trace: ${e.stackTraceToString()}")
+            if (!isPreAlarm) {
+                Log.d(TAG, "👆 Alarm stopped, now chaining next...")
+                // Chain the next alarm
+                try {
+                    AlarmScheduler.chainNextAlarm(this@AlarmActivity, convexId, recurrenceJson, endTimeMs)
+                    Log.d(TAG, "✅ chainNextAlarm() completed")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ chainNextAlarm() FAILED: ${e.message}")
+                    Log.e(TAG, "❌ Stack trace: ${e.stackTraceToString()}")
+                }
+            } else {
+                Log.d(TAG, "👆 Pre-alarm stopped, no chaining needed.")
             }
 
             finish()

@@ -104,6 +104,22 @@ function withAlarmPermissions(config) {
       });
     }
 
+    // --- PreAlarmActivity ---
+    const hasPreAlarmActivity = app.activity.some(
+      (a) => a.$?.["android:name"] === "expo.modules.scheduler.PreAlarmActivity"
+    );
+    if (!hasPreAlarmActivity) {
+      app.activity.push({
+        $: {
+          "android:name": "expo.modules.scheduler.PreAlarmActivity",
+          "android:exported": "false",
+          "android:launchMode": "singleTop",
+          "android:excludeFromRecents": "true",
+          "android:theme": "@android:style/Theme.Translucent.NoTitleBar"
+        },
+      });
+    }
+
     return config;
   });
 }

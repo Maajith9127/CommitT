@@ -9,7 +9,7 @@ import android.util.Log
 
 /**
  * Fires when an alarm triggers (even if app is killed).
- * Acquires a wake lock, then starts AlarmActivity.
+ * Acquires a wake lock, then starts AlarmActivity or PreAlarmActivity.
  */
 class AlarmReceiver : BroadcastReceiver() {
 
@@ -28,15 +28,17 @@ class AlarmReceiver : BroadcastReceiver() {
         val recurrenceJson = intent.getStringExtra("recurrence_json")
         val alarmId = intent.getIntExtra("alarm_id", 0)
         val endTimeMs = intent.getLongExtra("end_time_ms", 0L)
+        val isPreAlarm = intent.getBooleanExtra("is_pre_alarm", false)
+        val preAlarmOffset = intent.getIntExtra("pre_alarm_offset", 0)
 
-        Log.d(TAG, "⏰ Extras → convexId=$convexId, title='$title', alarmId=$alarmId, endTimeMs=$endTimeMs")
+        Log.d(TAG, "⏰ Extras → convexId=$convexId, title='$title', alarmId=$alarmId, endTimeMs=$endTimeMs, isPreAlarm=$isPreAlarm")
         Log.d(TAG, "⏰ Extras → recurrenceJson=${recurrenceJson?.take(100)}")
 
-        if (convexId == null) {
+        if (convexId == null && !isPreAlarm) {
             Log.e(TAG, "❌ ABORT: convex_id is null! Intent extras may have been stripped.")
             return
         }
-        if (recurrenceJson == null) {
+        if (recurrenceJson == null && !isPreAlarm) {
             Log.e(TAG, "❌ ABORT: recurrence_json is null! Intent extras may have been stripped.")
             return
         }
@@ -59,7 +61,7 @@ class AlarmReceiver : BroadcastReceiver() {
         wakeLock.acquire(60 * 1000L)
         Log.d(TAG, "⏰ Wake lock acquired (60s timeout)")
 
-        // Launch AlarmActivity
+        // Launch AlarmActivity for both MAIN and PRE alarms
         val activityIntent = Intent(context, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -69,6 +71,8 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra("recurrence_json", recurrenceJson)
             putExtra("alarm_id", alarmId)
             putExtra("end_time_ms", endTimeMs)
+            putExtra("is_pre_alarm", isPreAlarm)
+            putExtra("pre_alarm_offset", preAlarmOffset)
         }
 
         try {
