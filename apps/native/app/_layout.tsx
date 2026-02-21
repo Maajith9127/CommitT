@@ -44,10 +44,19 @@ function DbDebugFab() {
 
   const inspect = async () => {
     try {
-      const allRows = await db.getAllAsync('SELECT * FROM local_tasks');
-      setRows(allRows);
+      const allTasks = await db.getAllAsync('SELECT * FROM local_tasks');
+      const enhancedTasks = await Promise.all(
+        allTasks.map(async (task: any) => {
+          const instances = await db.getAllAsync(
+            'SELECT start_time, end_time, status, id FROM task_instances WHERE task_id = ? ORDER BY start_time ASC',
+            [task.id]
+          );
+          return { ...task, instances };
+        })
+      );
+      setRows(enhancedTasks);
       setVisible(true);
-      console.log('📦 Local DB rows:', JSON.stringify(allRows, null, 2));
+      console.log('📦 Local DB tasks + instances fetched! Count:', enhancedTasks.length);
     } catch (e) {
       Alert.alert('DB Error', String(e));
     }
@@ -146,6 +155,23 @@ function DbDebugFab() {
                       {prettyJson(row.conditions_json)}
                     </Text>
                   </View>
+
+                  {row.instances && row.instances.length > 0 && (
+                    <>
+                      <Text style={{ color: '#4FA0FF', fontSize: 11, fontWeight: '600', marginBottom: 2 }}>
+                        Instances ({row.instances.length} scheduled)
+                      </Text>
+                      <View style={{ backgroundColor: '#111', borderRadius: 6, padding: 8, marginBottom: 6, maxHeight: 150 }}>
+                        <ScrollView nestedScrollEnabled>
+                          {row.instances.map((inst: any, idx: number) => (
+                            <Text key={inst.id || idx} style={{ color: '#8BC34A', fontSize: 10, fontFamily: 'monospace', marginBottom: 4 }}>
+                              [{idx + 1}] {row.title} — {new Date(inst.start_time).toLocaleString()} ➔ {new Date(inst.end_time).toLocaleTimeString()} ({inst.status})
+                            </Text>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    </>
+                  )}
 
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
                     <Text style={{ color: '#555', fontSize: 10 }}>

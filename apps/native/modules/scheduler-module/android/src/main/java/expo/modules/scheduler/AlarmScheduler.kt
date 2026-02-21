@@ -59,34 +59,52 @@ object AlarmScheduler {
 
             val recurrence = JSONObject(recurrenceJson)
             val now = System.currentTimeMillis()
-            val nextSlot = findNextTimeSlot(recurrence, now)
-                ?: return mapOf("success" to false, "error" to "No upcoming slot for '$title'")
 
             // Cancel any existing alarm for this task (Main + Pre-alarms)
             cancelAlarmForTask(context, db, localId, convexId)
 
-            // Generate a stable alarm ID from convex ID for MAIN ALARM
+            // 1. Determine how many instances to pre-calculate
+            val endsObj = recurrence.optJSONObject("ends")
+            val count = if (endsObj?.optString("type") == "after") endsObj.optInt("count", 0) else 1
+            
+            Log.d(TAG, "📅 Task '$title': Pre-calculating $count instances...")
+
+            var lastSlotEnd = now
+            var firstSlot: TimeSlotResult? = null
+
+            db.beginTransaction()
+            try {
+                for (i in 0 until count) {
+                    val slot = findNextTimeSlot(recurrence, lastSlotEnd) ?: break
+                    if (i == 0) firstSlot = slot
+
+                    val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
+                    db.execSQL(
+                        """INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        arrayOf<Any>(localId, slot.startTimeMs, slot.startTimeMs, slot.endTimeMs, alarmId, now)
+                    )
+                    lastSlotEnd = slot.endTimeMs
+                }
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
+
+            if (firstSlot == null) {
+                return mapOf("success" to false, "error" to "No upcoming slot for '$title'")
+            }
+
+            // 2. Set the OS-level alarm for the FIRST instance
             val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
+            setAlarm(context, alarmId, firstSlot.startTimeMs, convexId, title, recurrenceJson, firstSlot.endTimeMs)
 
-            // Persist Main Alarm to scheduled_alarms table
-            db.execSQL(
-                """INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                arrayOf<Any>(localId, nextSlot.startTimeMs, nextSlot.startTimeMs, nextSlot.endTimeMs, alarmId, now)
-            )
-
-            // Set OS-level alarm for MAIN ALARM
-            setAlarm(context, alarmId, nextSlot.startTimeMs, convexId, title, recurrenceJson, nextSlot.endTimeMs)
-
-            // ==========================================
-            // Pre-Alarm Logic
-            // ==========================================
+            // 3. Pre-Alarm Logic (only for the first instance)
             val preAlarmsToSave = mutableListOf<Map<String, Any>>()
             for (offset in 15 downTo 1 step 2) {
-                val preAlarmTimeMs = nextSlot.startTimeMs - (offset * 60 * 1000L)
+                val preAlarmTimeMs = firstSlot.startTimeMs - (offset * 60 * 1000L)
                 if (preAlarmTimeMs <= now) continue
 
-                // Check for conflicts: Any OTHER task overlapping with [preAlarmTime - 5m, preAlarmTime + 5m]?
                 val minTime = preAlarmTimeMs - 5 * 60 * 1000L
                 val maxTime = preAlarmTimeMs + 5 * 60 * 1000L
                 val conflictCursor = db.rawQuery(
@@ -103,33 +121,27 @@ object AlarmScheduler {
                     val preAlarmId = ("${convexId}_pre_${offset}").hashCode() and 0x7FFFFFFF
                     db.execSQL(
                         "INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                        arrayOf<Any>(localId, preAlarmTimeMs, nextSlot.startTimeMs, nextSlot.endTimeMs, preAlarmId, now)
+                        arrayOf<Any>(localId, preAlarmTimeMs, firstSlot.startTimeMs, firstSlot.endTimeMs, preAlarmId, now)
                     )
-                    setAlarm(context, preAlarmId, preAlarmTimeMs, convexId, title, recurrenceJson, nextSlot.endTimeMs, true, offset)
+                    setAlarm(context, preAlarmId, preAlarmTimeMs, convexId, title, recurrenceJson, firstSlot.endTimeMs, true, offset)
                     preAlarmsToSave.add(mapOf("offset" to offset, "fireAtMs" to preAlarmTimeMs, "alarmId" to preAlarmId))
                     Log.d(TAG, "🔔 Scheduled Pre-Alarm: $offset mins prior at ${formatTime(preAlarmTimeMs)}")
-                } else {
-                    Log.d(TAG, "⏭️ Pre-Alarm skipped due to adjacent/overlapping task conflict ($offset mins prior)")
                 }
             }
-            // ==========================================
-
-            // Persist to device-protected storage (accessible before unlock)
-            saveToBootStorage(context, convexId, title, recurrenceJson, nextSlot.startTimeMs, nextSlot.endTimeMs, preAlarmsToSave)
+            
+            // 4. Update Boot Storage
+            saveToBootStorage(context, convexId, title, recurrenceJson, firstSlot.startTimeMs, firstSlot.endTimeMs, preAlarmsToSave)
 
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            Log.d(TAG, "📋 Scheduled: '$title'")
-            Log.d(TAG, "📋 Fire at: ${formatTime(nextSlot.startTimeMs)}")
-            Log.d(TAG, "📋 Delay: ${(nextSlot.startTimeMs - now) / 1000}s")
-            Log.d(TAG, "📋 AlarmId: $alarmId")
+            Log.d(TAG, "📋 Scheduled: '$title' (1st of $count)")
+            Log.d(TAG, "📋 Fire at: ${formatTime(firstSlot.startTimeMs)}")
             Log.d(TAG, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
+            
             return mapOf(
                 "success" to true,
                 "taskTitle" to title,
-                "nextAlarmMs" to nextSlot.startTimeMs,
-                "nextAlarmReadable" to formatTime(nextSlot.startTimeMs),
-                "delayMs" to (nextSlot.startTimeMs - now),
+                "nextAlarmMs" to firstSlot.startTimeMs,
+                "nextAlarmReadable" to formatTime(firstSlot.startTimeMs),
                 "alarmId" to alarmId
             )
         } finally {
@@ -212,39 +224,78 @@ object AlarmScheduler {
         val db = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READWRITE)
 
         try {
-            val cursor = db.rawQuery(
+            val taskCursor = db.rawQuery(
                 "SELECT id, title FROM local_tasks WHERE convex_id = ?",
                 arrayOf(convexId)
             )
 
-            if (!cursor.moveToFirst()) {
-                cursor.close()
+            if (!taskCursor.moveToFirst()) {
+                taskCursor.close()
                 Log.e(TAG, "❌ Task not found in local_tasks for convexId=$convexId during chain!")
                 return
             }
 
-            val localId = cursor.getString(0)
-            val title = cursor.getString(1)
-            cursor.close()
+            val localId = taskCursor.getString(0)
+            val title = taskCursor.getString(1)
+            taskCursor.close()
             Log.d(TAG, "🔗 Found task: localId=$localId, title='$title'")
 
-            val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
-            val now = System.currentTimeMillis()
-
-            // Persist Main Alarm
+            // 1. Mark the current instance as dismissed
             db.execSQL(
-                """INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                arrayOf<Any>(localId, nextSlot.startTimeMs, nextSlot.startTimeMs, nextSlot.endTimeMs, alarmId, now)
+                "UPDATE scheduled_alarms SET dismissed = 1 WHERE task_id = ? AND instance_end = ?",
+                arrayOf(localId, currentEndTimeMs)
             )
-            Log.d(TAG, "🔗 Persisted main alarm to scheduled_alarms table")
 
-            // Set OS alarm
+            val now = System.currentTimeMillis()
+            var nextSlot: TimeSlotResult? = null
+
+            // 2. Check for pre-calculated instances in DB
+            val nextDbCursor = db.rawQuery(
+                "SELECT instance_start, instance_end FROM scheduled_alarms WHERE task_id = ? AND dismissed = 0 AND fire_at = instance_start ORDER BY fire_at ASC LIMIT 1",
+                arrayOf(localId)
+            )
+
+            if (nextDbCursor.moveToFirst()) {
+                val start = nextDbCursor.getLong(0)
+                val end = nextDbCursor.getLong(1)
+                nextSlot = TimeSlotResult(start, end, 0)
+                Log.d(TAG, "🔗 Found next pre-calculated instance in DB: ${formatTime(start)}")
+            }
+            nextDbCursor.close()
+
+            // 3. If no pre-calculated instance, check if it's an infinite task
+            if (nextSlot == null) {
+                val endsObj = recurrence.optJSONObject("ends")
+                val isInfinite = endsObj?.optString("type") != "after"
+
+                if (isInfinite) {
+                    val calculated = findNextTimeSlot(recurrence, currentEndTimeMs)
+                    if (calculated != null) {
+                        nextSlot = calculated
+                        Log.d(TAG, "🔗 Infinite task: Calculated next slot: ${formatTime(nextSlot.startTimeMs)}")
+                        
+                        // Persist this new instance
+                        val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
+                        db.execSQL(
+                            """INSERT INTO scheduled_alarms (task_id, fire_at, instance_start, instance_end, os_alarm_id, created_at)
+                               VALUES (?, ?, ?, ?, ?, ?)""",
+                            arrayOf<Any>(localId, nextSlot.startTimeMs, nextSlot.startTimeMs, nextSlot.endTimeMs, alarmId, now)
+                        )
+                    }
+                }
+            }
+
+            if (nextSlot == null) {
+                Log.d(TAG, "🔚 No more time slots for '$title'. Chain ends.")
+                removeFromBootStorage(context, convexId)
+                return
+            }
+
+            // 4. Set the OS alarm for the next slot
+            val alarmId = (convexId.hashCode() and 0x7FFFFFFF)
             setAlarm(context, alarmId, nextSlot.startTimeMs, convexId, title, recurrenceJson, nextSlot.endTimeMs)
 
-            // ==========================================
-            // Pre-Alarm Logic (Chain)
-            // ==========================================
+            // 5. Pre-Alarm Logic (Dynamic for the next slot)
             val preAlarmsToSave = mutableListOf<Map<String, Any>>()
             for (offset in 15 downTo 1 step 2) {
                 val preAlarmTimeMs = nextSlot.startTimeMs - (offset * 60 * 1000L)
@@ -273,10 +324,10 @@ object AlarmScheduler {
                 }
             }
 
-            // Update device-protected storage
+            // Update Boot Storage
             saveToBootStorage(context, convexId, title, recurrenceJson, nextSlot.startTimeMs, nextSlot.endTimeMs, preAlarmsToSave)
 
-            Log.d(TAG, "✅ Chained: '$title' → ${formatTime(nextSlot.startTimeMs)} (delay: ${(nextSlot.startTimeMs - now) / 1000}s)")
+            Log.d(TAG, "✅ Chained: '$title' → ${formatTime(nextSlot.startTimeMs)}")
             Log.d(TAG, "═══════════════════════════════════════════════")
         } catch (e: Exception) {
             Log.e(TAG, "❌ chainNextAlarm error: ${e.message}")

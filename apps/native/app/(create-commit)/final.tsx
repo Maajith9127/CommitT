@@ -17,6 +17,7 @@ import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
 import { scheduleForTask, rescheduleForTask } from "@/modules/scheduler-module";
+import { generateTaskInstances } from "@/lib/scheduler";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -263,6 +264,42 @@ export default function FinalScreen() {
             );
             console.log('[submitTask] Local DB updated for task:', draft.id);
 
+            // Re-generate and insert task instances based on new recurrence rules
+            const taskRow = await db.getFirstAsync<{ id: string }>(
+              "SELECT id FROM local_tasks WHERE convex_id = ?",
+              [draft.id as string]
+            );
+
+            if (taskRow) {
+              const localTaskId = taskRow.id;
+              // Clear previous instances
+              await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [localTaskId]);
+
+              const instances = generateTaskInstances(draft.recurrence);
+              if (instances.length > 0) {
+                const statement = await db.prepareAsync(
+                  `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+                );
+                try {
+                  for (const instance of instances) {
+                    const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+                    await statement.executeAsync([
+                      instanceId,
+                      localTaskId,
+                      draft.id as string,
+                      instance.start_time,
+                      instance.start_time,
+                      instance.end_time,
+                      now
+                    ]);
+                  }
+                  console.log(`[submitTask] Inserted ${instances.length} future instances for update.`);
+                } finally {
+                  await statement.finalizeAsync();
+                }
+              }
+            }
+
             // Schedule alarm via native module
             try {
               const scheduleResult = rescheduleForTask(draft.id as string);
@@ -310,6 +347,31 @@ export default function FinalScreen() {
               ]
             );
             console.log('[submitTask] Local DB insert OK. convex_id:', result.taskId);
+
+            // Generate and insert task instances
+            const instances = generateTaskInstances(draft.recurrence);
+            if (instances.length > 0) {
+              const statement = await db.prepareAsync(
+                `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+              );
+              try {
+                for (const instance of instances) {
+                  const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+                  await statement.executeAsync([
+                    instanceId,
+                    localId,
+                    result.taskId as string,
+                    instance.start_time,
+                    instance.start_time,
+                    instance.end_time,
+                    now,
+                  ]);
+                }
+                console.log(`[submitTask] Inserted ${instances.length} future instances for creation.`);
+              } finally {
+                await statement.finalizeAsync();
+              }
+            }
 
             // Schedule alarm via native module
             try {

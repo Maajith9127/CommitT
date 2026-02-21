@@ -12,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -115,11 +115,29 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     currentVersion = 2;
   }
 
-  // ── Future migrations go here ──────────────────────────────────────────
-  // if (currentVersion === 2) {
-  //   await db.execAsync(`ALTER TABLE ...`);
-  //   currentVersion = 3;
-  // }
+  // ── Migration 2 → 3 (add task_instances for JS-calculated scheduling)
+  if (currentVersion === 2) {
+    await db.execAsync(`
+      PRAGMA foreign_keys = OFF;
+      -- ═══════════════════════════════════════════════════════════════════
+      -- task_instances
+      -- ═══════════════════════════════════════════════════════════════════
+      CREATE TABLE IF NOT EXISTS task_instances (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        convex_id TEXT NOT NULL,
+        scheduled_timestamp INTEGER NOT NULL,
+        start_time INTEGER NOT NULL,
+        end_time INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending', 
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_task_instances_time ON task_instances(start_time, end_time);
+      CREATE INDEX IF NOT EXISTS idx_task_instances_task ON task_instances(task_id);
+      PRAGMA foreign_keys = ON;
+    `);
+    currentVersion = 3;
+  }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
 }
