@@ -16,7 +16,7 @@ import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
-import { scheduleForTask, rescheduleForTask } from "@/modules/scheduler-module";
+import { scheduleNextAlarm } from "@/modules/scheduler-module";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -307,9 +307,9 @@ export default function FinalScreen() {
               }
             }
 
-            // Schedule alarm via native module
+            // Schedule globally next alarm via native module
             try {
-              const scheduleResult = rescheduleForTask(draft.id as string);
+              const scheduleResult = scheduleNextAlarm();
               console.log('[submitTask] Schedule result:', JSON.stringify(scheduleResult));
             } catch (schedError) {
               console.error('[submitTask] Scheduling failed (non-critical):', schedError);
@@ -381,9 +381,9 @@ export default function FinalScreen() {
               }
             }
 
-            // Schedule alarm via native module
+            // Schedule globally next alarm via native module
             try {
-              const scheduleResult = scheduleForTask(result.taskId as string);
+              const scheduleResult = scheduleNextAlarm();
               console.log('[submitTask] Schedule result:', JSON.stringify(scheduleResult));
             } catch (schedError) {
               console.error('[submitTask] Scheduling failed (non-critical):', schedError);

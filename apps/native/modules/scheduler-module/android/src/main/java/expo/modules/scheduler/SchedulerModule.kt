@@ -22,45 +22,29 @@ class SchedulerModule : Module() {
 
         Name("SchedulerModule")
 
-        // CREATE: Schedule the next alarm for a task
         Function("scheduleForTask") { convexId: String ->
-            Log.d(TAG, "📥 JS → scheduleForTask('$convexId')")
-            val context = appContext.reactContext
-            if (context == null) {
-                Log.e(TAG, "❌ No reactContext available!")
-                return@Function mapOf("success" to false, "error" to "No context")
-            }
-            val result = AlarmScheduler.scheduleAlarm(context, convexId)
-            Log.d(TAG, "📤 scheduleForTask result: $result")
-            result
+            Log.d(TAG, "📥 JS → scheduleForTask($convexId)")
+            val context = appContext.reactContext ?: return@Function mapOf("success" to false)
+            AlarmScheduler.scheduleAlarm(context, convexId)
         }
 
-        // UPDATE: Cancel existing + schedule with new rules
         Function("rescheduleForTask") { convexId: String ->
-            Log.d(TAG, "📥 JS → rescheduleForTask('$convexId')")
-            val context = appContext.reactContext
-            if (context == null) {
-                Log.e(TAG, "❌ No reactContext available!")
-                return@Function mapOf("success" to false, "error" to "No context")
-            }
-            val cancelResult = AlarmScheduler.cancelAlarm(context, convexId)
-            Log.d(TAG, "📤 cancelAlarm result: $cancelResult")
-            val schedResult = AlarmScheduler.scheduleAlarm(context, convexId)
-            Log.d(TAG, "📤 scheduleAlarm result: $schedResult")
-            schedResult
+            Log.d(TAG, "📥 JS → rescheduleForTask($convexId)")
+            val context = appContext.reactContext ?: return@Function mapOf("success" to false)
+            AlarmScheduler.scheduleAlarm(context, convexId)
         }
 
-        // DELETE: Cancel all alarms for a task
         Function("cancelForTask") { convexId: String ->
-            Log.d(TAG, "📥 JS → cancelForTask('$convexId')")
-            val context = appContext.reactContext
-            if (context == null) {
-                Log.e(TAG, "❌ No reactContext available!")
-                return@Function mapOf("success" to false, "error" to "No context")
-            }
-            val result = AlarmScheduler.cancelAlarm(context, convexId)
-            Log.d(TAG, "📤 cancelForTask result: $result")
-            result
+            Log.d(TAG, "📥 JS → cancelForTask($convexId)")
+            val context = appContext.reactContext ?: return@Function mapOf("success" to false)
+            AlarmScheduler.cancelAlarm(context, convexId)
+        }
+
+        Function("scheduleNextAlarm") {
+            Log.d(TAG, "📥 JS → scheduleNextAlarm()")
+            val context = appContext.reactContext ?: return@Function mapOf("success" to false)
+            AlarmScheduler.scheduleNextAlarm(context)
+            mapOf("success" to true)
         }
     }
 }

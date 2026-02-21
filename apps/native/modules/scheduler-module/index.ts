@@ -14,39 +14,18 @@ import { requireNativeModule } from "expo-modules-core";
  */
 const SchedulerModule = requireNativeModule("SchedulerModule");
 
-export interface ScheduleResult {
-  success: boolean;
-  taskTitle?: string;
-  nextAlarmMs?: number;
-  nextAlarmReadable?: string;
-  delayMs?: number;
-  alarmId?: number;
-  error?: string;
-}
-
-/**
- * CREATE: Schedule the next alarm for a task.
- * Reads recurrence from local DB, calculates next time slot,
- * sets an AlarmManager alarm, and persists to scheduled_alarms table.
- */
-export function scheduleForTask(convexId: string): ScheduleResult {
+export function scheduleForTask(convexId: string): any {
   return SchedulerModule.scheduleForTask(convexId);
 }
 
-/**
- * UPDATE: Cancel existing alarm chain and start a new one.
- * Call after updating a task's recurrence rules in the local DB.
- */
-export function rescheduleForTask(convexId: string): ScheduleResult {
+export function rescheduleForTask(convexId: string): any {
   return SchedulerModule.rescheduleForTask(convexId);
 }
 
-/**
- * DELETE: Cancel all alarms for a task.
- * Call before/after deleting the task from the DB.
- */
-export function cancelForTask(
-  convexId: string
-): { success: boolean; cancelled?: string; error?: string } {
+export function cancelForTask(convexId: string): any {
   return SchedulerModule.cancelForTask(convexId);
+}
+
+export function scheduleNextAlarm(): { success: boolean; error?: string } {
+  return SchedulerModule.scheduleNextAlarm();
 }

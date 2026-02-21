@@ -4,7 +4,7 @@ import { useMutation } from 'convex/react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { api } from '@commit/backend/convex/_generated/api';
 import { useTaskDraftStore } from '@/stores/useTaskDraftStore';
-import { cancelForTask } from '@/modules/scheduler-module';
+import { scheduleNextAlarm } from '@/modules/scheduler-module';
 import type { Task } from './useTasks';
 
 /**
@@ -43,26 +43,26 @@ export function useTaskActions() {
   }, [setDraft, router]);
 
   const deleteTask = useCallback(async (taskId: string) => {
-    // Cancel any active scheduling chain for this task
-    try {
-      cancelForTask(taskId);
-      console.log('[useTaskActions] Cancelled schedule chain for:', taskId);
-    } catch (schedError) {
-      console.error('[useTaskActions] Cancel schedule failed (non-critical):', schedError);
-    }
-
-    // Delete from Convex
-    await removeTaskMutation({ id: taskId as any });
-
-    // Delete from local DB
+    // Delete task instances from local DB before we tell native to schedule next
     try {
       // Explicitly delete instances first to be 100% safe (even if PRAGMA foreign_keys is off)
       await db.runAsync('DELETE FROM task_instances WHERE task_id IN (SELECT id FROM local_tasks WHERE convex_id = ?)', [taskId]);
       await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [taskId]);
       console.log('[useTaskActions] Local DB delete OK for:', taskId);
+      
+      // Now re-trigger the scheduler to process the deletion
+      try {
+        scheduleNextAlarm();
+        console.log('[useTaskActions] Scheduled globally next alarm after deletion');
+      } catch (schedError) {
+        console.error('[useTaskActions] scheduling fallback failed', schedError);
+      }
     } catch (localError) {
       console.error('[useTaskActions] Local DB delete failed (non-critical):', localError);
     }
+
+    // Use the convex mutation as the final step (it operates in the background via useMutation hook)
+    await removeTaskMutation({ id: taskId as any });
   }, [removeTaskMutation, db]);
 
   // Pause Task (Placeholder)
