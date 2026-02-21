@@ -39,7 +39,13 @@ export default authedMutation({
         assigner_id: user._id,
       });
 
-      return { success: true, taskId: result.taskId };
+      // Fetch the generated 365 instances directly from the backend to send as the identical source of truth
+      const instances = await ctx.db
+        .query("taskInstances")
+        .withIndex("by_task", (q) => q.eq("task_id", result.taskId))
+        .collect();
+
+      return { success: true, taskId: result.taskId, instances };
     } catch (e: any) {
       // Graceful Error Handling:
       // Instead of throwing a raw Convex error, we catch it and return a structured object.

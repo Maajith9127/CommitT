@@ -57,7 +57,7 @@ export function useTaskActions() {
     // Delete from local DB
     try {
       // Explicitly delete instances first to be 100% safe (even if PRAGMA foreign_keys is off)
-      await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [taskId]);
+      await db.runAsync('DELETE FROM task_instances WHERE task_id IN (SELECT id FROM local_tasks WHERE convex_id = ?)', [taskId]);
       await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [taskId]);
       console.log('[useTaskActions] Local DB delete OK for:', taskId);
     } catch (localError) {

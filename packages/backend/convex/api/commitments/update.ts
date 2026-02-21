@@ -37,7 +37,14 @@ export default authedMutation({
         ...args,
         user_id: user._id,
       });
-      return { success: true };
+
+      // Fetch the generated 365 instances directly from the backend to send as the identical source of truth
+      const instances = await ctx.db
+        .query("taskInstances")
+        .withIndex("by_task", (q) => q.eq("task_id", args.id))
+        .collect();
+
+      return { success: true, instances };
     } catch (e: any) {
       // Standardized Error Response DesignPattern:
       // Catches throws from the service layer (like [SCHEDULE_CONFLICT])

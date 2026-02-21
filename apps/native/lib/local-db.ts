@@ -12,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -130,6 +130,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
         start_time INTEGER NOT NULL,
         end_time INTEGER NOT NULL,
         status TEXT DEFAULT 'pending', 
+        title TEXT DEFAULT '',
         created_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_task_instances_time ON task_instances(start_time, end_time);
@@ -137,6 +138,14 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       PRAGMA foreign_keys = ON;
     `);
     currentVersion = 3;
+  }
+
+  // ── Migration 3 → 4 (add title to task_instances for explicit querying)
+  if (currentVersion === 3) {
+    await db.execAsync(`
+      ALTER TABLE task_instances ADD COLUMN title TEXT DEFAULT '';
+    `);
+    currentVersion = 4;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

@@ -17,7 +17,6 @@ import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
 import { scheduleForTask, rescheduleForTask } from "@/modules/scheduler-module";
-import { generateTaskInstances } from "@/lib/scheduler";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -43,6 +42,13 @@ interface ConditionConfig {
 interface MutationResult {
   success: boolean;
   taskId?: Id<"tasks">;
+  instances?: Array<{
+    _id: string;
+    start: number;
+    end: number;
+    status: string;
+    title: string;
+  }>;
   error?: {
     code: string;
     message: string;
@@ -275,25 +281,26 @@ export default function FinalScreen() {
               // Clear previous instances
               await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [localTaskId]);
 
-              const instances = generateTaskInstances(draft.recurrence);
-              if (instances.length > 0) {
+              const backendInstances = result.instances || [];
+              if (backendInstances.length > 0) {
                 const statement = await db.prepareAsync(
-                  `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+                  `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
                 );
                 try {
-                  for (const instance of instances) {
+                  for (const instance of backendInstances) {
                     const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
                     await statement.executeAsync([
                       instanceId,
                       localTaskId,
-                      draft.id as string,
-                      instance.start_time,
-                      instance.start_time,
-                      instance.end_time,
+                      instance._id,
+                      instance.start,
+                      instance.start,
+                      instance.end,
+                      instance.title,
                       now
                     ]);
                   }
-                  console.log(`[submitTask] Inserted ${instances.length} future instances for update.`);
+                  console.log(`[submitTask] Inserted ${backendInstances.length} future instances from Convex for update.`);
                 } finally {
                   await statement.finalizeAsync();
                 }
@@ -349,25 +356,26 @@ export default function FinalScreen() {
             console.log('[submitTask] Local DB insert OK. convex_id:', result.taskId);
 
             // Generate and insert task instances
-            const instances = generateTaskInstances(draft.recurrence);
-            if (instances.length > 0) {
+            const backendInstances = result.instances || [];
+            if (backendInstances.length > 0) {
               const statement = await db.prepareAsync(
-                `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
+                `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
               );
               try {
-                for (const instance of instances) {
+                for (const instance of backendInstances) {
                   const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
                   await statement.executeAsync([
                     instanceId,
                     localId,
-                    result.taskId as string,
-                    instance.start_time,
-                    instance.start_time,
-                    instance.end_time,
+                    instance._id,
+                    instance.start,
+                    instance.start,
+                    instance.end,
+                    instance.title,
                     now,
                   ]);
                 }
-                console.log(`[submitTask] Inserted ${instances.length} future instances for creation.`);
+                console.log(`[submitTask] Inserted ${backendInstances.length} future instances from Convex for creation.`);
               } finally {
                 await statement.finalizeAsync();
               }
