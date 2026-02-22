@@ -22,24 +22,6 @@ class SchedulerModule : Module() {
 
         Name("SchedulerModule")
 
-        Function("scheduleForTask") { convexId: String ->
-            Log.d(TAG, "📥 JS → scheduleForTask($convexId)")
-            val context = appContext.reactContext ?: return@Function mapOf("success" to false)
-            AlarmScheduler.scheduleAlarm(context, convexId)
-        }
-
-        Function("rescheduleForTask") { convexId: String ->
-            Log.d(TAG, "📥 JS → rescheduleForTask($convexId)")
-            val context = appContext.reactContext ?: return@Function mapOf("success" to false)
-            AlarmScheduler.scheduleAlarm(context, convexId)
-        }
-
-        Function("cancelForTask") { convexId: String ->
-            Log.d(TAG, "📥 JS → cancelForTask($convexId)")
-            val context = appContext.reactContext ?: return@Function mapOf("success" to false)
-            AlarmScheduler.cancelAlarm(context, convexId)
-        }
-
         Function("scheduleNextAlarm") {
             Log.d(TAG, "📥 JS → scheduleNextAlarm()")
             val context = appContext.reactContext ?: return@Function mapOf("success" to false)

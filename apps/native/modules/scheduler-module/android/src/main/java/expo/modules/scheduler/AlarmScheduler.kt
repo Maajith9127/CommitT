@@ -12,14 +12,8 @@ import java.util.Calendar
 
 object AlarmScheduler {
     private const val TAG = "AlarmScheduler"
-
-    fun scheduleAlarm(context: Context, convexId: String) {
-        Log.d(TAG, "scheduleAlarm: $convexId")
-    }
-
-    fun cancelAlarm(context: Context, convexId: String) {
-        Log.d(TAG, "cancelAlarm: $convexId")
-    }
+    private const val PREFS_NAME = "UpcomingAlarmsCache"
+    private const val KEY_ALARMS_LIST = "AlarmsList"
 
     fun scheduleNextAlarm(context: Context) {
         Log.d(TAG, "═══════════════════════════════════════════════")
@@ -27,7 +21,9 @@ object AlarmScheduler {
         
         val dbFile = getDbFile(context)
         if (dbFile == null) {
-            Log.e(TAG, "❌ DB not found!")
+            Log.e(TAG, "❌ DB not found! Falling back to Sticky Note...")
+            scheduleFromStickyNote(context)
+            Log.d(TAG, "═══════════════════════════════════════════════")
             return
         }
 
@@ -42,7 +38,7 @@ object AlarmScheduler {
                 """SELECT id, title, start_time 
                    FROM task_instances 
                    WHERE start_time >= ? 
-                   ORDER BY start_time ASC LIMIT 1""",
+                   ORDER BY start_time ASC LIMIT 20""", // Grab the next 20 to buffer
                 arrayOf(now.toString())
             )
 
@@ -51,19 +47,26 @@ object AlarmScheduler {
                 val title = cursor.getString(1)
                 val startTimeMs = cursor.getLong(2)
                 
-                Log.d(TAG, "🎯 NEXT UPCOMING TASK FOUND:")
+                Log.d(TAG, "🎯 NEXT UPCOMING TASK FOUND IN DB:")
                 Log.d(TAG, "   ID: $instanceId")
                 Log.d(TAG, "   Title: $title")
                 Log.d(TAG, "   Start Time: ${formatTime(startTimeMs)} ($startTimeMs)")
 
                 // Schedule it with the OS so it persists via AlarmManager
                 setOSAlarm(context, instanceId, title, startTimeMs, now)
+                
+                // --- SYNC TO DEVICE PROTECTED STORAGE (THE STICKY NOTE) ---
+                syncToStickyNote(context, cursor)
+
             } else {
                 Log.d(TAG, "📭 No upcoming tasks found after current time.")
+                clearStickyNote(context)
             }
             cursor.close()
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error reading database: ${e.message}")
+            Log.d(TAG, "🔄 Attempting to read from Device Protected Sticky Note...")
+            scheduleFromStickyNote(context)
         } finally {
             db?.close()
         }
@@ -94,8 +97,73 @@ object AlarmScheduler {
         Log.d(TAG, "═══════════════════════════════════════════════")
     }
 
-    fun rescheduleAllFromBootStorage(context: Context) {
-        Log.d(TAG, "rescheduleAllFromBootStorage")
+    // --- STICKY NOTE (DEVICE PROTECTED STORAGE) LOGIC --- //
+
+    private fun getSafePrefs(context: Context): android.content.SharedPreferences? {
+        val deviceContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            context.createDeviceProtectedStorageContext()
+        } else {
+            context
+        }
+        return deviceContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private fun syncToStickyNote(context: Context, cursor: android.database.Cursor) {
+        try {
+            val list = mutableListOf<String>()
+            
+            // Cursor is already at the first item from the if(cursor.moveToFirst()) check
+            do {
+                val id = cursor.getString(0)
+                val title = cursor.getString(1)
+                val time = cursor.getLong(2)
+                // Basic CSV format: id|title|time
+                list.add("$id|$title|$time")
+            } while (cursor.moveToNext())
+
+            val serialized = list.joinToString(";;")
+            getSafePrefs(context)?.edit()?.putString(KEY_ALARMS_LIST, serialized)?.apply()
+            Log.d(TAG, "📝 Saved ${list.size} upcoming tasks to Device Protected Sticky Note.")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to save sticky note: ${e.message}")
+        }
+    }
+
+    private fun clearStickyNote(context: Context) {
+        getSafePrefs(context)?.edit()?.remove(KEY_ALARMS_LIST)?.apply()
+    }
+
+    private fun scheduleFromStickyNote(context: Context) {
+        val serialized = getSafePrefs(context)?.getString(KEY_ALARMS_LIST, null)
+        if (serialized.isNullOrEmpty()) {
+            Log.d(TAG, "📭 Sticky Note is empty. No known offline alarms.")
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val alarms = serialized.split(";;")
+
+        for (alarmStr in alarms) {
+            val parts = alarmStr.split("|")
+            if (parts.size == 3) {
+                val id = parts[0]
+                val title = parts[1]
+                val timeMs = parts[2].toLongOrNull() ?: 0L
+
+                // Find the first one that hasn't fired yet
+                if (timeMs >= now) {
+                    Log.d(TAG, "🎯 NEXT UPCOMING TASK FOUND IN STICKY NOTE:")
+                    Log.d(TAG, "   ID: $id")
+                    Log.d(TAG, "   Title: $title")
+                    Log.d(TAG, "   Start Time: ${formatTime(timeMs)} ($timeMs)")
+                    
+                    setOSAlarm(context, id, title, timeMs, now)
+                    return // Only schedule the immediate next one!
+                }
+            }
+        }
+        Log.d(TAG, "📭 All tasks in the Sticky Note are in the past. Nothing left offline.")
     }
 
     private fun setOSAlarm(
@@ -145,10 +213,35 @@ object AlarmScheduler {
     }
 
     private fun getDbFile(context: Context): File? {
-        val expoPath = File(context.filesDir, "SQLite/commit.db")
-        if (expoPath.exists()) return expoPath
-        val standardPath = context.getDatabasePath("commit.db")
-        if (standardPath.exists()) return standardPath
+        // Since Expo SQLite puts things in a specific folder, let's build the path manually safely
+        try {
+            // First check standard storage
+            val expoPath = File(context.filesDir, "SQLite/commit.db")
+            if (expoPath.exists()) return expoPath
+
+            val standardPath = context.getDatabasePath("commit.db")
+            if (standardPath.exists()) return standardPath
+
+            // If we are in LOCKED_BOOT_COMPLETED, standard storage might be unavailable.
+            // Check Device Protected Storage Context
+            val deviceContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                context.createDeviceProtectedStorageContext()
+            } else {
+                null
+            }
+            
+            if (deviceContext != null) {
+                val safeExpoPath = File(deviceContext.filesDir, "SQLite/commit.db")
+                if (safeExpoPath.exists()) return safeExpoPath
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error accessing file paths (Storage locked?): ${e.message}")
+        }
+        
+        // Final fallback: try to access the known Expo path directly
+        val rawPath = File("/data/user/0/" + context.packageName + "/files/SQLite/commit.db")
+        if (rawPath.exists()) return rawPath
+
         return null
     }
 

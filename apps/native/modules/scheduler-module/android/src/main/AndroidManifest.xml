@@ -1,0 +1,46 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="expo.modules.scheduler">
+
+    <!-- Permissions needed for Alarm Scheduling -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application>
+        <!-- The actual Receiver that catches the AlarmManager OS trigger -->
+        <!-- MUST be directBootAware so it triggers if the phone is locked -->
+        <receiver
+            android:name=".AlarmReceiver"
+            android:exported="false"
+            android:directBootAware="true" />
+
+        <!-- Catches the device reboot to reschedule offline alarms -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true"
+            android:directBootAware="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- The actual Alarm UI that forces itself over the lock screen -->
+        <activity
+            android:name=".AlarmActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:showOnLockScreen="true"
+            android:showForAllUsers="true"
+            android:turnScreenOn="true"
+            android:directBootAware="true"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+    </application>
+</manifest>

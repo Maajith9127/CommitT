@@ -2,15 +2,9 @@
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
   <uses-permission android:name="android.permission.INTERNET"/>
-  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-  <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
-  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
-  <uses-permission android:name="android.permission.WAKE_LOCK"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
   <queries>
     <intent>
@@ -36,15 +30,6 @@
         <data android:scheme="commit"/>
       </intent-filter>
     </activity>
-    <activity android:name="expo.modules.scheduler.AlarmActivity" android:exported="false" android:launchMode="singleTop" android:excludeFromRecents="true" android:showOnLockScreen="true" android:turnScreenOn="true" android:theme="@style/Theme.AppCompat.NoActionBar"/>
-    <activity android:name="expo.modules.scheduler.PreAlarmActivity" android:exported="false" android:launchMode="singleTop" android:excludeFromRecents="true" android:theme="@android:style/Theme.Translucent.NoTitleBar"/>
     <uses-library android:name="org.apache.http.legacy" android:required="false"/>
-    <receiver android:name="expo.modules.scheduler.AlarmReceiver" android:exported="false"/>
-    <receiver android:name="expo.modules.scheduler.BootReceiver" android:exported="true" android:directBootAware="true">
-      <intent-filter>
-        <action android:name="android.intent.action.BOOT_COMPLETED"/>
-        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED"/>
-      </intent-filter>
-    </receiver>
   </application>
 </manifest>
