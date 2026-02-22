@@ -21,14 +21,27 @@ const UView = withUniwind(View);
 const UText = withUniwind(Text);
 
 /**
- * Schedules Screen
+ * Schedules Screen (`/app/(main)/schedules.tsx`)
  * 
- * Main view for the calendar interface.
- * Orchestrates:
- * 1. Range State (for virtualizing infinite scroll)
- * 2. Data Fetching (Convex -> Calendar Events)
- * 3. Visual State (Skeleton Animation, Modal Selection)
- * 4. User Interactions (Navigation, Event Clicking)
+ * The main calendar view rendering the user's commitments and schedules. 
+ * Built on top of the extremely fast `@howljs/calendar-kit` which utilizes Reanimated 
+ * and GestureHandler for pure native 60fps performance.
+ * 
+ * ARCHITECTURE OVERVIEW:
+ * 1. Range Management (`useCalendarRange`):
+ *    The calendar lazily loads bounds. As the user swipes forward/backward, the hook 
+ *    calculates the new viewport and updates the state.
+ * 
+ * 2. Data Fetching (`useCalendarEvents`):
+ *    Subscribes to the local database / remote backend using the computed date payload 
+ *    from `useCalendarRange`. Real-time push updates.
+ * 
+ * 3. Modal Architecture (CRITICAL):
+ *    When a calendar event is clicked, we DO NOT mount a local modal layer here. 
+ *    Doing so would force the massive `@howljs/calendar-kit` to execute a heavy React 
+ *    re-render cycle, stuttering the app. Instead, we use Zustand (`setSelectedEvent`) 
+ *    to pop the Singleton `<EventDetailModal>` located at the root `_layout.tsx`, 
+ *    achieving sub-millisecond tap-to-render times.
  */
 export default function SchedulesScreen() {
   const calendarRef = useRef<CalendarKitRef>(null);

@@ -58,17 +58,26 @@ function getItemKey(item: ListItem): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Commits Screen
+ * Commits Screen (`/app/(main)/commits.tsx`)
  * 
- * Displays the user's list of active commitments (tasks).
+ * This is the primary landing screen for the application. It displays the user's list of 
+ * active commitments (tasks). 
  * 
- * Architecture:
- * - Data Fetching: Delegated to `useTasks` hook.
- * - Actions/Mutations: Delegated to `useTaskActions` hook.
- * - UI State (Selection/Menus): Delegated to `useTaskSelection` hook.
- * - Visual State (Loading): Delegated to `useSkeletonAnimation` hook.
+ * ARCHITECTURE OVERVIEW:
+ * To maintain 60fps scrolling performance, this screen employs a strict "Container/Presentational" 
+ * hybrid architecture and utilizes a heterogeneous `FlatList`.
  * 
- * This separation ensures the component remains focused on layout and composition.
+ * 1. FlatList Optimization:
+ *    Instead of rendering a ScrollView with nested `.map()` loops (which destroys memory on long lists),
+ *    we flatten all UI elements (Headers, the Verification Quick-Action Card, and the Tasks themselves) 
+ *    into a single 1D array of `ListItem` objects. `FlatList` then virtualizes this, only rendering
+ *    what is visible on screen.
+ * 
+ * 2. Hook Extraction (Separation of Concerns):
+ *    - Data Fetching: `useTasks` handles all Convex backend subscriptions and local caching.
+ *    - Actions/Mutations: `useTaskActions` manages creation, editing, and deletion logic.
+ *    - UI State: `useTaskSelection` manages context menus and modal anchors.
+ *    By extracting these, this component file remains purely focused on rendering and layout.
  */
 export default function CommitsScreen() {
   const router = useRouter();

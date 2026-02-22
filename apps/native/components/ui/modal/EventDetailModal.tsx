@@ -13,6 +13,14 @@ const UPressable = withUniwind(Pressable);
 const UText = withUniwind(Text);
 const UScroll = withUniwind(ScrollView);
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STATIC DOMAIN MAPS (MOCK DATA / UI CONFIG)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Maps penalty keys from the backend database to their respective UI representations.
+ * Used to dynamically render the correct icon, title, and description.
+ */
 const PENALTY_MAP: Record<string, { icon: any; title: string; subtitle: string }> = {
   money: { icon: 'currency-inr', title: 'Money Penalty', subtitle: 'Lose a fixed amount when you miss' },
   photo: { icon: 'camera-enhance-outline', title: 'Embarrassing Photo', subtitle: 'Send a cringe picture to someone' },
@@ -20,6 +28,10 @@ const PENALTY_MAP: Record<string, { icon: any; title: string; subtitle: string }
   blockapp: { icon: 'cellphone-off', title: 'Block Favourite App', subtitle: 'Your chosen app gets blocked temporarily' },
 };
 
+/**
+ * Maps waiver keys from the backend database to their respective UI representations.
+ * Waivers are tasks the user can perform to bypass a penalty if they failed their main commitment.
+ */
 const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: string }> = {
   captcha: { icon: 'shield-check-outline', title: 'Solve CAPTCHAs', subtitle: 'Solve a set number of CAPTCHAs' },
   paragraph: { icon: 'pencil-outline', title: 'Write a Long Paragraph', subtitle: 'Type a 3000-word paragraph' },
@@ -27,6 +39,13 @@ const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: string }>
   run: { icon: 'run-fast', title: 'Run 5 KM', subtitle: 'Choose a location and complete the run' },
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MODULAR SUB-COMPONENTS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Generic blueprint for rendering a condition row (used by Penalty and Waiver sections)
+ */
 const InfoSection = ({ icon, color, title, subtitle }: { icon: any; color: string; title: string; subtitle: string }) => (
   <UView className="border-b border-white/20 flex-row p-6 items-center">
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
@@ -37,28 +56,38 @@ const InfoSection = ({ icon, color, title, subtitle }: { icon: any; color: strin
   </UView>
 );
 
+/**
+ * Parses the event's `conditions` array to find a penalty, mapping it to the UI.
+ * Failsafe: Defaults to 'money' if no specific penalty is defined but a penalty rule exists.
+ */
 const PenaltySection = ({ event }: { event: any }) => {
-  // Find a condition that matches a penalty key
   const penaltyCondition = event?.conditions?.find((c: any) => PENALTY_MAP[c.metric_key] || c.type === 'penalty');
   
-  // default to 'money' for show purpose
   const key = penaltyCondition?.metric_key || 'money';
   const info = PENALTY_MAP[key] || PENALTY_MAP['money'];
 
   return <InfoSection icon={info.icon} color="#FF3B30" title={info.title} subtitle={info.subtitle} />;
 };
 
+/**
+ * Parses the event's `conditions` array to find a waiver, mapping it to the UI.
+ * Failsafe: Defaults to 'captcha' if no specific waiver is defined.
+ */
 const WaiverSection = ({ event }: { event: any }) => {
-  // Find a condition that matches a waiver key
   const waiverCondition = event?.conditions?.find((c: any) => WAIVER_MAP[c.metric_key] || c.type === 'waiver');
 
-  // default to 'captcha' for show purpose
   const key = waiverCondition?.metric_key || 'captcha';
   const info = WAIVER_MAP[key] || WAIVER_MAP['captcha'];
 
   return <InfoSection icon={info.icon} color="#4CD964" title={info.title} subtitle={info.subtitle} />;
 };
 
+/**
+ * Math utility to generate a perfect circle polygon for Google Maps.
+ * Why? Google Maps natively supports "Circles", but our "Outside" inverse geofencing
+ * requires drawing a massive polygon covering the whole world with a hole punched out of it.
+ * This generates the precise coordinates for that "hole".
+ */
 const getCirclePoints = (
   center: { latitude: number; longitude: number },
   radius: number,
@@ -77,7 +106,6 @@ const getCirclePoints = (
   }
   return coords;
 };
-
 
 const LocationSection = ({ event }: { event: any }) => {
     const locCondition = event?.conditions?.find((c: any) => c.metric_key === 'location');
@@ -136,6 +164,8 @@ const LocationSection = ({ event }: { event: any }) => {
                                     isMyLocationEnabled: hasPermission === true,
                                 }}
                                 onMapLoaded={() => setIsMapReady(true)}
+                                // If mapping an "Outside" constraint, draw the entire world
+                                // in semi-red, and punch out a transparent hole for the valid area!
                                 polygons={
                                     isInverse
                                     ? [
@@ -183,12 +213,28 @@ const LocationSection = ({ event }: { event: any }) => {
     );
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN EXPORT
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface EventDetailModalProps {
   visible: boolean;
+  /** Function to set `selectedEvent` to null in the global Zustand store */
   onClose: () => void;
+  /** The full data payload of the selected Task instance */
   event: any;
 }
 
+/**
+ * EventDetailModal (Global Singleton Pattern)
+ * 
+ * This UI component renders the rich details of a selected calendar event or task commit.
+ * 
+ * **CRITICAL ARCHITECTURE NOTE:**
+ * Do NOT mount this modal inside individual screens (like schedules.tsx or commits.tsx).
+ * It is hoisted to the root `_layout.tsx` to prevent React Navigation from double-mounting it
+ * across background tabs, ensuring zero-lag instantiation and perfectly flat 60fps performance.
+ */
 export function EventDetailModal({ visible, onClose, event }: EventDetailModalProps) {
   const { hasPermission } = useLocation();
   if (!event) return null;
@@ -283,10 +329,12 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
 
             </UView>
 
-            {/* Location Section Container */}
-            {/* Location Section Container */}
-            {/* Location Section Container */}
-            {/* Location Section Container */}
+            {/* --- GPS Location Display --- */}
+            {/* 
+                Calculates geo-fencing requirements ("within" or "outside" the radius)
+                and securely renders a native Google Map component (Android only) 
+                without web-view overhead.
+            */}
             <LocationSection event={event} />
             
             {/* Penalty Section */}

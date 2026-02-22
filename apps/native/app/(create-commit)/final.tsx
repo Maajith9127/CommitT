@@ -92,6 +92,30 @@ const COLORS = {
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * FinalScreen (`/app/(create-commit)/final.tsx`)
+ * 
+ * The final confirmation screen where a user validates and saves their new/modified Commitment.
+ * 
+ * ARCHITECTURE OVERVIEW (The "Triple-Write" Protocol):
+ * This component is arguably the most critical junction in the app. It must ensure that 
+ * a task is perfectly synchronized across three completely separate environments:
+ * 
+ * 1. The Cloud (Convex Backend):
+ *    We first attempt to mutate the remote database. If this fails (e.g., no internet),
+ *    the entire operation halts with a clean error message. 
+ * 
+ * 2. The Local Cache (Expo SQLite):
+ *    If the Convex mutation succeeds, we immediately execute a raw SQL transaction to copy 
+ *    the task and all generated future instances into the local device database (`useSQLiteContext`). 
+ *    This allows the `/schedules` and `/commits` tabs to instantly re-render via local observers, 
+ *    bypassing the network round-trip delay.
+ * 
+ * 3. The Native OS (Kotlin AlarmScheduler):
+ *    Finally, the component triggers `scheduleNextAlarm()` which reaches across the React Native 
+ *    JSI bridge. The native Android Kotlin module then digests the SQLite database and binds 
+ *    the exact WakeLock PendingIntents to the OS hardware clock.
+ */
 export default function FinalScreen() {
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
