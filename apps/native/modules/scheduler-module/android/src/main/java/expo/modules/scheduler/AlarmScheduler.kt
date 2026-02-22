@@ -71,7 +71,27 @@ object AlarmScheduler {
     }
 
     fun markInstanceProceeded(context: Context, instanceId: String) {
-        Log.d(TAG, "markInstanceProceeded: $instanceId")
+        Log.d(TAG, "═══════════════════════════════════════════════")
+        Log.d(TAG, "✅ markInstanceProceeded() called for instance_id: $instanceId")
+        
+        val dbFile = getDbFile(context)
+        if (dbFile == null) {
+            Log.e(TAG, "❌ DB not found!")
+            return
+        }
+
+        var db: SQLiteDatabase? = null
+        try {
+            db = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READWRITE)
+            val query = "UPDATE task_instances SET status = 'proceeded' WHERE id = ?"
+            db.execSQL(query, arrayOf(instanceId))
+            Log.d(TAG, "✅ Successfully marked instance '$instanceId' as proceeded in DB.")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to update instance status: ${e.message}")
+        } finally {
+            db?.close()
+        }
+        Log.d(TAG, "═══════════════════════════════════════════════")
     }
 
     fun rescheduleAllFromBootStorage(context: Context) {

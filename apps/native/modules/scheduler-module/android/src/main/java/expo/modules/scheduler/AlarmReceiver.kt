@@ -15,11 +15,12 @@ class AlarmReceiver : BroadcastReceiver() {
         Log.d(TAG, "════════════════════════════════════════════════")
         Log.d(TAG, "⏰ AlarmManager successfully woke up device!")
 
+        val instanceId = intent.getStringExtra("instance_id") ?: ""
         val title = intent.getStringExtra("title") ?: "Unknown Task"
         val fireAtMs = intent.getLongExtra("fire_at_ms", 0L)
         val now = System.currentTimeMillis()
 
-        Log.d(TAG, "⏰ Alarm Triggered For: $title")
+        Log.d(TAG, "⏰ Alarm Triggered For: $title (ID: $instanceId)")
         Log.d(TAG, "⏰ Expected Fire Time: ${formatTime(fireAtMs)}")
         Log.d(TAG, "⏰ Actual Trigger Time: ${formatTime(now)}")
         Log.d(TAG, "⏰ Delay: ${now - fireAtMs} ms")
@@ -29,6 +30,7 @@ class AlarmReceiver : BroadcastReceiver() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("instance_id", instanceId)
             putExtra("title", title)
             putExtra("fire_at_ms", fireAtMs)
         }
