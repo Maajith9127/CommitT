@@ -6,48 +6,67 @@ import android.content.Intent
 import android.util.Log
 import java.util.Calendar
 
+/**
+ * Captures precisely timed hardware wakeups driven by the Android AlarmManager.
+ *
+ * This receiver operates entirely in the background and is tasked with catching the
+ * exact moment an alarm reaches its scheduled time. Once caught, it possesses the authority
+ * to launch the full-screen [AlarmActivity] to visually alert the user.
+ */
 class AlarmReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "AlarmReceiver"
+        
+        // Intent extraction keys explicitly synchronized with AlarmScheduler
+        private const val EXTRA_INSTANCE_ID = "instance_id"
+        private const val EXTRA_TITLE = "title"
+        private const val EXTRA_FIRE_AT_MS = "fire_at_ms"
     }
 
+    /**
+     * Invoked immediately when the hardware clock aligns with the scheduled AlarmManager request.
+     *
+     * @param context The standard Context in which the receiver operates.
+     * @param intent The Intent strictly populated by AlarmScheduler containing the task identity.
+     */
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d(TAG, "════════════════════════════════════════════════")
-        Log.d(TAG, "⏰ AlarmManager successfully woke up device!")
+        val instanceId = intent.getStringExtra(EXTRA_INSTANCE_ID) ?: ""
+        val title = intent.getStringExtra(EXTRA_TITLE) ?: "Unknown Task"
+        val fireAtMs = intent.getLongExtra(EXTRA_FIRE_AT_MS, 0L)
+        val currentTimeMs = System.currentTimeMillis()
 
-        val instanceId = intent.getStringExtra("instance_id") ?: ""
-        val title = intent.getStringExtra("title") ?: "Unknown Task"
-        val fireAtMs = intent.getLongExtra("fire_at_ms", 0L)
-        val now = System.currentTimeMillis()
+        Log.d(TAG, "Hardware alarm successfully dispatched. Target: [$title], Identifier: [$instanceId]")
+        
+        // Calculate the drift between the requested hardware time and actual wake time for debugging
+        val driftMs = currentTimeMs - fireAtMs
+        Log.d(TAG, "Execution Metrics -> Expected: ${formatTimestamp(fireAtMs)} | Actual: ${formatTimestamp(currentTimeMs)} | Drift: $driftMs ms")
 
-        Log.d(TAG, "⏰ Alarm Triggered For: $title (ID: $instanceId)")
-        Log.d(TAG, "⏰ Expected Fire Time: ${formatTime(fireAtMs)}")
-        Log.d(TAG, "⏰ Actual Trigger Time: ${formatTime(now)}")
-        Log.d(TAG, "⏰ Delay: ${now - fireAtMs} ms")
-
-        // In a real scenario we use a WakeLock here before launching the Activity
+        // Construct the intent designed to force the rendering of the Alert UI
         val activityIntent = Intent(context, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("instance_id", instanceId)
-            putExtra("title", title)
-            putExtra("fire_at_ms", fireAtMs)
+                    
+            putExtra(EXTRA_INSTANCE_ID, instanceId)
+            putExtra(EXTRA_TITLE, title)
+            putExtra(EXTRA_FIRE_AT_MS, fireAtMs)
         }
 
         try {
-            Log.d(TAG, "⏰ Starting AlarmActivity wrapper to wake screen...")
+            Log.d(TAG, "Elevating execution to foreground layer. Initiating AlarmActivity.")
             context.startActivity(activityIntent)
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Failed to start AlarmActivity: ${e.message}")
+        } catch (exception: Exception) {
+            Log.e(TAG, "Critical failure during AlarmActivity foreground elevation: ${exception.message}", exception)
         }
-        
-        Log.d(TAG, "════════════════════════════════════════════════")
     }
 
-    private fun formatTime(ms: Long): String {
-        val cal = Calendar.getInstance()
-        cal.timeInMillis = ms
-        return String.format("%tA %<tB %<td at %<tI:%<tM:%<tS %<tp", cal)
+    /**
+     * Helper utility designed to convert absolute epoch timestamps into human-readable definitions
+     * exclusively meant for developer logging and telemetry.
+     */
+    private fun formatTimestamp(timeMs: Long): String {
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = timeMs
+        return String.format("%tA %<tB %<td at %<tI:%<tM:%<tS %<tp", calendar)
     }
 }

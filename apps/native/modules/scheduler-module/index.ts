@@ -1,31 +1,24 @@
 import { requireNativeModule } from "expo-modules-core";
 
 /**
- * SchedulerModule - Native alarm scheduling chain.
+ * SchedulerModule - Native Android alarm scheduling abstraction.
  *
- * Uses Android AlarmManager for OS-level scheduling that survives:
- * - App being swiped away / killed
- * - Phone restart (via BootReceiver)
+ * Utilizes the Android OS AlarmManager framework for persistent, system-level
+ * background scheduling that is inherently resilient against:
+ * - Application lifecycle termination (e.g., swiping away the app)
+ * - Device physical restarts (managed via BootReceiver and Direct Boot lock states)
  *
- * Flow:
- *   JS → SchedulerModule → AlarmScheduler → AlarmManager
- *     → AlarmReceiver → AlarmActivity (overlay + sound + vibration)
- *     → User taps DISMISS → chains next alarm automatically
+ * Execution Chain:
+ *   JS Context -> SchedulerModule (Bridge) -> AlarmScheduler (SQLite/DPS)
+ *   -> OS AlarmManager -> AlarmReceiver -> AlarmActivity
  */
 const SchedulerModule = requireNativeModule("SchedulerModule");
 
-export function scheduleForTask(convexId: string): any {
-  return SchedulerModule.scheduleForTask(convexId);
-}
-
-export function rescheduleForTask(convexId: string): any {
-  return SchedulerModule.rescheduleForTask(convexId);
-}
-
-export function cancelForTask(convexId: string): any {
-  return SchedulerModule.cancelForTask(convexId);
-}
-
+/**
+ * Commands the native module to synchronize its execution queue using the overarching SQLite file.
+ * The system automatically identifies the very next chronological instance and pushes it to
+ * the OS hardware clock, syncing up to 20 instances to the fallback Direct Boot cache.
+ */
 export function scheduleNextAlarm(): { success: boolean; error?: string } {
   return SchedulerModule.scheduleNextAlarm();
 }

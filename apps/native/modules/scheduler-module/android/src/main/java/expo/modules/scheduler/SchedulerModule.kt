@@ -5,12 +5,18 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 /**
- * Expo Module bridge for the scheduling system.
+ * Acts as the native bridging interface between the JavaScript/React Native lifecycle 
+ * and the Android hardware-level scheduling subsystems.
  *
- * JS → SchedulerModule → AlarmScheduler → AlarmManager → AlarmReceiver → AlarmActivity
+ * Structural Hierarchy:
+ * 1. JavaScript Context (React Native)
+ * 2. SchedulerModule (This Bridge)
+ * 3. AlarmScheduler (Business Logic & Storage Routing)
+ * 4. OS AlarmManager (Hardware Clock)
+ * 5. AlarmReceiver & AlarmActivity (Dispatch & UI)
  *
- * All heavy logic is in AlarmScheduler (shared with receivers).
- * This module just bridges JS ↔ AlarmScheduler.
+ * This module is kept intentionally lightweight. All core business logic regarding 
+ * storage reading, caching, and precise timing calculations are delegated to [AlarmScheduler].
  */
 class SchedulerModule : Module() {
 
@@ -18,14 +24,32 @@ class SchedulerModule : Module() {
         private const val TAG = "SchedulerModule"
     }
 
+    /**
+     * Defines the interface mapping exposed to the JavaScript layer.
+     */
     override fun definition() = ModuleDefinition {
-
         Name("SchedulerModule")
 
+        /**
+         * Instructs the native system to evaluate the entire pipeline of scheduled tasks,
+         * locate the nearest chronological event, and firmly queue it with the OS AlarmManager.
+         *
+         * This function should be invoked whenever a task is created, modified, deleted, 
+         * or when an active alarm has just concluded.
+         *
+         * @return A map containing a boolean `success` indicating whether the delegation occurred.
+         */
         Function("scheduleNextAlarm") {
-            Log.d(TAG, "📥 JS → scheduleNextAlarm()")
-            val context = appContext.reactContext ?: return@Function mapOf("success" to false)
+            Log.d(TAG, "Registered synchronization request from JavaScript layer.")
+            
+            val context = appContext.reactContext ?: return@Function mapOf(
+                "success" to false, 
+                "error" to "React context is currently unavailable."
+            )
+            
+            // Dispatch the scheduling execution to the central singleton.
             AlarmScheduler.scheduleNextAlarm(context)
+            
             mapOf("success" to true)
         }
     }

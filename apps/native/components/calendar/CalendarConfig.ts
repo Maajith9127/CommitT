@@ -43,6 +43,9 @@ export const CUSTOM_THEME = {
   headerBorderColor: '#000000',
   dayBarBorderColor: '#000000',
 
+  nowIndicatorColor: 'red',
+
+
   dayName: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
   dayNumber: { color: '#ffffff', fontSize: 25, fontWeight: 'bold' },
   hourTextStyle: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
