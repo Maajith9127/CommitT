@@ -5,18 +5,13 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 /**
- * Acts as the native bridging interface between the JavaScript/React Native lifecycle 
- * and the Android hardware-level scheduling subsystems.
- *
- * Structural Hierarchy:
- * 1. JavaScript Context (React Native)
- * 2. SchedulerModule (This Bridge)
- * 3. AlarmScheduler (Business Logic & Storage Routing)
- * 4. OS AlarmManager (Hardware Clock)
- * 5. AlarmReceiver & AlarmActivity (Dispatch & UI)
- *
- * This module is kept intentionally lightweight. All core business logic regarding 
- * storage reading, caching, and precise timing calculations are delegated to [AlarmScheduler].
+ * SchedulerModule
+ * 
+ * Acts as the Native Bridge between your JavaScript (React Native/Expo) code 
+ * and the Android hardware-level scheduling subsystems (`AlarmManager`).
+ * 
+ * Think of this as the "Front Door". React Native calls functions in here, 
+ * and this file safely routes those requests deep into native Android code.
  */
 class SchedulerModule : Module() {
 
@@ -25,31 +20,40 @@ class SchedulerModule : Module() {
     }
 
     /**
-     * Defines the interface mapping exposed to the JavaScript layer.
+     * This exposes functions directly to React Native. 
+     * You can call these from `index.ts`.
      */
     override fun definition() = ModuleDefinition {
+        // The name the module will be known as in JavaScript
         Name("SchedulerModule")
 
         /**
-         * Instructs the native system to evaluate the entire pipeline of scheduled tasks,
-         * locate the nearest chronological event, and firmly queue it with the OS AlarmManager.
-         *
-         * This function should be invoked whenever a task is created, modified, deleted, 
-         * or when an active alarm has just concluded.
-         *
-         * @return A map containing a boolean `success` indicating whether the delegation occurred.
+         * scheduleNextAlarm()
+         * 
+         * Call this from React Native whenever:
+         * 1. A new task is created.
+         * 2. An existing task is updated or deleted.
+         * 3. The user manually forces an alarm sync.
          */
         Function("scheduleNextAlarm") {
-            Log.d(TAG, "Registered synchronization request from JavaScript layer.")
+            Log.i(TAG, "==== [JS BRIDGE INVOKED] ====")
+            Log.d(TAG, "[JS BRIDGE] scheduleNextAlarm() called by React Native.")
             
-            val context = appContext.reactContext ?: return@Function mapOf(
-                "success" to false, 
-                "error" to "React context is currently unavailable."
-            )
+            // Gain access to the Android Application Context from React Native
+            val context = appContext.reactContext
+            if (context == null) {
+                Log.e(TAG, "[JS BRIDGE] React context is currently unavailable. Aborting delegation.")
+                return@Function mapOf("success" to false, "error" to "React context missing.")
+            }
             
-            // Dispatch the scheduling execution to the central singleton.
+            Log.d(TAG, "[JS BRIDGE] Context located successfully. Delegating to AlarmScheduler.")
+            
+            // Handoff logic entirely to AlarmScheduler so this bridge file stays incredibly clean
             AlarmScheduler.scheduleNextAlarm(context)
             
+            Log.i(TAG, "==== [JS BRIDGE DELEGATION COMPLETE] ====")
+            
+            // Return a success JSON payload back to the JavaScript promise
             mapOf("success" to true)
         }
     }

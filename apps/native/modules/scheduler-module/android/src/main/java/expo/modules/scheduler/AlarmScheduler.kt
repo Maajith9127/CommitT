@@ -11,19 +11,23 @@ import java.io.File
 import java.util.Calendar
 
 /**
- * The core infrastructure orchestrator for all background execution scheduling.
- *
- * It manages direct database interactions securely and coordinates with the Android AlarmManager 
- * using an architecture designed for high availability and fail-over logic.
- *
- * Fail-over Architecture (The "Vault vs. Sticky Note" Pattern):
- * - Primary Storage (The "Vault"): 
- *   An SQLite Database operating under standard Credential Encrypted (CE) limits.
- *   This is exclusively accessible when the device is unlocked.
- * - Redundant Cache (The "Sticky Note"):
- *   Device Protected Encrypted (DE) Storage. This caches the immediate upcoming alerts,
- *   bridging the gap when a device restarts and remains in a locked state (Direct Boot mode),
- *   allowing the alarm to trigger even before the user opens the standard vault.
+ * AlarmScheduler (The Core Infrastructure Orchestrator)
+ * 
+ * Think of this file as the central "Brain" of the entire scheduling system.
+ * It is solely responsible for reading exactly when alarms should go off, and then 
+ * telling the Android Kernel *exactly* what to do.
+ * 
+ * KEY ARCHITECTURE: The "Vault" vs. The "Sticky Note"
+ * 
+ * 1. The "Vault": The main SQLite database. It holds thousands of tasks forever. 
+ *    However, it utilizes strict Android Credential Encryption (CE), meaning if you 
+ *    turn your phone off and on, this file is fully locked, encrypted, and completely 
+ *    inaccessible *until* you enter your passcode.
+ * 
+ * 2. The "Sticky Note": Device Protected Storage (DE). When the phone reboots and is 
+ *    sitting locked, we cannot read the database. Thus, every time we update an alarm, 
+ *    we write the upcoming 20 alarms onto this unencrypted "Sticky Note". This allows 
+ *    our alarms to successfully fire even before the user types in their PIN after a restart.
  */
 object AlarmScheduler {
     private const val TAG = "AlarmScheduler"
@@ -31,31 +35,44 @@ object AlarmScheduler {
     private const val KEY_ALARMS_LIST = "AlarmsList"
 
     /**
-     * Determines the optimal upcoming alarm trigger and officially registers it 
-     * with the Android Operating System.
-     *
-     * This evaluates standard SQLite first. It falls back to the Device Encrypted cache
-     * if the database is inaccessible due to encryption or missing files.
-     *
-     * @param context the application context initiating the scheduling sequence.
+     * scheduleNextAlarm()
+     * 
+     * The master function. It opens the database, grabs the upcoming tasks, figures out 
+     * the mathematically most immediate next alarm (including pre-alarms), and demands 
+     * Android to wake up the system at that specific millisecond.
      */
     fun scheduleNextAlarm(context: Context) {
+        Log.i(TAG, "==== [MASTER SCHEDULING SEQUENCE INITIATED] ====")
+        
+        // Step 1: Attempt to securely locate the Main SQLite database.
         val dbFile = getDbFile(context)
+        
+        // If the database absolutely cannot be found, it usually means the phone was just rebooted
+        // and is locked with a password (FBE encryption). So, we switch to reading from our "Sticky Note".
         if (dbFile == null) {
-            Log.w(TAG, "Standard SQLite file inaccessible or evaluated empty. Delegating to DE Storage Cache.")
-            scheduleFromStickyNote(context)
+            Log.w(TAG, "[STORAGE FAULT] Standard SQLite file inaccessible (Device Locked). Diverting flow to Fallback Cache.")
+            scheduleFromStickyNote(context) // Engage the Sticky Note logic
+            Log.i(TAG, "==== [MASTER SCHEDULING SEQUENCE TERMINATED EARLY] ====")
             return
         }
 
         var database: SQLiteDatabase? = null
         try {
+            Log.d(TAG, "[DATABASE ACCESS] Unlocking SQLite Vault at path: ${dbFile.absolutePath}")
+            
+            // Open the database for read-only access to prevent corruption locking.
             database = SQLiteDatabase.openDatabase(
                 dbFile.absolutePath, 
                 null, 
                 SQLiteDatabase.OPEN_READONLY
             )
+            
             val currentTimeMs = System.currentTimeMillis()
             
+            Log.d(TAG, "[DATABASE QUERY] Fetching future unexecuted task instances...")
+            
+            // Query Explanation: "Select all tasks where the start time hasn't happened yet, 
+            // sort them by chronology, and fetch the first 20."
             val cursor = database.rawQuery(
                 """SELECT id, title, start_time 
                    FROM task_instances 
@@ -64,78 +81,157 @@ object AlarmScheduler {
                 arrayOf(currentTimeMs.toString())
             )
 
+            // Did we actually find any tasks?
             if (cursor.moveToFirst()) {
-                val instanceId = cursor.getString(0)
-                val title = cursor.getString(1)
-                val startTimeMs = cursor.getLong(2)
-
-                Log.d(TAG, "Primary task defined from SQLite -> Identifier: $instanceId, Allocation: ${formatTimestamp(startTimeMs)}")
+                Log.d(TAG, "[LOGIC ROUTING] Tasks identified. Calculating precise Pre-Alarm staggered offsets.")
                 
-                // Assert the alarm to the system and synchronize the fallback storage
-                setOSAlarm(context, instanceId, title, startTimeMs, currentTimeMs)
-                syncToStickyNote(context, cursor)
+                // We will loop through the top 20 tasks to find the EXACT next action we need to take.
+                var bestTriggerTime = Long.MAX_VALUE
+                var bestInstanceId = ""
+                var bestTitle = ""
+                var bestIsPreAlarm = false
+                var bestMainTime = 0L
+
+                do {
+                    // Pull the row data out of the current cursor alignment
+                    val id = cursor.getString(0)
+                    val title = cursor.getString(1)
+                    val mainStart = cursor.getLong(2)
+
+                    // Execute algorithmic check to see if we should trigger a "15 minutes earlier" pre-alarm
+                    val (triggerTime, isPreAlarm) = findNextTrigger(mainStart, currentTimeMs)
+                    
+                    // Keep substituting the "Best" trigger time if it's the closest to 'Now'.
+                    if (triggerTime < bestTriggerTime) {
+                        bestTriggerTime = triggerTime
+                        bestInstanceId = id
+                        bestTitle = title
+                        bestIsPreAlarm = isPreAlarm
+                        bestMainTime = mainStart
+                    }
+                } while (cursor.moveToNext())
+
+                // After all 20 evaluations, we officially register the "Best" absolute nearest execution.
+                if (bestTriggerTime != Long.MAX_VALUE) {
+                    val type = if (bestIsPreAlarm) "PRE-ALARM" else "MAIN ALARM"
+                    Log.d(TAG, "[ALARM SELECTED] Earliest trigger -> Type: [$type], Target: [$bestTitle], Time: ${formatTimestamp(bestTriggerTime)}")
+                    
+                    // Dispatch the registration instruction down to the Operating System!
+                    setOSAlarm(context, bestInstanceId, bestTitle, bestTriggerTime, currentTimeMs, bestIsPreAlarm, bestMainTime)
+                    
+                    // Since the database was fully readable, rewrite the Sticky Note cache with 
+                    // this fresh list of 20 upcoming tasks, preparing for a potential future unexpected restart!
+                    Log.d(TAG, "[CACHE REFRESH] Synchronizing newly evaluated queue into DE Storage Sticky Note.")
+                    cursor.moveToFirst()
+                    syncToStickyNote(context, cursor)
+                } else {
+                    Log.d(TAG, "[LOGIC ROUTING] All queried events evaluated technically in the past. Purging cache.")
+                    clearStickyNote(context)
+                }
             } else {
-                Log.d(TAG, "Queue execution complete: Zero tasks scheduled for the future. Purging caching layer.")
-                clearStickyNote(context)
+                Log.d(TAG, "[LOGIC ROUTING] SQLite confirmed zero upcoming tasks. Purging caching layer.")
+                clearStickyNote(context) // Clean the sticky note, there's nothing to warn the user about
             }
-            cursor.close()
+            cursor.close() // ALWAYS close your cursors, memory leaks are bad!
         } catch (exception: Exception) {
-            Log.e(TAG, "SQLite read execution failure. Routing flow to fallback cache. Trace: ${exception.message}", exception)
+            // Highly robust Exception Catching. If the DB blew up unexpectedly, just use the Sticky Note anyway!
+            Log.e(TAG, "[SYSTEM FAILURE] SQLite evaluation chain completely broke down. Forcing fallback cache delegation. Exception output: ${exception.message}", exception)
             scheduleFromStickyNote(context)
         } finally {
-            database?.close()
+            database?.close() // And always close your DB connection
+            Log.i(TAG, "==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====")
         }
     }
 
     /**
-     * Mutates the database state of a given task instance, marking it as successfully evaluated
-     * or practically concluded ('proceeded').
-     *
-     * @param context application context.
-     * @param instanceId the UUID associated with the executed task.
+     * findNextTrigger()
+     * 
+     * The Pre-Alarm math engine. 
+     * Evaluates a list of intervals (15 min, 13 min, 11 min... 1 min).
+     * The moment it finds an interval that HAS NOT HAPPENED YET, it returns it instantly.
+     * If all pre-alarms have happened, it just returns the precise Main Start Time.
+     * 
+     * @return Pair(TimestampToWakeUpOn, IsItAPreAlarmBoolean)
+     */
+    private fun findNextTrigger(mainStartMs: Long, nowMs: Long): Pair<Long, Boolean> {
+        // T-minus staggered intervals, converting exactly to milliseconds
+        val preAlarmOffsetsMs = listOf(
+            15 * 60 * 1000L,
+            13 * 60 * 1000L,
+            11 * 60 * 1000L,
+            9 * 60 * 1000L,
+            7 * 60 * 1000L,
+            5 * 60 * 1000L,
+            3 * 60 * 1000L,
+            1 * 60 * 1000L
+        )
+
+        // Find the absolute largest pre-alarm offset that still exists structurally in the FUTURE
+        for (offset in preAlarmOffsetsMs) {
+            val preAlarmTime = mainStartMs - offset
+            if (preAlarmTime > nowMs) {
+                return Pair(preAlarmTime, true) // We found a valid future pre-alarm!
+            }
+        }
+        
+        // If no future pre-alarms remain, default gracefully to the final Main Event
+        return Pair(mainStartMs, false)
+    }
+
+    /**
+     * markInstanceProceeded()
+     * 
+     * When the user clicks "Dismiss" on a MAIN ALARM, we execute this sequence.
+     * It connects directly to the vault and mutates the status of the task to 'proceeded'.
+     * Pre-Alarms DO NOT use this, because they aren't the final event!
      */
     fun markInstanceProceeded(context: Context, instanceId: String) {
+        Log.i(TAG, "==== [MUTATION SEQUENCE INITIATED] ====")
         val dbFile = getDbFile(context)
         if (dbFile == null) {
-            Log.e(TAG, "Mutation halted. Database explicitly unlocatable for target identifier: $instanceId.")
+            // Because writing to SQLite requires Credential Access, we CANNOT mutate if the phone is locked.
+            Log.e(TAG, "[MUTATION FAULT] System locked. Cannot update SQLite status for $instanceId.")
+            Log.i(TAG, "==== [MUTATION SEQUENCE ABORTED] ====")
             return
         }
 
         var database: SQLiteDatabase? = null
         try {
+            Log.d(TAG, "[MUTATION LOGIC] Attempting SQL WRITE on Vault for $instanceId...")
             database = SQLiteDatabase.openDatabase(
                 dbFile.absolutePath, 
                 null, 
-                SQLiteDatabase.OPEN_READWRITE
+                SQLiteDatabase.OPEN_READWRITE // Critical requirement: writable connection
             )
+            // Hard string substitution replacing status for completion 
             val updateQuery = "UPDATE task_instances SET status = 'proceeded' WHERE id = ?"
             database.execSQL(updateQuery, arrayOf(instanceId))
-            Log.d(TAG, "Mutation verified. Instance $instanceId permanently flagged as proceeded.")
+            Log.d(TAG, "[MUTATION LOGIC] Main event $instanceId flagged strictly as proceeded.")
         } catch (exception: Exception) {
-            Log.e(TAG, "Mutation structural failure for instance $instanceId. Output: ${exception.message}", exception)
+            Log.e(TAG, "[MUTATION FAULT] Read/Write execution shattered during status write. Error: ${exception.message}", exception)
         } finally {
             database?.close()
+            Log.i(TAG, "==== [MUTATION SEQUENCE COMPLETED] ====")
         }
     }
 
-    /* --- REDUNDANCY PROTOCOL: DEVICE PROTECTED STORAGE CACHE --- */
+    /* --- REDUNDANCY ARCHITECTURE: DEVICE PROTECTED CACHE (THE "STICKY NOTE") --- */
 
     /**
-     * Secures a context instance inherently capable of bypassing standard Credential Encryption,
-     * effectively allowing storage interaction even if the user has not unlocked the device post-reboot.
+     * Grabs the specific Android Storage bucket capable of bypassing lock screen encryption layers.
      */
     private fun getDeviceProtectedContext(context: Context): android.content.SharedPreferences? {
         val safeContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             context.createDeviceProtectedStorageContext()
         } else {
-            context
+            context // Pre-Android 7 didn't have FBE, so standard context works fine
         }
+        // SharedPreferences is what we use as the literal "Sticky Note" storage medium.
         return safeContext.getSharedPreferences(CACHE_PREFS_NAME, Context.MODE_PRIVATE)
     }
 
     /**
-     * Serializes an incoming SQLite cursor of upcoming alarms into the Device Protected preferences.
-     * This provides the explicit fail-over data in case of unexpected shutdown or locked reboots.
+     * Flushes the evaluated cursor rows neatly into a long text string and saves it.
      */
     private fun syncToStickyNote(context: Context, cursor: android.database.Cursor) {
         try {
@@ -144,98 +240,158 @@ object AlarmScheduler {
                 val identifier = cursor.getString(0)
                 val taskTitle = cursor.getString(1)
                 val unixTimeMs = cursor.getLong(2)
+                
+                // Pack the columns together with a pipe `|`
                 synchronizationSet.add("$identifier|$taskTitle|$unixTimeMs")
             } while (cursor.moveToNext())
 
+            // Stitch all list items together with a double semicolon `;;` and store!
             val payloadString = synchronizationSet.joinToString(";;")
             getDeviceProtectedContext(context)?.edit()?.putString(KEY_ALARMS_LIST, payloadString)?.apply()
-            Log.d(TAG, "Cache configuration successfully pushed: Synced ${synchronizationSet.size} potential events.")
+            
+            Log.d(TAG, "[STICKY NOTE FLUSH] Synced exactly ${synchronizationSet.size} events structurally into Device Encrypted storage payload.")
         } catch (exception: Exception) {
-            Log.e(TAG, "Catastrophic caching failure during payload flush: ${exception.message}", exception)
+            Log.e(TAG, "[STICKY NOTE FAULT] Catastrophic DE Storage write rejection: ${exception.message}", exception)
         }
     }
 
     /**
-     * Performs a complete deletion of the redundancy array.
+     * Erases the note completely (used when the user deletes all their tasks).
      */
     private fun clearStickyNote(context: Context) {
         getDeviceProtectedContext(context)?.edit()?.remove(KEY_ALARMS_LIST)?.apply()
+        Log.d(TAG, "[STICKY NOTE FLUSH] Cached payload explicitly deleted.")
     }
 
     /**
-     * Executes the fail-over reading algorithm. Evaluates the local serialized payload
-     * and strictly schedules the first task chronologically identified in the future.
+     * The secondary Fallback logic exactly mimicking the Master sequence, except
+     * it evaluates the `;;` string payload instead of an SQLite database.
      */
     private fun scheduleFromStickyNote(context: Context) {
+        Log.i(TAG, "==== [FALLBACK RECOVERY SEQUENCE INITIATED] ====")
+        
+        // 1. Fetch the raw payload string
         val serializedPayload = getDeviceProtectedContext(context)?.getString(KEY_ALARMS_LIST, null)
         if (serializedPayload.isNullOrEmpty()) {
-            Log.d(TAG, "Cache inspection resulted null. Halting local hardware alarm delegation.")
+            Log.w(TAG, "[FALLBACK RECOVERY] Local DE Storage returned zero results. Total halting of schedule propagation.")
+            Log.i(TAG, "==== [FALLBACK RECOVERY SEQUENCE TERMINATED] ====")
             return
         }
 
         val currentTimeMs = System.currentTimeMillis()
+        
+        // 2. Chop up the string back into a list of tasks
         val delimitedTasks = serializedPayload.split(";;")
+        Log.d(TAG, "[FALLBACK RECOVERY] Payload deserialized. Inspecting ${delimitedTasks.size} raw objects.")
 
+        var bestTriggerTime = Long.MAX_VALUE
+        var bestInstanceId = ""
+        var bestTitle = ""
+        var bestIsPreAlarm = false
+        var bestMainTime = 0L
+
+        // 3. Exactly identical mathematical iteration logic
         for (taskPayload in delimitedTasks) {
             val taskSegments = taskPayload.split("|")
             if (taskSegments.size == 3) {
-                val identifier = taskSegments[0]
-                val taskTitle = taskSegments[1]
-                val timeMs = taskSegments[2].toLongOrNull() ?: 0L
+                // Slice the pieces back out
+                val id = taskSegments[0]
+                val title = taskSegments[1]
+                val mainStart = taskSegments[2].toLongOrNull() ?: 0L
 
-                if (timeMs >= currentTimeMs) {
-                    Log.d(TAG, "Fallback event structurally viable -> Identifier: $identifier, Allocation: ${formatTimestamp(timeMs)}")
-                    setOSAlarm(context, identifier, taskTitle, timeMs, currentTimeMs)
-                    return // Single event architecture explicitly requires returning
+                if (mainStart < currentTimeMs) continue // Skip globally expired events entirely
+
+                // 4. Run the exact same Pre-Alarm engine here too
+                val (triggerTime, isPreAlarm) = findNextTrigger(mainStart, currentTimeMs)
+                
+                if (triggerTime < bestTriggerTime) {
+                    bestTriggerTime = triggerTime
+                    bestInstanceId = id
+                    bestTitle = title
+                    bestIsPreAlarm = isPreAlarm
+                    bestMainTime = mainStart
                 }
             }
         }
-        Log.d(TAG, "All identified fallback tasks exist in negative chronology. Delegation ceased.")
+        
+        // 5. Hard execute the identified time allocation to the system!
+        if (bestTriggerTime != Long.MAX_VALUE) {
+            val type = if (bestIsPreAlarm) "PRE-ALARM" else "MAIN ALARM"
+            Log.d(TAG, "[FALLBACK SELECTED] Earliest DE cache trigger -> Type: [$type], Target: $bestInstanceId, Execution: ${formatTimestamp(bestTriggerTime)}")
+            
+            setOSAlarm(context, bestInstanceId, bestTitle, bestTriggerTime, currentTimeMs, bestIsPreAlarm, bestMainTime)
+        } else {
+            Log.w(TAG, "[FALLBACK RECOVERY] Evaluated task segments possessed NO futuristic timelines. Recovery officially aborted.")
+            clearStickyNote(context) // Ensure nothing stale remains running
+        }
+        Log.i(TAG, "==== [FALLBACK RECOVERY SEQUENCE COMPLETED] ====")
     }
 
     /* --- HARDWARE KERNEL REGISTRATION --- */
 
     /**
-     * Submits a direct hardware request to the Android AlarmManager via a specific PendingIntent architecture.
+     * setOSAlarm()
+     * 
+     * The final link. Everything before this was just logic and math. 
+     * This literally writes the data strictly to the Android Hardware Alarm capability.
      */
     private fun setOSAlarm(
         context: Context,
         instanceId: String,
         title: String,
         fireAtMs: Long,
-        nowMs: Long
+        nowMs: Long,
+        isPreAlarm: Boolean,
+        mainTimeMs: Long
     ) {
+        // Gain a bridge strictly over the Android Alarm System
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        
+        // The Intent basically says: "When this goes off, hand this package to AlarmReceiver"
         val receiverIntent = Intent(context, AlarmReceiver::class.java).apply {
             putExtra("instance_id", instanceId)
             putExtra("title", title)
-            putExtra("fire_at_ms", fireAtMs)
+            putExtra("fire_at_ms", fireAtMs) // The specific alarm time
             putExtra("scheduled_at_now", nowMs)
+            putExtra("is_pre_alarm", isPreAlarm) // The crucial boolean defining UI states!
+            putExtra("main_time_ms", mainTimeMs)
         }
 
+        // The Pending Intent locks everything securely together with heavy constraints.
+        // We use Request Code '99999'. Because this number NEVER changes, every time we
+        // schedule an alarm, Android instantly overwrites and deletes the old one automatically!
+        // This is a zero-conflict singularity pipeline inherently preventing duplicate queues.
         val systemPendingIntent = PendingIntent.getBroadcast(
             context,
-            99999, // Constant static ID forces singular instance overwrite (avoiding duplicate queues)
+            99999, 
             receiverIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        Log.d(TAG, "[HARDWARE INSTRUCTOR] Dispatching exact wake parameters down to Android Kernel hardware...")
         try {
+            // Android 12 (API 31/S) introduced catastrophic new restrictions on Alarms
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                // If they have full 'Exact' permissions, we utilize the ultra-precise AlarmClock logic natively
                 if (alarmManager.canScheduleExactAlarms()) {
                     val alarmClockInfo = AlarmManager.AlarmClockInfo(fireAtMs, systemPendingIntent)
                     alarmManager.setAlarmClock(alarmClockInfo, systemPendingIntent)
-                    Log.d(TAG, "Registration achieved natively. Strategy: AlarmClock API")
+                    Log.d(TAG, "[HARDWARE INSTRUCTOR] Output -> Success. Strategy utilized: AlarmClock EXACT API Protocol.")
                 } else {
-                    Log.w(TAG, "Kernel verification denied Exact Alarms permission. Downgrading exact execution.")
+                    // Extremely degraded fallback: If the user explicitly disabled exact permission
+                    // in app settings, this guarantees it STILL fires, but Android will decide when 
+                    // within a 'Doze' generalized window (usually quite close).
+                    Log.w(TAG, "[HARDWARE INSTRUCTOR] Output -> Warning. Kernel denied permission. Executing Idle Bypass routing.")
                     alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAtMs, systemPendingIntent)
                 }
             } else {
+                // Pre-Android 12, life was simpler and standard Exact API behaves predictably
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAtMs, systemPendingIntent)
-                Log.d(TAG, "Registration achieved natively. Strategy: Pre-S Exact API")
+                Log.d(TAG, "[HARDWARE INSTRUCTOR] Output -> Success. Strategy utilized: Pre-S EXACT API Protocol.")
             }
         } catch (securityException: SecurityException) {
-            Log.e(TAG, "Permission matrix rejection explicitly blocking execution: ${securityException.message}", securityException)
+            // A fatal scenario where system architectures block scheduling unconditionally
+            Log.e(TAG, "[HARDWARE EXCEPTION] Strict permission matrix rejection forcefully halted schedule integration: ${securityException.message}", securityException)
         } catch (generalException: Exception) {
             Log.e(TAG, "Systematic routing exception resolving hardware dispatch: ${generalException.message}", generalException)
         }
@@ -243,35 +399,43 @@ object AlarmScheduler {
 
     /**
      * Iteratively evaluates Android filesystem layouts to deduce the absolute path 
-     * of the Expo SQLite database irrespective of Credential/Device encryption states.
+     * of the Expo SQLite database perfectly, irrespective of differing device manufacturer choices.
      */
     private fun getDbFile(context: Context): File? {
         try {
-            // Priority 1: Direct path resolving utilizing Expo's architectural layout
+            // Priority 1: Direct path resolving utilizing Expo's architectural layout standard
             val primaryFile = File(context.filesDir, "SQLite/commit.db")
-            if (primaryFile.exists()) return primaryFile
+            if (primaryFile.exists()) {
+                Log.d(TAG, "[FILESYSTEM PATHING] Identified SQLite primary partition natively in normal device space.")
+                return primaryFile
+            }
 
-            // Priority 2: Standard native Android implementation pathing
+            // Priority 2: Safe Android fallback standard implementation
             val secondaryFile = context.getDatabasePath("commit.db")
             if (secondaryFile.exists()) return secondaryFile
 
-            // Priority 3: Encrypted Direct Boot evaluation Context matching
+            // Priority 3: FBE recovery execution. 
+            // If normal files fail, it checks if it EXISTS within the Device Encrypted context wrapper itself.
             val encryptedContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 context.createDeviceProtectedStorageContext()
             } else null
             
             if (encryptedContext != null) {
                 val isolatedFile = File(encryptedContext.filesDir, "SQLite/commit.db")
-                if (isolatedFile.exists()) return isolatedFile
+                if (isolatedFile.exists()) {
+                    Log.d(TAG, "[FILESYSTEM PATHING] Recovered encrypted file boundary from Device Encrypted FBE layer.")
+                    return isolatedFile
+                }
             }
         } catch (exception: Exception) {
-            Log.e(TAG, "Filesystem violation encountered reading file architectures: ${exception.message}", exception)
+            Log.e(TAG, "[FILESYSTEM ERROR] Storage layout pathing rejected evaluation. Reason: ${exception.message}", exception)
         }
         
-        // Priority 4: Fallback Raw Absolute Pathing
+        // Priority 4: Raw absolute string pathing as a total final measure
         val rawDirectoryFile = File("/data/user/0/" + context.packageName + "/files/SQLite/commit.db")
         if (rawDirectoryFile.exists()) return rawDirectoryFile
 
+        Log.w(TAG, "[FILESYSTEM FATAL] No existing database mapped natively or artificially. Returning NULL.")
         return null
     }
 

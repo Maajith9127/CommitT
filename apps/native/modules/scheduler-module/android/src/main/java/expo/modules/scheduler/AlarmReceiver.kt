@@ -7,62 +7,80 @@ import android.util.Log
 import java.util.Calendar
 
 /**
- * Captures precisely timed hardware wakeups driven by the Android AlarmManager.
- *
- * This receiver operates entirely in the background and is tasked with catching the
- * exact moment an alarm reaches its scheduled time. Once caught, it possesses the authority
- * to launch the full-screen [AlarmActivity] to visually alert the user.
+ * AlarmReceiver
+ * 
+ * This file is effectively a "Tripwire" waiting precisely in the background.
+ * It is solely responsible for capturing hardware wakeups driven by the Android 
+ * `AlarmManager` clock. When the exact second strikes, the OS hits this file.
  */
 class AlarmReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "AlarmReceiver"
         
-        // Intent extraction keys explicitly synchronized with AlarmScheduler
+        // These are strictly matching keys we use to unwrap data from AlarmScheduler
         private const val EXTRA_INSTANCE_ID = "instance_id"
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_FIRE_AT_MS = "fire_at_ms"
+        private const val EXTRA_IS_PRE_ALARM = "is_pre_alarm"
+        private const val EXTRA_MAIN_TIME_MS = "main_time_ms"
     }
 
     /**
-     * Invoked immediately when the hardware clock aligns with the scheduled AlarmManager request.
-     *
-     * @param context The standard Context in which the receiver operates.
-     * @param intent The Intent strictly populated by AlarmScheduler containing the task identity.
+     * Fired by the Android Operating System at the exact millisecond requested.
      */
     override fun onReceive(context: Context, intent: Intent) {
+        val currentTimeMs = System.currentTimeMillis()
+        Log.i(TAG, "==== [HARDWARE ALARM TRIGGERED] ====")
+        Log.d(TAG, "[HARDWARE TRIGGER] Operating System successfully pinged AlarmReceiver at ${formatTimestamp(currentTimeMs)}.")
+
+        // 1. Unwrap all custom data tied to this alarm
         val instanceId = intent.getStringExtra(EXTRA_INSTANCE_ID) ?: ""
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "Unknown Task"
         val fireAtMs = intent.getLongExtra(EXTRA_FIRE_AT_MS, 0L)
-        val currentTimeMs = System.currentTimeMillis()
+        val isPreAlarm = intent.getBooleanExtra(EXTRA_IS_PRE_ALARM, false)
+        val mainTimeMs = intent.getLongExtra(EXTRA_MAIN_TIME_MS, 0L)
 
-        Log.d(TAG, "Hardware alarm successfully dispatched. Target: [$title], Identifier: [$instanceId]")
+        val typeText = if (isPreAlarm) "PRE-ALARM" else "MAIN ALARM"
+        Log.d(TAG, "[HARDWARE TRIGGER] Parsing Input -> Target Task: [$title], Mode: [$typeText], Identifier: [$instanceId]")
         
-        // Calculate the drift between the requested hardware time and actual wake time for debugging
+        // Check for Android "Doze" drift - if the OS was highly constrained on battery, 
+        // it may have delayed this execution slightly.
         val driftMs = currentTimeMs - fireAtMs
-        Log.d(TAG, "Execution Metrics -> Expected: ${formatTimestamp(fireAtMs)} | Actual: ${formatTimestamp(currentTimeMs)} | Drift: $driftMs ms")
+        Log.d(TAG, "[HARDWARE METRICS] Expected: ${formatTimestamp(fireAtMs)} | Actual: ${formatTimestamp(currentTimeMs)} | Hardware Drift: $driftMs ms")
 
-        // Construct the intent designed to force the rendering of the Alert UI
+        // 2. Prepare an Intent to aggressively launch the full-screen visual UI
         val activityIntent = Intent(context, AlarmActivity::class.java).apply {
+            // These flags declare: "Create a brand new window, obliterate anything in the way, and put it on top."
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
                     
+            // Repackage the data into the Activity intent so the UI can read it
             putExtra(EXTRA_INSTANCE_ID, instanceId)
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_FIRE_AT_MS, fireAtMs)
+            putExtra(EXTRA_IS_PRE_ALARM, isPreAlarm)
+            putExtra(EXTRA_MAIN_TIME_MS, mainTimeMs)
         }
 
         try {
-            Log.d(TAG, "Elevating execution to foreground layer. Initiating AlarmActivity.")
+            Log.d(TAG, "[UI ELEVATION] Routing execution to foreground. Launching full-screen AlarmActivity...")
+            
+            // Execute the hand-off to display the UI!
             context.startActivity(activityIntent)
+            
+            Log.d(TAG, "[UI ELEVATION] Activity request successfully handed to OS.")
         } catch (exception: Exception) {
-            Log.e(TAG, "Critical failure during AlarmActivity foreground elevation: ${exception.message}", exception)
+            // Critical Exception Handling: Background capabilities might be restricted on some extreme devices (e.g., Xiaomi/MIUI).
+            Log.e(TAG, "[CRITICAL UI FAILURE] OS blocked AlarmActivity foreground elevation: ${exception.message}", exception)
         }
+        
+        Log.i(TAG, "==== [HARDWARE ALARM CONCLUDED] ====")
     }
 
     /**
-     * Helper utility designed to convert absolute epoch timestamps into human-readable definitions
-     * exclusively meant for developer logging and telemetry.
+     * Developer utility: Converts raw Unix timestamp numbers into beautiful Human-Readable strings 
+     * exclusively for logging. Ex: 'Sunday February 22 at 10:30:00 PM'
      */
     private fun formatTimestamp(timeMs: Long): String {
         val calendar = Calendar.getInstance()
