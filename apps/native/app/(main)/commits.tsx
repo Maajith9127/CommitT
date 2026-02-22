@@ -11,8 +11,6 @@ import { VerificationCard } from "@/components/ui/commits/VerificationCard";
 import { ActionMenu, ActionMenuItem } from "@/components/ui/commits/ActionMenu";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { CommitCardSkeleton } from '@/components/ui/skeletons/CommitCardSkeleton';
-import { EventDetailModal } from "@/components/ui/modal/EventDetailModal";
-import { useCalendarStore } from "@/stores/useCalendarStore";
 
 // Extracted Domain Logic Hooks
 import { useTasks, Task } from "@/hooks/commits/useTasks";
@@ -93,9 +91,6 @@ export default function CommitsScreen() {
     cancelDelete,
     clearSelection,
   } = useTaskSelection();
-
-  const selectedEvent = useCalendarStore((state) => state.selectedEvent);
-  const setSelectedEvent = useCalendarStore((state) => state.setSelectedEvent);
 
   // 4. Visual Layer (Skeleton logic moved to list render)
 
@@ -285,12 +280,6 @@ export default function CommitsScreen() {
         confirmColor={COLORS.danger}
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
-      />
-
-      <EventDetailModal 
-        visible={!!selectedEvent} 
-        event={selectedEvent} 
-        onClose={() => setSelectedEvent(null)} 
       />
     </UView>
   );

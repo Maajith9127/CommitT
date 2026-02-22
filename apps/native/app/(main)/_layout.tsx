@@ -9,6 +9,7 @@ import { authClient } from "@/lib/auth-client";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { useCalendarStore } from "@/stores/useCalendarStore";
 import { DatePickerModal } from "@/components/ui/modal/DatePickerModal";
+import { EventDetailModal } from "@/components/ui/modal/EventDetailModal";
 import { useState } from "react";
 
 const UView = withUniwind(View);
@@ -32,6 +33,8 @@ export default function MainLayout() {
   // Calendar Store for Verify Page
   const selectedDate = useCalendarStore((state) => state.selectedDate);
   const setSelectedDate = useCalendarStore((state) => state.setSelectedDate);
+  const selectedEvent = useCalendarStore((state) => state.selectedEvent);
+  const setSelectedEvent = useCalendarStore((state) => state.setSelectedEvent);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
   /**
@@ -156,6 +159,12 @@ export default function MainLayout() {
             setSelectedDate(date);
             setDatePickerVisible(false); // Auto close
         }}
+      />
+
+      <EventDetailModal 
+        visible={!!selectedEvent} 
+        event={selectedEvent} 
+        onClose={() => setSelectedEvent(null)} 
       />
     </UView>
   );

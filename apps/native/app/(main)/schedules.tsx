@@ -10,9 +10,6 @@ import CalendarKit, {
 import { withUniwind } from 'uniwind';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { CalendarShimmer } from '@/components/ui/skeletons/CalendarShimmer';
-import { EventDetailModal } from '@/components/ui/modal/EventDetailModal';
-
-
 // Extracted Configuration & Hooks
 import { INITIAL_LOCALES, CUSTOM_THEME } from '@/components/calendar/CalendarConfig';
 import { useCalendarRange } from '@/hooks/calendar/useCalendarRange';
@@ -48,7 +45,6 @@ export default function SchedulesScreen() {
     
   // 4. Navigation Control (Sync with Global Store)
   const selectedDate = useCalendarStore((state) => state.selectedDate);
-  const selectedEvent = useCalendarStore((state) => state.selectedEvent);
   const setSelectedEvent = useCalendarStore((state) => state.setSelectedEvent);
 
   useEffect(() => {
@@ -117,13 +113,6 @@ export default function SchedulesScreen() {
               <CalendarShimmer />
             </Animated.View>
           )}
-
-          {/* Event Detail Modal */}
-          <EventDetailModal 
-            visible={!!selectedEvent} 
-            event={selectedEvent} 
-            onClose={() => setSelectedEvent(null)} 
-          />
 
       </UView>
     </GestureHandlerRootView>
