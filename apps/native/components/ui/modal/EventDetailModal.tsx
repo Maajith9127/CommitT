@@ -7,6 +7,8 @@ import { PrimaryButton } from '@/components/ui/button';
 import { AuthHeading, BodyText } from '@/components/ui/text';
 import { useLocation } from "@/hooks/useLocation";
 import dayjs from 'dayjs';
+import { useMutation } from 'convex/react';
+import { api } from '@commit/backend/convex/_generated/api';
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
@@ -248,9 +250,31 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
     }
   }, [event]);
 
+  // Hook up the verify mutation
+  const verifyMutation = useMutation(api.api.commitments.verify.default);
+
   if (!cachedEvent) return null;
 
   const currentEvent = event || cachedEvent;
+
+  const handleVerifyPress = async () => {
+    if (!currentEvent?._id) {
+        console.error("No valid instance_id found on the event.");
+        return;
+    }
+    try {
+        const result = await verifyMutation({
+            instanceId: currentEvent._id, // Assume the mapped object contains _id
+            message: "Hi from frontend!",
+        });
+        console.log("Verify Answer:", result);
+        alert(result.response);
+        onClose(); // Optionally close modal on completion
+    } catch (error) {
+        console.error("Verify Failed:", error);
+        alert("Verification API Failed");
+    }
+  };
 
   return (
     <Modal
@@ -271,7 +295,7 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
             <PrimaryButton 
                 className="w-auto px-4 py-1.5 h-auto rounded-md min-w-[70px]" 
                 textClassName="text-sm font-bold"
-                onPress={onClose} 
+                onPress={handleVerifyPress} 
             >
                 Verify
             </PrimaryButton>

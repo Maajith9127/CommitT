@@ -14,6 +14,7 @@ import type * as api_commitments_create from "../api/commitments/create.js";
 import type * as api_commitments_delete from "../api/commitments/delete.js";
 import type * as api_commitments_read from "../api/commitments/read.js";
 import type * as api_commitments_update from "../api/commitments/update.js";
+import type * as api_commitments_verify from "../api/commitments/verify.js";
 import type * as api_instances_create from "../api/instances/create.js";
 import type * as api_instances_delete from "../api/instances/delete.js";
 import type * as api_instances_read from "../api/instances/read.js";
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   "api/commitments/delete": typeof api_commitments_delete;
   "api/commitments/read": typeof api_commitments_read;
   "api/commitments/update": typeof api_commitments_update;
+  "api/commitments/verify": typeof api_commitments_verify;
   "api/instances/create": typeof api_instances_create;
   "api/instances/delete": typeof api_instances_delete;
   "api/instances/read": typeof api_instances_read;
