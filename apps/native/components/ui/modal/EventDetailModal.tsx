@@ -10,6 +10,7 @@ import { api } from '@commit/backend/convex/_generated/api';
 
 import { LocationSection } from './EventDetailLocation';
 import { PenaltySection, WaiverSection } from './EventDetailConditions';
+import { useVerificationEngine } from '@/hooks/commits/useVerificationEngine';
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
@@ -53,9 +54,11 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
   // Hook up the verify mutation
   const verifyMutation = useMutation(api.api.commitments.verify.default);
 
-  if (!cachedEvent) return null;
-
+  // Connect the Verification Engine - MUST BE CALLED BEFORE ANY EARLY RETURNS
   const currentEvent = event || cachedEvent;
+  const { isGathering, gatherEvidence } = useVerificationEngine(currentEvent);
+
+  if (!cachedEvent) return null;
 
   const handleVerifyPress = async () => {
     if (!currentEvent?._id) {
@@ -63,16 +66,20 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
         return;
     }
     try {
+        // 1. Fire the engine and wait for native device sensors / camera to do their job
+        const evidencePayload = await gatherEvidence();
+        
+        // 2. Transmit to Convex Backend
         const result = await verifyMutation({
-            instanceId: currentEvent._id, // Assume the mapped object contains _id
-            message: "Hi from frontend!",
+            instanceId: currentEvent._id,
+            evidence: evidencePayload, // The backend gets the verified native payload!
         });
+        
         console.log("Verify Answer:", result);
-  
-        onClose(); // Optionally close modal on completion
-    } catch (error) {
+        onClose();
+    } catch (error: any) {
         console.error("Verify Failed:", error);
-        alert("Verification API Failed");
+        alert(error.message || "Verification API Failed");
     }
   };
 
@@ -84,20 +91,21 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <UView className="bg-[#1A1A1A] w-full h-[85%] absolute bottom-0 rounded-t-3xl overflow-hidden">
+        <UView className="bg-[#1A1A1A] w-full h-[95%] absolute bottom-0 rounded-t-3xl overflow-hidden">
           
           {/* Header with Close and Save/Verify placeholders based on reference style */}
           <UView className="flex-row justify-between items-center px-4 py-4 pt-6">
-            <UPressable onPress={onClose} hitSlop={10}>
-              <MaterialCommunityIcons name="close" size={24} color="white" />
+            <UPressable onPress={onClose} hitSlop={10} disabled={isGathering}>
+              <MaterialCommunityIcons name="close" size={24} color={isGathering ? "#555" : "white"} />
             </UPressable>
             
             <PrimaryButton 
                 className="w-auto px-4 py-1.5 h-auto rounded-md min-w-[70px]" 
                 textClassName="text-sm font-bold"
                 onPress={handleVerifyPress} 
+                disabled={isGathering}
             >
-                Verify
+                {isGathering ? "Checking..." : "Verify"}
             </PrimaryButton>
           </UView>
 

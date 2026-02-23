@@ -50,24 +50,24 @@ export const LocationSection = ({ event }: { event: any }) => {
     const relationText = locCondition.relation === 'within' ? 'Within' : 'Outside';
 
     return (
-        <UView className="border-b border-white/20 flex-row h-32"> 
-            {/* Left Box: Icon + Address */}
-            <UView className="flex-1 p-6 justify-center">
-                <UView className="flex-row">
-                    <MaterialCommunityIcons name="map-marker-outline" size={24} color="#9CA3AF" style={{ marginRight: 16, marginTop: 2 }} />
+        <UView className="border-b border-white/20 flex-col pb-6"> 
+            {/* Top Row: Icon + Address */}
+            <UView className="px-6 py-4">
+                <UView className="flex-row items-center">
+                    <MaterialCommunityIcons name="map-marker-outline" size={24} color="#9CA3AF" style={{ marginRight: 16 }} />
                     <UView className="flex-1">
                             <UText className="text-white text-base" numberOfLines={2}>
                                 {address || "Location"}
                             </UText>
-                        <BodyText className="text-gray-400 text-sm mt-1 capitalize">
+                        <BodyText className="text-gray-400 text-sm capitalize">
                             {relationText} {radius}m
                         </BodyText>
                     </UView>
                 </UView>
             </UView>
 
-            {/* Right Box: Map View */}
-            <UView className="w-[55%] h-full border-l border-white/10 relative items-center justify-center bg-gray-700">
+            {/* Bottom Row: Map View */}
+            <UView className="w-full h-48 relative items-center justify-center bg-gray-700">
                     {Platform.OS === 'android' ? (
                         <View style={{ flex: 1, width: '100%' }}>
                             <GoogleMaps.View
