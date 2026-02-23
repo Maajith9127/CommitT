@@ -45,11 +45,14 @@ const INITIAL_EVENTS: CalendarEvent[] = [
 
 type CalendarStore = {
   events: CalendarEvent[];
-  selectedEvent: any | null;
+  rangeStart: number;
+  rangeEnd: number;
+  selectedEventId: string | null;
   setEvents: (events: CalendarEvent[]) => void;
+  setRange: (start: number, end: number) => void;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   addEvent: (event: CalendarEvent) => void;
-  setSelectedEvent: (event: any | null) => void;
+  setSelectedEventId: (id: string | null) => void;
   selectedDate: string;
   setSelectedDate: (date: string) => void;
 };
@@ -70,8 +73,8 @@ const logger = (config: any) => (set: any, get: any, api: any) =>
       console.log("─────────────────────────────────────────────────────────");
       console.log(`{
   eventsCount: ${state.events.length},
-  selectedEventId: ${state.selectedEvent?.id || 'null'},
-  selectedEvent: ${JSON.stringify(state.selectedEvent, null, 2)},
+  selectedEventId: ${state.selectedEventId || 'null'},
+  range: [${dayjs(state.rangeStart).format('DD MMM')} - ${dayjs(state.rangeEnd).format('DD MMM')}],
   lastEvent: ${JSON.stringify(state.events[state.events.length - 1] || null, null, 2)}
 }`);
       console.log("─────────────────────────────────────────────────────────\n");
@@ -83,14 +86,15 @@ const logger = (config: any) => (set: any, get: any, api: any) =>
 export const useCalendarStore = create<CalendarStore>()(
   logger((set) => ({
     events: INITIAL_EVENTS,
-    selectedEvent: null,
+    rangeStart: dayjs().startOf('month').valueOf(),
+    rangeEnd: dayjs().endOf('month').valueOf(),
+    selectedEventId: null,
     setEvents: (events: CalendarEvent[]) => set({ events }, false, "calendar/setEvents"),
+    setRange: (start: number, end: number) => set({ rangeStart: start, rangeEnd: end }, false, "calendar/setRange"),
     updateEvent: (id: string, updates: Partial<CalendarEvent>) =>
       set(
         (state: CalendarStore) => ({
           events: state.events.map((e) => (e.id === id ? { ...e, ...updates } : e)),
-          selectedEvent:
-            state.selectedEvent?.id === id ? { ...state.selectedEvent, ...updates } : state.selectedEvent,
         }),
         false,
         "calendar/updateEvent"
@@ -101,8 +105,8 @@ export const useCalendarStore = create<CalendarStore>()(
         false,
         "calendar/addEvent"
       ),
-    setSelectedEvent: (event: any | null) => 
-      set({ selectedEvent: event }, false, "calendar/setSelectedEvent"),
+    setSelectedEventId: (id: string | null) => 
+      set({ selectedEventId: id }, false, "calendar/setSelectedEventId"),
     selectedDate: dayjs().toISOString(),
     setSelectedDate: (date: string) => set({ selectedDate: date }, false, "calendar/setSelectedDate"),
   }))

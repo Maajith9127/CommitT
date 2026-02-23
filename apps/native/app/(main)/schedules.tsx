@@ -49,8 +49,15 @@ export default function SchedulesScreen() {
   // 1. Range Management (Infinite Scroll Logic)
   const { range, handleVisibleDateChange } = useCalendarRange();
 
-  // 2. Data Fetching (Reactive Convex Query)
-  const { events } = useCalendarEvents(range.rangeStart, range.rangeEnd);
+  // 2. Data Fetching (READ ONLY from Zustand)
+  const events = useCalendarStore((state) => state.events);
+  const setRange = useCalendarStore((state) => state.setRange);
+
+  // Sync the local range from the calendar kit back to the global store store 
+  // so the headless background fetcher knows what to download!
+  useEffect(() => {
+    setRange(range.rangeStart, range.rangeEnd);
+  }, [range.rangeStart, range.rangeEnd]);
 
   // 3. Visual State
   const { showSkeleton, animatedOverlayStyle } = useSkeletonAnimation();
@@ -58,7 +65,7 @@ export default function SchedulesScreen() {
     
   // 4. Navigation Control (Sync with Global Store)
   const selectedDate = useCalendarStore((state) => state.selectedDate);
-  const setSelectedEvent = useCalendarStore((state) => state.setSelectedEvent);
+  const setSelectedEventId = useCalendarStore((state) => state.setSelectedEventId);
 
   useEffect(() => {
     if (calendarRef.current && selectedDate) {
@@ -79,10 +86,10 @@ export default function SchedulesScreen() {
   }, []);
 
   const handleEventPress = useCallback((event: any) => {
-    // Store the entire original data as requested
+    // Just pass the raw Convex Instance ID to the store directly
     const eventData = event.originalData || event;
-    console.log("[Calendar] Event Pressed:", JSON.stringify(eventData, null, 2));
-    setSelectedEvent(eventData);
+    console.log("[Calendar] Event Pressed (ID):", eventData._id);
+    setSelectedEventId(eventData._id);
   }, []);
 
   return (

@@ -3,10 +3,9 @@ import { Text, View } from "react-native";
 import { withUniwind } from "uniwind";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/button";
 import { HeaderTitle } from "@/components/ui/text";
-import { useCalendarEvents } from "@/hooks/calendar/useCalendarEvents";
 import { useCalendarStore } from "@/stores/useCalendarStore";
-import { useState, useEffect, useCallback } from "react";
-import { useFocusEffect } from "expo-router";
+import { useVerificationStore } from "@/stores/useVerificationStore";
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 
 import { SkeletonBlock } from '@/components/ui/skeletons/SkeletonBlock';
@@ -29,56 +28,24 @@ export type VerificationCardProps = {
 export function VerificationCard({
   className = "",
 }: VerificationCardProps) {
-  // Stabilize the date range to avoid infinite re-renders loop caused by Date.now() changing
-  const [range, setRange] = useState(() => {
-    const now = Date.now();
-    return {
-      start: now,
-      end: now + 7 * 24 * 60 * 60 * 1000 // Look ahead 7 days
-    };
-  });
-
-  // Refresh range on focus to ensure we catch updates or time passage
-  useFocusEffect(
-    useCallback(() => {
-        const now = Date.now();
-        setRange({
-            start: now, 
-            end: now + 7 * 24 * 60 * 60 * 1000 // Look ahead 7 days
-        });
-    }, [])
-  );
-
-  const { events, isLoading } = useCalendarEvents(range.start, range.end);
-  const selectedEvent = useCalendarStore((state: any) => state.selectedEvent);
-  const setSelectedEvent = useCalendarStore((state: any) => state.setSelectedEvent);
-  
-  // Get the nearest event
-  // Assuming the API returns sorted events. If not, we might need to sort here.
-  // We'll trust the API for now or simple sort.
-  // Get the nearest pending event (overdue or upcoming)
-  const nextEvent = events
-    ?.filter((e) => {
-        const status = e.originalData?.status;
-        return status !== 'verified' && status !== 'failed';
-    })
-    ?.sort((a, b) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())[0];
+  const nextEvent = useVerificationStore((state: any) => state.upcomingEvent);
+  const setSelectedEventId = useCalendarStore((state: any) => state.setSelectedEventId);
 
   const [timeText, setTimeText] = useState("Loading...");
 
   useEffect(() => {
-    console.log("[VerificationCard] Next Pending Event:", nextEvent ? { id: nextEvent.id, title: nextEvent.title, start: nextEvent.start.dateTime } : "None");
+    console.log("[VerificationCard] Next Pending Event:", nextEvent ? { id: nextEvent._id, title: nextEvent.title, start: nextEvent.start } : "None");
   }, [nextEvent]);
 
   useEffect(() => {
     if (!nextEvent) {
-      setTimeText(isLoading ? "Loading..." : "No Upcoming");
+      setTimeText("No Upcoming");
       return;
     }
 
     const updateTime = () => {
         const now = dayjs();
-        const start = dayjs(nextEvent.start.dateTime);
+        const start = dayjs(nextEvent.start);
         const diff = start.diff(now);
 
         if (diff <= 0) {
@@ -106,16 +73,14 @@ export function VerificationCard({
     updateTime(); // Initial
     const interval = setInterval(updateTime, 60000); // Update every minute
     return () => clearInterval(interval);
-  }, [nextEvent, isLoading]);
+  }, [nextEvent]);
 
   const handlePress = () => {
-    if (nextEvent && !selectedEvent) {
-        // Trigger the modal
-        setSelectedEvent(nextEvent.originalData || nextEvent);
+    if (nextEvent) {
+        // Trigger the global modal simply by pushing the ID to Zustand!
+        setSelectedEventId(nextEvent._id);
     }
   };
-
-  // if (isLoading && !nextEvent) return null; // Initial loading state could be skeleton, or just null for now
 
   // Content for "No Instances" state handled below by fallback values
   
@@ -145,7 +110,7 @@ export function VerificationCard({
 
           {/* CHALLENGE + TIME MERGED */}
           <UView className="w-full flex-row items-center justify-between bg-[#2A2A2A] rounded-4xl border border-dashed border-white/30 px-6 py-3">
-            {isLoading && !nextEvent ? (
+            {!nextEvent && timeText === "Loading..." ? (
                 <>
                     <SkeletonBlock width={80} height={20} borderRadius={4} />
                     <SkeletonBlock width={60} height={20} borderRadius={4} />

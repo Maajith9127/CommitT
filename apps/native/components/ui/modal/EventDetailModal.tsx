@@ -11,6 +11,8 @@ import { api } from '@commit/backend/convex/_generated/api';
 import { LocationSection } from './EventDetailLocation';
 import { PenaltySection, WaiverSection } from './EventDetailConditions';
 import { useVerificationEngine } from '@/hooks/commits/useVerificationEngine';
+import { useCalendarStore, CalendarEvent } from '@/stores/useCalendarStore';
+import { useVerificationStore } from '@/stores/useVerificationStore';
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
@@ -25,8 +27,8 @@ interface EventDetailModalProps {
   visible: boolean;
   /** Function to set `selectedEvent` to null in the global Zustand store */
   onClose: () => void;
-  /** The full data payload of the selected Task instance */
-  event: any;
+  /** The raw database ID of the selected Task instance */
+  eventId: string | null;
 }
 
 /**
@@ -39,26 +41,34 @@ interface EventDetailModalProps {
  * It is hoisted to the root `_layout.tsx` to prevent React Navigation from double-mounting it
  * across background tabs, ensuring zero-lag instantiation and perfectly flat 60fps performance.
  */
-export function EventDetailModal({ visible, onClose, event }: EventDetailModalProps) {
-  const [cachedEvent, setCachedEvent] = useState(event);
+export function EventDetailModal({ visible, onClose, eventId }: EventDetailModalProps) {
+  const [cachedEventId, setCachedEventId] = useState<string | null>(eventId);
 
-  // Cache the event so that when closing (event becomes null),
-  // we still have data to render the slide-down animation correctly,
-  // preventing ghost modals from getting stuck.
+  // Cache the event ID so that when closing (eventId becomes null),
+  // we still subscribe to the last ID, preventing the UI from vanishing instantly.
   useEffect(() => {
-    if (event) {
-      setCachedEvent(event);
+    if (eventId) {
+      setCachedEventId(eventId);
     }
-  }, [event]);
+  }, [eventId]);
 
-  // Hook up the verify mutation
   const verifyMutation = useMutation(api.api.commitments.verify.default);
+  const targetId = eventId || cachedEventId;
 
-  // Connect the Verification Engine - MUST BE CALLED BEFORE ANY EARLY RETURNS
-  const currentEvent = event || cachedEvent;
+  const eventsList = useCalendarStore((state) => state.events);
+  const upcomingEvent = useVerificationStore((state) => state.upcomingEvent);
+  
+  // Pluck the exact event from the live calendar store!
+  // If not in the calendar's current month, check if it's the live upcoming Verification event.
+  let currentEvent = eventsList.find((e: CalendarEvent) => e.id === targetId)?.originalData;
+  
+  if (!currentEvent && upcomingEvent?._id === targetId) {
+    currentEvent = upcomingEvent;
+  }
+
   const { isGathering, gatherEvidence } = useVerificationEngine(currentEvent);
 
-  if (!cachedEvent) return null;
+  if (!currentEvent) return null;
 
   const handleVerifyPress = async () => {
     if (!currentEvent?._id) {

@@ -1,25 +1,12 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import { TASK_COLORS } from '../../components/calendar/CalendarConfig';
+import { useCalendarStore, CalendarEvent } from '@/stores/useCalendarStore';
 
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  start: { dateTime: string };
-  end: { dateTime: string };
-  color: string;
-  originalData: any;
-}
+export function useCalendarEvents() {
+  const { rangeStart, rangeEnd, setEvents } = useCalendarStore();
 
-/**
- * useCalendarEvents
- * 
- * Fetches task instances from Convex based on the provided time range.
- * Transforms raw DB records into CalendarKit-compatible event objects.
- * Handles stable color assignment for tasks.
- */
-export function useCalendarEvents(rangeStart: number, rangeEnd: number) {
   // Convex Query
   const instances = useQuery(api.api.instances.read.byRange, {
     rangeStart,
@@ -58,6 +45,13 @@ export function useCalendarEvents(rangeStart: number, rangeEnd: number) {
     return mappedEvents;
 
   }, [instances]);
+
+  // Sycn with Zustand Store!! 🪄
+  useEffect(() => {
+    if (events && events.length > 0) {
+      setEvents(events);
+    }
+  }, [events]);
 
   return { events, isLoading: !instances };
 }
