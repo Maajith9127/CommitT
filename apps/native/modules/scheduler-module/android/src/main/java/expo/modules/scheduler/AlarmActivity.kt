@@ -31,6 +31,9 @@ class AlarmActivity : Activity() {
     // Media logic targets kept intentionally separated
     private var alertRingtone: Ringtone? = null
     private var deviceVibrator: Vibrator? = null
+    
+    // Safety flag to guarantee the scheduling chain NEVER breaks
+    private var hasScheduledNext: Boolean = false
 
     companion object {
         private const val TAG = "AlarmActivity"
@@ -166,6 +169,7 @@ class AlarmActivity : Activity() {
 
                 // Explicitly demand the routing framework completely rewrite Android AlarmManager configuration to the *next* trigger.
                 Log.d(TAG, "[CHAIN PROPAGATION] Demanding subsequent task scheduling dynamically upon task user dismissal.")
+                hasScheduledNext = true
                 AlarmScheduler.scheduleNextAlarm(applicationContext)
 
                 Log.d(TAG, "[WAKE API] Discarding active component and destroying Window View execution entirely.")
@@ -194,6 +198,25 @@ class AlarmActivity : Activity() {
                 defaultAlertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             }
             alertRingtone = RingtoneManager.getRingtone(applicationContext, defaultAlertUri)
+            
+            // 🚨 CRITICAL AUDIO FIX 🚨
+            // By default, RingtoneManager uses the "Ringer" volume (which respects Silent Mode).
+            // We MUST explicitly force it to use the "Alarm" volume stream so it breaks through Silent/DND!
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                alertRingtone?.audioAttributes = android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            } else {
+                @Suppress("DEPRECATION")
+                alertRingtone?.streamType = android.media.AudioManager.STREAM_ALARM
+            }
+            
+            // Android 9+ allows us to officially declare this needs to infinitely loop
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                alertRingtone?.isLooping = true
+            }
+            
             alertRingtone?.play()
 
             // Initialize hardware vibration component strictly matching array parameters
@@ -203,7 +226,13 @@ class AlarmActivity : Activity() {
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 // Modern Execution: '0' dictates infinitely looping the array until cancelled manually.
-                deviceVibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
+                
+                // Newer APIs let us assign the ALARM trait to the Vibrator too so it bypasses DND!
+                val vibrationAttributes = android.os.VibrationAttributes.Builder()
+                    .setUsage(android.os.VibrationAttributes.USAGE_ALARM)
+                    .build()
+                    
+                deviceVibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0), vibrationAttributes)
             } else {
                 @Suppress("DEPRECATION")
                 deviceVibrator?.vibrate(vibrationPattern, 0)
@@ -231,5 +260,12 @@ class AlarmActivity : Activity() {
         super.onDestroy()
         Log.i(TAG, "==== [WAKE ACTIVITY DESTROYED] ====")
         terminateHardwareAlerts()
+        
+        // EDGE CASE FIX: If the user "swiped away" the UI without clicking Dismiss,
+        // we MUST reconnect the scheduling chain so the next pre-alarm still happens!
+        if (!hasScheduledNext) {
+            Log.w(TAG, "[EDGE CASE RECOVERY] User swiped the Notification/Activity away! Re-linking the broken schedule chain.")
+            AlarmScheduler.scheduleNextAlarm(applicationContext)
+        }
     }
 }

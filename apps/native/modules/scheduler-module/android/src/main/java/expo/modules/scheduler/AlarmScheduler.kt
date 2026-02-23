@@ -71,12 +71,12 @@ object AlarmScheduler {
             
             Log.d(TAG, "[DATABASE QUERY] Fetching future unexecuted task instances...")
             
-            // Query Explanation: "Select all tasks where the start time hasn't happened yet, 
-            // sort them by chronology, and fetch the first 20."
+            // Query Explanation: "Select all tasks where the start time hasn't happened yet *AND* 
+            // the status is actively 'pending', sort them by chronology, and fetch the first 20."
             val cursor = database.rawQuery(
                 """SELECT id, title, start_time 
                    FROM task_instances 
-                   WHERE start_time >= ? 
+                   WHERE start_time >= ? AND status = 'pending'
                    ORDER BY start_time ASC LIMIT 20""",
                 arrayOf(currentTimeMs.toString())
             )
@@ -174,8 +174,14 @@ object AlarmScheduler {
             }
         }
         
-        // If no future pre-alarms remain, default gracefully to the final Main Event
-        return Pair(mainStartMs, false)
+        // If no future pre-alarms remain, return the Final Main Event ONLY if it hasn't happened yet!
+        if (mainStartMs > nowMs) {
+            return Pair(mainStartMs, false)
+        }
+        
+        // If we reach here, BOTH the pre-alarms AND the main alarm are mathematically in the past.
+        // We return MAX_VALUE to elegantly signal to the evaluation loop that this Task is a dead-end.
+        return Pair(Long.MAX_VALUE, false)
     }
 
     /**

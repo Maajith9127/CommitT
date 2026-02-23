@@ -66,6 +66,14 @@ class AlarmReceiver : BroadcastReceiver() {
         try {
             Log.d(TAG, "[UI ELEVATION] Routing execution to foreground. Launching full-screen AlarmActivity...")
             
+            // 🚨 CRITICAL RESILIENCE FIX 🚨 
+            // Before we even ATTEMPT to show the UI... calculate and guarantee the NEXT alarm.
+            // Why? If the user has heavily constrained background apps (or just aggressively swipes 
+            // the Notification away right as it spawns), giving Android the Next Alarm Instruction 
+            // right here in the BroadcastReceiver guarantees it NEVER gets killed or lost.
+            Log.d(TAG, "[RESILIENCE] Triggering immediate forward-propagation of the schedule chain.")
+            AlarmScheduler.scheduleNextAlarm(context)
+
             // Execute the hand-off to display the UI!
             context.startActivity(activityIntent)
             
