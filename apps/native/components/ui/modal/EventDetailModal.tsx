@@ -237,7 +237,20 @@ interface EventDetailModalProps {
  */
 export function EventDetailModal({ visible, onClose, event }: EventDetailModalProps) {
   const { hasPermission } = useLocation();
-  if (!event) return null;
+  const [cachedEvent, setCachedEvent] = useState(event);
+
+  // Cache the event so that when closing (event becomes null),
+  // we still have data to render the slide-down animation correctly,
+  // preventing ghost modals from getting stuck.
+  useEffect(() => {
+    if (event) {
+      setCachedEvent(event);
+    }
+  }, [event]);
+
+  if (!cachedEvent) return null;
+
+  const currentEvent = event || cachedEvent;
 
   return (
     <Modal
@@ -273,26 +286,26 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
             <UView className="px-6 flex-row justify-between items-start mt-2">
                 <UView className="flex-1 mr-4">
                     <AuthHeading className="text-left text-3xl">
-                        {event.title || "No Title"}
+                        {currentEvent.title || "No Title"}
                     </AuthHeading>
                     <BodyText className="text-left text-gray-400 ">
-                        {event.description || "No description provided"}
+                        {currentEvent.description || "No description provided"}
                     </BodyText>
                 </UView>
                 
                 {/* Status Badge */}
-                {event.status && (
+                {currentEvent.status && (
                     <UView className={`px-3 py-1 rounded-full border ${
-                        event.status === 'verified' ? 'bg-green-500/10 border-green-500/20' :
-                        event.status === 'failed' ? 'bg-red-500/10 border-red-500/20' :
+                        currentEvent.status === 'verified' ? 'bg-green-500/10 border-green-500/20' :
+                        currentEvent.status === 'failed' ? 'bg-red-500/10 border-red-500/20' :
                         'bg-yellow-500/10 border-yellow-500/20'
                     }`}>
                         <BodyText className={`text-xs font-bold uppercase ${
-                            event.status === 'verified' ? 'text-green-400' :
-                            event.status === 'failed' ? 'text-red-400' :
+                            currentEvent.status === 'verified' ? 'text-green-400' :
+                            currentEvent.status === 'failed' ? 'text-red-400' :
                             'text-yellow-400'
                         }`}>
-                            {event.status}
+                            {currentEvent.status}
                         </BodyText>
                     </UView>
                 )}
@@ -311,14 +324,14 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
 
                 {/* 2. Start Time Row */}
                 <UView className="flex-row justify-between mb-4 pl-10">
-                    <BodyText className="text-white text-base">{dayjs(event.start).format('ddd, D MMM YYYY')}</BodyText>
-                    <BodyText className="text-white text-base">{dayjs(event.start).format('h:mm a')}</BodyText>
+                    <BodyText className="text-white text-base">{dayjs(currentEvent.start).format('ddd, D MMM YYYY')}</BodyText>
+                    <BodyText className="text-white text-base">{dayjs(currentEvent.start).format('h:mm a')}</BodyText>
                 </UView>
 
                 {/* 3. End Time Row */}
                 <UView className="flex-row justify-between mb-6 pl-10">
-                    <BodyText className="text-white text-base">{dayjs(event.end).format('ddd, D MMM YYYY')}</BodyText>
-                    <BodyText className="text-white text-base">{dayjs(event.end).format('h:mm a')}</BodyText>
+                    <BodyText className="text-white text-base">{dayjs(currentEvent.end).format('ddd, D MMM YYYY')}</BodyText>
+                    <BodyText className="text-white text-base">{dayjs(currentEvent.end).format('h:mm a')}</BodyText>
                 </UView>
 
                 {/* 4. Timezone Row */}
@@ -335,13 +348,13 @@ export function EventDetailModal({ visible, onClose, event }: EventDetailModalPr
                 and securely renders a native Google Map component (Android only) 
                 without web-view overhead.
             */}
-            <LocationSection event={event} />
+            <LocationSection event={currentEvent} />
             
             {/* Penalty Section */}
-            <PenaltySection event={event} />
+            <PenaltySection event={currentEvent} />
 
             {/* Waiver Section */}
-            <WaiverSection event={event} />
+            <WaiverSection event={currentEvent} />
           </UScroll>
 
         </UView>

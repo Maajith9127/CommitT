@@ -50,6 +50,7 @@ export function VerificationCard({
   );
 
   const { events, isLoading } = useCalendarEvents(range.start, range.end);
+  const selectedEvent = useCalendarStore((state: any) => state.selectedEvent);
   const setSelectedEvent = useCalendarStore((state: any) => state.setSelectedEvent);
   
   // Get the nearest event
@@ -108,7 +109,7 @@ export function VerificationCard({
   }, [nextEvent, isLoading]);
 
   const handlePress = () => {
-    if (nextEvent) {
+    if (nextEvent && !selectedEvent) {
         // Trigger the modal
         setSelectedEvent(nextEvent.originalData || nextEvent);
     }
