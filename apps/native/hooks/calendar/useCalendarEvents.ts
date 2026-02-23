@@ -3,15 +3,17 @@ import { useQuery } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import { TASK_COLORS } from '../../components/calendar/CalendarConfig';
 import { useCalendarStore, CalendarEvent } from '@/stores/useCalendarStore';
+import { authClient } from '@/lib/auth-client';
 
 export function useCalendarEvents() {
   const { rangeStart, rangeEnd, setEvents } = useCalendarStore();
+  const { data: session } = authClient.useSession();
 
-  // Convex Query
-  const instances = useQuery(api.api.instances.read.byRange, {
-    rangeStart,
-    rangeEnd,
-  });
+  // Convex Query - Guards against unauthenticated calls using "skip"
+  const instances = useQuery(
+    api.api.instances.read.byRange, 
+    session?.user?.id ? { rangeStart, rangeEnd } : "skip"
+  );
 
   // Cache previous events to prevent flickering during loading states
   const prevEventsRef = useRef<CalendarEvent[]>([]);

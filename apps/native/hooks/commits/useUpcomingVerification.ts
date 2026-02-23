@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import { useVerificationStore } from '@/stores/useVerificationStore';
+import { authClient } from '@/lib/auth-client';
 import dayjs from 'dayjs';
 
 /**
@@ -14,6 +15,7 @@ import dayjs from 'dayjs';
  */
 export function useUpcomingVerification() {
   const setUpcomingEvent = useVerificationStore((state) => state.setUpcomingEvent);
+  const { data: session } = authClient.useSession();
 
   // Stable query frame keeps Convex websocket cheap and cached
   const range = useMemo(() => {
@@ -24,10 +26,13 @@ export function useUpcomingVerification() {
     };
   }, []);
 
-  const instances = useQuery(api.api.instances.read.byRange, {
-    rangeStart: range.start,
-    rangeEnd: range.end,
-  });
+  const instances = useQuery(
+    api.api.instances.read.byRange, 
+    session?.user?.id ? {
+      rangeStart: range.start,
+      rangeEnd: range.end,
+    } : "skip"
+  );
 
   // Keep a ref of live data for the interval tick
   const instancesRef = useRef<any>(null);
