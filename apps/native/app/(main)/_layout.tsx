@@ -9,8 +9,9 @@ import { authClient } from "@/lib/auth-client";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { useCalendarStore } from "@/stores/useCalendarStore";
 import { DatePickerModal } from "@/components/ui/modal/DatePickerModal";
-import { EventDetailModal } from "@/components/ui/modal/EventDetailModal";
-import { useCalendarEvents } from "@/hooks/calendar/useCalendarEvents";
+import { EventDetailModal2 } from "@/components/ui/modal/EventDetailModal2";
+
+
 import { useUpcomingVerification } from "@/hooks/commits/useUpcomingVerification";
 import { useState } from "react";
 import dayjs from "dayjs";
@@ -59,11 +60,9 @@ export default function MainLayout() {
   // Calendar Store: Used to globally trigger the DatePicker and EventDetail Modals seamlessly
   const selectedDate = useCalendarStore((state) => state.selectedDate);
   const setSelectedDate = useCalendarStore((state) => state.setSelectedDate);
-  const selectedEventId = useCalendarStore((state) => state.selectedEventId);
-  const setSelectedEventId = useCalendarStore((state) => state.setSelectedEventId);
 
-  // 🪄 Headless Synchronizer: Keeps the global `events` list in Zustand in sync with Convex
-  useCalendarEvents();
+
+
   
   // 🪄 Headless Synchronizer: Keeps track of the NEXT Verification instance for the Commits screen
   useUpcomingVerification();
@@ -203,11 +202,8 @@ export default function MainLayout() {
         }}
       />
 
-      <EventDetailModal 
-        visible={!!selectedEventId} 
-        eventId={selectedEventId} 
-        onClose={() => setSelectedEventId(null)} 
-      />
+      {/* Always-mounted Event Detail Modal — reads Zustand + Convex internally */}
+      <EventDetailModal2 />
       
     </UView>
   );

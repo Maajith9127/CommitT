@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import { TASK_COLORS } from '../../components/calendar/CalendarConfig';
@@ -6,7 +6,8 @@ import { useCalendarStore, CalendarEvent } from '@/stores/useCalendarStore';
 import { authClient } from '@/lib/auth-client';
 
 export function useCalendarEvents() {
-  const { rangeStart, rangeEnd, setEvents } = useCalendarStore();
+  const rangeStart = useCalendarStore((state) => state.rangeStart);
+  const rangeEnd = useCalendarStore((state) => state.rangeEnd);
   const { data: session } = authClient.useSession();
 
   // Convex Query - Guards against unauthenticated calls using "skip"
@@ -48,12 +49,8 @@ export function useCalendarEvents() {
 
   }, [instances]);
 
-  // Sycn with Zustand Store!! 🪄
-  useEffect(() => {
-    if (events && events.length > 0) {
-      setEvents(events);
-    }
-  }, [events]);
-
+  // Events are returned locally — NOT pushed to Zustand.
+  // This keeps the CalendarStore clean and prevents cascade re-renders
+  // in other components (like EventDetailModal) that used to subscribe to events[].
   return { events, isLoading: !instances };
 }

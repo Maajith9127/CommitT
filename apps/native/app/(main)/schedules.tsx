@@ -10,6 +10,7 @@ import CalendarKit, {
 import { withUniwind } from 'uniwind';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { CalendarShimmer } from '@/components/ui/skeletons/CalendarShimmer';
+
 // Extracted Configuration & Hooks
 import { INITIAL_LOCALES, CUSTOM_THEME } from '@/components/calendar/CalendarConfig';
 import { useCalendarRange } from '@/hooks/calendar/useCalendarRange';
@@ -49,12 +50,12 @@ export default function SchedulesScreen() {
   // 1. Range Management (Infinite Scroll Logic)
   const { range, handleVisibleDateChange } = useCalendarRange();
 
-  // 2. Data Fetching (READ ONLY from Zustand)
-  const events = useCalendarStore((state) => state.events);
-  const setRange = useCalendarStore((state) => state.setRange);
+  // 2. Data Fetching (LOCAL — events stay in this component, not pushed to Zustand)
+  const { events, isLoading } = useCalendarEvents();
 
-  // Sync the local range from the calendar kit back to the global store store 
+  // Sync the local range from the calendar kit back to the global store
   // so the headless background fetcher knows what to download!
+  const setRange = useCalendarStore((state) => state.setRange);
   useEffect(() => {
     setRange(range.rangeStart, range.rangeEnd);
   }, [range.rangeStart, range.rangeEnd]);
@@ -86,10 +87,10 @@ export default function SchedulesScreen() {
   }, []);
 
   const handleEventPress = useCallback((event: any) => {
-    // Just pass the raw Convex Instance ID to the store directly
+    // Push the full event data into Zustand's single-event slot
     const eventData = event.originalData || event;
     console.log("[Calendar] Event Pressed (ID):", eventData._id);
-    setSelectedEventId(eventData._id);
+    setSelectedEventId(eventData._id, eventData);
   }, []);
 
   return (

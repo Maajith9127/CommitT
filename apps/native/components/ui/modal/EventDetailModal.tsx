@@ -11,8 +11,7 @@ import { api } from '@commit/backend/convex/_generated/api';
 import { LocationSection } from './EventDetailLocation';
 import { PenaltySection, WaiverSection } from './EventDetailConditions';
 import { useVerificationEngine } from '@/hooks/commits/useVerificationEngine';
-import { useCalendarStore, CalendarEvent } from '@/stores/useCalendarStore';
-import { useVerificationStore } from '@/stores/useVerificationStore';
+import { useCalendarStore } from '@/stores/useCalendarStore';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 
 const UView = withUniwind(View);
@@ -43,29 +42,32 @@ interface EventDetailModalProps {
  * across background tabs, ensuring zero-lag instantiation and perfectly flat 60fps performance.
  */
 export function EventDetailModal({ visible, onClose, eventId }: EventDetailModalProps) {
+  useEffect(() => {
+    console.log("[DEBUG] Modal Instance Mounted. eventId:", eventId);
+    return () => console.log("[DEBUG] Modal Instance UNMOUNTED");
+  }, []);
+
+  if (visible) {
+    console.log("[DEBUG] Modal Rendering VISIBLE. eventId:", eventId);
+  }
+
   const [cachedEventId, setCachedEventId] = useState<string | null>(eventId);
 
-  // Cache the event ID so that when closing (eventId becomes null),
-  // we still subscribe to the last ID, preventing the UI from vanishing instantly.
-  useEffect(() => {
-    if (eventId) {
-      setCachedEventId(eventId);
-    }
-  }, [eventId]);
+  // Derive in render phase: React batches this setState into the SAME commit,
+  // so there's no second paint / no double render.
+  // useEffect would cause: render → paint → effect → setState → render → paint (2 paints!)
+  // Render-phase does: render → setState → re-render → paint (1 paint!)
+  if (eventId && eventId !== cachedEventId) {
+    setCachedEventId(eventId);
+  }
 
   const verifyMutation = useMutation(api.api.commitments.verify.default);
   const targetId = eventId || cachedEventId;
 
-  const eventsList = useCalendarStore((state) => state.events);
-  const upcomingEvent = useVerificationStore((state) => state.upcomingEvent);
-  
-  // Pluck the exact event from the live calendar store!
-  // If not in the calendar's current month, check if it's the live upcoming Verification event.
-  let currentEvent = eventsList.find((e: CalendarEvent) => e.id === targetId)?.originalData;
-  
-  if (!currentEvent && upcomingEvent?._id === targetId) {
-    currentEvent = upcomingEvent;
-  }
+  // ⚡ DIRECT READ: Reads from the single-event slot in Zustand.
+  // When you click an event, the full data is pushed here. One slot, one event.
+  // No array searching, no greedy subscription to events[].
+  const currentEvent = useCalendarStore((state) => state.selectedEvent);
 
   const { isGathering, gatherEvidence } = useVerificationEngine(currentEvent);
 

@@ -77,8 +77,8 @@ export function VerificationCard({
 
   const handlePress = () => {
     if (nextEvent) {
-        // Trigger the global modal simply by pushing the ID to Zustand!
-        setSelectedEventId(nextEvent._id);
+        // Push both the ID and the full event data into Zustand's single-event slot
+        setSelectedEventId(nextEvent._id, nextEvent);
     }
   };
 

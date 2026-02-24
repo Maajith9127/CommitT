@@ -48,11 +48,14 @@ type CalendarStore = {
   rangeStart: number;
   rangeEnd: number;
   selectedEventId: string | null;
+  /** The full event data for the currently selected event (single slot, one at a time) */
+  selectedEvent: any | null;
   setEvents: (events: CalendarEvent[]) => void;
   setRange: (start: number, end: number) => void;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   addEvent: (event: CalendarEvent) => void;
-  setSelectedEventId: (id: string | null) => void;
+  /** Sets both the ID and the full event data in one action */
+  setSelectedEventId: (id: string | null, eventData?: any) => void;
   selectedDate: string;
   setSelectedDate: (date: string) => void;
 };
@@ -89,6 +92,7 @@ export const useCalendarStore = create<CalendarStore>()(
     rangeStart: dayjs().startOf('month').valueOf(),
     rangeEnd: dayjs().endOf('month').valueOf(),
     selectedEventId: null,
+    selectedEvent: null,
     setEvents: (events: CalendarEvent[]) => set({ events }, false, "calendar/setEvents"),
     setRange: (start: number, end: number) => set({ rangeStart: start, rangeEnd: end }, false, "calendar/setRange"),
     updateEvent: (id: string, updates: Partial<CalendarEvent>) =>
@@ -105,8 +109,8 @@ export const useCalendarStore = create<CalendarStore>()(
         false,
         "calendar/addEvent"
       ),
-    setSelectedEventId: (id: string | null) => 
-      set({ selectedEventId: id }, false, "calendar/setSelectedEventId"),
+    setSelectedEventId: (id: string | null, eventData?: any) => 
+      set({ selectedEventId: id, selectedEvent: eventData ?? null }, false, "calendar/setSelectedEventId"),
     selectedDate: dayjs().toISOString(),
     setSelectedDate: (date: string) => set({ selectedDate: date }, false, "calendar/setSelectedDate"),
   }))
