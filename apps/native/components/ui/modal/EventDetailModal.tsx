@@ -13,6 +13,7 @@ import { PenaltySection, WaiverSection } from './EventDetailConditions';
 import { useVerificationEngine } from '@/hooks/commits/useVerificationEngine';
 import { useCalendarStore, CalendarEvent } from '@/stores/useCalendarStore';
 import { useVerificationStore } from '@/stores/useVerificationStore';
+import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
@@ -157,11 +158,12 @@ export function EventDetailModal({ visible, onClose, eventId }: EventDetailModal
                 
                 {/* 1. All Day Row */}
                 <UView className="flex-row items-center mb-6">
-                    <MaterialCommunityIcons name="clock-time-four-outline" size={24} color="#9CA3AF" style={{ marginRight: 16 }} />
-                    <BodyText className="text-white text-lg flex-1">All-day</BodyText>
-                    <UView className="w-10 h-6 bg-gray-600 rounded-full justify-center px-1">
-                        <UView className="w-4 h-4 bg-gray-400 rounded-full" />
+                    <MaterialCommunityIcons name="clock-time-four-outline" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
+                    <UView className="flex-1 mr-4">
+                        <BodyText className="text-white text-lg font-semibold" numberOfLines={1}>All-day</BodyText>
                     </UView>
+                    {/* Verification Circle / Toggle Button */}
+                    <VerificationStatusCircle status="verified" />
                 </UView>
 
                 {/* 2. Start Time Row */}

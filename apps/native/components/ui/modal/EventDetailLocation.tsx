@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GoogleMaps } from 'expo-maps';
 import { BodyText } from '@/components/ui/text';
 import { useLocation } from "@/hooks/useLocation";
+import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
@@ -52,18 +53,17 @@ export const LocationSection = ({ event }: { event: any }) => {
     return (
         <UView className="border-b border-white/20 flex-col pb-6"> 
             {/* Top Row: Icon + Address */}
-            <UView className="px-6 py-4">
-                <UView className="flex-row items-center">
-                    <MaterialCommunityIcons name="map-marker-outline" size={24} color="#9CA3AF" style={{ marginRight: 16 }} />
-                    <UView className="flex-1">
-                            <UText className="text-white text-base" numberOfLines={2}>
-                                {address || "Location"}
-                            </UText>
-                        <BodyText className="text-gray-400 text-sm capitalize">
-                            {relationText} {radius}m
-                        </BodyText>
-                    </UView>
+            <UView className="px-6 py-6 flex-row items-center">
+                <MaterialCommunityIcons name="map-marker-outline" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
+                <UView className="flex-1 mr-4">
+                    <UText className="text-white text-lg font-semibold" numberOfLines={1}>
+                        {address || "Location"}
+                    </UText>
+                    <BodyText className="text-gray-400 text-sm mt-1 capitalize" numberOfLines={1}>
+                        {relationText} {radius}m
+                    </BodyText>
                 </UView>
+                <VerificationStatusCircle status="verified" />
             </UView>
 
             {/* Bottom Row: Map View */}

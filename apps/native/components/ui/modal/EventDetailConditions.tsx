@@ -34,18 +34,19 @@ export const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: st
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MODULAR SUB-COMPONENTS
-// ─────────────────────────────────────────────────────────────────────────────
+import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 
 /**
  * Generic blueprint for rendering a condition row (used by Penalty and Waiver sections)
  */
-export const InfoSection = ({ icon, color, title, subtitle }: { icon: any; color: string; title: string; subtitle: string }) => (
+export const InfoSection = ({ icon, color, title, subtitle, status = 'neutral', percentage }: { icon: any; color: string; title: string; subtitle: string; status?: 'neutral' | 'verified' | 'failed' | 'partial'; percentage?: number }) => (
   <UView className="border-b border-white/20 flex-row p-6 items-center">
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
-    <UView className="flex-1">
-      <BodyText className="text-white text-lg font-semibold">{title}</BodyText>
-      <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
+    <UView className="flex-1 mr-4">
+      <BodyText className="text-white text-lg font-semibold" numberOfLines={1}>{title}</BodyText>
+      <BodyText className="text-gray-400 text-sm mt-1" numberOfLines={1}>{subtitle}</BodyText>
     </UView>
+    <VerificationStatusCircle status={status} percentage={percentage} />
   </UView>
 );
 
@@ -59,7 +60,7 @@ export const PenaltySection = ({ event }: { event: any }) => {
   const key = penaltyCondition?.metric_key || 'money';
   const info = PENALTY_MAP[key] || PENALTY_MAP['money'];
 
-  return <InfoSection icon={info.icon} color="#FF3B30" title={info.title} subtitle={info.subtitle} />;
+  return <InfoSection icon={info.icon} color="#FF3B30" title={info.title} subtitle={info.subtitle} status="verified" />;
 };
 
 /**
@@ -72,5 +73,5 @@ export const WaiverSection = ({ event }: { event: any }) => {
   const key = waiverCondition?.metric_key || 'captcha';
   const info = WAIVER_MAP[key] || WAIVER_MAP['captcha'];
 
-  return <InfoSection icon={info.icon} color="#4CD964" title={info.title} subtitle={info.subtitle} />;
+  return <InfoSection icon={info.icon} color="#4CD964" title={info.title} subtitle={info.subtitle} status="verified" />;
 };
