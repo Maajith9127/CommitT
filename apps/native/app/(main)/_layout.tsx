@@ -9,7 +9,7 @@ import { authClient } from "@/lib/auth-client";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { useCalendarStore } from "@/stores/useCalendarStore";
 import { DatePickerModal } from "@/components/ui/modal/DatePickerModal";
-import { EventDetailModal2 } from "@/components/ui/modal/EventDetailModal2";
+import { EventDetailModal } from "@/components/ui/modal/EventDetailModal";
 
 
 import { useUpcomingVerification } from "@/hooks/commits/useUpcomingVerification";
@@ -21,25 +21,23 @@ const UText = withUniwind(Text);
 const UPressable = withUniwind(Pressable);
 
 /**
- * MainLayout - The Root Component for the Authenticated App (`/app/(main)`)
+ * MainLayout — Root Component for the Authenticated App (`/app/(main)`)
  * 
  * ARCHITECTURE OVERVIEW:
- * This layout serves as the core foundation for all main application screens.
- * It manages three primary responsibilities to ensure smooth 60fps performance:
+ * This layout manages three primary responsibilities:
  * 
  * 1. Global Navigation (Tabs & Headers):
- *    - Renders the `BottomTabBar` for switching between Commits, Schedules, Insights, etc.
- *    - Renders a unified sticky top header that dynamically changes context based on the current route.
+ *    - Renders `BottomTabBar` for switching between Commits, Schedules, Insights, etc.
+ *    - Renders a unified sticky top header that adapts to the current route.
  * 
- * 2. Global State Hoisting (The "Singleton" Modal Pattern):
- *    - By declaring `<EventDetailModal />` and `<DatePickerModal />` at this root level, 
- *      we avoid mounting identical modals multiple times across different tabs.
- *    - If modals were placed inside each tab, React Navigation would keep them all alive in memory,
- *      causing double-rendering overlays, massive UI lag, and deep Android View Hierarchy conflicts.
- *      Here, they exist only once and are triggered via Zustand Global State.
+ * 2. Global Singleton Modals:
+ *    - `<EventDetailModal />` — Self-contained, reads state from Zustand. Protected by a
+ *      module-level singleton guard to prevent Expo Router from creating duplicate instances
+ *      during Stack transitions. See EventDetailModal.tsx for full documentation.
+ *    - `<DatePickerModal />` — Date selection overlay for the Schedules screen.
  * 
  * 3. Draft State Management:
- *    - Prepares the global `useTaskDraftStore` when the user initiates a new task via the "Add" button.
+ *    - Prepares `useTaskDraftStore` when the user taps "Add" to create a new task.
  */
 export default function MainLayout() {
   const pathname = usePathname();
@@ -187,23 +185,24 @@ export default function MainLayout() {
         </Tabs>
       </UView>
 
-      {/* --- GLOBAL SINGLETON MODALS --- */}
+      {/* ── GLOBAL SINGLETON MODALS ──────────────────────────────────────── */}
       {/* 
-        By placing these here, any tab can open them via Zustand instantly, 
-        without causing its parent component to re-render. 
-      */}
+       * These modals live here (layout level) so any tab can trigger them
+       * via Zustand without re-rendering individual screen components.
+       * EventDetailModal uses a singleton guard (see its source for details).
+       */}
       <DatePickerModal 
         isVisible={isDatePickerVisible}
         onClose={() => setDatePickerVisible(false)}
         date={selectedDate}
         onDateChange={(date) => {
             setSelectedDate(date);
-            setDatePickerVisible(false); // Auto close upon selection
+            setDatePickerVisible(false);
         }}
       />
 
-      {/* Always-mounted Event Detail Modal — reads Zustand + Convex internally */}
-      <EventDetailModal2 />
+      {/* Self-contained: reads selectedEventId + selectedEvent from Zustand */}
+      <EventDetailModal />
       
     </UView>
   );

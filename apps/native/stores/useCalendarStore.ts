@@ -1,7 +1,32 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║  useCalendarStore — Global Calendar State (Zustand)                         ║
+ * ╠══════════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                            ║
+ * ║  Manages all calendar-related state for the app:                           ║
+ * ║                                                                            ║
+ * ║  • events[]          - The list of calendar events (for the BigCalendar)   ║
+ * ║  • rangeStart/End    - Visible date range (epoch ms)                       ║
+ * ║  • selectedEventId   - Which event is currently open in the detail modal   ║
+ * ║  • selectedEvent     - Full event data for the detail modal                ║
+ * ║  • selectedDate      - The date the user is currently viewing              ║
+ * ║                                                                            ║
+ * ║  HOW THE MODAL READS DATA:                                                 ║
+ * ║  When a user taps an event, the caller does:                               ║
+ * ║    setSelectedEventId(instanceId, fullEventObject)                         ║
+ * ║  This writes BOTH the ID (controls visibility) and the full data           ║
+ * ║  (used for rendering) into Zustand in a single atomic action.              ║
+ * ║  The EventDetailModal reads both values and renders immediately.           ║
+ * ║                                                                            ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
+
 import { create } from 'zustand';
 import dayjs from 'dayjs';
 
-// Define the Event type based on what I saw in verify.tsx
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+/** Shape of a calendar event (used by BigCalendar and the events array) */
 export type CalendarEvent = {
   id: string;
   title: string;
@@ -10,6 +35,8 @@ export type CalendarEvent = {
   color: string;
   recurrenceRule?: string;
 };
+
+// ─── Initial Seed Data (development only) ───────────────────────────────────
 
 const INITIAL_EVENTS: CalendarEvent[] = [
   {
@@ -43,33 +70,49 @@ const INITIAL_EVENTS: CalendarEvent[] = [
   },
 ];
 
+// ─── Store Shape ────────────────────────────────────────────────────────────
+
 type CalendarStore = {
+  // ── Calendar Events ──
   events: CalendarEvent[];
-  rangeStart: number;
-  rangeEnd: number;
-  selectedEventId: string | null;
-  /** The full event data for the currently selected event (single slot, one at a time) */
-  selectedEvent: any | null;
   setEvents: (events: CalendarEvent[]) => void;
-  setRange: (start: number, end: number) => void;
   updateEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   addEvent: (event: CalendarEvent) => void;
-  /** Sets both the ID and the full event data in one action */
+
+  // ── Visible Date Range (epoch ms) ──
+  rangeStart: number;
+  rangeEnd: number;
+  setRange: (start: number, end: number) => void;
+
+  // ── Currently Selected Event (powers EventDetailModal) ──
+  /** The Convex `_id` of the selected task instance, or null when no modal is open */
+  selectedEventId: string | null;
+  /** The full event object for the modal to render (title, start, end, conditions, etc.) */
+  selectedEvent: any | null;
+  /**
+   * Opens the modal by setting both the ID and data atomically.
+   * Call with `null` to close:
+   *   setSelectedEventId("abc123", eventData)  → opens modal
+   *   setSelectedEventId(null)                 → closes modal
+   */
   setSelectedEventId: (id: string | null, eventData?: any) => void;
+
+  // ── Selected Date (for the header date picker) ──
   selectedDate: string;
   setSelectedDate: (date: string) => void;
 };
 
-// Logger middleware
+// ─── Debug Logger Middleware ─────────────────────────────────────────────────
+// Wraps every Zustand action with a console.log showing the action name
+// and the resulting state. Useful for debugging state flow in development.
+
 const logger = (config: any) => (set: any, get: any, api: any) =>
   config(
     (...args: any[]) => {
       const actionName = args[2] ?? "anonymous";
       
-      // Execute the state update
       set(...args);
       
-      // Get the new state
       const state = get();
       
       console.log(`\n[CalendarStore] 🔄 ${actionName}`);
@@ -86,15 +129,25 @@ const logger = (config: any) => (set: any, get: any, api: any) =>
     api
   );
 
+// ─── Store Creation ─────────────────────────────────────────────────────────
+
 export const useCalendarStore = create<CalendarStore>()(
   logger((set) => ({
+    // ── Initial State ──
     events: INITIAL_EVENTS,
     rangeStart: dayjs().startOf('month').valueOf(),
     rangeEnd: dayjs().endOf('month').valueOf(),
     selectedEventId: null,
     selectedEvent: null,
-    setEvents: (events: CalendarEvent[]) => set({ events }, false, "calendar/setEvents"),
-    setRange: (start: number, end: number) => set({ rangeStart: start, rangeEnd: end }, false, "calendar/setRange"),
+    selectedDate: dayjs().toISOString(),
+
+    // ── Actions ──
+    setEvents: (events: CalendarEvent[]) =>
+      set({ events }, false, "calendar/setEvents"),
+
+    setRange: (start: number, end: number) =>
+      set({ rangeStart: start, rangeEnd: end }, false, "calendar/setRange"),
+
     updateEvent: (id: string, updates: Partial<CalendarEvent>) =>
       set(
         (state: CalendarStore) => ({
@@ -103,15 +156,26 @@ export const useCalendarStore = create<CalendarStore>()(
         false,
         "calendar/updateEvent"
       ),
-    addEvent: (event: CalendarEvent) => 
+
+    addEvent: (event: CalendarEvent) =>
       set(
         (state: CalendarStore) => ({ events: [...state.events, event] }),
         false,
         "calendar/addEvent"
       ),
-    setSelectedEventId: (id: string | null, eventData?: any) => 
-      set({ selectedEventId: id, selectedEvent: eventData ?? null }, false, "calendar/setSelectedEventId"),
-    selectedDate: dayjs().toISOString(),
-    setSelectedDate: (date: string) => set({ selectedDate: date }, false, "calendar/setSelectedDate"),
+
+    /**
+     * Atomically sets the selected event ID and its full data.
+     * This single action controls the EventDetailModal's visibility and content.
+     */
+    setSelectedEventId: (id: string | null, eventData?: any) =>
+      set(
+        { selectedEventId: id, selectedEvent: eventData ?? null },
+        false,
+        "calendar/setSelectedEventId"
+      ),
+
+    setSelectedDate: (date: string) =>
+      set({ selectedDate: date }, false, "calendar/setSelectedDate"),
   }))
 );

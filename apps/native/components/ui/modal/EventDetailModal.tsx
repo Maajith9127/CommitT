@@ -1,5 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import { Modal, View, StyleSheet, Pressable, Text, ScrollView } from 'react-native';
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║  EventDetailModal — Global Singleton Event Viewer                          ║
+ * ╠══════════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                            ║
+ * ║  PURPOSE:                                                                  ║
+ * ║  Full-screen bottom sheet that displays the details of a selected           ║
+ * ║  calendar event / task instance. Includes title, description, status,       ║
+ * ║  time window, map (GPS location), penalty, waiver, and a "Verify" action.  ║
+ * ║                                                                            ║
+ * ║  HOW DATA FLOWS:                                                           ║
+ * ║  1. User taps an event on any screen (calendar, commits, verification).    ║
+ * ║  2. That screen calls:                                                     ║
+ * ║       setSelectedEventId(instanceId, fullEventObject)                      ║
+ * ║     This writes BOTH the ID and the full event data into Zustand.          ║
+ * ║  3. This modal reads `selectedEventId` + `selectedEvent` from Zustand.     ║
+ * ║     When the ID is non-null, <Modal visible={true}> slides up.             ║
+ * ║  4. On close, setSelectedEventId(null) hides the modal.                    ║
+ * ║                                                                            ║
+ * ║  SINGLETON GUARD (Why?):                                                   ║
+ * ║  Expo Router can mount (main)/_layout.tsx TWICE during Stack transitions    ║
+ * ║  (e.g. navigating to (create-commit)/final and back). Without protection,  ║
+ * ║  two <Modal> instances appear, causing a "double page" visual bug on       ║
+ * ║  dismiss. The module-level `isInstanceMounted` flag ensures only the        ║
+ * ║  FIRST instance renders; any duplicate returns null.                        ║
+ * ║                                                                            ║
+ * ║  USAGE (in (main)/_layout.tsx):                                            ║
+ * ║    <EventDetailModal />    ← zero props, fully self-contained              ║
+ * ║                                                                            ║
+ * ║  KEY RULES:                                                                ║
+ * ║  • Never pass props — all data comes from Zustand.                         ║
+ * ║  • Never mount this in individual screens — only in the layout.            ║
+ * ║  • All hooks are called unconditionally (above the singleton guard)        ║
+ * ║    to comply with React's Rules of Hooks.                                  ║
+ * ║                                                                            ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Modal, View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PrimaryButton } from '@/components/ui/button';
@@ -14,101 +52,135 @@ import { useVerificationEngine } from '@/hooks/commits/useVerificationEngine';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 
+// ── Uniwind-wrapped primitives ──
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
-const UText = withUniwind(Text);
 const UScroll = withUniwind(ScrollView);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MAIN EXPORT
+// SINGLETON GUARD
+//
+// Module-level flag (lives outside React). Only ONE instance of this component
+// is allowed to render the <Modal> at any time. Duplicate instances that Expo
+// Router may create during Stack transitions will see this flag as `true` and
+// bail out by returning null from their render.
 // ─────────────────────────────────────────────────────────────────────────────
+let isInstanceMounted = false;
 
-interface EventDetailModalProps {
-  visible: boolean;
-  /** Function to set `selectedEvent` to null in the global Zustand store */
-  onClose: () => void;
-  /** The raw database ID of the selected Task instance */
-  eventId: string | null;
-}
+export const EventDetailModal = React.memo(function EventDetailModal() {
 
-/**
- * EventDetailModal (Global Singleton Pattern)
- * 
- * This UI component renders the rich details of a selected calendar event or task commit.
- * 
- * **CRITICAL ARCHITECTURE NOTE:**
- * Do NOT mount this modal inside individual screens (like schedules.tsx or commits.tsx).
- * It is hoisted to the root `_layout.tsx` to prevent React Navigation from double-mounting it
- * across background tabs, ensuring zero-lag instantiation and perfectly flat 60fps performance.
- */
-export function EventDetailModal({ visible, onClose, eventId }: EventDetailModalProps) {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1. SINGLETON OWNERSHIP
+  //    The first instance to mount claims the lock. If a second instance
+  //    appears (Expo Router double-mount), it will NOT claim ownership
+  //    and will return null below. On unmount, the owner releases the lock.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const [isOwner, setIsOwner] = useState(false);
+
   useEffect(() => {
-    console.log("[DEBUG] Modal Instance Mounted. eventId:", eventId);
-    return () => console.log("[DEBUG] Modal Instance UNMOUNTED");
+    if (!isInstanceMounted) {
+      isInstanceMounted = true;
+      setIsOwner(true);
+    }
+    return () => {
+      if (isInstanceMounted) {
+        isInstanceMounted = false;
+      }
+    };
   }, []);
 
-  if (visible) {
-    console.log("[DEBUG] Modal Rendering VISIBLE. eventId:", eventId);
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2. ZUSTAND STATE (called unconditionally — Rules of Hooks)
+  //    Even the duplicate instance calls these hooks. This is required
+  //    because React enforces that the same hooks run on every render.
+  //    The duplicate simply won't USE the values (it returns null).
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  const [cachedEventId, setCachedEventId] = useState<string | null>(eventId);
+  /** The Convex document `_id` of the currently selected task instance */
+  const eventId = useCalendarStore((state) => state.selectedEventId);
 
-  // Derive in render phase: React batches this setState into the SAME commit,
-  // so there's no second paint / no double render.
-  // useEffect would cause: render → paint → effect → setState → render → paint (2 paints!)
-  // Render-phase does: render → setState → re-render → paint (1 paint!)
-  if (eventId && eventId !== cachedEventId) {
-    setCachedEventId(eventId);
-  }
-
-  const verifyMutation = useMutation(api.api.commitments.verify.default);
-  const targetId = eventId || cachedEventId;
-
-  // ⚡ DIRECT READ: Reads from the single-event slot in Zustand.
-  // When you click an event, the full data is pushed here. One slot, one event.
-  // No array searching, no greedy subscription to events[].
+  /** The full event object (title, start, end, status, conditions, etc.) */
   const currentEvent = useCalendarStore((state) => state.selectedEvent);
 
+  /** Setter: pass `null` to close, or `(id, eventData)` to open */
+  const setSelectedEventId = useCalendarStore((state) => state.setSelectedEventId);
+
+  /** Derived: modal is visible when we have an eventId */
+  const isVisible = !!eventId;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3. VERIFICATION ENGINE
+  //    Handles GPS evidence gathering, camera capture, and transmitting
+  //    proof to the Convex backend for on-chain / backend verification.
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const verifyMutation = useMutation(api.api.commitments.verify.default);
   const { isGathering, gatherEvidence } = useVerificationEngine(currentEvent);
 
-  if (!currentEvent) return null;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. HANDLERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /** Close the modal by resetting the Zustand selection to null */
+  const handleClose = useCallback(() => {
+    setSelectedEventId(null);
+  }, [setSelectedEventId]);
+
+  // ─── SINGLETON GUARD: Duplicate → render nothing ──────────────────────────
+  if (!isOwner) return null;
+
+  // ─── NO DATA: Keep modal shell alive but hidden ───────────────────────────
+  if (!currentEvent) {
+    return (
+      <Modal visible={false} transparent animationType="slide" onRequestClose={handleClose}>
+        <View />
+      </Modal>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. VERIFY ACTION
+  //    Gathers native device evidence (GPS, camera) via the verification
+  //    engine, then transmits it to the Convex mutation for final verdict.
+  // ═══════════════════════════════════════════════════════════════════════════
 
   const handleVerifyPress = async () => {
     if (!currentEvent?._id) {
-        console.error("No valid instance_id found on the event.");
-        return;
+      console.error("[EventDetailModal] No valid instance_id on the event.");
+      return;
     }
     try {
-        // 1. Fire the engine and wait for native device sensors / camera to do their job
-        const evidencePayload = await gatherEvidence();
-        
-        // 2. Transmit to Convex Backend
-        const result = await verifyMutation({
-            instanceId: currentEvent._id,
-            evidence: evidencePayload, // The backend gets the verified native payload!
-        });
-        
-        console.log("Verify Answer:", result);
-        onClose();
+      const evidencePayload = await gatherEvidence();
+      const result = await verifyMutation({
+        instanceId: currentEvent._id,
+        evidence: evidencePayload,
+      });
+      console.log("[EventDetailModal] Verification result:", result);
+      handleClose();
     } catch (error: any) {
-        console.error("Verify Failed:", error);
-        alert(error.message || "Verification API Failed");
+      console.error("[EventDetailModal] Verification failed:", error);
+      alert(error.message || "Verification failed. Please try again.");
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 6. RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
+
   return (
     <Modal
-      visible={visible}
+      visible={isVisible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
         <UView className="bg-[#1A1A1A] w-full h-[95%] absolute bottom-0 rounded-t-3xl overflow-hidden">
           
-          {/* Header with Close and Save/Verify placeholders based on reference style */}
+          {/* ── Header: Close (×) + Verify Button ── */}
           <UView className="flex-row justify-between items-center px-4 py-4 pt-6">
-            <UPressable onPress={onClose} hitSlop={10} disabled={isGathering}>
+            <UPressable onPress={handleClose} hitSlop={10} disabled={isGathering}>
               <MaterialCommunityIcons name="close" size={24} color={isGathering ? "#555" : "white"} />
             </UPressable>
             
@@ -122,23 +194,24 @@ export function EventDetailModal({ visible, onClose, eventId }: EventDetailModal
             </PrimaryButton>
           </UView>
 
-          {/* Empty Body as requested ("plain popup , dotn add anytjin g in there") */}
+          {/* ── Scrollable Content ── */}
           <UScroll 
-            className="flex-1 bg-[#1A1A1A] " 
-            contentContainerStyle={{ paddingBottom: 0 }}
+            className="flex-1 bg-[#1A1A1A]" 
+            contentContainerStyle={{ paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
           >
+
+            {/* ── Title + Description + Status Badge ── */}
             <UView className="px-6 flex-row justify-between items-start mt-2">
                 <UView className="flex-1 mr-4">
                     <AuthHeading className="text-left text-3xl">
                         {currentEvent.title || "No Title"}
                     </AuthHeading>
-                    <BodyText className="text-left text-gray-400 ">
+                    <BodyText className="text-left text-gray-400">
                         {currentEvent.description || "No description provided"}
                     </BodyText>
                 </UView>
                 
-                {/* Status Badge */}
                 {currentEvent.status && (
                     <UView className={`px-3 py-1 rounded-full border ${
                         currentEvent.status === 'verified' ? 'bg-green-500/10 border-green-500/20' :
@@ -155,32 +228,32 @@ export function EventDetailModal({ visible, onClose, eventId }: EventDetailModal
                     </UView>
                 )}
             </UView>
-            {/* Time Section Container */}
+
+            {/* ── Time Section: All-day toggle, Start, End, Timezone ── */}
             <UView className="border-t border-b border-white/20 mt-6 py-6 px-6">
                 
-                {/* 1. All Day Row */}
+                {/* All Day Row */}
                 <UView className="flex-row items-center mb-6">
                     <MaterialCommunityIcons name="clock-time-four-outline" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
                     <UView className="flex-1 mr-4 overflow-hidden">
                         <BodyText className="text-white text-base">All-day</BodyText>
                     </UView>
-                    {/* Verification Circle / Toggle Button */}
                     <VerificationStatusCircle status="verified" />
                 </UView>
 
-                {/* 2. Start Time Row */}
+                {/* Start Time */}
                 <UView className="flex-row justify-between mb-4 pl-10">
                     <BodyText className="text-white text-base">{dayjs(currentEvent.start).format('ddd, D MMM YYYY')}</BodyText>
                     <BodyText className="text-white text-base">{dayjs(currentEvent.start).format('h:mm a')}</BodyText>
                 </UView>
 
-                {/* 3. End Time Row */}
+                {/* End Time */}
                 <UView className="flex-row justify-between mb-6 pl-10">
                     <BodyText className="text-white text-base">{dayjs(currentEvent.end).format('ddd, D MMM YYYY')}</BodyText>
                     <BodyText className="text-white text-base">{dayjs(currentEvent.end).format('h:mm a')}</BodyText>
                 </UView>
 
-                {/* 4. Timezone Row */}
+                {/* Timezone */}
                 <UView className="flex-row items-center">
                     <MaterialCommunityIcons name="earth" size={24} color="#9CA3AF" style={{ marginRight: 16 }} />
                     <BodyText className="text-gray-300 text-base">India Standard Time</BodyText>
@@ -188,27 +261,24 @@ export function EventDetailModal({ visible, onClose, eventId }: EventDetailModal
 
             </UView>
 
-            {/* --- GPS Location Display --- */}
-            {/* 
-                Calculates geo-fencing requirements ("within" or "outside" the radius)
-                and securely renders a native Google Map component (Android only) 
-                without web-view overhead.
-            */}
+            {/* ── GPS Location (renders a native Google Map if conditions exist) ── */}
             <LocationSection event={currentEvent} />
             
-            {/* Penalty Section */}
+            {/* ── Financial Penalty details ── */}
             <PenaltySection event={currentEvent} />
 
-            {/* Waiver Section */}
+            {/* ── Waiver / grace period details ── */}
             <WaiverSection event={currentEvent} />
+
           </UScroll>
 
         </UView>
       </View>
     </Modal>
   );
-}
+});
 
+// ─── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
