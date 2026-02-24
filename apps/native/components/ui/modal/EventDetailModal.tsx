@@ -159,8 +159,8 @@ export function EventDetailModal({ visible, onClose, eventId }: EventDetailModal
                 {/* 1. All Day Row */}
                 <UView className="flex-row items-center mb-6">
                     <MaterialCommunityIcons name="clock-time-four-outline" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
-                    <UView className="flex-1 mr-4">
-                        <BodyText className="text-white text-lg font-semibold" numberOfLines={1}>All-day</BodyText>
+                    <UView className="flex-1 mr-4 overflow-hidden">
+                        <BodyText className="text-white text-base">All-day</BodyText>
                     </UView>
                     {/* Verification Circle / Toggle Button */}
                     <VerificationStatusCircle status="verified" />

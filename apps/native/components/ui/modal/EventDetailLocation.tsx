@@ -55,11 +55,11 @@ export const LocationSection = ({ event }: { event: any }) => {
             {/* Top Row: Icon + Address */}
             <UView className="px-6 py-6 flex-row items-center">
                 <MaterialCommunityIcons name="map-marker-outline" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
-                <UView className="flex-1 mr-4">
-                    <UText className="text-white text-lg font-semibold" numberOfLines={1}>
+                <UView className="flex-1 mr-4 overflow-hidden">
+                    <BodyText className="text-white text-base">
                         {address || "Location"}
-                    </UText>
-                    <BodyText className="text-gray-400 text-sm mt-1 capitalize" numberOfLines={1}>
+                    </BodyText>
+                    <BodyText className="text-gray-400 text-sm mt-1 capitalize">
                         {relationText} {radius}m
                     </BodyText>
                 </UView>

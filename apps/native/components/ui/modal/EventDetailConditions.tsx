@@ -42,9 +42,9 @@ import { VerificationStatusCircle } from '@/components/ui/commits/VerificationSt
 export const InfoSection = ({ icon, color, title, subtitle, status = 'neutral', percentage }: { icon: any; color: string; title: string; subtitle: string; status?: 'neutral' | 'verified' | 'failed' | 'partial'; percentage?: number }) => (
   <UView className="border-b border-white/20 flex-row p-6 items-center">
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
-    <UView className="flex-1 mr-4">
-      <BodyText className="text-white text-lg font-semibold" numberOfLines={1}>{title}</BodyText>
-      <BodyText className="text-gray-400 text-sm mt-1" numberOfLines={1}>{subtitle}</BodyText>
+    <UView className="flex-1 mr-4 overflow-hidden">
+      <BodyText className="text-white text-base">{title}</BodyText>
+      <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
     </UView>
     <VerificationStatusCircle status={status} percentage={percentage} />
   </UView>

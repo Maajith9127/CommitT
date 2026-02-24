@@ -78,15 +78,13 @@ export function BodyText({
   children,
   className = "",
   style,
-  numberOfLines,
 }: {
   children: React.ReactNode;
   className?: string;
   style?: any;
-  numberOfLines?: number;
 }) {
   return (
-    <UText className={`text-white text-base ${className}`} style={style} numberOfLines={numberOfLines}>
+    <UText className={`text-white text-base ${className}`} style={style}>
       {children}
     </UText>
   );
