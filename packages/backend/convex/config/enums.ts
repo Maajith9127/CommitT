@@ -49,6 +49,15 @@ export const taskStatusEnum = v.union(
   v.literal("failed"),
 );
 
+export const conditionStatusEnum = v.union(
+  v.literal("neutral"),
+  v.literal("verified"),
+  v.literal("failed"),
+  v.literal("applied"),
+  v.literal("waived"),
+  v.literal("percentage"),
+);
+
 export const recurrenceTypeEnum = v.union(
   v.literal("once"),
   v.literal("daily"),

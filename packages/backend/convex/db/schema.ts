@@ -6,6 +6,7 @@ import {
   permissionEnum,
   visibilityEnum,
   taskStatusEnum,
+  conditionStatusEnum,
   recurrenceTypeEnum,
   recurrenceEndsTypeEnum,
 } from "../config/enums";
@@ -94,6 +95,8 @@ export default defineSchema({
           type: targetTypeEnum,
           value: v.any(),
         }),
+        status: v.optional(conditionStatusEnum),
+        progress_percentage: v.optional(v.number()),
       }),
     ),
     scheduled_job_id: v.optional(v.id("_scheduled_functions")),
