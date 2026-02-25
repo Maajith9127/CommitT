@@ -35,7 +35,7 @@ export const getCirclePoints = (
   return coords;
 };
 
-export const LocationSection = ({ event }: { event: any }) => {
+export const LocationSection = ({ event, onMapTouchStart, onMapTouchEnd }: { event: any; onMapTouchStart?: () => void; onMapTouchEnd?: () => void }) => {
     const locCondition = event?.conditions?.find((c: any) => c.metric_key === 'location');
     const { hasPermission } = useLocation();
     const [isMapReady, setIsMapReady] = useState(false);
@@ -63,10 +63,18 @@ export const LocationSection = ({ event }: { event: any }) => {
                         {relationText} {radius}m
                     </BodyText>
                 </UView>
-                <VerificationStatusCircle status="verified" />
+                {/* FOR DEMO: Show 'applied' status */}
+                <VerificationStatusCircle status="neutral" />
             </UView>
 
-            {/* Bottom Row: Map View */}
+            {/* Bottom Row: Map View 
+               onTouchStart/End tell the parent ScrollView to pause scrolling
+               while the user is panning the map. */}
+            <View 
+                onTouchStart={onMapTouchStart}
+                onTouchEnd={onMapTouchEnd}
+                onTouchCancel={onMapTouchEnd}
+            >
             <UView className="w-full h-48 relative items-center justify-center bg-gray-700">
                     {Platform.OS === 'android' ? (
                         <View style={{ flex: 1, width: '100%' }}>
@@ -136,6 +144,7 @@ export const LocationSection = ({ event }: { event: any }) => {
                         <MaterialCommunityIcons name="google-maps" size={32} color="#4B5563" />
                     )}
             </UView>
+            </View>
         </UView>
     );
 };

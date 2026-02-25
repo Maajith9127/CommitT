@@ -6,11 +6,12 @@ import { BodyText } from '@/components/ui/text';
 
 const UView = withUniwind(View);
 
-type StatusType = 'neutral' | 'verified' | 'failed' | 'partial';
+type StatusType = 'neutral' | 'verified' | 'failed' | 'applied' | 'waived' | 'percentage';
 
 export interface VerificationCircleProps {
   status?: StatusType;
-  percentage?: number; // 0 to 100
+  /** Percentage to show when status is 'percentage' (0 to 100) */
+  percentage?: number; 
 }
 
 /**
@@ -18,32 +19,53 @@ export interface VerificationCircleProps {
  * Can be plugged anywhere to display visually whether a rule/condition passed or failed.
  */
 export function VerificationStatusCircle({ status = 'neutral', percentage = 0 }: VerificationCircleProps) {
+  const baseOuterClass = "w-12 h-12 rounded-full border border-white/40 justify-center items-center bg-white/5";
+  const iconColor = "#D1D5DB"; // matching standard gray/white text
+
   if (status === 'verified') {
     return (
-      <UView className="w-10 h-10 rounded-full border border-green-500 bg-green-500/10 justify-center items-center">
-        <MaterialCommunityIcons name="check" size={20} color="#4ADE80" />
+      <UView className={baseOuterClass}>
+        <MaterialCommunityIcons name="check" size={24} color={iconColor} />
       </UView>
     );
   }
 
   if (status === 'failed') {
     return (
-      <UView className="w-10 h-10 rounded-full border border-red-500 bg-red-500/10 justify-center items-center">
-        <MaterialCommunityIcons name="close" size={20} color="#F87171" />
+      <UView className={baseOuterClass}>
+        <MaterialCommunityIcons name="close" size={24} color={iconColor} />
       </UView>
     );
   }
 
-  if (status === 'partial') {
+  if (status === 'applied') {
     return (
-      <UView className="w-10 h-10 rounded-full border border-[#4FA0FF] bg-[#4FA0FF]/10 justify-center items-center">
-        <BodyText className="text-[10px] text-[#4FA0FF] font-bold">{Math.round(percentage)}%</BodyText>
+      <UView className={baseOuterClass}>
+        <MaterialCommunityIcons name="flag-checkered" size={24} color={iconColor} />
+      </UView>
+    );
+  }
+
+  if (status === 'waived') {
+    return (
+      <UView className={baseOuterClass}>
+        <MaterialCommunityIcons name="shield-check-outline" size={24} color={iconColor} />
+      </UView>
+    );
+  }
+
+  if (status === 'percentage') {
+    return (
+      <UView className={baseOuterClass}>
+        <MaterialCommunityIcons name="percent" size={24} color={iconColor} />
       </UView>
     );
   }
 
   // neutral
   return (
-    <UView className="w-10 h-10 rounded-full border border-white/40 justify-center items-center" />
+    <UView className={baseOuterClass}>
+      <MaterialCommunityIcons name="cursor-pointer" size={24} color={iconColor} />
+    </UView>
   );
 }

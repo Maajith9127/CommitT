@@ -109,6 +109,9 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   /** Derived: modal is visible when we have an eventId */
   const isVisible = !!eventId;
 
+  /** Controls parent scroll — disabled while user pans the embedded map */
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+
   // ═══════════════════════════════════════════════════════════════════════════
   // 3. VERIFICATION ENGINE
   //    Handles GPS evidence gathering, camera capture, and transmitting
@@ -199,6 +202,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             className="flex-1 bg-[#1A1A1A]" 
             contentContainerStyle={{ paddingBottom: 40 }}
             showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+            scrollEnabled={scrollEnabled}
           >
 
             {/* ── Title + Description + Status Badge ── */}
@@ -213,16 +218,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
                 </UView>
                 
                 {currentEvent.status && (
-                    <UView className={`px-3 py-1 rounded-full border ${
-                        currentEvent.status === 'verified' ? 'bg-green-500/10 border-green-500/20' :
-                        currentEvent.status === 'failed' ? 'bg-red-500/10 border-red-500/20' :
-                        'bg-yellow-500/10 border-yellow-500/20'
-                    }`}>
-                        <BodyText className={`text-xs font-bold uppercase ${
-                            currentEvent.status === 'verified' ? 'text-green-400' :
-                            currentEvent.status === 'failed' ? 'text-red-400' :
-                            'text-yellow-400'
-                        }`}>
+                    <UView className="px-3 py-1 rounded-full border bg-white/5 border-white/20">
+                        <BodyText className="text-xs font-bold uppercase text-white">
                             {currentEvent.status}
                         </BodyText>
                     </UView>
@@ -238,7 +235,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
                     <UView className="flex-1 mr-4 overflow-hidden">
                         <BodyText className="text-white text-base">All-day</BodyText>
                     </UView>
-                    <VerificationStatusCircle status="verified" />
+                    <VerificationStatusCircle status="neutral" />
                 </UView>
 
                 {/* Start Time */}
@@ -262,7 +259,11 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             </UView>
 
             {/* ── GPS Location (renders a native Google Map if conditions exist) ── */}
-            <LocationSection event={currentEvent} />
+            <LocationSection 
+              event={currentEvent} 
+              onMapTouchStart={() => setScrollEnabled(false)}
+              onMapTouchEnd={() => setScrollEnabled(true)}
+            />
             
             {/* ── Financial Penalty details ── */}
             <PenaltySection event={currentEvent} />

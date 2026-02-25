@@ -26,10 +26,10 @@ export const PENALTY_MAP: Record<string, { icon: any; title: string; subtitle: s
  * Waivers are tasks the user can perform to bypass a penalty if they failed their main commitment.
  */
 export const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: string }> = {
-  captcha: { icon: 'shield-check-outline', title: 'Solve CAPTCHAs', subtitle: 'Solve a set number of CAPTCHAs' },
-  paragraph: { icon: 'pencil-outline', title: 'Write a Long Paragraph', subtitle: 'Type a 3000-word paragraph' },
-  intense: { icon: 'fire', title: 'Redo With More Intensity', subtitle: 'Repeat tomorrow with a harder version' },
-  run: { icon: 'run-fast', title: 'Run 5 KM', subtitle: 'Choose a location and complete the run' },
+  captcha: { icon: 'shield-check-outline', title: 'Solve CAPTCHAs', subtitle: 'Solve a set number of CAPTCHAs to waive off penalty' },
+  paragraph: { icon: 'pencil-outline', title: 'Write a Long Paragraph', subtitle: 'Type a 3000-word paragraph to avoid penalty' },
+  intense: { icon: 'fire', title: 'Redo With More Intensity', subtitle: 'Repeat tomorrow with a harder version to avoid penalty' },
+  run: { icon: 'run-fast', title: 'Run 5 KM', subtitle: 'Choose a location and complete the run to avoid penalty' },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,14 +39,28 @@ import { VerificationStatusCircle } from '@/components/ui/commits/VerificationSt
 /**
  * Generic blueprint for rendering a condition row (used by Penalty and Waiver sections)
  */
-export const InfoSection = ({ icon, color, title, subtitle, status = 'neutral', percentage }: { icon: any; color: string; title: string; subtitle: string; status?: 'neutral' | 'verified' | 'failed' | 'partial'; percentage?: number }) => (
+export const InfoSection = ({ 
+  icon, 
+  color, 
+  title, 
+  subtitle, 
+  status = 'neutral', 
+  percentage 
+}: { 
+  icon: any; 
+  color: string; 
+  title: string; 
+  subtitle: string; 
+  status?: 'neutral' | 'verified' | 'failed' | 'applied' | 'waived' | 'percentage'; 
+  percentage?: number 
+}) => (
   <UView className="border-b border-white/20 flex-row p-6 items-center">
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
     <UView className="flex-1 mr-4 overflow-hidden">
       <BodyText className="text-white text-base">{title}</BodyText>
       <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
     </UView>
-    <VerificationStatusCircle status={status} percentage={percentage} />
+    <VerificationStatusCircle status={status as any} percentage={percentage} />
   </UView>
 );
 
@@ -60,7 +74,8 @@ export const PenaltySection = ({ event }: { event: any }) => {
   const key = penaltyCondition?.metric_key || 'money';
   const info = PENALTY_MAP[key] || PENALTY_MAP['money'];
 
-  return <InfoSection icon={info.icon} color="#FF3B30" title={info.title} subtitle={info.subtitle} status="verified" />;
+  // FOR DEMO: Let's show this one as a percentage to demonstrate it
+  return <InfoSection icon={info.icon} color="#FF3B30" title={info.title} subtitle={info.subtitle} status="p" percentage={85} />;
 };
 
 /**
@@ -73,5 +88,6 @@ export const WaiverSection = ({ event }: { event: any }) => {
   const key = waiverCondition?.metric_key || 'captcha';
   const info = WAIVER_MAP[key] || WAIVER_MAP['captcha'];
 
-  return <InfoSection icon={info.icon} color="#4CD964" title={info.title} subtitle={info.subtitle} status="verified" />;
+  // FOR DEMO: Let's show this one as a 'waived' status to demonstrate it
+  return <InfoSection icon={info.icon} color="#4CD964" title={info.title} subtitle={info.subtitle} status="neutral" />;
 };
