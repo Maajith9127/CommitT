@@ -1,16 +1,16 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  Evidence Validators — Registry & Entry Point                              ║
+ * ║  Evidence Validators — Registry & Entry Point                                ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                            ║
- * ║  This file is the single entry point for all evidence validation.          ║
- * ║  Each metric_key has its own validator in `./validators/<key>.ts`.         ║
- * ║                                                                            ║
- * ║  ADDING A NEW METRIC:                                                      ║
+ * ║                                                                              ║
+ * ║  This file is the single entry point for all evidence validation.            ║
+ * ║  Each metric_key has its own validator in `./validators/<key>.ts`.           ║
+ * ║                                                                              ║
+ * ║  ADDING A NEW METRIC:                                                        ║
  * ║  1. Create `./validators/<key>.ts` with a function matching EvidenceValidator║
- * ║  2. Import it below and add one line to VALIDATOR_REGISTRY                 ║
- * ║  3. The mutation automatically picks it up — zero changes elsewhere        ║
- * ║                                                                            ║
+ * ║  2. Import it below and add one line to VALIDATOR_REGISTRY                   ║
+ * ║  3. The mutation automatically picks it up — zero changes elsewhere          ║
+ * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 

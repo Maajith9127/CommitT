@@ -99,6 +99,9 @@ export default defineSchema({
         progress_percentage: v.optional(v.number()),
       }),
     ),
+    // Time verification is implicit (every instance has start/end).
+    // This field tracks whether the user verified within the time window.
+    time_status: v.optional(conditionStatusEnum),
     scheduled_job_id: v.optional(v.id("_scheduled_functions")),
     next_instance_id: v.optional(v.id("taskInstances")),
   })

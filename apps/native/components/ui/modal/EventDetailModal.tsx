@@ -40,7 +40,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { PrimaryButton } from '@/components/ui/button';
+
 import { AuthHeading, BodyText } from '@/components/ui/text';
 import dayjs from 'dayjs';
 import { useMutation } from 'convex/react';
@@ -48,7 +48,7 @@ import { api } from '@commit/backend/convex/_generated/api';
 
 import { LocationSection } from './EventDetailLocation';
 import { PenaltySection, WaiverSection } from './EventDetailConditions';
-import { useVerificationEngine } from '@/hooks/commits/useVerificationEngine';
+
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 
@@ -119,7 +119,9 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   // ═══════════════════════════════════════════════════════════════════════════
 
   const verifyMutation = useMutation(api.api.commitments.verify.default);
-  const { isGathering, gatherEvidence } = useVerificationEngine(currentEvent);
+
+  /** Track which metric is being verified right now (for spinner) */
+  const [verifyingMetric, setVerifyingMetric] = useState<string | null>(null);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 4. HANDLERS
@@ -142,28 +144,27 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 5. VERIFY ACTION
-  //    Gathers native device evidence (GPS, camera) via the verification
-  //    engine, then transmits it to the Convex mutation for final verdict.
-  // ═══════════════════════════════════════════════════════════════════════════
+  /**
+   * Per-condition verification handler.
+   * Calls the backend with the instanceId + metricKey.
+   * The backend validates, persists the result to DB, and
+   * Convex reactivity pushes the update to currentEvent automatically.
+   */
+  const handleVerifyCondition = async (metricKey: string) => {
+    if (!currentEvent?._id || verifyingMetric) return;
 
-  const handleVerifyPress = async () => {
-    if (!currentEvent?._id) {
-      console.error("[EventDetailModal] No valid instance_id on the event.");
-      return;
-    }
+    setVerifyingMetric(metricKey);
     try {
-      const evidencePayload = await gatherEvidence();
       const result = await verifyMutation({
-        instanceId: currentEvent._id,
-        evidence: evidencePayload,
+        instanceId: currentEvent._id as any,
+        metricKey,
       });
-      console.log("[EventDetailModal] Verification result:", result);
-      handleClose();
+      console.log(`[EventDetailModal] ${metricKey} verification:`, result);
+      // No need to store locally — Convex reactivity updates currentEvent from DB
     } catch (error: any) {
-      console.error("[EventDetailModal] Verification failed:", error);
-      alert(error.message || "Verification failed. Please try again.");
+      console.error(`[EventDetailModal] ${metricKey} verification failed:`, error);
+    } finally {
+      setVerifyingMetric(null);
     }
   };
 
@@ -181,20 +182,11 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       <View style={styles.overlay}>
         <UView className="bg-[#1A1A1A] w-full h-[95%] absolute bottom-0 rounded-t-3xl overflow-hidden">
           
-          {/* ── Header: Close (×) + Verify Button ── */}
+          {/* ── Header: Close (×) ── */}
           <UView className="flex-row justify-between items-center px-4 py-4 pt-6">
-            <UPressable onPress={handleClose} hitSlop={10} disabled={isGathering}>
-              <MaterialCommunityIcons name="close" size={24} color={isGathering ? "#555" : "white"} />
+            <UPressable onPress={handleClose} hitSlop={10}>
+              <MaterialCommunityIcons name="close" size={24} color="white" />
             </UPressable>
-            
-            <PrimaryButton 
-                className="w-auto px-4 py-1.5 h-auto rounded-md min-w-[70px]" 
-                textClassName="text-sm font-bold"
-                onPress={handleVerifyPress} 
-                disabled={isGathering}
-            >
-                {isGathering ? "Checking..." : "Verify"}
-            </PrimaryButton>
           </UView>
 
           {/* ── Scrollable Content ── */}
@@ -235,7 +227,11 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
                     <UView className="flex-1 mr-4 overflow-hidden">
                         <BodyText className="text-white text-base">All-day</BodyText>
                     </UView>
-                    <VerificationStatusCircle status="neutral" />
+                    <VerificationStatusCircle 
+                      status={(currentEvent as any).time_status ?? 'neutral'}
+                      onPress={() => handleVerifyCondition('time')}
+                      isLoading={verifyingMetric === 'time'}
+                    />
                 </UView>
 
                 {/* Start Time */}
