@@ -2,50 +2,50 @@
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║  EventDetailModal — Global Singleton Event Viewer                            ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                             ║
- * ║  PURPOSE:                                                                   ║
- * ║  Full-screen bottom sheet that displays the details of a selected           ║
- * ║  calendar event / task instance.                                            ║
- * ║                                                                             ║
- * ║  ARCHITECTURE:                                                              ║
- * ║  This file is the ORCHESTRATOR. It owns:                                    ║
- * ║  • Singleton guard (prevents Expo Router double-mount)                      ║
- * ║  • Zustand state (selectedEventId, selectedEvent)                           ║
- * ║  • Verification state & mutation handler                                    ║
- * ║  • Modal shell (<Modal>, overlay, scroll container)                         ║
- * ║                                                                             ║
- * ║  All UI sections are delegated to focused sub-components:                   ║
- * ║  ┌────────────────────────────────────────────────────────────────────┐     ║
- * ║  │  EventDetailHeader      → Close button, title, description, badge │     ║
- * ║  │  EventDetailTime        → Time window + verification circle       │     ║
- * ║  │  LocationSection        → Embedded Google Map                     │     ║
- * ║  │  PenaltySection         → Financial penalty details               │     ║
- * ║  │  WaiverSection          → Waiver / grace period details           │     ║
- * ║  └────────────────────────────────────────────────────────────────────┘     ║
- * ║                                                                             ║
- * ║  DATA FLOW:                                                                 ║
- * ║  1. User taps event → setSelectedEventId(id, data) → Zustand stores it     ║
- * ║  2. This modal reads Zustand → <Modal visible={true}> slides up            ║
- * ║  3. On close: setSelectedEventId(null) → modal hides                       ║
- * ║                                                                             ║
- * ║  VERIFICATION FLOW:                                                         ║
- * ║  1. User taps VerificationStatusCircle → handleVerifyCondition(key)        ║
- * ║  2. Spinner shows → backend mutation fires → result stored locally         ║
- * ║  3. Circle updates instantly from mutation's return value                   ║
- * ║                                                                             ║
- * ║  WHY LOCAL STATE (not live Convex subscription)?                            ║
- * ║  A live useQuery causes the Google Map to re-render infinitely.             ║
- * ║  We use the mutation's RETURN VALUE for instant UI feedback instead.        ║
- * ║                                                                             ║
- * ║  SINGLETON GUARD:                                                           ║
- * ║  Expo Router can mount _layout.tsx TWICE during Stack transitions.          ║
- * ║  Module-level `isInstanceMounted` ensures only ONE renders.                 ║
- * ║                                                                             ║
- * ║  KEY RULES:                                                                 ║
- * ║  • Never pass props — all data comes from Zustand.                          ║
- * ║  • Never mount in individual screens — only in _layout.tsx.                 ║
- * ║  • All hooks called unconditionally (Rules of Hooks).                       ║
- * ║                                                                             ║
+ * ║                                                                              ║
+ * ║  PURPOSE:                                                                    ║
+ * ║  Full-screen bottom sheet that displays the details of a selected            ║
+ * ║  calendar event / task instance.                                             ║
+ * ║                                                                              ║
+ * ║  ARCHITECTURE:                                                               ║
+ * ║  This file is the ORCHESTRATOR. It owns:                                     ║
+ * ║  • Singleton guard (prevents Expo Router double-mount)                       ║
+ * ║  • Zustand state (selectedEventId, selectedEvent)                            ║
+ * ║  • Verification state & mutation handler                                     ║
+ * ║  • Modal shell (<Modal>, overlay, scroll container)                          ║
+ * ║                                                                              ║
+ * ║  All UI sections are delegated to focused sub-components:                    ║
+ * ║  ┌────────────────────────────────────────────────────────────────────┐      ║
+ * ║  │  EventDetailHeader      → Close button, title, description, badge  │      ║
+ * ║  │  EventDetailTime        → Time window + verification circle        │      ║
+ * ║  │  LocationSection        → Embedded Google Map                      │      ║
+ * ║  │  PenaltySection         → Financial penalty details                │      ║
+ * ║  │  WaiverSection          → Waiver / grace period details            │      ║
+ * ║  └────────────────────────────────────────────────────────────────────┘      ║
+ * ║                                                                              ║
+ * ║  DATA FLOW:                                                                  ║
+ * ║  1. User taps event → setSelectedEventId(id, data) → Zustand stores it       ║
+ * ║  2. This modal reads Zustand → <Modal visible={true}> slides up              ║
+ * ║  3. On close: setSelectedEventId(null) → modal hides                         ║
+ * ║                                                                              ║
+ * ║  VERIFICATION FLOW:                                                          ║
+ * ║  1. User taps VerificationStatusCircle → handleVerifyCondition(key)          ║
+ * ║  2. Spinner shows → backend mutation fires → result stored locally           ║
+ * ║  3. Circle updates instantly from mutation's return value                    ║
+ * ║                                                                              ║
+ * ║  WHY LOCAL STATE (not live Convex subscription)?                             ║
+ * ║  A live useQuery causes the Google Map to re-render infinitely.              ║
+ * ║  We use the mutation's RETURN VALUE for instant UI feedback instead.         ║
+ * ║                                                                              ║
+ * ║  SINGLETON GUARD:                                                            ║
+ * ║  Expo Router can mount _layout.tsx TWICE during Stack transitions.           ║
+ * ║  Module-level `isInstanceMounted` ensures only ONE renders.                  ║
+ * ║                                                                              ║
+ * ║  KEY RULES:                                                                  ║
+ * ║  • Never pass props — all data comes from Zustand.                           ║
+ * ║  • Never mount in individual screens — only in _layout.tsx.                  ║
+ * ║  • All hooks called unconditionally (Rules of Hooks).                        ║
+ * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -131,9 +131,21 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   useEffect(() => {
     if (eventId && currentEvent) {
       const initial: Record<string, string> = {};
+      
+      // 1. Seed implicit `time` status
       if ((currentEvent as any).time_status) {
         initial['time'] = (currentEvent as any).time_status;
       }
+      
+      // 2. Seed explicit conditions (e.g., location, photo)
+      if (Array.isArray((currentEvent as any).conditions)) {
+        (currentEvent as any).conditions.forEach((cond: any) => {
+          if (cond.metric_key && cond.status) {
+            initial[cond.metric_key] = cond.status;
+          }
+        });
+      }
+
       setConditionStatuses(initial);
     } else {
       setConditionStatuses({});
@@ -148,7 +160,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
     setSelectedEventId(null);
   }, [setSelectedEventId]);
 
-  const handleVerifyCondition = async (metricKey: string) => {
+  const handleVerifyCondition = async (metricKey: string, evidence?: any) => {
     if (!currentEvent?._id || verifyingMetric) return;
 
     setVerifyingMetric(metricKey);
@@ -156,6 +168,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       const result = await verifyMutation({
         instanceId: currentEvent._id as any,
         metricKey,
+        evidence,
       });
       console.log(`[EventDetailModal] ${metricKey} verification:`, result);
 
@@ -253,6 +266,9 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
               event={currentEvent}
               onMapTouchStart={() => setScrollEnabled(false)}
               onMapTouchEnd={() => setScrollEnabled(true)}
+              locStatus={conditionStatuses['location'] ?? 'neutral'}
+              isLocVerifying={verifyingMetric === 'location'}
+              onVerifyLoc={(evidence: any) => handleVerifyCondition('location', evidence)}
             />
 
             {/* ── Financial Penalty ── */}

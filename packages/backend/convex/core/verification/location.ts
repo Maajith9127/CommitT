@@ -51,6 +51,8 @@ function haversineDistance(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function validateLocation(evidence: any, condition: Condition): ValidationResult {
+  console.log("📍 [location validator] FRONTEND EVIDENCE RECEIVED:", evidence);
+
   // ── Guard: Evidence shape ──
   if (
     typeof evidence?.lat !== "number" ||

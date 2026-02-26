@@ -1,20 +1,20 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  EventDetailTime — Time Window Section with Verification Circle             ║
+ * ║  EventDetailTime — Time Window Section with Verification Circle              ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                             ║
- * ║  Renders the time section of the EventDetailModal:                          ║
- * ║  • "All-day" row with a tappable VerificationStatusCircle                   ║
- * ║  • Start date/time                                                          ║
- * ║  • End date/time                                                            ║
- * ║  • Timezone label                                                           ║
- * ║                                                                             ║
- * ║  The VerificationStatusCircle is interactive — tapping it triggers          ║
- * ║  the time verification flow via the `onVerify` callback.                    ║
- * ║                                                                             ║
- * ║  This is a PRESENTATIONAL component. The verification logic                 ║
- * ║  (mutation, state updates) lives in EventDetailModal.                       ║
- * ║                                                                             ║
+ * ║                                                                              ║
+ * ║  Renders the time section of the EventDetailModal:                           ║
+ * ║  • "All-day" row with a tappable VerificationStatusCircle                    ║ 
+ * ║  • Start date/time                                                           ║
+ * ║  • End date/time                                                             ║
+ * ║  • Timezone label                                                            ║
+ * ║                                                                              ║
+ * ║  The VerificationStatusCircle is interactive — tapping it triggers           ║
+ * ║  the time verification flow via the `onVerify` callback.                     ║
+ * ║                                                                              ║
+ * ║  This is a PRESENTATIONAL component. The verification logic                  ║
+ * ║  (mutation, state updates) lives in EventDetailModal.                        ║
+ * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 

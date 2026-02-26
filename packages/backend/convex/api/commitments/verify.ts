@@ -38,6 +38,7 @@
 import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { validateTime } from "../../core/verification/time";
+import { validateEvidence } from "../../core/verification/evidenceValidators";
 import { Doc } from "../../_generated/dataModel";
 
 export default authedMutation({
@@ -46,6 +47,8 @@ export default authedMutation({
     instanceId: v.id("taskInstances"),
     /** Which condition to check: "time", "location", "picture", "video", "partner" */
     metricKey: v.string(),
+    /** Optional evidence payload (e.g., { lat, lng } for location) */
+    evidence: v.optional(v.any()),
   },
 
   handler: async (ctx, args) => {
@@ -159,10 +162,9 @@ export default authedMutation({
     }
 
     // ── STEP 6: Run the appropriate validator ───────────────────────────────
-    // TODO: Replace with `validateEvidence(metricKey, evidence, condition, context)`
-    //       once location/picture/video/partner validators are wired up.
+    // We look up the function based on metricKey (e.g., location -> validateLocation)
     const context = { instanceStart: instance.start, instanceEnd: instance.end };
-    const result = validateTime({}, condition, context);
+    const result = validateEvidence(args.metricKey, args.evidence, condition, context);
 
     console.log(`[verify] Validation result for "${args.metricKey}":`, result);
 

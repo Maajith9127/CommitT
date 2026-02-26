@@ -35,9 +35,23 @@ export const getCirclePoints = (
   return coords;
 };
 
-export const LocationSection = ({ event, onMapTouchStart, onMapTouchEnd }: { event: any; onMapTouchStart?: () => void; onMapTouchEnd?: () => void }) => {
+export const LocationSection = ({ 
+    event, 
+    onMapTouchStart, 
+    onMapTouchEnd,
+    locStatus = 'neutral',
+    isLocVerifying = false,
+    onVerifyLoc 
+}: { 
+    event: any; 
+    onMapTouchStart?: () => void; 
+    onMapTouchEnd?: () => void;
+    locStatus?: string;
+    isLocVerifying?: boolean;
+    onVerifyLoc?: (evidence: any) => void;
+}) => {
     const locCondition = event?.conditions?.find((c: any) => c.metric_key === 'location');
-    const { hasPermission } = useLocation();
+    const { hasPermission, requestLocation } = useLocation();
     const [isMapReady, setIsMapReady] = useState(false);
     
     useEffect(() => {
@@ -63,8 +77,17 @@ export const LocationSection = ({ event, onMapTouchStart, onMapTouchEnd }: { eve
                         {relationText} {radius}m
                     </BodyText>
                 </UView>
-                {/* FOR DEMO: Show 'applied' status */}
-                <VerificationStatusCircle status="neutral" />
+                {/* Verification Circle */}
+                <VerificationStatusCircle 
+                    status={locStatus as any} 
+                    isLoading={isLocVerifying}
+                    onPress={async () => {
+                        // Request GPS coordinates and pass them up as the evidence payload
+                        await requestLocation((coords) => {
+                            onVerifyLoc?.({ lat: coords.latitude, lng: coords.longitude });
+                        });
+                    }}
+                />
             </UView>
 
             {/* Bottom Row: Map View 
