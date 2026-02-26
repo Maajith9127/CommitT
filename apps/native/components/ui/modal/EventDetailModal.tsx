@@ -132,12 +132,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
     if (eventId && currentEvent) {
       const initial: Record<string, string> = {};
       
-      // 1. Seed implicit `time` status
-      if ((currentEvent as any).time_status) {
-        initial['time'] = (currentEvent as any).time_status;
-      }
-      
-      // 2. Seed explicit conditions (e.g., location, photo)
+      // Seed explicit conditions (e.g., location, photo)
       if (Array.isArray((currentEvent as any).conditions)) {
         (currentEvent as any).conditions.forEach((cond: any) => {
           if (cond.metric_key && cond.status) {
@@ -252,13 +247,10 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             scrollEnabled={scrollEnabled}
           >
 
-            {/* ── Time Window + Verification Circle ── */}
+            {/* ── Time Window (Live Timer) ── */}
             <EventDetailTime
               start={currentEvent.start}
               end={currentEvent.end}
-              timeStatus={conditionStatuses['time'] ?? 'neutral'}
-              isVerifying={verifyingMetric === 'time'}
-              onVerify={() => handleVerifyCondition('time')}
             />
 
             {/* ── GPS Location (embedded Google Map) ── */}

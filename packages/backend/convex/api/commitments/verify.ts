@@ -19,8 +19,8 @@
  * ║  └─────────────────────────────────────────────────────────────────┘        ║
  * ║                                                                             ║
  * ║  TWO TYPES OF CONDITIONS:                                                   ║
- * ║  • "time"  → Implicit. Every instance has start/end. Not stored in the      ║
- * ║              conditions[] array. Result is saved to `time_status` field.    ║
+ * ║  • "time"  → Implicit. Checked against `Date.now()` on the server during      ║
+ * ║              every request. Not stored in the database.                     ║
  * ║  • Others  → Explicit. Stored in the conditions[] array (location, photo,  ║
  * ║              video, partner). Result is patched into that array entry.      ║
  * ║                                                                             ║
@@ -37,7 +37,6 @@
 
 import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
-import { validateTime } from "../../core/verification/time";
 import { validateEvidence } from "../../core/verification/evidenceValidators";
 import { Doc } from "../../_generated/dataModel";
 
@@ -93,47 +92,23 @@ export default authedMutation({
 
     console.log(`[verify] ✅ Sequence check passed — this IS the next pending instance`);
 
-    // ═════════════════════════════════════════════════════════════════════════
-    // BRANCH A: TIME VERIFICATION (implicit — not in conditions[] array)
-    //
-    // Time is special because every task instance inherently has a time
-    // window (start/end). We don't store "time" as a condition in the
-    // conditions[] array — instead, result goes into `time_status` field.
-    // ═════════════════════════════════════════════════════════════════════════
-    if (args.metricKey === "time") {
-      // Idempotency: "verified" is final — skip re-processing.
-      // "failed" is NOT skipped — the user can retry (e.g., they were early
-      // and came back within the window).
-      if (instance.time_status === "verified") {
-        console.log(`[verify] Time already verified. Skipping.`);
-        return { success: true, status: "verified", message: "Already verified." };
-      }
-
-      // Run the time validator using the instance's own start/end from the DB.
-      // We pass a dummy condition object since time doesn't have a real one.
-      const context = { instanceStart: instance.start, instanceEnd: instance.end };
-      const result = validateTime(
-        {},
-        { metric_key: "time", relation: "within", target: { type: "number", value: null } },
-        context,
-      );
-      const newStatus = result.passed ? "verified" : "failed";
-
-      console.log(`[verify] Time validation result:`, result);
-
-      // Persist to DB — the frontend reads this (via Zustand or next fetch).
-      await ctx.db.patch(args.instanceId, { time_status: newStatus as any });
-
-      console.log(`[verify] time_status → "${newStatus}" persisted to DB`);
-
-      return {
-        success: result.passed,
-        status: newStatus,
-        message: result.passed
-          ? "Time verification passed! You're within the window."
-          : (result as any).reason ?? "Time verification failed.",
-      };
+    // ── STEP 3.5: Implicit Time Window Check ─────────────────────────────────
+    // Every task instance must be completed within its designated time window.
+    // We implicitly check Date.now() against the start/end bounds.
+    // If the check fails, the transaction is rejected before processing any evidence.
+    
+    const now = Date.now();
+    if (now < instance.start) {
+      console.warn(`[verify] TIME: Task has not started yet. (Start: ${instance.start}, Now: ${now})`);
+      throw new Error("TIME_NOT_STARTED: The active window for this task has not started yet.");
     }
+    
+    if (now > instance.end) {
+      console.warn(`[verify] TIME: Task has expired. (End: ${instance.end}, Now: ${now})`);
+      throw new Error("TIME_EXPIRED: The active window for this task has expired.");
+    }
+    
+    console.log(`[verify] ✅ Implicit time check passed — within active window`);
 
     // ═════════════════════════════════════════════════════════════════════════
     // BRANCH B: ALL OTHER CONDITIONS (location, picture, video, partner)
