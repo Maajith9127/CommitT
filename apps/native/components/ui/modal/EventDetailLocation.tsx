@@ -51,7 +51,7 @@ export const LocationSection = ({
     onVerifyLoc?: (evidence: any) => void;
 }) => {
     const locCondition = event?.conditions?.find((c: any) => c.metric_key === 'location');
-    const { hasPermission, requestLocation } = useLocation();
+    const { hasPermission, requestLocation, isLocating } = useLocation();
     const [isMapReady, setIsMapReady] = useState(false);
     
     useEffect(() => {
@@ -80,7 +80,7 @@ export const LocationSection = ({
                 {/* Verification Circle */}
                 <VerificationStatusCircle 
                     status={locStatus as any} 
-                    isLoading={isLocVerifying}
+                    isLoading={isLocVerifying || isLocating}
                     onPress={async () => {
                         // Request GPS coordinates and pass them up as the evidence payload
                         await requestLocation((coords) => {
