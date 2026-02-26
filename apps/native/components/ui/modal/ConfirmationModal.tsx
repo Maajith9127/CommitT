@@ -56,9 +56,13 @@ export function ConfirmationModal({
           <HeaderTitle className="text-center text-lg font-bold text-white mb-2">
             {title}
           </HeaderTitle>
-          
 
-
+          {/* Message — shown below the title when provided */}
+          {message && (
+            <FooterText className="text-center text-sm text-gray-400 mb-4">
+              {message}
+            </FooterText>
+          )}
           {/* Buttons Row - RIGHT ALIGNED (or centered if single button) */}
           <UView className={`flex-row ${singleButton ? "justify-center" : "justify-end"} space-x-6 gap-8`}>
             {/* 2. Cancel Button - only show if not single button mode */}

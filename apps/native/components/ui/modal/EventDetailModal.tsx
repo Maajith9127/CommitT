@@ -62,6 +62,7 @@ import { EventDetailHeader } from './EventDetailHeader';
 import { EventDetailTime } from './EventDetailTime';
 import { LocationSection } from './EventDetailLocation';
 import { PenaltySection, WaiverSection } from './EventDetailConditions';
+import { ConfirmationModal } from './ConfirmationModal';
 
 // ── Uniwind-wrapped primitives ──────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -119,6 +120,13 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const [verifyingMetric, setVerifyingMetric] = useState<string | null>(null);
   const [conditionStatuses, setConditionStatuses] = useState<Record<string, string>>({});
 
+  // Failure modal state — shown when verification returns a non-success result
+  const [failureModal, setFailureModal] = useState<{ visible: boolean; title: string; message: string }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
   // Reset & seed when a DIFFERENT event is opened
   useEffect(() => {
     if (eventId && currentEvent) {
@@ -150,16 +158,37 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         metricKey,
       });
       console.log(`[EventDetailModal] ${metricKey} verification:`, result);
+
+      const status = (result as any).status;
+      const message = (result as any).message ?? 'Verification failed.';
+
       setConditionStatuses((prev: Record<string, string>) => ({
         ...prev,
-        [metricKey]: (result as any).status,
+        [metricKey]: status,
       }));
+
+      // If the result is NOT verified → show failure modal with the backend's reason
+      if (status !== 'verified') {
+        setFailureModal({
+          visible: true,
+          title: 'Verification Failed',
+          message,
+        });
+      }
     } catch (error: any) {
       console.error(`[EventDetailModal] ${metricKey} verification failed:`, error);
       setConditionStatuses((prev: Record<string, string>) => ({
         ...prev,
         [metricKey]: 'failed',
       }));
+
+      // Extract a readable message from the error
+      const errorMsg = error?.message?.replace(/^[A-Z_]+:\s*/, '') ?? 'Something went wrong. Please try again.';
+      setFailureModal({
+        visible: true,
+        title: 'Verification Error',
+        message: errorMsg,
+      });
     } finally {
       setVerifyingMetric(null);
     }
@@ -236,6 +265,18 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
 
         </UView>
       </View>
+
+      {/* ── Failure Reason Modal (overlays on top of the event modal) ── */}
+      <ConfirmationModal
+        visible={failureModal.visible}
+        title={failureModal.title}
+        message={failureModal.message}
+        confirmText="OK"
+        confirmColor="#FF3B30"
+        singleButton={true}
+        onConfirm={() => setFailureModal({ visible: false, title: '', message: '' })}
+        onCancel={() => setFailureModal({ visible: false, title: '', message: '' })}
+      />
     </Modal>
   );
 });
