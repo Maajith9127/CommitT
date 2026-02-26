@@ -1,13 +1,38 @@
 /**
- * verifyCondition — Server-Authoritative Time Verification (Step 1: Time Only)
- *
- * Flow:
- *  1. Authenticate the user (via authedMutation middleware)
- *  2. Fetch the instance by the ID the frontend sent
- *  3. Confirm the user OWNS this instance (assignee_id check)
- *  4. Run the time validator using the instance's start/end from the DB
- *  5. Patch the time condition's status in the DB
- *  6. Return the result
+ * ╔══════════════════════════════════════════════════════════════════════════════╗
+ * ║  verify.ts — Server-Authoritative Per-Condition Verification Mutation       ║
+ * ╠══════════════════════════════════════════════════════════════════════════════╣
+ * ║                                                                             ║
+ * ║  PURPOSE:                                                                   ║
+ * ║  This is the single backend endpoint that handles ALL condition              ║
+ * ║  verification for task instances (time, location, photo, etc.).              ║
+ * ║  The frontend sends: { instanceId, metricKey }.                             ║
+ * ║  The backend does ALL the validation — the client is never trusted.         ║
+ * ║                                                                             ║
+ * ║  SECURITY FLOW (every request goes through ALL of these):                   ║
+ * ║  ┌─────────────────────────────────────────────────────────────────┐        ║
+ * ║  │ 1. AUTH       → Is the user logged in? (authedMutation)        │        ║
+ * ║  │ 2. OWNERSHIP  → Does this instance belong to this user?        │        ║
+ * ║  │ 3. SEQUENCE   → Is this their chronologically next task?       │        ║
+ * ║  │ 4. VALIDATE   → Does the evidence/timing actually pass?        │        ║
+ * ║  │ 5. PERSIST    → Write the result to the database               │        ║
+ * ║  └─────────────────────────────────────────────────────────────────┘        ║
+ * ║                                                                             ║
+ * ║  TWO TYPES OF CONDITIONS:                                                   ║
+ * ║  • "time"  → Implicit. Every instance has start/end. Not stored in the      ║
+ * ║              conditions[] array. Result is saved to `time_status` field.    ║
+ * ║  • Others  → Explicit. Stored in the conditions[] array (location, photo,  ║
+ * ║              video, partner). Result is patched into that array entry.      ║
+ * ║                                                                             ║
+ * ║  IDEMPOTENCY:                                                               ║
+ * ║  • "verified" → Final. Re-requests are skipped (no re-processing).         ║
+ * ║  • "failed"   → Retryable. The user can tap again to re-attempt.           ║
+ * ║                                                                             ║
+ * ║  RETURN VALUE:                                                              ║
+ * ║  { success: boolean, status: string, message: string }                      ║
+ * ║  The frontend uses `status` to update the VerificationStatusCircle.         ║
+ * ║                                                                             ║
+ * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
 import { v } from "convex/values";
@@ -17,33 +42,39 @@ import { Doc } from "../../_generated/dataModel";
 
 export default authedMutation({
   args: {
+    /** The Convex `_id` of the taskInstance to verify */
     instanceId: v.id("taskInstances"),
+    /** Which condition to check: "time", "location", "picture", "video", "partner" */
     metricKey: v.string(),
   },
 
   handler: async (ctx, args) => {
     const { user } = ctx;
-    const now = Date.now();
 
     console.log("═══════════════════════════════════════════════════════════════");
     console.log(`[verify] User: ${user._id} | Instance: ${args.instanceId} | Metric: ${args.metricKey}`);
     console.log("═══════════════════════════════════════════════════════════════");
 
-    // ── STEP 1: Fetch the instance from the DB ──
+    // ── STEP 1: Fetch the instance from the DB ──────────────────────────────
+    // We ALWAYS read from the database — never trust client-provided data.
     const instance = await ctx.db.get(args.instanceId) as Doc<"taskInstances"> | null;
     if (!instance) {
       throw new Error("INSTANCE_NOT_FOUND: This task instance does not exist.");
     }
 
-    // ── STEP 2: Ownership check — does this instance belong to this user? ──
+    // ── STEP 2: Ownership check ─────────────────────────────────────────────
+    // Ensures a user can only verify their OWN tasks, not someone else's.
     if (instance.assignee_id !== user._id) {
       console.warn(`[verify] SECURITY: User ${user._id} tried to verify instance owned by ${instance.assignee_id}`);
       throw new Error("UNAUTHORIZED: You do not own this task instance.");
     }
 
-    // ── STEP 3: Sequence check — is this the user's NEXT pending instance by time? ──
-    // Query using the time-ordered index, then filter for "pending" status.
-    // .first() gives us the earliest-by-start pending instance for this user.
+    // ── STEP 3: Sequence check ──────────────────────────────────────────────
+    // Users must verify tasks in chronological order. We find the earliest
+    // pending instance (by start time) and reject if it doesn't match.
+    //
+    // Index used: `by_assignee_start` → sorted by [assignee_id, start].
+    // We then filter for status === "pending" and take the first result.
     const nextPending = await ctx.db
       .query("taskInstances")
       .withIndex("by_assignee_start", (q) =>
@@ -59,26 +90,38 @@ export default authedMutation({
 
     console.log(`[verify] ✅ Sequence check passed — this IS the next pending instance`);
 
-    // ── STEP 4: Handle TIME — it's implicit (not a DB condition) ──
-    // Every instance has start/end. "time" just checks: are we within the window?
+    // ═════════════════════════════════════════════════════════════════════════
+    // BRANCH A: TIME VERIFICATION (implicit — not in conditions[] array)
+    //
+    // Time is special because every task instance inherently has a time
+    // window (start/end). We don't store "time" as a condition in the
+    // conditions[] array — instead, result goes into `time_status` field.
+    // ═════════════════════════════════════════════════════════════════════════
     if (args.metricKey === "time") {
-      // Idempotency: only skip if already verified (success is final).
-      // "failed" is NOT skipped — the user can retry.
+      // Idempotency: "verified" is final — skip re-processing.
+      // "failed" is NOT skipped — the user can retry (e.g., they were early
+      // and came back within the window).
       if (instance.time_status === "verified") {
         console.log(`[verify] Time already verified. Skipping.`);
         return { success: true, status: "verified", message: "Already verified." };
       }
 
+      // Run the time validator using the instance's own start/end from the DB.
+      // We pass a dummy condition object since time doesn't have a real one.
       const context = { instanceStart: instance.start, instanceEnd: instance.end };
-      const result = validateTime({}, { metric_key: "time", relation: "within", target: { type: "number", value: null } }, context);
+      const result = validateTime(
+        {},
+        { metric_key: "time", relation: "within", target: { type: "number", value: null } },
+        context,
+      );
       const newStatus = result.passed ? "verified" : "failed";
 
       console.log(`[verify] Time validation result:`, result);
 
-      // ── PERSIST to DB — Convex reactivity pushes it live to the frontend ──
+      // Persist to DB — the frontend reads this (via Zustand or next fetch).
       await ctx.db.patch(args.instanceId, { time_status: newStatus as any });
 
-      console.log(`[verify]  time_status → "${newStatus}" persisted to DB`);
+      console.log(`[verify] time_status → "${newStatus}" persisted to DB`);
 
       return {
         success: result.passed,
@@ -89,7 +132,15 @@ export default authedMutation({
       };
     }
 
-    // ── STEP 5: For other metrics — find the condition in the DB ──
+    // ═════════════════════════════════════════════════════════════════════════
+    // BRANCH B: ALL OTHER CONDITIONS (location, picture, video, partner)
+    //
+    // These are explicit conditions stored in the conditions[] array.
+    // We find the matching entry by metric_key, run its validator,
+    // and patch ONLY that entry's status in the array.
+    // ═════════════════════════════════════════════════════════════════════════
+
+    // ── STEP 4: Find the condition in the DB by metric_key ──────────────────
     const conditionIndex = instance.conditions.findIndex(
       (c: any) => c.metric_key === args.metricKey
     );
@@ -100,21 +151,24 @@ export default authedMutation({
 
     const condition = instance.conditions[conditionIndex];
 
-    // ── STEP 6: Idempotency — only skip if already verified (final) ──
+    // ── STEP 5: Idempotency — "verified" is final, "failed" allows retry ───
     const currentStatus = condition.status ?? "neutral";
     if (currentStatus === "verified") {
       console.log(`[verify] Condition "${args.metricKey}" already verified. Skipping.`);
       return { success: true, status: "verified", message: "Already verified." };
     }
 
-    // ── STEP 7: Run the appropriate validator ──
-    // TODO: Use validateEvidence() dispatcher for location/picture/video/partner
+    // ── STEP 6: Run the appropriate validator ───────────────────────────────
+    // TODO: Replace with `validateEvidence(metricKey, evidence, condition, context)`
+    //       once location/picture/video/partner validators are wired up.
     const context = { instanceStart: instance.start, instanceEnd: instance.end };
     const result = validateTime({}, condition, context);
 
-    console.log(`[verify] Validation result:`, result);
+    console.log(`[verify] Validation result for "${args.metricKey}":`, result);
 
-    // ── STEP 8: Patch only this condition's status ──
+    // ── STEP 7: Patch ONLY this condition's status in the array ─────────────
+    // We map over the entire conditions array, updating just the one at
+    // `conditionIndex`. All other conditions remain untouched.
     const newStatus = result.passed ? "verified" : "failed";
 
     const updatedConditions = instance.conditions.map((c: any, i: number) => {
@@ -128,7 +182,7 @@ export default authedMutation({
       conditions: updatedConditions,
     });
 
-    console.log(`[verify] ✅ Condition "${args.metricKey}" → "${newStatus}"`);
+    console.log(`[verify]  Condition "${args.metricKey}" → "${newStatus}"`);
 
     return {
       success: result.passed,
