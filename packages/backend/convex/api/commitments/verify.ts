@@ -61,14 +61,14 @@ export default authedMutation({
     // We ALWAYS read from the database — never trust client-provided data.
     const instance = await ctx.db.get(args.instanceId) as Doc<"taskInstances"> | null;
     if (!instance) {
-      throw new Error("INSTANCE_NOT_FOUND: This task instance does not exist.");
+      return { success: false, status: "failed", message: "This task instance does not exist." };
     }
 
     // ── STEP 2: Ownership check ─────────────────────────────────────────────
     // Ensures a user can only verify their OWN tasks, not someone else's.
     if (instance.assignee_id !== user._id) {
       console.warn(`[verify] SECURITY: User ${user._id} tried to verify instance owned by ${instance.assignee_id}`);
-      throw new Error("UNAUTHORIZED: You do not own this task instance.");
+      return { success: false, status: "failed", message: "You do not own this task instance." };
     }
 
     // ── STEP 3: Sequence check ──────────────────────────────────────────────
@@ -87,7 +87,7 @@ export default authedMutation({
 
     if (!nextPending || nextPending._id !== args.instanceId) {
       console.warn(`[verify] SEQUENCE: User tried to verify ${args.instanceId}, but next pending by time is ${nextPending?._id ?? "none"}`);
-      throw new Error("NOT_NEXT_INSTANCE: This is not your next pending task. You can only verify the task you're supposed to do right now.");
+      return { success: false, status: "failed", message: "This is not your next pending task. You can only verify the task you're supposed to do right now." };
     }
 
     console.log(`[verify] ✅ Sequence check passed — this IS the next pending instance`);
@@ -100,12 +100,12 @@ export default authedMutation({
     const now = Date.now();
     if (now < instance.start) {
       console.warn(`[verify] TIME: Task has not started yet. (Start: ${instance.start}, Now: ${now})`);
-      throw new Error("TIME_NOT_STARTED: The active window for this task has not started yet.");
+      return { success: false, status: "failed", message: "The active window for this task has not started yet." };
     }
     
     if (now > instance.end) {
       console.warn(`[verify] TIME: Task has expired. (End: ${instance.end}, Now: ${now})`);
-      throw new Error("TIME_EXPIRED: The active window for this task has expired.");
+      return { success: false, status: "failed", message: "The active window for this task has expired." };
     }
     
     console.log(`[verify] ✅ Implicit time check passed — within active window`);
@@ -124,7 +124,7 @@ export default authedMutation({
     );
 
     if (conditionIndex === -1) {
-      throw new Error(`CONDITION_NOT_FOUND: No condition with metric_key "${args.metricKey}" on this instance.`);
+      return { success: false, status: "failed", message: `No condition with metric_key "${args.metricKey}" on this instance.` };
     }
 
     const condition = instance.conditions[conditionIndex];

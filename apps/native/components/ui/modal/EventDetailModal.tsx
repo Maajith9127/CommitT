@@ -184,14 +184,24 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         });
       }
     } catch (error: any) {
-      console.error(`[EventDetailModal] ${metricKey} verification failed:`, error);
       setConditionStatuses((prev: Record<string, string>) => ({
         ...prev,
         [metricKey]: 'failed',
       }));
 
       // Extract a readable message from the error
-      const errorMsg = error?.message?.replace(/^[A-Z_]+:\s*/, '') ?? 'Something went wrong. Please try again.';
+      let errorMsg = 'Something went wrong. Please try again.';
+      if (error?.message) {
+        // Match "Uncaught Error: [OPTIONAL_CODE:] Clean message\n"
+        const match = error.message.match(/Uncaught Error:\s*(?:[A-Z_]+:\s*)?(.*?)(?:\n|$)/);
+        if (match && match[1]) {
+          errorMsg = match[1].trim();
+        } else {
+          // Fallback: take the first line and strip any uppercase prefix codes
+          errorMsg = error.message.split('\n')[0].replace(/^[A-Z_]+:\s*/, '').trim();
+        }
+      }
+
       setFailureModal({
         visible: true,
         title: 'Verification Error',
@@ -201,6 +211,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       setVerifyingMetric(null);
     }
   };
+
+
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 5. EARLY RETURNS (after all hooks)
