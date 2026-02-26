@@ -62,10 +62,11 @@ export default authedMutation({
     // ── STEP 4: Handle TIME — it's implicit (not a DB condition) ──
     // Every instance has start/end. "time" just checks: are we within the window?
     if (args.metricKey === "time") {
-      // Idempotency: if already set, skip
-      if (instance.time_status === "verified" || instance.time_status === "failed") {
-        console.log(`[verify] Time already "${instance.time_status}". Skipping.`);
-        return { success: instance.time_status === "verified", status: instance.time_status, message: `Already ${instance.time_status}.` };
+      // Idempotency: only skip if already verified (success is final).
+      // "failed" is NOT skipped — the user can retry.
+      if (instance.time_status === "verified") {
+        console.log(`[verify] Time already verified. Skipping.`);
+        return { success: true, status: "verified", message: "Already verified." };
       }
 
       const context = { instanceStart: instance.start, instanceEnd: instance.end };
@@ -77,7 +78,7 @@ export default authedMutation({
       // ── PERSIST to DB — Convex reactivity pushes it live to the frontend ──
       await ctx.db.patch(args.instanceId, { time_status: newStatus as any });
 
-      console.log(`[verify] ✅ time_status → "${newStatus}" persisted to DB`);
+      console.log(`[verify]  time_status → "${newStatus}" persisted to DB`);
 
       return {
         success: result.passed,
@@ -99,11 +100,11 @@ export default authedMutation({
 
     const condition = instance.conditions[conditionIndex];
 
-    // ── STEP 6: Idempotency — if already verified, don't re-process ──
+    // ── STEP 6: Idempotency — only skip if already verified (final) ──
     const currentStatus = condition.status ?? "neutral";
-    if (currentStatus === "verified" || currentStatus === "failed") {
-      console.log(`[verify] Already "${currentStatus}". Skipping.`);
-      return { success: currentStatus === "verified", status: currentStatus, message: `Already ${currentStatus}.` };
+    if (currentStatus === "verified") {
+      console.log(`[verify] Condition "${args.metricKey}" already verified. Skipping.`);
+      return { success: true, status: "verified", message: "Already verified." };
     }
 
     // ── STEP 7: Run the appropriate validator ──

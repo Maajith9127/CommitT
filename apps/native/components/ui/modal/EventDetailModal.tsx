@@ -1,38 +1,38 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  EventDetailModal — Global Singleton Event Viewer                          ║
+ * ║  EventDetailModal — Global Singleton Event Viewer                            ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                            ║
- * ║  PURPOSE:                                                                  ║
- * ║  Full-screen bottom sheet that displays the details of a selected           ║
- * ║  calendar event / task instance. Includes title, description, status,       ║
- * ║  time window, map (GPS location), penalty, waiver, and a "Verify" action.  ║
- * ║                                                                            ║
- * ║  HOW DATA FLOWS:                                                           ║
- * ║  1. User taps an event on any screen (calendar, commits, verification).    ║
- * ║  2. That screen calls:                                                     ║
- * ║       setSelectedEventId(instanceId, fullEventObject)                      ║
- * ║     This writes BOTH the ID and the full event data into Zustand.          ║
- * ║  3. This modal reads `selectedEventId` + `selectedEvent` from Zustand.     ║
- * ║     When the ID is non-null, <Modal visible={true}> slides up.             ║
- * ║  4. On close, setSelectedEventId(null) hides the modal.                    ║
- * ║                                                                            ║
- * ║  SINGLETON GUARD (Why?):                                                   ║
- * ║  Expo Router can mount (main)/_layout.tsx TWICE during Stack transitions    ║
- * ║  (e.g. navigating to (create-commit)/final and back). Without protection,  ║
- * ║  two <Modal> instances appear, causing a "double page" visual bug on       ║
- * ║  dismiss. The module-level `isInstanceMounted` flag ensures only the        ║
- * ║  FIRST instance renders; any duplicate returns null.                        ║
- * ║                                                                            ║
- * ║  USAGE (in (main)/_layout.tsx):                                            ║
- * ║    <EventDetailModal />    ← zero props, fully self-contained              ║
- * ║                                                                            ║
- * ║  KEY RULES:                                                                ║
- * ║  • Never pass props — all data comes from Zustand.                         ║
- * ║  • Never mount this in individual screens — only in the layout.            ║
- * ║  • All hooks are called unconditionally (above the singleton guard)        ║
- * ║    to comply with React's Rules of Hooks.                                  ║
- * ║                                                                            ║
+ * ║                                                                              ║
+ * ║  PURPOSE:                                                                    ║
+ * ║  Full-screen bottom sheet that displays the details of a selected            ║
+ * ║  calendar event / task instance. Includes title, description, status,        ║
+ * ║  time window, map (GPS location), penalty, waiver, and a "Verify" action.    ║
+ * ║                                                                              ║
+ * ║  HOW DATA FLOWS:                                                             ║
+ * ║  1. User taps an event on any screen (calendar, commits, verification).      ║
+ * ║  2. That screen calls:                                                       ║
+ * ║       setSelectedEventId(instanceId, fullEventObject)                        ║
+ * ║     This writes BOTH the ID and the full event data into Zustand.            ║
+ * ║  3. This modal reads `selectedEventId` + `selectedEvent` from Zustand.       ║
+ * ║     When the ID is non-null, <Modal visible={true}> slides up.               ║
+ * ║  4. On close, setSelectedEventId(null) hides the modal.                      ║
+ * ║                                                                              ║
+ * ║  SINGLETON GUARD (Why?):                                                     ║
+ * ║  Expo Router can mount (main)/_layout.tsx TWICE during Stack transitions     ║
+ * ║  (e.g. navigating to (create-commit)/final and back). Without protection,    ║
+ * ║  two <Modal> instances appear, causing a "double page" visual bug on         ║
+ * ║  dismiss. The module-level `isInstanceMounted` flag ensures only the         ║
+ * ║  FIRST instance renders; any duplicate returns null.                         ║
+ * ║                                                                              ║
+ * ║  USAGE (in (main)/_layout.tsx):                                              ║
+ * ║    <EventDetailModal />    ← zero props, fully self-contained                ║
+ * ║                                                                              ║
+ * ║  KEY RULES:                                                                  ║
+ * ║  • Never pass props — all data comes from Zustand.                           ║
+ * ║  • Never mount this in individual screens — only in the layout.              ║
+ * ║  • All hooks are called unconditionally (above the singleton guard)          ║
+ * ║    to comply with React's Rules of Hooks.                                    ║
+ * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -45,6 +45,7 @@ import { AuthHeading, BodyText } from '@/components/ui/text';
 import dayjs from 'dayjs';
 import { useMutation } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
+
 
 import { LocationSection } from './EventDetailLocation';
 import { PenaltySection, WaiverSection } from './EventDetailConditions';
@@ -89,7 +90,6 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       }
     };
   }, []);
-
   // ═══════════════════════════════════════════════════════════════════════════
   // 2. ZUSTAND STATE (called unconditionally — Rules of Hooks)
   //    Even the duplicate instance calls these hooks. This is required
@@ -113,15 +113,16 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // 3. VERIFICATION ENGINE
-  //    Handles GPS evidence gathering, camera capture, and transmitting
-  //    proof to the Convex backend for on-chain / backend verification.
+  // 4. VERIFICATION MUTATION
   // ═══════════════════════════════════════════════════════════════════════════
 
   const verifyMutation = useMutation(api.api.commitments.verify.default);
 
   /** Track which metric is being verified right now (for spinner) */
   const [verifyingMetric, setVerifyingMetric] = useState<string | null>(null);
+
+  /** Store per-condition verification results from the backend */
+  const [conditionStatuses, setConditionStatuses] = useState<Record<string, string>>({});
 
   // ═══════════════════════════════════════════════════════════════════════════
   // 4. HANDLERS
@@ -160,9 +161,11 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         metricKey,
       });
       console.log(`[EventDetailModal] ${metricKey} verification:`, result);
-      // No need to store locally — Convex reactivity updates currentEvent from DB
+      // Use the backend's result to update the circle immediately
+      setConditionStatuses((prev: Record<string, string>) => ({ ...prev, [metricKey]: (result as any).status }));
     } catch (error: any) {
       console.error(`[EventDetailModal] ${metricKey} verification failed:`, error);
+      setConditionStatuses((prev: Record<string, string>) => ({ ...prev, [metricKey]: 'failed' }));
     } finally {
       setVerifyingMetric(null);
     }
@@ -228,7 +231,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
                         <BodyText className="text-white text-base">All-day</BodyText>
                     </UView>
                     <VerificationStatusCircle 
-                      status={(currentEvent as any).time_status ?? 'neutral'}
+                      status={(conditionStatuses['time'] as any) ?? 'neutral'}
                       onPress={() => handleVerifyCondition('time')}
                       isLoading={verifyingMetric === 'time'}
                     />
