@@ -12,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 4;
+const DATABASE_VERSION = 5;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -60,6 +60,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
         visibility TEXT NOT NULL,
         recurrence_json TEXT NOT NULL,
         conditions_json TEXT NOT NULL,
+        config_json TEXT NOT NULL DEFAULT '{}',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         synced_at INTEGER
@@ -146,6 +147,14 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       ALTER TABLE task_instances ADD COLUMN title TEXT DEFAULT '';
     `);
     currentVersion = 4;
+  }
+
+  // ── Migration 4 → 5 (add config_json to local_tasks for alarm settings)
+  if (currentVersion === 4) {
+    await db.execAsync(`
+      ALTER TABLE local_tasks ADD COLUMN config_json TEXT NOT NULL DEFAULT '{}';
+    `);
+    currentVersion = 5;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

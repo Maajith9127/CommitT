@@ -156,6 +156,13 @@ function DbDebugFab() {
                     </Text>
                   </View>
 
+                  <Text style={{ color: '#4FA0FF', fontSize: 11, fontWeight: '600', marginBottom: 2 }}>config</Text>
+                  <View style={{ backgroundColor: '#111', borderRadius: 6, padding: 8, marginBottom: 6 }}>
+                    <Text style={{ color: '#8BC34A', fontSize: 10, fontFamily: 'monospace' }}>
+                      {prettyJson(row.config_json)}
+                    </Text>
+                  </View>
+
                   {row.instances && row.instances.length > 0 && (
                     <>
                       <Text style={{ color: '#4FA0FF', fontSize: 11, fontWeight: '600', marginBottom: 2 }}>

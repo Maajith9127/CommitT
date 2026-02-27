@@ -30,6 +30,10 @@ export type Condition = ConvexCondition & {
 // Visibility type from Convex
 export type Visibility = ConvexTask["visibility"];
 
+// Config type from Convex
+export type TaskConfig = ConvexTask["config"];
+
+
 /* -----------------------------
    TaskDraft - Frontend-only Type
 --------------------------------*/
@@ -63,6 +67,10 @@ export type TaskDraft = {
 
   // Conditions with UI extension (id for React keys)
   conditions: Condition[];
+
+  // Task Configuration (matches Convex schema)
+  config: TaskConfig;
+
 
   // UI-only: camera target for map components
   cameraTarget: {
@@ -111,6 +119,7 @@ type TaskDraftStore = {
   // lifecycle
   resetDraft: () => void;
   setDraft: (draft: Partial<TaskDraft>) => void;
+  setConfig: (updates: Partial<TaskConfig>) => void;
 };
 
 /* -----------------------------
@@ -139,6 +148,15 @@ const createEmptyDraft = (): TaskDraft => ({
   },
 
   conditions: [],
+  config: {
+    verification_style: "just_show_up",
+    grace_period_minutes: 10,
+    alarms: {
+      lead_time_minutes: 30,
+      interval_minutes: 5,
+      sound_key: "Default",
+    },
+  },
   cameraTarget: null,
 });
 
@@ -163,7 +181,8 @@ const logger = (config: any) => (set: any, get: any, api: any) =>
   description: ${JSON.stringify(d.description)},
   visibility: ${JSON.stringify(d.visibility)},
   recurrence: ${JSON.stringify(d.recurrence, null, 4).split('\n').join('\n  ')},
-  conditions: ${JSON.stringify(d.conditions, null, 4).split('\n').join('\n  ')}
+  conditions: ${JSON.stringify(d.conditions, null, 4).split('\n').join('\n  ')},
+  config: ${JSON.stringify(d.config, null, 4).split('\n').join('\n  ')}
 }`);
       console.log("─────────────────────────────────────────────────────────\n");
     },
@@ -506,6 +525,25 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
         },
         false,
         "draft/setDraft"
+      ),
+
+    setConfig: (updates: Partial<TaskConfig>) =>
+      set(
+        (state: TaskDraftStore) => ({
+          draft: {
+            ...state.draft,
+            config: {
+              ...state.draft.config,
+              ...updates,
+              // Nested merge for alarms if provided
+              alarms: updates.alarms
+                ? { ...state.draft.config.alarms, ...updates.alarms }
+                : state.draft.config.alarms,
+            },
+          },
+        }),
+        false,
+        "draft/setConfig"
       ),
   }))
 );

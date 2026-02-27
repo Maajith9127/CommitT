@@ -160,6 +160,8 @@ export default function FinalScreen() {
   const setLocation = useTaskDraftStore((state) => state.setLocation);
   const setAssignee = useTaskDraftStore((state) => state.setAssignee);
   const setDraft = useTaskDraftStore((state) => state.setDraft);
+  const setConfig = useTaskDraftStore((state) => state.setConfig);
+
 
   // Local DB
   const db = useSQLiteContext();
@@ -194,24 +196,7 @@ export default function FinalScreen() {
     message: "",
   });
 
-  // Local Toggle States for Settings (To be connected to draft store later)
-  const [settingsToggles, setSettingsToggles] = useState<{
-    justShowUp: boolean;
-    stayThroughout: boolean;
-    gracePeriodMins: number;
-    smartPreAlarms: boolean;
-    alarmLeadTime: number;
-    alarmInterval: number;
-    alarmSound: string;
-  }>({
-    justShowUp: true,
-    stayThroughout: false,
-    gracePeriodMins: 10,
-    smartPreAlarms: true,
-    alarmLeadTime: 30,
-    alarmInterval: 5,
-    alarmSound: "Default",
-  });
+
 
   // Picker State
   const [picker, setPicker] = useState<{
@@ -336,6 +321,7 @@ export default function FinalScreen() {
           visibility: draft.visibility,
           recurrence: draft.recurrence,
           conditions: cleanedConditions,
+          config: draft.config,
         });
 
         if (result.success) {
@@ -343,7 +329,7 @@ export default function FinalScreen() {
             await db.runAsync(
               `UPDATE local_tasks SET
                 title = ?, description = ?, visibility = ?,
-                recurrence_json = ?, conditions_json = ?,
+                recurrence_json = ?, conditions_json = ?, config_json = ?,
                 updated_at = ?, synced_at = ?
               WHERE convex_id = ?`,
               [
@@ -352,6 +338,7 @@ export default function FinalScreen() {
                 draft.visibility,
                 JSON.stringify(draft.recurrence),
                 JSON.stringify(cleanedConditions),
+                JSON.stringify(draft.config),
                 now,
                 now,
                 draft.id as string,
@@ -417,6 +404,7 @@ export default function FinalScreen() {
           visibility: draft.visibility,
           recurrence: draft.recurrence,
           conditions: cleanedConditions,
+          config: draft.config,
         });
 
         if (result.success && result.taskId) {
@@ -425,8 +413,8 @@ export default function FinalScreen() {
             await db.runAsync(
               `INSERT INTO local_tasks
                 (id, convex_id, assigner_id, assignee_id, title, description,
-                 visibility, recurrence_json, conditions_json, created_at, updated_at, synced_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 visibility, recurrence_json, conditions_json, config_json, created_at, updated_at, synced_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 localId,
                 result.taskId,
@@ -437,6 +425,7 @@ export default function FinalScreen() {
                 draft.visibility,
                 JSON.stringify(draft.recurrence),
                 JSON.stringify(cleanedConditions),
+                JSON.stringify(draft.config),
                 now,
                 now,
                 now,
@@ -594,36 +583,32 @@ export default function FinalScreen() {
               id: "showUp",
               title: "Just Show Up",
               type: "toggle",
-              value: settingsToggles.justShowUp,
-              onValueChange: (v) => setSettingsToggles({ 
-                ...settingsToggles, 
-                justShowUp: v, 
-                stayThroughout: v ? false : settingsToggles.stayThroughout 
-              }),
+              value: draft.config.verification_style === "just_show_up",
+              onValueChange: (v) => {
+                if (v) setConfig({ verification_style: "just_show_up" });
+              },
             },
-            ...(settingsToggles.justShowUp ? [{
-              id: "grace",
-              title: "Grace Period",
-              type: "select" as const,
-              selectValue: `${settingsToggles.gracePeriodMins} mins`,
-              onPress: () => setPicker({
-                visible: true,
-                title: "Grace Period",
-                options: SETTINGS_OPTIONS.gracePeriod,
-                selectedValue: settingsToggles.gracePeriodMins,
-                onSelect: (v) => setSettingsToggles({ ...settingsToggles, gracePeriodMins: v }),
-              })
-            }] : []),
             {
               id: "stayThroughout",
               title: "Stay Throughout",
               type: "toggle",
-              value: settingsToggles.stayThroughout,
-              onValueChange: (v) => setSettingsToggles({ 
-                ...settingsToggles, 
-                stayThroughout: v,
-                justShowUp: v ? false : settingsToggles.justShowUp
-              }),
+              value: draft.config.verification_style === "stay_throughout",
+              onValueChange: (v) => {
+                if (v) setConfig({ verification_style: "stay_throughout" });
+              },
+            },
+            {
+              id: "grace",
+              title: "Grace Period",
+              type: "select" as const,
+              selectValue: `${draft.config.grace_period_minutes} mins`,
+              onPress: () => setPicker({
+                visible: true,
+                title: "Grace Period",
+                options: SETTINGS_OPTIONS.gracePeriod,
+                selectedValue: draft.config.grace_period_minutes,
+                onSelect: (v) => setConfig({ grace_period_minutes: v }),
+              })
             }
           ]}
         />
@@ -640,39 +625,39 @@ export default function FinalScreen() {
               id: "alarmLeadTime",
               title: "Start Alarming",
               type: "select" as const,
-              selectValue: `${settingsToggles.alarmLeadTime} mins before`,
+              selectValue: `${draft.config.alarms.lead_time_minutes} mins before`,
               onPress: () => setPicker({
                 visible: true,
                 title: "Start Alarming",
                 options: SETTINGS_OPTIONS.alarmLeadTime,
-                selectedValue: settingsToggles.alarmLeadTime,
-                onSelect: (v) => setSettingsToggles({ ...settingsToggles, alarmLeadTime: v }),
+                selectedValue: draft.config.alarms.lead_time_minutes,
+                onSelect: (v) => setConfig({ alarms: { lead_time_minutes: v } }),
               })
             },
             {
               id: "alarmInterval",
               title: "Alarm Frequency",
               type: "select" as const,
-              selectValue: `Every ${settingsToggles.alarmInterval} mins`,
+              selectValue: `Every ${draft.config.alarms.interval_minutes} mins`,
               onPress: () => setPicker({
                 visible: true,
                 title: "Alarm Frequency",
                 options: SETTINGS_OPTIONS.alarmInterval,
-                selectedValue: settingsToggles.alarmInterval,
-                onSelect: (v) => setSettingsToggles({ ...settingsToggles, alarmInterval: v }),
+                selectedValue: draft.config.alarms.interval_minutes,
+                onSelect: (v) => setConfig({ alarms: { interval_minutes: v } }),
               })
             },
             {
               id: "alarmSound",
               title: "Alarm Music",
               type: "select" as const,
-              selectValue: settingsToggles.alarmSound,
+              selectValue: draft.config.alarms.sound_key,
               onPress: () => setPicker({
                 visible: true,
                 title: "Alarm Music",
                 options: SETTINGS_OPTIONS.alarmSound,
-                selectedValue: settingsToggles.alarmSound,
-                onSelect: (v) => setSettingsToggles({ ...settingsToggles, alarmSound: v }),
+                selectedValue: draft.config.alarms.sound_key,
+                onSelect: (v) => setConfig({ alarms: { sound_key: v } }),
               })
             }
           ]}
