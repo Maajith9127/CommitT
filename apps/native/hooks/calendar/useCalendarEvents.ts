@@ -34,12 +34,20 @@ export function useCalendarEvents() {
         colorIndex++;
       }
 
+      // Determine the calendar block color based on verification status
+      let eventColor = taskColorMap.get(inst.task_id) || TASK_COLORS[0];
+      if (inst.status === "proceeded") {
+        eventColor = "#4CD964"; // success green
+      } else if (inst.status === "failed") {
+        eventColor = "#FF3B30"; // danger red
+      }
+
       return {
         id: inst._id,
         title: inst.title,
         start: { dateTime: new Date(inst.start).toISOString() },
         end: { dateTime: new Date(inst.end).toISOString() },
-        color: taskColorMap.get(inst.task_id) || TASK_COLORS[0],
+        color: eventColor,
         originalData: inst,
       };
     });

@@ -66,8 +66,19 @@ export function EventDetailHeader({
         </UView>
 
         {status && (
-          <UView className="px-3 py-1 rounded-full border bg-white/5 border-white/20">
-            <BodyText className="text-xs font-bold uppercase text-white">
+          <UView 
+            className="px-3 py-1 rounded-full border border-white/20 bg-white/5"
+            style={{
+              borderColor: status === 'proceeded' ? 'rgba(76, 217, 100, 0.4)' : status === 'failed' ? 'rgba(255, 59, 48, 0.4)' : undefined,
+              backgroundColor: status === 'proceeded' ? 'rgba(76, 217, 100, 0.1)' : status === 'failed' ? 'rgba(255, 59, 48, 0.1)' : undefined,
+            }}
+          >
+            <BodyText 
+              className="text-xs font-bold uppercase"
+              style={{
+                color: status === 'proceeded' ? '#4CD964' : status === 'failed' ? '#FF3B30' : 'white',
+              }}
+            >
               {status}
             </BodyText>
           </UView>
