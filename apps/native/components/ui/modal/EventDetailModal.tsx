@@ -263,6 +263,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             <EventDetailTime
               start={currentEvent.start}
               end={currentEvent.end}
+              config={currentEvent.config}
             />
 
             {/* ── GPS Location (embedded Google Map) ── */}

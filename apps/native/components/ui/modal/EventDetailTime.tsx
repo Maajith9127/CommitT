@@ -35,6 +35,8 @@ export interface EventDetailTimeProps {
   start: number;
   /** Instance end timestamp (ms epoch) */
   end: number;
+  /** Instance config containing constraints like grace_period_minutes */
+  config?: any;
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -42,7 +44,9 @@ export interface EventDetailTimeProps {
 export function EventDetailTime({
   start,
   end,
+  config,
 }: EventDetailTimeProps) {
+  console.log('[EventDetailTime] Rendering with config:', JSON.stringify(config, null, 2));
   const [now, setNow] = useState(Date.now());
   const opacityAnim = useRef(new Animated.Value(0.5)).current;
 
@@ -87,6 +91,10 @@ export function EventDetailTime({
   let timerValue = '';
   let timerTextColor = '';
 
+  const isJustShowUp = config?.verification_style === 'just_show_up';
+  const graceMinutes = config?.grace_period_minutes ?? 0;
+  const graceEnd = start + (graceMinutes * 60 * 1000);
+
   if (now < start) {
     timerLabel = 'Starts-in';
     timerValue = formatCountdown(start - now);
@@ -96,9 +104,21 @@ export function EventDetailTime({
     timerValue = 'Expired';
     timerTextColor = 'text-red-500';
   } else {
-    timerLabel = 'Expires-in';
-    timerValue = formatCountdown(end - now);
-    timerTextColor = 'text-green-500';
+    if (graceMinutes > 0) {
+      if (now <= graceEnd) {
+        timerLabel = 'Grace Ends-in';
+        timerValue = formatCountdown(graceEnd - now);
+        timerTextColor = 'text-yellow-400';
+      } else {
+        timerLabel = 'Status';
+        timerValue = 'Expired';
+        timerTextColor = 'text-red-500';
+      }
+    } else {
+      timerLabel = 'Expires-in';
+      timerValue = formatCountdown(end - now);
+      timerTextColor = 'text-green-500';
+    }
   }
 
   return (
