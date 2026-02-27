@@ -45,10 +45,11 @@ function DbDebugFab() {
   const inspect = async () => {
     try {
       const allTasks = await db.getAllAsync('SELECT * FROM local_tasks');
+      // @ts-ignore
       const enhancedTasks = await Promise.all(
-        allTasks.map(async (task: any) => {
+        (allTasks as any[]).map(async (task) => {
           const instances = await db.getAllAsync(
-            'SELECT start_time, end_time, status, id FROM task_instances WHERE task_id = ? ORDER BY start_time ASC',
+            'SELECT * FROM task_instances WHERE task_id = ? ORDER BY start_time ASC',
             [task.id]
           );
           return { ...task, instances };
@@ -168,12 +169,19 @@ function DbDebugFab() {
                       <Text style={{ color: '#4FA0FF', fontSize: 11, fontWeight: '600', marginBottom: 2 }}>
                         Instances ({row.instances.length} scheduled)
                       </Text>
-                      <View style={{ backgroundColor: '#111', borderRadius: 6, padding: 8, marginBottom: 6, maxHeight: 150 }}>
+                      <View style={{ backgroundColor: '#111', borderRadius: 6, padding: 8, marginBottom: 6, maxHeight: 200 }}>
                         <ScrollView nestedScrollEnabled>
-                          {row.instances.map((inst: any, idx: number) => (
-                            <Text key={inst.id || idx} style={{ color: '#8BC34A', fontSize: 10, fontFamily: 'monospace', marginBottom: 4 }}>
-                              [{idx + 1}] {row.title} — {new Date(inst.start_time).toLocaleString()} ➔ {new Date(inst.end_time).toLocaleTimeString()} ({inst.status})
-                            </Text>
+                          {row.instances.slice(0, 3).map((inst: any, idx: number) => (
+                            <View key={inst.id || idx} style={{ marginBottom: 10 }}>
+                              <Text style={{ color: '#8BC34A', fontSize: 10, fontFamily: 'monospace', marginBottom: 4 }}>
+                                [{idx + 1}] {row.title} — {new Date(inst.start_time).toLocaleString()}
+                              </Text>
+                              <View style={{ backgroundColor: '#0a0a0a', padding: 6, borderRadius: 4 }}>
+                                <Text style={{ color: '#aaa', fontSize: 9, fontFamily: 'monospace' }}>
+                                  {JSON.stringify(inst, null, 2)}
+                                </Text>
+                              </View>
+                            </View>
                           ))}
                         </ScrollView>
                       </View>

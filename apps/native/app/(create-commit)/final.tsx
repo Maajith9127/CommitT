@@ -51,6 +51,7 @@ interface MutationResult {
     end: number;
     status: string;
     title: string;
+    config: any;
   }>;
   error?: {
     code: string;
@@ -360,7 +361,7 @@ export default function FinalScreen() {
               const backendInstances = result.instances || [];
               if (backendInstances.length > 0) {
                 const statement = await db.prepareAsync(
-                  `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+                  `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
                 );
                 try {
                   for (const instance of backendInstances) {
@@ -373,6 +374,7 @@ export default function FinalScreen() {
                       instance.start,
                       instance.end,
                       instance.title,
+                      JSON.stringify(instance.config),
                       now
                     ]);
                   }
@@ -437,7 +439,7 @@ export default function FinalScreen() {
             const backendInstances = result.instances || [];
             if (backendInstances.length > 0) {
               const statement = await db.prepareAsync(
-                `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+                `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, config_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
               );
               try {
                 for (const instance of backendInstances) {
@@ -450,6 +452,7 @@ export default function FinalScreen() {
                     instance.start,
                     instance.end,
                     instance.title,
+                    JSON.stringify(instance.config),
                     now,
                   ]);
                 }
