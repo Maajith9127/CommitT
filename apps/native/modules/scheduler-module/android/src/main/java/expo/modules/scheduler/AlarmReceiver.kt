@@ -23,6 +23,7 @@ class AlarmReceiver : BroadcastReceiver() {
         private const val EXTRA_FIRE_AT_MS = "fire_at_ms"
         private const val EXTRA_IS_PRE_ALARM = "is_pre_alarm"
         private const val EXTRA_MAIN_TIME_MS = "main_time_ms"
+        private const val EXTRA_SOUND_KEY = "sound_key"
     }
 
     /**
@@ -39,9 +40,10 @@ class AlarmReceiver : BroadcastReceiver() {
         val fireAtMs = intent.getLongExtra(EXTRA_FIRE_AT_MS, 0L)
         val isPreAlarm = intent.getBooleanExtra(EXTRA_IS_PRE_ALARM, false)
         val mainTimeMs = intent.getLongExtra(EXTRA_MAIN_TIME_MS, 0L)
+        val soundKey = intent.getStringExtra(EXTRA_SOUND_KEY) ?: "Default"
 
         val typeText = if (isPreAlarm) "PRE-ALARM" else "MAIN ALARM"
-        Log.d(TAG, "[HARDWARE TRIGGER] Parsing Input -> Target Task: [$title], Mode: [$typeText], Identifier: [$instanceId]")
+        Log.d(TAG, "[HARDWARE TRIGGER] Parsing Input -> Target Task: [$title], Mode: [$typeText], Identifier: [$instanceId], Sound: [$soundKey]")
         
         // Check for Android "Doze" drift - if the OS was highly constrained on battery, 
         // it may have delayed this execution slightly.
@@ -61,6 +63,7 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(EXTRA_FIRE_AT_MS, fireAtMs)
             putExtra(EXTRA_IS_PRE_ALARM, isPreAlarm)
             putExtra(EXTRA_MAIN_TIME_MS, mainTimeMs)
+            putExtra(EXTRA_SOUND_KEY, soundKey)
         }
 
         try {

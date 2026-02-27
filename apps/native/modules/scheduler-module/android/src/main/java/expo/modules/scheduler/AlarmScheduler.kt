@@ -74,7 +74,7 @@ object AlarmScheduler {
             // Query Explanation: "Select all tasks where the start time hasn't happened yet *AND* 
             // the status is actively 'pending', sort them by chronology, and fetch the first 20."
             val cursor = database.rawQuery(
-                """SELECT id, title, start_time 
+                """SELECT id, title, start_time, config_json 
                    FROM task_instances 
                    WHERE start_time >= ? AND status = 'pending'
                    ORDER BY start_time ASC LIMIT 20""",
@@ -91,15 +91,26 @@ object AlarmScheduler {
                 var bestTitle = ""
                 var bestIsPreAlarm = false
                 var bestMainTime = 0L
+                var bestSoundKey = "Default"
 
                 do {
                     // Pull the row data out of the current cursor alignment
                     val id = cursor.getString(0)
                     val title = cursor.getString(1)
                     val mainStart = cursor.getLong(2)
+                    val configJsonStr = cursor.getString(3) ?: "{}"
+
+                    var currentSoundKey = "Default"
+                    try {
+                        val json = org.json.JSONObject(configJsonStr)
+                        if (json.has("alarms")) {
+                            val alarmsObj = json.getJSONObject("alarms")
+                            if (alarmsObj.has("sound_key")) currentSoundKey = alarmsObj.getString("sound_key")
+                        }
+                    } catch (e: Exception) {}
 
                     // Execute algorithmic check to see if we should trigger a "15 minutes earlier" pre-alarm
-                    val (triggerTime, isPreAlarm) = findNextTrigger(mainStart, currentTimeMs)
+                    val (triggerTime, isPreAlarm) = findNextTrigger(mainStart, currentTimeMs, configJsonStr)
                     
                     // Keep substituting the "Best" trigger time if it's the closest to 'Now'.
                     if (triggerTime < bestTriggerTime) {
@@ -108,6 +119,7 @@ object AlarmScheduler {
                         bestTitle = title
                         bestIsPreAlarm = isPreAlarm
                         bestMainTime = mainStart
+                        bestSoundKey = currentSoundKey
                     }
                 } while (cursor.moveToNext())
 
@@ -117,7 +129,7 @@ object AlarmScheduler {
                     Log.d(TAG, "[ALARM SELECTED] Earliest trigger -> Type: [$type], Target: [$bestTitle], Time: ${formatTimestamp(bestTriggerTime)}")
                     
                     // Dispatch the registration instruction down to the Operating System!
-                    setOSAlarm(context, bestInstanceId, bestTitle, bestTriggerTime, currentTimeMs, bestIsPreAlarm, bestMainTime)
+                    setOSAlarm(context, bestInstanceId, bestTitle, bestTriggerTime, currentTimeMs, bestIsPreAlarm, bestMainTime, bestSoundKey)
                     
                     // Since the database was fully readable, rewrite the Sticky Note cache with 
                     // this fresh list of 20 upcoming tasks, preparing for a potential future unexpected restart!
@@ -153,18 +165,35 @@ object AlarmScheduler {
      * 
      * @return Pair(TimestampToWakeUpOn, IsItAPreAlarmBoolean)
      */
-    private fun findNextTrigger(mainStartMs: Long, nowMs: Long): Pair<Long, Boolean> {
-        // T-minus staggered intervals, converting exactly to milliseconds
-        val preAlarmOffsetsMs = listOf(
-            15 * 60 * 1000L,
-            13 * 60 * 1000L,
-            11 * 60 * 1000L,
-            9 * 60 * 1000L,
-            7 * 60 * 1000L,
-            5 * 60 * 1000L,
-            3 * 60 * 1000L,
-            1 * 60 * 1000L
-        )
+    private fun findNextTrigger(mainStartMs: Long, nowMs: Long, configJsonStr: String): Pair<Long, Boolean> {
+        var leadTimeMinutes = 15
+        var intervalMinutes = 2
+
+        try {
+            val json = org.json.JSONObject(configJsonStr)
+            if (json.has("alarms")) {
+                val alarmsObj = json.getJSONObject("alarms")
+                if (alarmsObj.has("lead_time_minutes")) {
+                    leadTimeMinutes = alarmsObj.getInt("lead_time_minutes")
+                }
+                if (alarmsObj.has("interval_minutes")) {
+                    intervalMinutes = alarmsObj.getInt("interval_minutes")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "[PRE-ALARM MATH] Failed to parse config_json cleanly. Falling back to default lead: 15m, interval: 2m.")
+        }
+        
+        Log.d(TAG, "[PRE-ALARM MATH] Config read -> Lead: $leadTimeMinutes mins, Interval: $intervalMinutes mins")
+
+        // T-minus staggered intervals dynamically generated from config!
+        val preAlarmOffsetsMs = mutableListOf<Long>()
+        
+        var currentOffset = leadTimeMinutes
+        while (currentOffset > 0) {
+            preAlarmOffsetsMs.add(currentOffset * 60 * 1000L)
+            currentOffset -= intervalMinutes
+        }
 
         // Find the absolute largest pre-alarm offset that still exists structurally in the FUTURE
         for (offset in preAlarmOffsetsMs) {
@@ -246,9 +275,12 @@ object AlarmScheduler {
                 val identifier = cursor.getString(0)
                 val taskTitle = cursor.getString(1)
                 val unixTimeMs = cursor.getLong(2)
+                val configJsonStr = cursor.getString(3) ?: "{}"
                 
                 // Pack the columns together with a pipe `|`
-                synchronizationSet.add("$identifier|$taskTitle|$unixTimeMs")
+                // We base64 encode the JSON so it never interferes with our `;;` or `|` strings.
+                val safeJson = android.util.Base64.encodeToString(configJsonStr.toByteArray(), android.util.Base64.NO_WRAP)
+                synchronizationSet.add("$identifier|$taskTitle|$unixTimeMs|$safeJson")
             } while (cursor.moveToNext())
 
             // Stitch all list items together with a double semicolon `;;` and store!
@@ -295,20 +327,36 @@ object AlarmScheduler {
         var bestTitle = ""
         var bestIsPreAlarm = false
         var bestMainTime = 0L
+        var bestSoundKey = "Default"
 
         // 3. Exactly identical mathematical iteration logic
         for (taskPayload in delimitedTasks) {
             val taskSegments = taskPayload.split("|")
-            if (taskSegments.size == 3) {
+            if (taskSegments.size >= 4) {
                 // Slice the pieces back out
                 val id = taskSegments[0]
                 val title = taskSegments[1]
                 val mainStart = taskSegments[2].toLongOrNull() ?: 0L
+                val safeJson = taskSegments[3]
+
+                var configJsonStr = "{}"
+                try {
+                    configJsonStr = String(android.util.Base64.decode(safeJson, android.util.Base64.DEFAULT))
+                } catch (e: Exception) {}
+
+                var currentSoundKey = "Default"
+                try {
+                    val json = org.json.JSONObject(configJsonStr)
+                    if (json.has("alarms")) {
+                        val alarmsObj = json.getJSONObject("alarms")
+                        if (alarmsObj.has("sound_key")) currentSoundKey = alarmsObj.getString("sound_key")
+                    }
+                } catch (e: Exception) {}
 
                 if (mainStart < currentTimeMs) continue // Skip globally expired events entirely
 
                 // 4. Run the exact same Pre-Alarm engine here too
-                val (triggerTime, isPreAlarm) = findNextTrigger(mainStart, currentTimeMs)
+                val (triggerTime, isPreAlarm) = findNextTrigger(mainStart, currentTimeMs, configJsonStr)
                 
                 if (triggerTime < bestTriggerTime) {
                     bestTriggerTime = triggerTime
@@ -316,6 +364,7 @@ object AlarmScheduler {
                     bestTitle = title
                     bestIsPreAlarm = isPreAlarm
                     bestMainTime = mainStart
+                    bestSoundKey = currentSoundKey
                 }
             }
         }
@@ -325,7 +374,7 @@ object AlarmScheduler {
             val type = if (bestIsPreAlarm) "PRE-ALARM" else "MAIN ALARM"
             Log.d(TAG, "[FALLBACK SELECTED] Earliest DE cache trigger -> Type: [$type], Target: $bestInstanceId, Execution: ${formatTimestamp(bestTriggerTime)}")
             
-            setOSAlarm(context, bestInstanceId, bestTitle, bestTriggerTime, currentTimeMs, bestIsPreAlarm, bestMainTime)
+            setOSAlarm(context, bestInstanceId, bestTitle, bestTriggerTime, currentTimeMs, bestIsPreAlarm, bestMainTime, bestSoundKey)
         } else {
             Log.w(TAG, "[FALLBACK RECOVERY] Evaluated task segments possessed NO futuristic timelines. Recovery officially aborted.")
             clearStickyNote(context) // Ensure nothing stale remains running
@@ -348,7 +397,8 @@ object AlarmScheduler {
         fireAtMs: Long,
         nowMs: Long,
         isPreAlarm: Boolean,
-        mainTimeMs: Long
+        mainTimeMs: Long,
+        soundKey: String
     ) {
         // Gain a bridge strictly over the Android Alarm System
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -361,6 +411,7 @@ object AlarmScheduler {
             putExtra("scheduled_at_now", nowMs)
             putExtra("is_pre_alarm", isPreAlarm) // The crucial boolean defining UI states!
             putExtra("main_time_ms", mainTimeMs)
+            putExtra("sound_key", soundKey)
         }
 
         // The Pending Intent locks everything securely together with heavy constraints.

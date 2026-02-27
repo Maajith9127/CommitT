@@ -43,6 +43,7 @@ class AlarmActivity : Activity() {
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_IS_PRE_ALARM = "is_pre_alarm"
         private const val EXTRA_MAIN_TIME_MS = "main_time_ms"
+        private const val EXTRA_SOUND_KEY = "sound_key"
     }
 
     /**
@@ -63,12 +64,13 @@ class AlarmActivity : Activity() {
         val taskTitle = intent.getStringExtra(EXTRA_TITLE) ?: "Unknown Task"
         val isPreAlarm = intent.getBooleanExtra(EXTRA_IS_PRE_ALARM, false)
         val mainTimeMs = intent.getLongExtra(EXTRA_MAIN_TIME_MS, 0L)
+        val soundKey = intent.getStringExtra(EXTRA_SOUND_KEY) ?: "Default"
 
         val taskTypeText = if (isPreAlarm) "PRE-ALARM TICK" else "MAIN ALARM EXECUTION"
-        Log.d(TAG, "[WAKE LOGIC] Component mapped globally -> Scope: [$taskTypeText], Title: [$taskTitle], TaskID: [$taskInstanceId]")
+        Log.d(TAG, "[WAKE LOGIC] Component mapped globally -> Scope: [$taskTypeText], Title: [$taskTitle], TaskID: [$taskInstanceId], Sound: [$soundKey]")
 
         // Phase 3: Unleash sounds and vibrations so the phone physically demands attention
-        initiateHardwareAlerts()
+        initiateHardwareAlerts(soundKey)
         
         // Phase 4: Construct and bind the view structures
         constructVisualHierarchy(taskTitle, taskInstanceId, isPreAlarm, mainTimeMs)
@@ -187,17 +189,33 @@ class AlarmActivity : Activity() {
      * 
      * Hooks natively directly into media controllers bypassing permissions for explicit noises.
      */
-    private fun initiateHardwareAlerts() {
-        Log.d(TAG, "[SYSTEM ALERTS] Routing API layer to initialize device sensory peripherals...")
+    private fun initiateHardwareAlerts(soundKey: String) {
+        Log.d(TAG, "[SYSTEM ALERTS] Routing API layer to initialize device sensory peripherals for sound: $soundKey")
         try {
-            // Grab standard Alarm target URI exclusively from Android framework mappings
-            var defaultAlertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            if (defaultAlertUri == null) {
-                // In massive edge conditions, ALARM is missing, so we use simpler NOTIFICATION output
-                Log.w(TAG, "[SYSTEM ALERTS DEGRADATION] System standard audio target unaligned. Defaulting fallback channel.")
-                defaultAlertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            var finalAlertUri: android.net.Uri? = null
+            
+            // Try to resolve custom raw sound
+            if (soundKey.isNotEmpty() && soundKey.lowercase() != "default") {
+                val resId = resources.getIdentifier(soundKey.lowercase(), "raw", packageName)
+                if (resId != 0) {
+                    finalAlertUri = android.net.Uri.parse("android.resource://$packageName/$resId")
+                    Log.d(TAG, "[SYSTEM ALERTS] Custom hardware audio payload confirmed. Linking native /res/raw path.")
+                } else {
+                    Log.w(TAG, "[SYSTEM ALERTS] Custom audio payload '$soundKey' missing from OS partition. Falling back to Kernel default.")
+                }
             }
-            alertRingtone = RingtoneManager.getRingtone(applicationContext, defaultAlertUri)
+
+            // Fallback natively to device standard settings
+            if (finalAlertUri == null) {
+                finalAlertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                if (finalAlertUri == null) {
+                    // In massive edge conditions, ALARM is missing, so we use simpler NOTIFICATION output
+                    Log.w(TAG, "[SYSTEM ALERTS DEGRADATION] System standard audio target unaligned. Defaulting fallback channel.")
+                    finalAlertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                }
+            }
+            
+            alertRingtone = RingtoneManager.getRingtone(applicationContext, finalAlertUri)
             
             // 🚨 CRITICAL AUDIO FIX 🚨
             // By default, RingtoneManager uses the "Ringer" volume (which respects Silent Mode).
