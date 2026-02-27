@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { recurrenceTypeEnum, recurrenceEndsTypeEnum, relationEnum, targetTypeEnum } from "../config/enums";
+import { recurrenceTypeEnum, recurrenceEndsTypeEnum, relationEnum, targetTypeEnum, verificationStyleEnum } from "../config/enums";
 
 /**
  * Convex Schema Definitions (Structural Validation)
@@ -41,3 +41,15 @@ export const ConditionsSchema = v.array(v.object({
     value: v.any(),                        // The target value
   }),
 }));
+
+/** Defines the verification and alarm settings (the "rules" for the backend) */
+export const ConfigSchema = v.object({
+  verification_style: verificationStyleEnum,
+  grace_period_minutes: v.optional(v.number()),
+  alarms: v.object({
+    lead_time_minutes: v.number(),
+    interval_minutes: v.number(),
+    sound_key: v.string(),
+  }),
+});
+

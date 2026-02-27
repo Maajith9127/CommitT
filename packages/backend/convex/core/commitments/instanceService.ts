@@ -11,6 +11,7 @@ export type InstanceCreateArgs = {
   description: string;
   recurrence: any;
   conditions: any[];
+  config: Doc<"tasks">["config"];
   next_instance_id?: Id<"taskInstances">;
   status?: "pending" | "proceeding" | "proceeded" | "failed";
 };
@@ -38,6 +39,7 @@ export async function createInstanceInternal(
     description: args.description,
     recurrence: args.recurrence,
     conditions: args.conditions,
+    config: args.config,
     next_instance_id: args.next_instance_id,
   });
 

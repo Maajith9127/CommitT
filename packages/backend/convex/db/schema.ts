@@ -9,6 +9,7 @@ import {
   conditionStatusEnum,
   recurrenceTypeEnum,
   recurrenceEndsTypeEnum,
+  verificationStyleEnum,
 } from "../config/enums";
 
 export default defineSchema({
@@ -55,6 +56,15 @@ export default defineSchema({
         }),
       }),
     ),
+    config: v.object({
+      verification_style: verificationStyleEnum,
+      grace_period_minutes: v.optional(v.number()),
+      alarms: v.object({
+        lead_time_minutes: v.number(),
+        interval_minutes: v.number(),
+        sound_key: v.string(),
+      }),
+    }),
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -99,6 +109,15 @@ export default defineSchema({
         progress_percentage: v.optional(v.number()),
       }),
     ),
+    config: v.object({
+      verification_style: verificationStyleEnum,
+      grace_period_minutes: v.optional(v.number()),
+      alarms: v.object({
+        lead_time_minutes: v.number(),
+        interval_minutes: v.number(),
+        sound_key: v.string(),
+      }),
+    }),
     // Time verification is implicit (every instance has start/end), validated server-side.
     scheduled_job_id: v.optional(v.id("_scheduled_functions")),
     next_instance_id: v.optional(v.id("taskInstances")),

@@ -12,6 +12,7 @@ export type CreateArgs = {
   visibility: Doc<"tasks">["visibility"];
   recurrence: any;
   conditions: any[];
+  config: Doc<"tasks">["config"];
   assigner_id: string; // Passed from API layer after auth
 };
 
@@ -73,6 +74,7 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     visibility: args.visibility,
     recurrence: args.recurrence,
     conditions: args.conditions,
+    config: args.config,
     assigner_id: args.assigner_id,
     created_at: now,
     updated_at: now,

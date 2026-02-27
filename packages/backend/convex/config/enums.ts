@@ -72,3 +72,9 @@ export const recurrenceEndsTypeEnum = v.union(
   v.literal("after"),
   v.literal("on"),
 );
+
+export const verificationStyleEnum = v.union(
+  v.literal("just_show_up"),
+  v.literal("stay_throughout"),
+);
+

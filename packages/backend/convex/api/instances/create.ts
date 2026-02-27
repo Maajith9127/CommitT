@@ -42,6 +42,7 @@ export default authedMutation({
       description: args.description ?? task.description,
       recurrence: task.recurrence, // Inherit rules even if one-off
       conditions: task.conditions,
+      config: task.config,
       status: "pending",
     });
 

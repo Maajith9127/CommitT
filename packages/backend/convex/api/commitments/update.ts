@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { visibilityEnum } from "../../config/enums";
-import { RecurrenceSchema, ConditionsSchema } from "../../lib/validators";
+import { RecurrenceSchema, ConditionsSchema, ConfigSchema } from "../../lib/validators";
 import { updateInternal } from "../../core/commitments/service";
 
 import { authedMutation } from "../../middleware";
@@ -26,6 +26,7 @@ export default authedMutation({
     visibility: v.optional(visibilityEnum),
     recurrence: v.optional(RecurrenceSchema),
     conditions: v.optional(ConditionsSchema),
+    config: v.optional(ConfigSchema),
   },
   handler: async (ctx, args) => {
     // Identity is guaranteed by middleware
