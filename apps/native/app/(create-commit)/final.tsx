@@ -14,6 +14,7 @@ import { MiniConditionCard } from "@/components/ui/commits/MiniConditionCard";
 import { CommitCard } from "@/components/ui/commits/DigitalCommitment";
 import { SettingsToggleCard } from "@/components/ui/commits/SettingsToggleCard";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
+import { SelectionSheet, type SelectionOption } from "@/components/ui/modal/SelectionSheet";
 import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
@@ -88,6 +89,34 @@ const COLORS = {
   primary: "#4FA0FF",
   danger: "#FF3B30",
   success: "#4CD964",
+} as const;
+
+/** Selection options for advanced settings */
+const SETTINGS_OPTIONS = {
+  gracePeriod: [
+    { label: "5 minutes", value: 5 },
+    { label: "10 minutes", value: 10 },
+    { label: "15 minutes", value: 15 },
+    { label: "20 minutes", value: 20 },
+    { label: "30 minutes", value: 30 },
+  ],
+  alarmLeadTime: [
+    { label: "15 mins before", value: 15 },
+    { label: "30 mins before", value: 30 },
+    { label: "45 mins before", value: 45 },
+    { label: "60 mins before", value: 60 },
+  ],
+  alarmInterval: [
+    { label: "Every 2 mins", value: 2 },
+    { label: "Every 5 mins", value: 5 },
+    { label: "Every 10 mins", value: 10 },
+  ],
+  alarmSound: [
+    { label: "Default", value: "Default" },
+    { label: "Calm", value: "Calm" },
+    { label: "Energetic", value: "Energetic" },
+    { label: "Warning", value: "Warning" },
+  ],
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,11 +200,32 @@ export default function FinalScreen() {
     stayThroughout: boolean;
     gracePeriodMins: number;
     smartPreAlarms: boolean;
+    alarmLeadTime: number;
+    alarmInterval: number;
+    alarmSound: string;
   }>({
     justShowUp: true,
     stayThroughout: false,
     gracePeriodMins: 10,
     smartPreAlarms: true,
+    alarmLeadTime: 30,
+    alarmInterval: 5,
+    alarmSound: "Default",
+  });
+
+  // Picker State
+  const [picker, setPicker] = useState<{
+    visible: boolean;
+    title: string;
+    options: SelectionOption[];
+    selectedValue: any;
+    onSelect: (val: any) => void;
+  }>({
+    visible: false,
+    title: "",
+    options: [],
+    selectedValue: null,
+    onSelect: () => {},
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -556,7 +606,13 @@ export default function FinalScreen() {
               title: "Grace Period",
               type: "select" as const,
               selectValue: `${settingsToggles.gracePeriodMins} mins`,
-              onPress: () => { /* TODO: Implement time picker sheet */ }
+              onPress: () => setPicker({
+                visible: true,
+                title: "Grace Period",
+                options: SETTINGS_OPTIONS.gracePeriod,
+                selectedValue: settingsToggles.gracePeriodMins,
+                onSelect: (v) => setSettingsToggles({ ...settingsToggles, gracePeriodMins: v }),
+              })
             }] : []),
             {
               id: "stayThroughout",
@@ -581,11 +637,44 @@ export default function FinalScreen() {
           className="mb-6"
           items={[
             {
-              id: "alarms",
-              title: "Smart Pre-Alarms",
-              value: settingsToggles.smartPreAlarms,
-              onValueChange: (v) => setSettingsToggles({ ...settingsToggles, smartPreAlarms: v }),
+              id: "alarmLeadTime",
+              title: "Start Alarming",
+              type: "select" as const,
+              selectValue: `${settingsToggles.alarmLeadTime} mins before`,
+              onPress: () => setPicker({
+                visible: true,
+                title: "Start Alarming",
+                options: SETTINGS_OPTIONS.alarmLeadTime,
+                selectedValue: settingsToggles.alarmLeadTime,
+                onSelect: (v) => setSettingsToggles({ ...settingsToggles, alarmLeadTime: v }),
+              })
             },
+            {
+              id: "alarmInterval",
+              title: "Alarm Frequency",
+              type: "select" as const,
+              selectValue: `Every ${settingsToggles.alarmInterval} mins`,
+              onPress: () => setPicker({
+                visible: true,
+                title: "Alarm Frequency",
+                options: SETTINGS_OPTIONS.alarmInterval,
+                selectedValue: settingsToggles.alarmInterval,
+                onSelect: (v) => setSettingsToggles({ ...settingsToggles, alarmInterval: v }),
+              })
+            },
+            {
+              id: "alarmSound",
+              title: "Alarm Music",
+              type: "select" as const,
+              selectValue: settingsToggles.alarmSound,
+              onPress: () => setPicker({
+                visible: true,
+                title: "Alarm Music",
+                options: SETTINGS_OPTIONS.alarmSound,
+                selectedValue: settingsToggles.alarmSound,
+                onSelect: (v) => setSettingsToggles({ ...settingsToggles, alarmSound: v }),
+              })
+            }
           ]}
         />
         
@@ -618,6 +707,16 @@ export default function FinalScreen() {
         singleButton={true}
         onConfirm={() => setErrorModal({ visible: false, message: "" })}
         onCancel={() => setErrorModal({ visible: false, message: "" })}
+      />
+
+      {/* Sheet: Selection Picker */}
+      <SelectionSheet
+        visible={picker.visible}
+        title={picker.title}
+        options={picker.options}
+        selectedValue={picker.selectedValue}
+        onSelect={picker.onSelect}
+        onClose={() => setPicker((s) => ({ ...s, visible: false }))}
       />
     </UView>
   );
