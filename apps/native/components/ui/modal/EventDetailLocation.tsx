@@ -153,7 +153,7 @@ export const LocationSection = ({
                                         radius: radius,
                                         color: isInverse ? "transparent" : "#4FA0FF40",
                                         lineColor: "#4FA0FF",
-                                        lineWidth: 12,
+                                        lineWidth: 2,
                                     },
                                 ]}
                             />

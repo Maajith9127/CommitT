@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, useWindowDimensions, View } from "react-native";
+import { ScrollView, useWindowDimensions, View, Text, Switch } from "react-native";
 import { withUniwind } from "uniwind";
 import { useMutation } from "convex/react";
 import { useSQLiteContext } from "expo-sqlite";
@@ -12,6 +12,7 @@ import { AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { MiniConditionCard } from "@/components/ui/commits/MiniConditionCard";
 import { CommitCard } from "@/components/ui/commits/DigitalCommitment";
+import { SettingsToggleCard } from "@/components/ui/commits/SettingsToggleCard";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
@@ -25,6 +26,7 @@ import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDra
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
+const UText = withUniwind(Text);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -161,6 +163,19 @@ export default function FinalScreen() {
   const [errorModal, setErrorModal] = useState<ModalState>({
     visible: false,
     message: "",
+  });
+
+  // Local Toggle States for Settings (To be connected to draft store later)
+  const [settingsToggles, setSettingsToggles] = useState<{
+    justShowUp: boolean;
+    stayThroughout: boolean;
+    gracePeriodMins: number;
+    smartPreAlarms: boolean;
+  }>({
+    justShowUp: true,
+    stayThroughout: false,
+    gracePeriodMins: 10,
+    smartPreAlarms: true,
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -489,6 +504,8 @@ export default function FinalScreen() {
         </UView>
         <CommitCard className="mb-5" onPress={() => router.push("/(create-commit)/choose")} />
 
+
+
         {/* Section: Penalties */}
         <UView className="mt-2 mb-3">
           <HeaderTitle>Penalties</HeaderTitle>
@@ -514,6 +531,64 @@ export default function FinalScreen() {
           onPress={() => router.push("/(create-commit)/penaltywaivers")}
           className="h-28 border-[#4CD964] border-[3px] pb-4"
         />
+
+        {/* Section: Commitment Type */}
+        <UView className="mt-3 mb-2">
+          <HeaderTitle>Commitment Type</HeaderTitle>
+        </UView>
+
+        <SettingsToggleCard
+          className="mb-4"
+          items={[
+            {
+              id: "showUp",
+              title: "Just Show Up",
+              type: "toggle",
+              value: settingsToggles.justShowUp,
+              onValueChange: (v) => setSettingsToggles({ 
+                ...settingsToggles, 
+                justShowUp: v, 
+                stayThroughout: v ? false : settingsToggles.stayThroughout 
+              }),
+            },
+            ...(settingsToggles.justShowUp ? [{
+              id: "grace",
+              title: "Grace Period",
+              type: "select" as const,
+              selectValue: `${settingsToggles.gracePeriodMins} mins`,
+              onPress: () => { /* TODO: Implement time picker sheet */ }
+            }] : []),
+            {
+              id: "stayThroughout",
+              title: "Stay Throughout",
+              type: "toggle",
+              value: settingsToggles.stayThroughout,
+              onValueChange: (v) => setSettingsToggles({ 
+                ...settingsToggles, 
+                stayThroughout: v,
+                justShowUp: v ? false : settingsToggles.justShowUp
+              }),
+            }
+          ]}
+        />
+
+        {/* Section: Alarms */}
+        <UView className="mt-2 mb-2">
+          <HeaderTitle>Alarms</HeaderTitle>
+        </UView>
+
+        <SettingsToggleCard
+          className="mb-6"
+          items={[
+            {
+              id: "alarms",
+              title: "Smart Pre-Alarms",
+              value: settingsToggles.smartPreAlarms,
+              onValueChange: (v) => setSettingsToggles({ ...settingsToggles, smartPreAlarms: v }),
+            },
+          ]}
+        />
+        
       </UScroll>
 
       {/* Fixed Footer: Submit Button */}
