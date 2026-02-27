@@ -1,37 +1,37 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  verify.ts — Server-Authoritative Per-Condition Verification Mutation       ║
+ * ║  verify.ts — Server-Authoritative Per-Condition Verification Mutation        ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                             ║
- * ║  PURPOSE:                                                                   ║
+ * ║                                                                              ║
+ * ║  PURPOSE:                                                                    ║
  * ║  This is the single backend endpoint that handles ALL condition              ║
  * ║  verification for task instances (time, location, photo, etc.).              ║
- * ║  The frontend sends: { instanceId, metricKey }.                             ║
- * ║  The backend does ALL the validation — the client is never trusted.         ║
- * ║                                                                             ║
- * ║  SECURITY FLOW (every request goes through ALL of these):                   ║
- * ║  ┌─────────────────────────────────────────────────────────────────┐        ║
- * ║  │ 1. AUTH       → Is the user logged in? (authedMutation)        │        ║
- * ║  │ 2. OWNERSHIP  → Does this instance belong to this user?        │        ║
- * ║  │ 3. SEQUENCE   → Is this their chronologically next task?       │        ║
- * ║  │ 4. VALIDATE   → Does the evidence/timing actually pass?        │        ║
- * ║  │ 5. PERSIST    → Write the result to the database               │        ║
- * ║  └─────────────────────────────────────────────────────────────────┘        ║
- * ║                                                                             ║
- * ║  TWO TYPES OF CONDITIONS:                                                   ║
- * ║  • "time"  → Implicit. Checked against `Date.now()` on the server during      ║
- * ║              every request. Not stored in the database.                     ║
- * ║  • Others  → Explicit. Stored in the conditions[] array (location, photo,  ║
- * ║              video, partner). Result is patched into that array entry.      ║
- * ║                                                                             ║
- * ║  IDEMPOTENCY:                                                               ║
- * ║  • "verified" → Final. Re-requests are skipped (no re-processing).         ║
- * ║  • "failed"   → Retryable. The user can tap again to re-attempt.           ║
- * ║                                                                             ║
- * ║  RETURN VALUE:                                                              ║
- * ║  { success: boolean, status: string, message: string }                      ║
- * ║  The frontend uses `status` to update the VerificationStatusCircle.         ║
- * ║                                                                             ║
+ * ║  The frontend sends: { instanceId, metricKey }.                              ║
+ * ║  The backend does ALL the validation — the client is never trusted.          ║
+ * ║                                                                              ║
+ * ║  SECURITY FLOW (every request goes through ALL of these):                    ║
+ * ║  ┌─────────────────────────────────────────────────────────────────┐         ║
+ * ║  │ 1. AUTH       → Is the user logged in? (authedMutation)         │         ║
+ * ║  │ 2. OWNERSHIP  → Does this instance belong to this user?         │         ║
+ * ║  │ 3. SEQUENCE   → Is this their chronologically next task?        │         ║
+ * ║  │ 4. VALIDATE   → Does the evidence/timing actually pass?         │         ║
+ * ║  │ 5. PERSIST    → Write the result to the database                │         ║
+ * ║  └─────────────────────────────────────────────────────────────────┘         ║
+ * ║                                                                              ║
+ * ║  TWO TYPES OF CONDITIONS:                                                    ║
+ * ║  • "time"  → Implicit. Checked against `Date.now()` on the server during     ║
+ * ║              every request. Not stored in the database.                      ║
+ * ║  • Others  → Explicit. Stored in the conditions[] array (location, photo,    ║
+ * ║              video, partner). Result is patched into that array entry.       ║
+ * ║                                                                              ║
+ * ║  IDEMPOTENCY:                                                                ║
+ * ║  • "verified" → Final. Re-requests are skipped (no re-processing).           ║
+ * ║  • "failed"   → Retryable. The user can tap again to re-attempt.             ║
+ * ║                                                                              ║
+ * ║  RETURN VALUE:                                                               ║
+ * ║  { success: boolean, status: string, message: string }                       ║
+ * ║  The frontend uses `status` to update the VerificationStatusCircle.          ║
+ * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -90,7 +90,7 @@ export default authedMutation({
       return { success: false, status: "failed", message: "This is not your next pending task. You can only verify the task you're supposed to do right now." };
     }
 
-    console.log(`[verify] ✅ Sequence check passed — this IS the next pending instance`);
+    console.log(`[verify]  Sequence check passed — this IS the next pending instance`);
 
     // ── STEP 3.5: Implicit Time Window Check ─────────────────────────────────
     // Every task instance must be completed within its designated time window.
@@ -108,7 +108,7 @@ export default authedMutation({
       return { success: false, status: "failed", message: "The active window for this task has expired." };
     }
     
-    console.log(`[verify] ✅ Implicit time check passed — within active window`);
+    console.log(`[verify]  Implicit time check passed — within active window`);
 
     // ═════════════════════════════════════════════════════════════════════════
     // BRANCH B: ALL OTHER CONDITIONS (location, picture, video, partner)
@@ -155,18 +155,35 @@ export default authedMutation({
       return c;
     });
 
+    // ── STEP 8: Check if ALL conditions are now strictly verified ───────────
+    const allVerified = updatedConditions.every(
+      (c: any) => c.status === "verified" || c.status === "applied" || c.status === "waived"
+    );
+
+    let nextInstanceStatus = instance.status;
+    let finalMessage = result.passed ? `Verification passed!` : ((result as any).reason ?? "Verification failed.");
+
+    if (result.passed && allVerified) {
+      nextInstanceStatus = "proceeded"; // Fully verified
+      finalMessage = "All conditions verified! Task marked as complete.";
+    } else if (result.passed && instance.status === "pending") {
+      nextInstanceStatus = "proceeding"; // Partially verified
+    }
+
     await ctx.db.patch(args.instanceId, {
       conditions: updatedConditions,
+      status: nextInstanceStatus as any,
     });
 
     console.log(`[verify]  Condition "${args.metricKey}" → "${newStatus}"`);
+    if (result.passed && allVerified) {
+      console.log(`[verify]  All conditions passed! Instance ${args.instanceId} marked as "proceeded".`);
+    }
 
     return {
       success: result.passed,
       status: newStatus,
-      message: result.passed
-        ? `Verification passed!`
-        : (result as any).reason ?? "Verification failed.",
+      message: finalMessage,
     };
   },
 });
