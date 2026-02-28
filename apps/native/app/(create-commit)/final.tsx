@@ -107,6 +107,11 @@ const SETTINGS_OPTIONS = {
     { label: "45 mins before", value: 45 },
     { label: "60 mins before", value: 60 },
   ],
+  checkinsPerHour: [
+    { label: "1 Random Check-in / hr", value: 1 },
+    { label: "2 Random Check-ins / hr", value: 2 },
+    { label: "4 Random Check-ins / hr", value: 4 },
+  ],
   alarmInterval: [
     { label: "Every 2 mins", value: 2 },
     { label: "Every 5 mins", value: 5 },
@@ -599,6 +604,33 @@ export default function FinalScreen() {
               onValueChange: (v) => {
                 if (v) setConfig({ verification_style: "stay_throughout" });
               },
+            },
+            {
+              id: "checkinsPerHour",
+              title: "Check-In",
+              type: "select" as const,
+              disabled: draft.config.verification_style !== "stay_throughout",
+              selectValue: draft.config.verification_style === "stay_throughout" 
+                // @ts-ignore
+                ? `${draft.config.stay_throughout_config?.checkins_per_hour ?? 2} / hr`
+                : "N/A",
+              onPress: () => {
+                if (draft.config.verification_style !== "stay_throughout") return;
+                setPicker({
+                  visible: true,
+                  title: "Check-ins per hour",
+                  options: SETTINGS_OPTIONS.checkinsPerHour,
+                  // @ts-ignore
+                  selectedValue: draft.config.stay_throughout_config?.checkins_per_hour ?? 2,
+                  onSelect: (v) => setConfig({ 
+                    // @ts-ignore
+                    stay_throughout_config: { 
+                      checkins_per_hour: v,
+                      max_missed_checkins: 1 // Default
+                    } 
+                  }),
+                });
+              }
             },
             {
               id: "grace",

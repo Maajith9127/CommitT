@@ -54,6 +54,16 @@ export default defineSchema({
           type: targetTypeEnum,
           value: v.any(),
         }),
+        checkpoints: v.optional(
+          v.array(
+            v.object({
+              scheduled_time: v.number(),
+              window_end_time: v.number(),
+              status: v.union(v.literal("pending"), v.literal("verified"), v.literal("failed")),
+              completed_at: v.optional(v.number()),
+            })
+          )
+        ),
       }),
     ),
     config: v.object({
@@ -107,6 +117,16 @@ export default defineSchema({
         }),
         status: v.optional(conditionStatusEnum),
         progress_percentage: v.optional(v.number()),
+        checkpoints: v.optional(
+          v.array(
+            v.object({
+              scheduled_time: v.number(),
+              window_end_time: v.number(),
+              status: v.union(v.literal("pending"), v.literal("verified"), v.literal("failed")),
+              completed_at: v.optional(v.number()),
+            })
+          )
+        ),
       }),
     ),
     config: v.object({

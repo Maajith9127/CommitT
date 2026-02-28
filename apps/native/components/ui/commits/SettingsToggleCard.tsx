@@ -15,6 +15,7 @@ export type SettingsItem = {
   onValueChange?: (val: boolean) => void;
   selectValue?: string;
   onPress?: () => void;
+  disabled?: boolean;
 };
 
 type Props = {
@@ -31,7 +32,8 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
             <UButton 
               onPress={item.onPress}
               activeOpacity={0.7}
-              className="flex-row items-center justify-between px-5 py-4 pt-5 pb-5"
+              disabled={item.disabled}
+              className={`flex-row items-center justify-between px-5 py-4 pt-5 pb-5 ${item.disabled ? 'opacity-50' : ''}`}
             >
               <HeaderTitle className="text-lg text-white">
                 {item.title}

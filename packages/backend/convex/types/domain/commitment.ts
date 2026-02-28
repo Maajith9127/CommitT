@@ -55,6 +55,13 @@ export type ConditionStatus =
  * are absent — they only exist on the `taskInstances` copy where we track
  * per-condition verification state at runtime.
  */
+export interface Checkpoint {
+  scheduled_time: number;
+  window_end_time: number;
+  status: "pending" | "verified" | "failed";
+  completed_at?: number;
+}
+
 export interface Condition {
   /** Unique ID for this condition within the array (nanoid, set at creation) */
   id?: string;
@@ -69,5 +76,6 @@ export interface Condition {
   status?: ConditionStatus;
   /** 0–100 progress when status is "percentage" (taskInstances only) */
   progress_percentage?: number;
+  /** BeReal style randomized verification times ("stay_throughout" style only) */
+  checkpoints?: Checkpoint[];
 }
-

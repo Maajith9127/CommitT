@@ -40,6 +40,16 @@ export const ConditionsSchema = v.array(v.object({
     type: targetTypeEnum,                  // "number", "location", etc.
     value: v.any(),                        // The target value
   }),
+  checkpoints: v.optional(
+    v.array(
+      v.object({
+        scheduled_time: v.number(),
+        window_end_time: v.number(),
+        status: v.union(v.literal("pending"), v.literal("verified"), v.literal("failed")),
+        completed_at: v.optional(v.number()),
+      })
+    )
+  ),
 }));
 
 /** Defines the verification and alarm settings (the "rules" for the backend) */
