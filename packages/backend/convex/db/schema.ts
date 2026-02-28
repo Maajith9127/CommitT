@@ -10,6 +10,7 @@ import {
   recurrenceTypeEnum,
   recurrenceEndsTypeEnum,
   verificationStyleEnum,
+  intensityEnum,
 } from "../config/enums";
 
 export default defineSchema({
@@ -54,16 +55,6 @@ export default defineSchema({
           type: targetTypeEnum,
           value: v.any(),
         }),
-        checkpoints: v.optional(
-          v.array(
-            v.object({
-              scheduled_time: v.number(),
-              window_end_time: v.number(),
-              status: v.union(v.literal("pending"), v.literal("verified"), v.literal("failed")),
-              completed_at: v.optional(v.number()),
-            })
-          )
-        ),
       }),
     ),
     config: v.object({
@@ -74,6 +65,10 @@ export default defineSchema({
         interval_minutes: v.number(),
         sound_key: v.string(),
       }),
+      stay_throughout_config: v.optional(v.object({
+        intensity: intensityEnum,
+        max_missed_checkins: v.number(),
+      })),
     }),
     created_at: v.number(),
     updated_at: v.number(),
@@ -117,17 +112,43 @@ export default defineSchema({
         }),
         status: v.optional(conditionStatusEnum),
         progress_percentage: v.optional(v.number()),
-        checkpoints: v.optional(
-          v.array(
-            v.object({
-              scheduled_time: v.number(),
-              window_end_time: v.number(),
-              status: v.union(v.literal("pending"), v.literal("verified"), v.literal("failed")),
-              completed_at: v.optional(v.number()),
-            })
-          )
-        ),
       }),
+    ),
+    // ═════════════════════════════════════════════════════════════════════════
+    // STAY THROUGHOUT — Root-Level Checkpoints Array
+    // ═════════════════════════════════════════════════════════════════════════
+    // Checkpoints are deliberately stored at the root of the instance, NOT 
+    // inside individual condition items. This prevents insane nested mutations
+    // and easily scales to N conditions natively tracked per time-slice ping.
+    checkpoints: v.optional(
+      v.array(
+        v.object({
+          // The strict absolute bounds of this specific 5-min ping window
+          start: v.optional(v.number()), // Convex Dashboard securely auto-formats native epoch timestamps to local browser times!
+          end: v.optional(v.number()), 
+          
+          // Guaranteed absolute string truth formatted in Asia/Kolkata specifically
+          // so developers parsing raw JSON arrays don't misread UTC anomalies.
+          start_readable: v.optional(v.string()), 
+          end_readable: v.optional(v.string()),
+
+          // ── Backwards Compatibility Support (Do not delete)
+          scheduled_time: v.optional(v.number()), 
+          window_end_time: v.optional(v.number()), 
+
+          // Dictionary map. key = metric_key (e.g. 'location', 'photo').
+          // Allows granular tracking: passed the location check, but photo rejected.
+          verification_status: v.optional(v.record(
+            v.string(),
+            v.union(v.literal("pending"), v.literal("verified"), v.literal("failed"))
+          )),
+          
+          completed_at: v.optional(v.number()),
+          
+          // High-level aggregate status of this specific ping
+          status: v.optional(v.union(v.literal("pending"), v.literal("verified"), v.literal("failed")))
+        })
+      )
     ),
     config: v.object({
       verification_style: verificationStyleEnum,
@@ -137,6 +158,10 @@ export default defineSchema({
         interval_minutes: v.number(),
         sound_key: v.string(),
       }),
+      stay_throughout_config: v.optional(v.object({
+        intensity: intensityEnum,
+        max_missed_checkins: v.number(),
+      })),
     }),
     // Time verification is implicit (every instance has start/end), validated server-side.
     scheduled_job_id: v.optional(v.id("_scheduled_functions")),

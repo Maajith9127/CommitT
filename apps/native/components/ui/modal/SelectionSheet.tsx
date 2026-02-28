@@ -12,6 +12,7 @@ const UButton = withUniwind(TouchableOpacity);
 export type SelectionOption = {
   label: string;
   value: any;
+  description?: string;
 };
 
 type Props = {
@@ -59,9 +60,16 @@ export function SelectionSheet({
                   index < options.length - 1 ? "border-b border-[#2C2C2E]" : ""
                 }`}
               >
-                <FooterText className={`text-lg ${selectedValue === option.value ? "text-[#4FA0FF] font-semibold" : "text-white"}`}>
-                  {option.label}
-                </FooterText>
+                <UView className="flex-1 mr-4">
+                  <FooterText className={`text-lg ${selectedValue === option.value ? "text-[#4FA0FF] font-semibold" : "text-white"}`}>
+                    {option.label}
+                  </FooterText>
+                  {option.description && (
+                    <FooterText className="text-sm text-[#8E8E93] mt-1">
+                      {option.description}
+                    </FooterText>
+                  )}
+                </UView>
                 
                 {selectedValue === option.value && (
                   <MaterialCommunityIcons name="check" size={24} color="#4FA0FF" />

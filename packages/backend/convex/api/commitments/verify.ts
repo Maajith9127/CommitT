@@ -4,33 +4,31 @@
  * ╠══════════════════════════════════════════════════════════════════════════════╣
  * ║                                                                              ║
  * ║  PURPOSE:                                                                    ║
- * ║  This is the single backend endpoint that handles ALL condition              ║
- * ║  verification for task instances (time, location, photo, etc.).              ║
- * ║  The frontend sends: { instanceId, metricKey }.                              ║
- * ║  The backend does ALL the validation — the client is never trusted.          ║
+ * ║  This is the core backend endpoint orchestrating all cryptographic, GPS,     ║
+ * ║  and media condition verifications (Time, Location, Photo, Video, etc.).     ║
+ * ║  The frontend sends `{ instanceId, metricKey, evidence }`.                   ║
+ * ║  The backend validates ALL parameters independently. The client is untrusted.║
  * ║                                                                              ║
- * ║  SECURITY FLOW (every request goes through ALL of these):                    ║
- * ║  ┌─────────────────────────────────────────────────────────────────┐         ║
- * ║  │ 1. AUTH       → Is the user logged in? (authedMutation)         │         ║
- * ║  │ 2. OWNERSHIP  → Does this instance belong to this user?         │         ║
- * ║  │ 3. SEQUENCE   → Is this their chronologically next task?        │         ║
- * ║  │ 4. VALIDATE   → Does the evidence/timing actually pass?         │         ║
- * ║  │ 5. PERSIST    → Write the result to the database                │         ║
- * ║  └─────────────────────────────────────────────────────────────────┘         ║
+ * ║  ARCHITECTURE (The Verification Pipeline):                                   ║
+ * ║  ┌──────────────────────────────────────────────────────────────────┐        ║
+ * ║  │ 1. AUTH        → Cryptographically verify user identity          │        ║
+ * ║  │ 2. OWNERSHIP   → Enforce Multi-Tenant Isolation (can't spoof)    │        ║
+ * ║  │ 3. SEQUENCE    → Strict Chronological execution gating           │        ║
+ * ║  │ 4. TIME LOCK   → Verify operation is strictly within time limits │        ║
+ * ║  │ 5. DISPATCH    → Branch to explicit condition validators         │        ║
+ * ║  └──────────────────────────────────────────────────────────────────┘        ║
  * ║                                                                              ║
- * ║  TWO TYPES OF CONDITIONS:                                                    ║
- * ║  • "time"  → Implicit. Checked against `Date.now()` on the server during     ║
- * ║              every request. Not stored in the database.                      ║
- * ║  • Others  → Explicit. Stored in the conditions[] array (location, photo,    ║
- * ║              video, partner). Result is patched into that array entry.       ║
+ * ║  THE TWO CORE MODES:                                                         ║
  * ║                                                                              ║
- * ║  IDEMPOTENCY:                                                                ║
- * ║  • "verified" → Final. Re-requests are skipped (no re-processing).           ║
- * ║  • "failed"   → Retryable. The user can tap again to re-attempt.             ║
+ * ║  1. "Just Show Up" (Default Mode)                                            ║
+ * ║     User must pass the condition validation exactly ONCE within the entire   ║
+ * ║     session window. State is mutated directly on the Master Condition list.  ║
  * ║                                                                              ║
- * ║  RETURN VALUE:                                                               ║
- * ║  { success: boolean, status: string, message: string }                       ║
- * ║  The frontend uses `status` to update the VerificationStatusCircle.          ║
+ * ║  2. "Stay Throughout" (Continuous Mode)                                      ║
+ * ║     A highly advanced strict accountability mode. Validates the user across  ║
+ * ║     random, unpredictable 5-minute checkpoint pings. Verification updates    ║
+ * ║     are dynamically sandboxed to the active Checkpoint Root Map dict.      ║
+ * ║     The master state relies entirely on an aggregated cron evaluation.       ║
  * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
@@ -129,61 +127,121 @@ export default authedMutation({
 
     const condition = instance.conditions[conditionIndex];
 
-    // ── STEP 5: Idempotency — "verified" is final, "failed" allows retry ───
-    const currentStatus = condition.status ?? "neutral";
-    if (currentStatus === "verified") {
-      console.log(`[verify] Condition "${args.metricKey}" already verified. Skipping.`);
-      return { success: true, status: "verified", message: "Already verified." };
-    }
-
-    // ── STEP 6: Run the appropriate validator ───────────────────────────────
-    // We look up the function based on metricKey (e.g., location -> validateLocation)
-    const context = { instanceStart: instance.start, instanceEnd: instance.end };
-    const result = validateEvidence(args.metricKey, args.evidence, condition, context);
-
-    console.log(`[verify] Validation result for "${args.metricKey}":`, result);
-
-    // ── STEP 7: Patch ONLY this condition's status in the array ─────────────
-    // We map over the entire conditions array, updating just the one at
-    // `conditionIndex`. All other conditions remain untouched.
-    const newStatus = result.passed ? "verified" : "failed";
-
-    const updatedConditions = instance.conditions.map((c: any, i: number) => {
-      if (i === conditionIndex) {
-        return { ...c, status: newStatus };
+    // ── STEP 5: Core Loop - Normal vs Stay Throughout ──────────────────────
+    if (instance.config.verification_style === "stay_throughout") {
+      // ═════════════════════════════════════════════════════════════════════════
+      // STAY THROUGHOUT BRANCH — Continuous Verification Architecture
+      // ═════════════════════════════════════════════════════════════════════════
+      // In this mode, we do NOT touch the master `conditions[x].status`.
+      // Instead, we only interact with the `instance.checkpoints` root map.
+      // This allows the user to fail one ping, but pass others, heavily reducing
+      // false positives compared to a binary Pass/Fail design.
+      if (!instance.checkpoints || instance.checkpoints.length === 0) {
+        return { success: true, status: "neutral", message: "No ping generated for this chunk yet." }; // Or failed? But UI wise innocent.
       }
-      return c;
-    });
 
-    // ── STEP 8: Check if ALL conditions are now strictly verified ───────────
-    const allVerified = updatedConditions.every(
-      (c: any) => c.status === "verified" || c.status === "applied" || c.status === "waived"
-    );
+      // 1. Locate the specifically active ping window currently glowing on UI.
+      // Backwards Compatibility: We seamlessly fall back to `.scheduled_time` and `.window_end_time`
+      // for legacy document support to strictly prevent runtime crashes on older tasks.
+      const activeCheckpointIndex = instance.checkpoints.findIndex((cp: any) => 
+        now >= (cp.start ?? cp.scheduled_time) && now <= (cp.end ?? cp.window_end_time)
+      );
 
-    let nextInstanceStatus = instance.status;
-    let finalMessage = result.passed ? `Verification passed!` : ((result as any).reason ?? "Verification failed.");
+      if (activeCheckpointIndex === -1) {
+         return { success: false, status: "failed", message: "There are no active random check-ins for you right now. Sit tight!" };
+      }
 
-    if (result.passed && allVerified) {
-      nextInstanceStatus = "proceeded"; // Fully verified
-      finalMessage = "All conditions verified! Task marked as complete.";
-    } else if (result.passed && instance.status === "pending") {
-      nextInstanceStatus = "proceeding"; // Partially verified
+      const activeCheckpoint = instance.checkpoints[activeCheckpointIndex];
+      const currentStatus = activeCheckpoint.verification_status?.[args.metricKey] ?? "pending";
+      
+      // Idempotency: "verified" is final. "failed" inside the window allows a retry!
+      if (currentStatus === "verified") {
+        console.log(`[verify] Stay Throughout condition "${args.metricKey}" already verified for this chunk.`);
+        return { success: true, status: "verified", message: "Ping already verified." };
+      }
+
+      // 2. Execute the normal GPS/Picture Physics check
+      const context = { instanceStart: instance.start, instanceEnd: instance.end };
+      const result = validateEvidence(args.metricKey, args.evidence, condition, context);
+      const newStatus = result.passed ? "verified" : "failed";
+
+      // 3. Patch ONLY the verification_status dictionary on the active checkpoint
+      const updatedCheckpoints = [...instance.checkpoints];
+      updatedCheckpoints[activeCheckpointIndex] = {
+        ...activeCheckpoint,
+        verification_status: {
+          ...(activeCheckpoint.verification_status || {}),
+          [args.metricKey]: newStatus,
+        },
+        // Optionally lock in exact time they successfully cleared this specific ping
+        completed_at: result.passed ? now : activeCheckpoint.completed_at
+      };
+
+      // 4. Save back to the DB cleanly. 
+      // Notice we do NOT manually touch the Master Condition status or the Instance status here!
+      // Stay Throughout math relies entirely on the aggregated 'Missed vs Max Missed' backend service.
+      await ctx.db.patch(args.instanceId, { checkpoints: updatedCheckpoints as any });
+
+      let finalMessage = result.passed ? `Checkpoint condition verified!` : ((result as any).reason ?? "Checkpoint failed.");
+      return { success: result.passed, status: newStatus, message: finalMessage };
+    } 
+    else {
+      // ═════════════════════════════════════════════════════════════════════════
+      // DEFAULT 'JUST SHOW UP / TIME BOUND' BRANCH
+      // ═════════════════════════════════════════════════════════════════════════
+      // ── STEP 5B: Idempotency — "verified" is final, "failed" allows retry ───
+      const currentStatus = condition.status ?? "neutral";
+      if (currentStatus === "verified") {
+        console.log(`[verify] Condition "${args.metricKey}" already verified. Skipping.`);
+        return { success: true, status: "verified", message: "Already verified." };
+      }
+
+      // ── STEP 6B: Run the appropriate validator ───────────────────────────────
+      const context = { instanceStart: instance.start, instanceEnd: instance.end };
+      const result = validateEvidence(args.metricKey, args.evidence, condition, context);
+
+      console.log(`[verify] Validation result for "${args.metricKey}":`, result);
+
+      // ── STEP 7B: Patch ONLY this condition's status in the array ─────────────
+      const newStatus = result.passed ? "verified" : "failed";
+
+      const updatedConditions = instance.conditions.map((c: any, i: number) => {
+        if (i === conditionIndex) {
+          return { ...c, status: newStatus };
+        }
+        return c;
+      });
+
+      // ── STEP 8B: Check if ALL conditions are now strictly verified ───────────
+      const allVerified = updatedConditions.every(
+        (c: any) => c.status === "verified" || c.status === "applied" || c.status === "waived"
+      );
+
+      let nextInstanceStatus = instance.status;
+      let finalMessage = result.passed ? `Verification passed!` : ((result as any).reason ?? "Verification failed.");
+
+      if (result.passed && allVerified) {
+        nextInstanceStatus = "proceeded"; // Fully verified
+        finalMessage = "All conditions verified! Task marked as complete.";
+      } else if (result.passed && instance.status === "pending") {
+        nextInstanceStatus = "proceeding"; // Partially verified
+      }
+
+      await ctx.db.patch(args.instanceId, {
+        conditions: updatedConditions,
+        status: nextInstanceStatus as any,
+      });
+
+      console.log(`[verify]  Condition "${args.metricKey}" → "${newStatus}"`);
+      if (result.passed && allVerified) {
+        console.log(`[verify]  All conditions passed! Instance ${args.instanceId} marked as "proceeded".`);
+      }
+
+      return {
+        success: result.passed,
+        status: newStatus,
+        message: finalMessage,
+      };
     }
-
-    await ctx.db.patch(args.instanceId, {
-      conditions: updatedConditions,
-      status: nextInstanceStatus as any,
-    });
-
-    console.log(`[verify]  Condition "${args.metricKey}" → "${newStatus}"`);
-    if (result.passed && allVerified) {
-      console.log(`[verify]  All conditions passed! Instance ${args.instanceId} marked as "proceeded".`);
-    }
-
-    return {
-      success: result.passed,
-      status: newStatus,
-      message: finalMessage,
-    };
   },
 });

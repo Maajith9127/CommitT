@@ -107,10 +107,16 @@ const SETTINGS_OPTIONS = {
     { label: "45 mins before", value: 45 },
     { label: "60 mins before", value: 60 },
   ],
-  checkinsPerHour: [
-    { label: "1 Random Check-in / hr", value: 1 },
-    { label: "2 Random Check-ins / hr", value: 2 },
-    { label: "4 Random Check-ins / hr", value: 4 },
+  intensity: [
+    { label: "Relaxed", value: "relaxed", description: "Fewer random check-ins during the interval" },
+    { label: "Moderate", value: "moderate", description: "Standard amount of random check-ins" },
+    { label: "Strict", value: "strict", description: "Frequent random check-ins during the interval" },
+  ],
+  maxMissedCheckins: [
+    { label: "Zero Tolerance", value: 0, description: "Ultra Strict: Miss 1 and fail" },
+    { label: "1 Missed Check-in", value: 1, description: "Strict: Room for one mistake" },
+    { label: "2 Missed Check-ins", value: 2, description: "Moderate: Room for a couple of mistakes" },
+    { label: "3 Missed Check-ins", value: 3, description: "Lenient: Fail only if you miss 3+" },
   ],
   alarmInterval: [
     { label: "Every 2 mins", value: 2 },
@@ -606,27 +612,56 @@ export default function FinalScreen() {
               },
             },
             {
-              id: "checkinsPerHour",
-              title: "Check-In",
+              id: "intensity",
+              title: "Check-In Intensity",
               type: "select" as const,
               disabled: draft.config.verification_style !== "stay_throughout",
               selectValue: draft.config.verification_style === "stay_throughout" 
                 // @ts-ignore
-                ? `${draft.config.stay_throughout_config?.checkins_per_hour ?? 2} / hr`
+                ? (draft.config.stay_throughout_config?.intensity ? draft.config.stay_throughout_config.intensity.charAt(0).toUpperCase() + draft.config.stay_throughout_config.intensity.slice(1) : "Moderate")
                 : "N/A",
               onPress: () => {
                 if (draft.config.verification_style !== "stay_throughout") return;
                 setPicker({
                   visible: true,
-                  title: "Check-ins per hour",
-                  options: SETTINGS_OPTIONS.checkinsPerHour,
+                  title: "Check-in Intensity",
+                  options: SETTINGS_OPTIONS.intensity,
                   // @ts-ignore
-                  selectedValue: draft.config.stay_throughout_config?.checkins_per_hour ?? 2,
+                  selectedValue: draft.config.stay_throughout_config?.intensity ?? "moderate",
                   onSelect: (v) => setConfig({ 
                     // @ts-ignore
                     stay_throughout_config: { 
-                      checkins_per_hour: v,
-                      max_missed_checkins: 1 // Default
+                      // @ts-ignore
+                      ...(draft.config.stay_throughout_config || { max_missed_checkins: 1 }),
+                      intensity: v
+                    } 
+                  }),
+                });
+              }
+            },
+            {
+              id: "maxMissedCheckins",
+              title: "Max Missed Check-ins",
+              type: "select" as const,
+              disabled: draft.config.verification_style !== "stay_throughout",
+              selectValue: draft.config.verification_style === "stay_throughout" 
+                // @ts-ignore
+                ? `${draft.config.stay_throughout_config?.max_missed_checkins ?? 1}`
+                : "N/A",
+              onPress: () => {
+                if (draft.config.verification_style !== "stay_throughout") return;
+                setPicker({
+                  visible: true,
+                  title: "Allowed Misses",
+                  options: SETTINGS_OPTIONS.maxMissedCheckins,
+                  // @ts-ignore
+                  selectedValue: draft.config.stay_throughout_config?.max_missed_checkins ?? 1,
+                  onSelect: (v) => setConfig({ 
+                    // @ts-ignore
+                    stay_throughout_config: {
+                      // @ts-ignore
+                      ...(draft.config.stay_throughout_config || { intensity: "moderate" }),
+                      max_missed_checkins: v
                     } 
                   }),
                 });

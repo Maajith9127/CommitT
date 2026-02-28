@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { recurrenceTypeEnum, recurrenceEndsTypeEnum, relationEnum, targetTypeEnum, verificationStyleEnum } from "../config/enums";
+import { recurrenceTypeEnum, recurrenceEndsTypeEnum, relationEnum, targetTypeEnum, verificationStyleEnum, intensityEnum } from "../config/enums";
 
 /**
  * Convex Schema Definitions (Structural Validation)
@@ -40,26 +40,19 @@ export const ConditionsSchema = v.array(v.object({
     type: targetTypeEnum,                  // "number", "location", etc.
     value: v.any(),                        // The target value
   }),
-  checkpoints: v.optional(
-    v.array(
-      v.object({
-        scheduled_time: v.number(),
-        window_end_time: v.number(),
-        status: v.union(v.literal("pending"), v.literal("verified"), v.literal("failed")),
-        completed_at: v.optional(v.number()),
-      })
-    )
-  ),
 }));
 
 /** Defines the verification and alarm settings (the "rules" for the backend) */
 export const ConfigSchema = v.object({
-  verification_style: verificationStyleEnum,
-  grace_period_minutes: v.optional(v.number()),
-  alarms: v.object({
-    lead_time_minutes: v.number(),
-    interval_minutes: v.number(),
-    sound_key: v.string(),
-  }),
-});
-
+    verification_style: verificationStyleEnum,
+    grace_period_minutes: v.optional(v.number()),
+    alarms: v.object({
+      lead_time_minutes: v.number(),
+      interval_minutes: v.number(),
+      sound_key: v.string(),
+    }),
+    stay_throughout_config: v.optional(v.object({
+      intensity: intensityEnum,
+      max_missed_checkins: v.number(),
+    })),
+  });

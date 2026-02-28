@@ -264,6 +264,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
               start={currentEvent.start}
               end={currentEvent.end}
               config={currentEvent.config}
+              checkpoints={(currentEvent as any).checkpoints}
             />
 
             {/* ── GPS Location (embedded Google Map) ── */}

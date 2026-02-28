@@ -21,6 +21,107 @@ async function createOne(
   ctx: MutationCtx,
   args: InstanceCreateArgs
 ): Promise<Id<"taskInstances">> {
+  // By default, every condition inside a brand new task instance starts out completely neutral.
+  // It is neither verified nor failed until the user explicitly takes action (or misses the window).
+  let processedConditions = args.conditions.map((c: any) => ({
+    ...c,
+    status: "neutral" as const,
+  }));
+  let rootCheckpoints: any[] | undefined = undefined;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FEATURE: Randomized "Stay Throughout" Checkpoint Generation (Fixed 5-Min Blocks)
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Core Domain Concept: If a task requires continuous verification ("stay_throughout"), 
+  // we strictly chunk its entire time block into discrete 5-minute segments.
+  //
+  // Depending on the user's explicit "intensity" setting, each 5-minute chunk runs
+  // a probability check. This fundamentally flips the logic from "Guilty" to 
+  // "Innocent Until Proven Guilty" - users are assumed compliant, but get randomly 
+  // spot-checked at unexpected times based on their configured strictness.
+  // 
+  // Example Probabilities per 5 Minutes:
+  // - Relaxed: ~20% chance of a random ping in a given chunk.
+  // - Moderate: ~50% chance of a random ping in a given chunk.
+  // - Strict: ~80% chance of a random ping in a given chunk.
+  //
+  // Edge Case Handling: A 5-minute task on "Relaxed" has an 80% chance of NEVER 
+  // getting a verification ping!
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (args.config.verification_style === "stay_throughout") {
+    // @ts-ignore - 'intensity' is guaranteed to exist when verification_style is 'stay_throughout'
+    const intensity = args.config.stay_throughout_config?.intensity ?? "moderate";
+    
+    // 1. Establish the exact weighted probability based on the Intensity matrix
+    let probabilityWeight = 0.50; // Moderate: 50% chance per 5 mins
+    if (intensity === "relaxed") probabilityWeight = 0.20;
+    if (intensity === "strict") probabilityWeight = 0.80;
+    
+    // 2. Define the global standard block boundary (5 minutes in milliseconds)
+    const CHUNK_SIZE_MS = 5 * 60 * 1000;
+    const durationMs = args.end - args.start;
+    
+    if (durationMs > 0) {
+      const checkpoints: { 
+        start: number; 
+        end: number; 
+        start_readable: string;
+        end_readable: string;
+        verification_status: Record<string, "pending" | "verified" | "failed">;
+      }[] = [];
+      
+      // 3. Slice the entire session block mathematically into chunks.
+      // We use Math.ceil to elegantly capture any fractional leftover time. 
+      // (e.g., A 12-minute session results in exactly [5min, 5min, 2min] blocks).
+      const totalChunks = Math.ceil(durationMs / CHUNK_SIZE_MS);
+      
+      for (let i = 0; i < totalChunks; i++) {
+        // Calculate the absolute epoch bounds for the current chunk iteration
+        const chunkStart = args.start + (i * CHUNK_SIZE_MS);
+        
+        // Strict-capping: The final boundary chunk might project past the task's valid end time.
+        // We cap it cleanly at `args.end` to guarantee pings NEVER bleed outside the session.
+        const chunkEnd = Math.min(args.end, chunkStart + CHUNK_SIZE_MS);
+        const actualChunkDuration = chunkEnd - chunkStart;
+        
+        // Safety Valve: If the terminating chunk fragment is less than 60 seconds, 
+        // silently skip it. You cannot reasonably verify a ping at the literal buzzer.
+        if (actualChunkDuration < 60 * 1000) continue;
+        
+        // 4. Execution Roll: Does this chunk get a spot-check verification ping?
+        if (Math.random() <= probabilityWeight) {
+          // Success! Schedule a completely unguessable timestamp inside this absolute boundary
+          const randomOffset = Math.random() * actualChunkDuration;
+          const scheduledTime = Math.floor(chunkStart + randomOffset);
+          
+          // Build the exact dict tracking every single active condition at this specific moment
+          const verificationStatus: Record<string, "pending"> = {};
+          for (const cond of args.conditions) {
+            verificationStatus[cond.metric_key] = "pending";
+          }
+          
+          const endTime = Math.floor(chunkEnd);
+          
+          checkpoints.push({
+            start: scheduledTime,
+            // The verification window is completely hard-bound to the exact end of the chunk.
+            end: endTime,
+            start_readable: new Date(scheduledTime).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+            end_readable: new Date(endTime).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+            verification_status: verificationStatus,
+          });
+        }
+      }
+      
+      // 5. Root Array Finalization
+      if (checkpoints.length > 0) {
+        checkpoints.sort((a, b) => a.start - b.start);
+        rootCheckpoints = checkpoints; // Securely assign to root payload variable
+      }
+    }
+  }
+
+  // Final Persist: Push the completed, hydrated Task Instance to the Convex Data Store
   const instanceId = await ctx.db.insert("taskInstances", {
     task_id: args.task_id,
     assignee_id: args.assignee_id,
@@ -30,7 +131,8 @@ async function createOne(
     title: args.title,
     description: args.description,
     recurrence: args.recurrence,
-    conditions: args.conditions,
+    conditions: processedConditions, // Initialized globally as neutral
+    checkpoints: rootCheckpoints,    // The newly structured root-level timeline mapping
     config: args.config,
     next_instance_id: args.next_instance_id,
   });

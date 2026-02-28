@@ -78,3 +78,9 @@ export const verificationStyleEnum = v.union(
   v.literal("stay_throughout"),
 );
 
+export const intensityEnum = v.union(
+  v.literal("relaxed"),
+  v.literal("moderate"),
+  v.literal("strict"),
+);
+

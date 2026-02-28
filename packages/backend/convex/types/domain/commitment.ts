@@ -49,17 +49,29 @@ export type ConditionStatus =
   | "percentage";
 
 /**
- * A single verification condition attached to a task or taskInstance.
+ * ═════════════════════════════════════════════════════════════════════════════
+ * STAY THROUGHOUT CHECKPOINT DEFINITION
+ * ═════════════════════════════════════════════════════════════════════════════
+ * A Checkpoint represents a single, randomly generated 5-minute ping window
+ * mapped inside the root `checkpoints` array of a taskInstance. 
  *
- * In the `tasks` table (blueprint), `id`, `status`, and `progress_percentage`
- * are absent — they only exist on the `taskInstances` copy where we track
- * per-condition verification state at runtime.
+ * It is completely detached from the overarching Task definition and exists 
+ * solely to track the user's granular compliance over continuous periods.
  */
 export interface Checkpoint {
-  scheduled_time: number;
-  window_end_time: number;
-  status: "pending" | "verified" | "failed";
+  /** Strict beginning epoch of this specific 5-min ping window */
+  start?: number;
+  /** Strict literal end epoch of the 5-min ping window */
+  end?: number;
+  start_readable?: string;
+  end_readable?: string;
+  // Backwards compat
+  scheduled_time?: number;
+  window_end_time?: number;
+  
+  verification_status?: Record<string, "pending" | "verified" | "failed">;
   completed_at?: number;
+  status?: "pending" | "verified" | "failed"; // For old instances
 }
 
 export interface Condition {
@@ -76,6 +88,4 @@ export interface Condition {
   status?: ConditionStatus;
   /** 0–100 progress when status is "percentage" (taskInstances only) */
   progress_percentage?: number;
-  /** BeReal style randomized verification times ("stay_throughout" style only) */
-  checkpoints?: Checkpoint[];
 }

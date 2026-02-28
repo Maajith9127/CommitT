@@ -37,6 +37,8 @@ export interface EventDetailTimeProps {
   end: number;
   /** Instance config containing constraints like grace_period_minutes */
   config?: any;
+  /** Active checkpoints for "stay_throughout" tasks */
+  checkpoints?: any[];
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -45,6 +47,7 @@ export function EventDetailTime({
   start,
   end,
   config,
+  checkpoints,
 }: EventDetailTimeProps) {
   console.log('[EventDetailTime] Rendering with config:', JSON.stringify(config, null, 2));
   const [now, setNow] = useState(Date.now());
@@ -92,32 +95,77 @@ export function EventDetailTime({
   let timerTextColor = '';
 
   const isJustShowUp = config?.verification_style === 'just_show_up';
+  const isStayThroughout = config?.verification_style === 'stay_throughout';
   const graceMinutes = config?.grace_period_minutes ?? 0;
   const graceEnd = start + (graceMinutes * 60 * 1000);
 
-  if (now < start) {
-    timerLabel = 'Starts-in';
-    timerValue = formatCountdown(start - now);
-    timerTextColor = 'text-white';
-  } else if (now > end) {
-    timerLabel = 'Status';
-    timerValue = 'Expired';
-    timerTextColor = 'text-red-500';
-  } else {
-    if (graceMinutes > 0) {
-      if (now <= graceEnd) {
-        timerLabel = 'Grace Ends-in';
-        timerValue = formatCountdown(graceEnd - now);
-        timerTextColor = 'text-yellow-400';
-      } else {
-        timerLabel = 'Status';
-        timerValue = 'Expired';
-        timerTextColor = 'text-red-500';
-      }
+  if (isStayThroughout) {
+    // ═════════════════════════════════════════════════════════════════════════
+    // STAY THROUGHOUT LOGIC — Missed Check-ins vs Maximum Allowed
+    // ═════════════════════════════════════════════════════════════════════════
+    // In continuous monitoring mode, we iterate over the root checkpoints array.
+    // We aggressively calculate the current failure tally on the client-side
+    // to instantly color code the UI (Green/Yellow/Red) based on risk.
+    const maxMissed = config?.stay_throughout_config?.max_missed_checkins ?? 0;
+    
+    let missedCount = 0;
+    if (checkpoints && Array.isArray(checkpoints)) {
+      missedCount = checkpoints.filter((cp: any) => {
+        // Backwards compatibility for parsing older task versions
+        const endTime = cp.end ?? cp.window_end_time;
+        const isExpired = now > endTime;
+        
+        const statusVals = Object.keys(cp.verification_status || {}).map((k: string) => cp.verification_status[k]);
+        
+        // A checkpoint is completely "missed" if:
+        // 1. A condition was explicitly failed (e.g. Photo rejected by AI)
+        // 2. The checkpoint window completely expired without ALL conditions passing.
+        const allVerified = statusVals.every((v: any) => v === "verified");
+        const anyExplicitlyFailed = statusVals.some((v: any) => v === "failed");
+        
+        return anyExplicitlyFailed || (isExpired && !allVerified);
+      }).length;
+    }
+
+    timerLabel = 'Missed Check-ins';
+    timerValue = `${missedCount} / ${maxMissed} Max`;
+
+    // Visual Red-Scaling Risk Indicator
+    if (missedCount >= maxMissed) {
+      timerTextColor = 'text-red-500'; // Task is structurally failed or on the very edge
+    } else if (missedCount > 0 && missedCount >= maxMissed - 1) {
+      timerTextColor = 'text-yellow-400'; // Risk territory (1 missed checkin left)
     } else {
-      timerLabel = 'Expires-in';
-      timerValue = formatCountdown(end - now);
-      timerTextColor = 'text-green-500';
+      timerTextColor = 'text-green-500'; // Safe territory
+    }
+  } else {
+    // ═════════════════════════════════════════════════════════════════════════
+    // JUST SHOW UP LOGIC — Traditional Strict-Time Countdown Limits
+    // ═════════════════════════════════════════════════════════════════════════
+    if (now < start) {
+      timerLabel = 'Starts-in';
+      timerValue = formatCountdown(start - now);
+      timerTextColor = 'text-white';
+    } else if (now > end) {
+      timerLabel = 'Status';
+      timerValue = 'Expired';
+      timerTextColor = 'text-red-500';
+    } else {
+      if (graceMinutes > 0) {
+        if (now <= graceEnd) {
+          timerLabel = 'Grace Ends-in';
+          timerValue = formatCountdown(graceEnd - now);
+          timerTextColor = 'text-yellow-400';
+        } else {
+          timerLabel = 'Status';
+          timerValue = 'Expired';
+          timerTextColor = 'text-red-500';
+        }
+      } else {
+        timerLabel = 'Expires-in';
+        timerValue = formatCountdown(end - now);
+        timerTextColor = 'text-green-500';
+      }
     }
   }
 
