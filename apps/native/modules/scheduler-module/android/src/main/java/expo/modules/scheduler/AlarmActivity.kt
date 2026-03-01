@@ -44,6 +44,8 @@ class AlarmActivity : Activity() {
         private const val EXTRA_IS_PRE_ALARM = "is_pre_alarm"
         private const val EXTRA_MAIN_TIME_MS = "main_time_ms"
         private const val EXTRA_SOUND_KEY = "sound_key"
+        private const val EXTRA_ALARM_TYPE = "alarm_type"
+        private const val EXTRA_IS_STAY_THROUGHOUT = "is_stay_throughout"
     }
 
     /**
@@ -65,15 +67,17 @@ class AlarmActivity : Activity() {
         val isPreAlarm = intent.getBooleanExtra(EXTRA_IS_PRE_ALARM, false)
         val mainTimeMs = intent.getLongExtra(EXTRA_MAIN_TIME_MS, 0L)
         val soundKey = intent.getStringExtra(EXTRA_SOUND_KEY) ?: "Default"
+        val alarmType = intent.getStringExtra(EXTRA_ALARM_TYPE) ?: if (isPreAlarm) "PRE_ALARM" else "MAIN_ALARM"
+        val isStayThroughout = intent.getBooleanExtra(EXTRA_IS_STAY_THROUGHOUT, false)
 
-        val taskTypeText = if (isPreAlarm) "PRE-ALARM TICK" else "MAIN ALARM EXECUTION"
+        val taskTypeText = alarmType.replace("_", " ")
         Log.d(TAG, "[WAKE LOGIC] Component mapped globally -> Scope: [$taskTypeText], Title: [$taskTitle], TaskID: [$taskInstanceId], Sound: [$soundKey]")
 
         // Phase 3: Unleash sounds and vibrations so the phone physically demands attention
         initiateHardwareAlerts(soundKey)
         
         // Phase 4: Construct and bind the view structures
-        constructVisualHierarchy(taskTitle, taskInstanceId, isPreAlarm, mainTimeMs)
+        constructVisualHierarchy(taskTitle, taskInstanceId, isPreAlarm, mainTimeMs, alarmType, isStayThroughout)
         
         Log.i(TAG, "==== [WAKE DISPLAY RENDER COMPLETE] ====")
     }
@@ -114,7 +118,9 @@ class AlarmActivity : Activity() {
         taskTitle: String, 
         instanceId: String, 
         isPreAlarm: Boolean, 
-        mainTimeMs: Long
+        mainTimeMs: Long,
+        alarmType: String,
+        isStayThroughout: Boolean
     ) {
         // Base layout spanning full dimensions of phone screen 
         val rootLayout = LinearLayout(this).apply {
@@ -126,15 +132,24 @@ class AlarmActivity : Activity() {
 
         // Title text formatting dynamically changing output text mapping.
         val headerText = TextView(this).apply {
-            if (isPreAlarm) {
-                // Determine a countdown offset explicitly rounded cleanly mathematically 
-                val minutesRemaining = max(1, (mainTimeMs - System.currentTimeMillis()) / 60000)
-                val timeLabel = if (minutesRemaining == 1L) "in 1 minute" else "in $minutesRemaining minutes"
-                text = "$taskTitle\n$timeLabel"
-                Log.d(TAG, "[UI CONSTRUCTION] Rendering dynamic countdown pre-alarm typography UI. Minutes Delta: $minutesRemaining")
-            } else {
-                text = "Time for:\n$taskTitle"
-                Log.d(TAG, "[UI CONSTRUCTION] Rendering definitive main-alarm terminology typography UI.")
+            when (alarmType) {
+                "PRE_ALARM" -> {
+                    // Determine a countdown offset explicitly rounded cleanly mathematically 
+                    val minutesRemaining = max(1, (mainTimeMs - System.currentTimeMillis()) / 60000)
+                    val timeLabel = if (minutesRemaining == 1L) "in 1 minute" else "in $minutesRemaining minutes"
+                    text = "$taskTitle\n$timeLabel"
+                    Log.d(TAG, "[UI CONSTRUCTION] Rendering dynamic countdown pre-alarm typography UI. Minutes Delta: $minutesRemaining")
+                }
+                "CHECKPOINT_ALARM" -> {
+                    // Specific phrasing request by the user for stay_throughout check-ins!
+                    text = "Check in for\n$taskTitle"
+                    Log.d(TAG, "[UI CONSTRUCTION] Rendering Check-In terminology typography UI.")
+                }
+                else -> {
+                    // MAIN_ALARM or default fallback
+                    text = "Time for:\n$taskTitle"
+                    Log.d(TAG, "[UI CONSTRUCTION] Rendering definitive main-alarm terminology typography UI.")
+                }
             }
 
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f)
@@ -160,11 +175,19 @@ class AlarmActivity : Activity() {
                 terminateHardwareAlerts()
 
                 // Logic bifurcation separating actual data manipulation consequences 
-                if (!isPreAlarm && instanceId.isNotEmpty()) {
+                if (alarmType == "MAIN_ALARM" && instanceId.isNotEmpty()) {
                     Log.d(TAG, "[MUTATION DISPATCH] Informing parent framework that Task Main Scope evaluated strictly as finished.")
                     // Only Main Alarms execute database closures cleanly
-                    AlarmScheduler.markInstanceProceeded(applicationContext, instanceId)
-                } else if (isPreAlarm) {
+                    // WAIT: for stay_throughout, MAIN_ALARM is just the start.
+                    if (!isStayThroughout) {
+                         AlarmScheduler.markInstanceProceeded(applicationContext, instanceId)
+                    } else {
+                         Log.d(TAG, "[MUTATION DISPATCH] Main Alarm for 'stay_throughout' dismissed. Keeping state active for checkpoints!")
+                    }
+                } else if (alarmType == "CHECKPOINT_ALARM") {
+                    Log.d(TAG, "[MUTATION DISPATCH] Checkpoint alarm dismissed. Allowing structural sequence to continue.")
+                    // User check-in logic is handled dynamically by the frontend verify screen instead
+                } else if (alarmType == "PRE_ALARM") {
                     Log.d(TAG, "[MUTATION DISPATCH] Pre-alarm dismissed intentionally. Original Task state remains perfectly suspended.")
                     // Doing nothing here natively leaves the DB untouched, ensuring the subsequent alarms continue tracking
                 }

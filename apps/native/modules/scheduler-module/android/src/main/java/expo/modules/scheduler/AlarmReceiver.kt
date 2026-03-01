@@ -24,6 +24,8 @@ class AlarmReceiver : BroadcastReceiver() {
         private const val EXTRA_IS_PRE_ALARM = "is_pre_alarm"
         private const val EXTRA_MAIN_TIME_MS = "main_time_ms"
         private const val EXTRA_SOUND_KEY = "sound_key"
+        private const val EXTRA_ALARM_TYPE = "alarm_type"
+        private const val EXTRA_IS_STAY_THROUGHOUT = "is_stay_throughout"
     }
 
     /**
@@ -41,9 +43,11 @@ class AlarmReceiver : BroadcastReceiver() {
         val isPreAlarm = intent.getBooleanExtra(EXTRA_IS_PRE_ALARM, false)
         val mainTimeMs = intent.getLongExtra(EXTRA_MAIN_TIME_MS, 0L)
         val soundKey = intent.getStringExtra(EXTRA_SOUND_KEY) ?: "Default"
+        val alarmType = intent.getStringExtra(EXTRA_ALARM_TYPE) ?: if (isPreAlarm) "PRE_ALARM" else "MAIN_ALARM"
+        val isStayThroughout = intent.getBooleanExtra(EXTRA_IS_STAY_THROUGHOUT, false)
 
-        val typeText = if (isPreAlarm) "PRE-ALARM" else "MAIN ALARM"
-        Log.d(TAG, "[HARDWARE TRIGGER] Parsing Input -> Target Task: [$title], Mode: [$typeText], Identifier: [$instanceId], Sound: [$soundKey]")
+        val typeText = alarmType.replace("_", " ")
+        Log.d(TAG, "[HARDWARE TRIGGER] Parsing Input -> Target Task: [$title], Mode: [$typeText], Identifier: [$instanceId], Sound: [$soundKey], Continuous: [$isStayThroughout]")
         
         // Check for Android "Doze" drift - if the OS was highly constrained on battery, 
         // it may have delayed this execution slightly.
@@ -64,6 +68,8 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(EXTRA_IS_PRE_ALARM, isPreAlarm)
             putExtra(EXTRA_MAIN_TIME_MS, mainTimeMs)
             putExtra(EXTRA_SOUND_KEY, soundKey)
+            putExtra(EXTRA_ALARM_TYPE, alarmType)
+            putExtra(EXTRA_IS_STAY_THROUGHOUT, isStayThroughout)
         }
 
         try {
