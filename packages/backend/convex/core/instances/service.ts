@@ -88,11 +88,10 @@ async function createOne(
         // silently skip it. You cannot reasonably verify a ping at the literal buzzer.
         if (actualChunkDuration < 60 * 1000) continue;
         
-        // 4. Execution Roll: Does this chunk get a spot-check verification ping?
+        // 4. Execution Roll: Does this 5-minute chunk get selected for verification?
         if (Math.random() <= probabilityWeight) {
-          // Success! Schedule a completely unguessable timestamp inside this absolute boundary
-          const randomOffset = Math.random() * actualChunkDuration;
-          const scheduledTime = Math.floor(chunkStart + randomOffset);
+          // The user's goal is simply to verify anytime within this specific 5-minute block.
+          // No confusing sub-random offsets. The checkpoint boundaries ARE the chunk boundaries.
           
           // Build the exact dict tracking every single active condition at this specific moment
           const verificationStatus: Record<string, "pending"> = {};
@@ -100,14 +99,11 @@ async function createOne(
             verificationStatus[cond.metric_key] = "pending";
           }
           
-          const endTime = Math.floor(chunkEnd);
-          
           checkpoints.push({
-            start: scheduledTime,
-            // The verification window is completely hard-bound to the exact end of the chunk.
-            end: endTime,
-            start_readable: new Date(scheduledTime).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
-            end_readable: new Date(endTime).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+            start: Math.floor(chunkStart),
+            end: Math.floor(chunkEnd),
+            start_readable: new Date(chunkStart).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+            end_readable: new Date(chunkEnd).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
             verification_status: verificationStatus,
           });
         }
@@ -217,7 +213,7 @@ async function cleanupFuture(ctx: MutationCtx, taskId: Id<"tasks">) {
   // Get ALL instances for this task
   const allInstances = await ctx.db
     .query("taskInstances")
-    .withIndex("by_task", (q) => q.eq("task_id", taskId))
+    .withIndex("by_task", (q: any) => q.eq("task_id", taskId))
     .collect();
 
   for (const instance of allInstances) {
