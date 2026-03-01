@@ -608,7 +608,16 @@ export default function FinalScreen() {
               type: "toggle",
               value: draft.config.verification_style === "stay_throughout",
               onValueChange: (v) => {
-                if (v) setConfig({ verification_style: "stay_throughout" });
+                if (v) {
+                  setConfig({ 
+                    verification_style: "stay_throughout",
+                    // @ts-ignore
+                    stay_throughout_config: draft.config.stay_throughout_config || {
+                      intensity: "relaxed",
+                      max_missed_checkins: 1,
+                    }
+                  });
+                }
               },
             },
             {
@@ -618,7 +627,7 @@ export default function FinalScreen() {
               disabled: draft.config.verification_style !== "stay_throughout",
               selectValue: draft.config.verification_style === "stay_throughout" 
                 // @ts-ignore
-                ? (draft.config.stay_throughout_config?.intensity ? draft.config.stay_throughout_config.intensity.charAt(0).toUpperCase() + draft.config.stay_throughout_config.intensity.slice(1) : "Moderate")
+                ? (draft.config.stay_throughout_config?.intensity ? draft.config.stay_throughout_config.intensity.charAt(0).toUpperCase() + draft.config.stay_throughout_config.intensity.slice(1) : "Relaxed")
                 : "N/A",
               onPress: () => {
                 if (draft.config.verification_style !== "stay_throughout") return;
@@ -627,7 +636,7 @@ export default function FinalScreen() {
                   title: "Check-in Intensity",
                   options: SETTINGS_OPTIONS.intensity,
                   // @ts-ignore
-                  selectedValue: draft.config.stay_throughout_config?.intensity ?? "moderate",
+                  selectedValue: draft.config.stay_throughout_config?.intensity ?? "relaxed",
                   onSelect: (v) => setConfig({ 
                     // @ts-ignore
                     stay_throughout_config: { 
@@ -660,7 +669,7 @@ export default function FinalScreen() {
                     // @ts-ignore
                     stay_throughout_config: {
                       // @ts-ignore
-                      ...(draft.config.stay_throughout_config || { intensity: "moderate" }),
+                      ...(draft.config.stay_throughout_config || { intensity: "relaxed" }),
                       max_missed_checkins: v
                     } 
                   }),

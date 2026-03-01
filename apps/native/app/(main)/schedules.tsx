@@ -39,7 +39,7 @@ const UText = withUniwind(Text);
  * 
  * 3. Modal Architecture (CRITICAL):
  *    When a calendar event is clicked, we DO NOT mount a local modal layer here. 
- *    Doing so would force the massive `@howljs/calendar-kit` to execute a heavy React 
+ *    Doing so would force the massive `+@howljs/calendar-kit` to execute a heavy React 
  *    re-render cycle, stuttering the app. Instead, we use Zustand (`setSelectedEvent`) 
  *    to pop the Singleton `<EventDetailModal>` located at the root `_layout.tsx`, 
  *    achieving sub-millisecond tap-to-render times.
