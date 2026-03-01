@@ -12,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 5;
+const DATABASE_VERSION = 7;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -132,6 +132,8 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
         end_time INTEGER NOT NULL,
         status TEXT DEFAULT 'pending', 
         title TEXT DEFAULT '',
+        config_json TEXT NOT NULL DEFAULT '{}',
+        checkpoints TEXT NOT NULL DEFAULT '[]',
         created_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_task_instances_time ON task_instances(start_time, end_time);
@@ -155,6 +157,32 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       ALTER TABLE local_tasks ADD COLUMN config_json TEXT NOT NULL DEFAULT '{}';
     `);
     currentVersion = 5;
+  }
+
+  // ── Migration 5 → 6 (add config_json and checkpoints to task_instances)
+  if (currentVersion === 5) {
+    try {
+      await db.execAsync(`ALTER TABLE task_instances ADD COLUMN config_json TEXT NOT NULL DEFAULT '{}';`);
+    } catch (e) {
+      console.log('Column config_json might already exist', e);
+    }
+    try {
+      await db.execAsync(`ALTER TABLE task_instances ADD COLUMN checkpoints TEXT NOT NULL DEFAULT '[]';`);
+    } catch (e) {
+      console.log('Column checkpoints might already exist', e);
+    }
+    currentVersion = 6;
+  }
+
+  // ── Migration 6 → 7 (failsafe for checkpoints column if migration 6 was aborted midway)
+  if (currentVersion === 6) {
+    try {
+      await db.execAsync(`ALTER TABLE task_instances ADD COLUMN config_json TEXT NOT NULL DEFAULT '{}';`);
+    } catch (e) {}
+    try {
+      await db.execAsync(`ALTER TABLE task_instances ADD COLUMN checkpoints TEXT NOT NULL DEFAULT '[]';`);
+    } catch (e) {}
+    currentVersion = 7;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
