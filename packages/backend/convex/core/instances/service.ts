@@ -94,9 +94,12 @@ async function createOne(
           // No confusing sub-random offsets. The checkpoint boundaries ARE the chunk boundaries.
           
           // Build the exact dict tracking every single active condition at this specific moment
-          const verificationStatus: Record<string, "pending"> = {};
+          const verificationStatus: Record<string, "pending" | "verified" | "failed"> = {};
+          // Protection Logic: If the user creates the Task AFTER this specific checkpoint's start time,
+          // they mathematically cannot complete it. We auto-verify it to prevent unfair penalization!
+          const isPast = chunkStart < Date.now();
           for (const cond of args.conditions) {
-            verificationStatus[cond.metric_key] = "pending";
+            verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
           }
           
           checkpoints.push({
