@@ -3,9 +3,6 @@ import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, useWindowDimensions, View, Text, Switch } from "react-native";
 import { withUniwind } from "uniwind";
-import { useMutation } from "convex/react";
-import { useSQLiteContext } from "expo-sqlite";
-import { api } from "@commit/backend/convex/_generated/api";
 import type { Id } from "@commit/backend/convex/_generated/dataModel";
 
 import { AddButton, Input, PrimaryButton } from "@/components/ui";
@@ -18,7 +15,7 @@ import { SelectionSheet, type SelectionOption } from "@/components/ui/modal/Sele
 import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
-import { scheduleNextAlarm } from "@/modules/scheduler-module";
+import { useCommitTask } from "@/hooks/useCommitTask";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -175,15 +172,9 @@ export default function FinalScreen() {
   const setConfig = useTaskDraftStore((state) => state.setConfig);
 
 
-  // Local DB
-  const db = useSQLiteContext();
-
+  // Mutations and DB handled by custom hook 
+  const executeCommit = useCommitTask();
   // ─────────────────────────────────────────────────────────────────────────
-  // Mutations
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const createTask = useMutation(api.api.commitments.create.default);
-  const updateTask = useMutation(api.api.commitments.update.default);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Computed Values
@@ -293,217 +284,176 @@ export default function FinalScreen() {
   }, [draft]);
 
   /**
-   * Handle the mutation result and navigate or show error accordingly.
-   */
-  const handleMutationResult = useCallback(
-    (result: MutationResult) => {
-      if (result.success) {
-        router.push("/(main)/commits");
-      } else {
-        const errorMessage = result.error?.message ?? "Failed to save commitment. Please try again.";
-        setErrorModal({ visible: true, message: errorMessage });
-      }
-    },
-    [router]
-  );
-
-  /**
-   * Submit the task to the backend (create or update).
+   * Submit the task to the backend via the centralized Triple-Write Architecture
    */
   const submitTask = useCallback(async () => {
     setConfirmModalVisible(false);
 
-    // Strip local 'id' field from conditions (not part of backend schema)
-    const cleanedConditions = draft.conditions.map((condition: StoreCondition) => {
-      const { id, ...conditionData } = condition;
-      return conditionData;
-    });
-
-    const now = Date.now();
-
     try {
-      let result: MutationResult;
+      // Execute our entirely abstracted Custom Hook orchestrating the DB, Convex, and Android!
+      const { success, error } = await executeCommit(draft, isEditMode);
 
-      if (isEditMode) {
-        // ── UPDATE: Convex first, then local DB ──────────────────────────
-        result = await updateTask({
-          id: draft.id as Id<"tasks">,
-          title: draft.title,
-          description: draft.description,
-          visibility: draft.visibility,
-          recurrence: draft.recurrence,
-          conditions: cleanedConditions,
-          config: draft.config,
-        });
-
-        if (result.success) {
-          try {
-            await db.runAsync(
-              `UPDATE local_tasks SET
-                title = ?, description = ?, visibility = ?,
-                recurrence_json = ?, conditions_json = ?, config_json = ?,
-                updated_at = ?, synced_at = ?
-              WHERE convex_id = ?`,
-              [
-                draft.title,
-                draft.description,
-                draft.visibility,
-                JSON.stringify(draft.recurrence),
-                JSON.stringify(cleanedConditions),
-                JSON.stringify(draft.config),
-                now,
-                now,
-                draft.id as string,
-              ]
-            );
-            console.log('[submitTask] Local DB updated for task:', draft.id);
-
-            // Re-generate and insert task instances based on new recurrence rules
-            const taskRow = await db.getFirstAsync<{ id: string }>(
-              "SELECT id FROM local_tasks WHERE convex_id = ?",
-              [draft.id as string]
-            );
-
-            if (taskRow) {
-              const localTaskId = taskRow.id;
-              // Clear previous instances
-              await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [localTaskId]);
-
-              const backendInstances = result.instances || [];
-              if (backendInstances.length > 0) {
-                const statement = await db.prepareAsync(
-                  `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, config_json, checkpoints, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-                );
-                try {
-                  for (const instance of backendInstances) {
-                    const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-                    await statement.executeAsync([
-                      instanceId,
-                      localTaskId,
-                      instance._id,
-                      instance.start,
-                      instance.start,
-                      instance.end,
-                      instance.title,
-                      JSON.stringify(instance.config || {}),
-                      JSON.stringify((instance as any).checkpoints || []),
-                      now
-                    ]);
-                  }
-                  console.log(`[submitTask] Inserted ${backendInstances.length} future instances from Convex for update.`);
-                } finally {
-                  await statement.finalizeAsync();
-                }
-              }
-            }
-
-            // Schedule globally next alarm via native module
-            try {
-              const scheduleResult = scheduleNextAlarm();
-              console.log('[submitTask] Schedule result:', JSON.stringify(scheduleResult));
-            } catch (schedError) {
-              console.error('[submitTask] Scheduling failed (non-critical):', schedError);
-            }
-          } catch (localError) {
-            console.error('[submitTask] Local DB update failed (non-critical):', localError);
-            // Update succeeded on Convex — local DB will re-sync on next app open
-          }
-        }
+      if (success) {
+        console.log('[final.tsx] Total Transaction Success. Navigating to timeline view.');
+        router.push("/(main)/commits");
       } else {
-        // ── CREATE: Convex first, then local DB ──────────────────────────
-        result = await createTask({
-          assignee_id: draft.assignee_id,
-          title: draft.title,
-          description: draft.description,
-          visibility: draft.visibility,
-          recurrence: draft.recurrence,
-          conditions: cleanedConditions,
-          config: draft.config,
+        setErrorModal({ 
+           visible: true, 
+           message: error || "Core logic failed unexpectedly." 
         });
-
-        if (result.success && result.taskId) {
-          const localId = `local_${now}_${Math.random().toString(36).slice(2, 9)}`;
-          try {
-            await db.runAsync(
-              `INSERT INTO local_tasks
-                (id, convex_id, assigner_id, assignee_id, title, description,
-                 visibility, recurrence_json, conditions_json, config_json, created_at, updated_at, synced_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                localId,
-                result.taskId,
-                draft.assigner_id,
-                draft.assignee_id,
-                draft.title,
-                draft.description,
-                draft.visibility,
-                JSON.stringify(draft.recurrence),
-                JSON.stringify(cleanedConditions),
-                JSON.stringify(draft.config),
-                now,
-                now,
-                now,
-              ]
-            );
-            console.log('[submitTask] Local DB insert OK. convex_id:', result.taskId);
-
-            // Generate and insert task instances
-            const backendInstances = result.instances || [];
-            if (backendInstances.length > 0) {
-              const statement = await db.prepareAsync(
-                `INSERT INTO task_instances (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, config_json, checkpoints, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-              );
-              try {
-                for (const instance of backendInstances) {
-                  const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-                  await statement.executeAsync([
-                    instanceId,
-                    localId,
-                    instance._id,
-                    instance.start,
-                    instance.start,
-                    instance.end,
-                    instance.title,
-                    JSON.stringify(instance.config || {}),
-                    JSON.stringify((instance as any).checkpoints || []),
-                    now,
-                  ]);
-                }
-                console.log(`[submitTask] Inserted ${backendInstances.length} future instances from Convex for creation.`);
-              } finally {
-                await statement.finalizeAsync();
-              }
-            }
-
-            // Schedule globally next alarm via native module
-            try {
-              const scheduleResult = scheduleNextAlarm();
-              console.log('[submitTask] Schedule result:', JSON.stringify(scheduleResult));
-            } catch (schedError) {
-              console.error('[submitTask] Scheduling failed (non-critical):', schedError);
-            }
-          } catch (localError) {
-            console.error('[submitTask] Local DB insert failed (non-critical):', localError);
-            // Create succeeded on Convex — local DB will re-sync on next app open
-          }
-        }
       }
-
-      handleMutationResult(result);
-    } catch (error) {
-      console.error("[submitTask] Error:", error);
-      const message = error instanceof Error 
-        ? error.message 
-        : "Something went wrong. Please check your connection and try again.";
-      
+    } catch (generalError) {
+      console.error("[final.tsx] Immediate runtime rejection:", generalError);
       setErrorModal({
         visible: true,
-        message: message.includes("Unauthenticated") 
-          ? "Please log in to continue." 
-          : "Network error. Please check your connection.",
+        message: "Network configuration totally failed. Attempt recovery."
       });
     }
-  }, [draft, isEditMode, createTask, updateTask, handleMutationResult, db]);
+  }, [draft, isEditMode, router]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Component View Configurations (Extracted for JSX Pristineness)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Represents the dynamic form schema for the "Commitment Type" section.
+   * Handles toggle states and picker modal requests for Stay Throughout mode.
+   */
+  const commitmentSettingsItems = useMemo(() => [
+    {
+      id: "showUp",
+      title: "Just Show Up",
+      type: "toggle" as const,
+      value: draft.config.verification_style === "just_show_up",
+      onValueChange: (v: boolean) => {
+        if (v) setConfig({ verification_style: "just_show_up" });
+      },
+    },
+    {
+      id: "stayThroughout",
+      title: "Stay Throughout",
+      type: "toggle" as const,
+      value: draft.config.verification_style === "stay_throughout",
+      onValueChange: (v: boolean) => {
+        if (v) {
+          setConfig({ 
+            verification_style: "stay_throughout",
+            stay_throughout_config: draft.config.stay_throughout_config || {
+              intensity: "relaxed",
+              max_missed_checkins: 1,
+            }
+          });
+        }
+      },
+    },
+    {
+      id: "intensity",
+      title: "Check-In Intensity",
+      type: "select" as const,
+      disabled: draft.config.verification_style !== "stay_throughout",
+      selectValue: draft.config.verification_style === "stay_throughout" 
+        ? (draft.config.stay_throughout_config?.intensity ? draft.config.stay_throughout_config.intensity.charAt(0).toUpperCase() + draft.config.stay_throughout_config.intensity.slice(1) : "Relaxed")
+        : "N/A",
+      onPress: () => {
+        if (draft.config.verification_style !== "stay_throughout") return;
+        setPicker({
+          visible: true,
+          title: "Check-in Intensity",
+          options: SETTINGS_OPTIONS.intensity,
+          selectedValue: draft.config.stay_throughout_config?.intensity ?? "relaxed",
+          onSelect: (v) => setConfig({ 
+            stay_throughout_config: { 
+              ...(draft.config.stay_throughout_config || { max_missed_checkins: 1 }),
+              intensity: v
+            } 
+          }),
+        });
+      }
+    },
+    {
+      id: "maxMissedCheckins",
+      title: "Max Missed Check-ins",
+      type: "select" as const,
+      disabled: draft.config.verification_style !== "stay_throughout",
+      selectValue: draft.config.verification_style === "stay_throughout" 
+        ? `${draft.config.stay_throughout_config?.max_missed_checkins ?? 1}`
+        : "N/A",
+      onPress: () => {
+        if (draft.config.verification_style !== "stay_throughout") return;
+        setPicker({
+          visible: true,
+          title: "Allowed Misses",
+          options: SETTINGS_OPTIONS.maxMissedCheckins,
+          selectedValue: draft.config.stay_throughout_config?.max_missed_checkins ?? 1,
+          onSelect: (v) => setConfig({ 
+            stay_throughout_config: {
+              ...(draft.config.stay_throughout_config || { intensity: "relaxed" }),
+              max_missed_checkins: v
+            } 
+          }),
+        });
+      }
+    },
+    {
+      id: "grace",
+      title: "Grace Period",
+      type: "select" as const,
+      selectValue: `${draft.config.grace_period_minutes} mins`,
+      onPress: () => setPicker({
+        visible: true,
+        title: "Grace Period",
+        options: SETTINGS_OPTIONS.gracePeriod,
+        selectedValue: draft.config.grace_period_minutes,
+        onSelect: (v) => setConfig({ grace_period_minutes: v }),
+      })
+    }
+  ], [draft.config, setConfig]);
+
+  /**
+   * Represents the dynamic form schema for the "Alarms" section.
+   */
+  const alarmSettingsItems = useMemo(() => [
+    {
+      id: "alarmLeadTime",
+      title: "Start Alarming",
+      type: "select" as const,
+      selectValue: `${draft.config.alarms.lead_time_minutes} mins before`,
+      onPress: () => setPicker({
+        visible: true,
+        title: "Start Alarming",
+        options: SETTINGS_OPTIONS.alarmLeadTime,
+        selectedValue: draft.config.alarms.lead_time_minutes,
+        onSelect: (v) => setConfig({ alarms: { lead_time_minutes: v } }),
+      })
+    },
+    {
+      id: "alarmInterval",
+      title: "Alarm Frequency",
+      type: "select" as const,
+      selectValue: `Every ${draft.config.alarms.interval_minutes} mins`,
+      onPress: () => setPicker({
+        visible: true,
+        title: "Alarm Frequency",
+        options: SETTINGS_OPTIONS.alarmInterval,
+        selectedValue: draft.config.alarms.interval_minutes,
+        onSelect: (v) => setConfig({ alarms: { interval_minutes: v } }),
+      })
+    },
+    {
+      id: "alarmSound",
+      title: "Alarm Music",
+      type: "select" as const,
+      selectValue: draft.config.alarms.sound_key,
+      onPress: () => setPicker({
+        visible: true,
+        title: "Alarm Music",
+        options: SETTINGS_OPTIONS.alarmSound,
+        selectedValue: draft.config.alarms.sound_key,
+        onSelect: (v) => setConfig({ alarms: { sound_key: v } }),
+      })
+    }
+  ], [draft.config.alarms, setConfig]);
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render
@@ -594,104 +544,7 @@ export default function FinalScreen() {
 
         <SettingsToggleCard
           className="mb-4"
-          items={[
-            {
-              id: "showUp",
-              title: "Just Show Up",
-              type: "toggle",
-              value: draft.config.verification_style === "just_show_up",
-              onValueChange: (v) => {
-                if (v) setConfig({ verification_style: "just_show_up" });
-              },
-            },
-            {
-              id: "stayThroughout",
-              title: "Stay Throughout",
-              type: "toggle",
-              value: draft.config.verification_style === "stay_throughout",
-              onValueChange: (v) => {
-                if (v) {
-                  setConfig({ 
-                    verification_style: "stay_throughout",
-                    // @ts-ignore
-                    stay_throughout_config: draft.config.stay_throughout_config || {
-                      intensity: "relaxed",
-                      max_missed_checkins: 1,
-                    }
-                  });
-                }
-              },
-            },
-            {
-              id: "intensity",
-              title: "Check-In Intensity",
-              type: "select" as const,
-              disabled: draft.config.verification_style !== "stay_throughout",
-              selectValue: draft.config.verification_style === "stay_throughout" 
-                // @ts-ignore
-                ? (draft.config.stay_throughout_config?.intensity ? draft.config.stay_throughout_config.intensity.charAt(0).toUpperCase() + draft.config.stay_throughout_config.intensity.slice(1) : "Relaxed")
-                : "N/A",
-              onPress: () => {
-                if (draft.config.verification_style !== "stay_throughout") return;
-                setPicker({
-                  visible: true,
-                  title: "Check-in Intensity",
-                  options: SETTINGS_OPTIONS.intensity,
-                  // @ts-ignore
-                  selectedValue: draft.config.stay_throughout_config?.intensity ?? "relaxed",
-                  onSelect: (v) => setConfig({ 
-                    // @ts-ignore
-                    stay_throughout_config: { 
-                      // @ts-ignore
-                      ...(draft.config.stay_throughout_config || { max_missed_checkins: 1 }),
-                      intensity: v
-                    } 
-                  }),
-                });
-              }
-            },
-            {
-              id: "maxMissedCheckins",
-              title: "Max Missed Check-ins",
-              type: "select" as const,
-              disabled: draft.config.verification_style !== "stay_throughout",
-              selectValue: draft.config.verification_style === "stay_throughout" 
-                // @ts-ignore
-                ? `${draft.config.stay_throughout_config?.max_missed_checkins ?? 1}`
-                : "N/A",
-              onPress: () => {
-                if (draft.config.verification_style !== "stay_throughout") return;
-                setPicker({
-                  visible: true,
-                  title: "Allowed Misses",
-                  options: SETTINGS_OPTIONS.maxMissedCheckins,
-                  // @ts-ignore
-                  selectedValue: draft.config.stay_throughout_config?.max_missed_checkins ?? 1,
-                  onSelect: (v) => setConfig({ 
-                    // @ts-ignore
-                    stay_throughout_config: {
-                      // @ts-ignore
-                      ...(draft.config.stay_throughout_config || { intensity: "relaxed" }),
-                      max_missed_checkins: v
-                    } 
-                  }),
-                });
-              }
-            },
-            {
-              id: "grace",
-              title: "Grace Period",
-              type: "select" as const,
-              selectValue: `${draft.config.grace_period_minutes} mins`,
-              onPress: () => setPicker({
-                visible: true,
-                title: "Grace Period",
-                options: SETTINGS_OPTIONS.gracePeriod,
-                selectedValue: draft.config.grace_period_minutes,
-                onSelect: (v) => setConfig({ grace_period_minutes: v }),
-              })
-            }
-          ]}
+          items={commitmentSettingsItems}
         />
 
         {/* Section: Alarms */}
@@ -701,47 +554,7 @@ export default function FinalScreen() {
 
         <SettingsToggleCard
           className="mb-6"
-          items={[
-            {
-              id: "alarmLeadTime",
-              title: "Start Alarming",
-              type: "select" as const,
-              selectValue: `${draft.config.alarms.lead_time_minutes} mins before`,
-              onPress: () => setPicker({
-                visible: true,
-                title: "Start Alarming",
-                options: SETTINGS_OPTIONS.alarmLeadTime,
-                selectedValue: draft.config.alarms.lead_time_minutes,
-                onSelect: (v) => setConfig({ alarms: { lead_time_minutes: v } }),
-              })
-            },
-            {
-              id: "alarmInterval",
-              title: "Alarm Frequency",
-              type: "select" as const,
-              selectValue: `Every ${draft.config.alarms.interval_minutes} mins`,
-              onPress: () => setPicker({
-                visible: true,
-                title: "Alarm Frequency",
-                options: SETTINGS_OPTIONS.alarmInterval,
-                selectedValue: draft.config.alarms.interval_minutes,
-                onSelect: (v) => setConfig({ alarms: { interval_minutes: v } }),
-              })
-            },
-            {
-              id: "alarmSound",
-              title: "Alarm Music",
-              type: "select" as const,
-              selectValue: draft.config.alarms.sound_key,
-              onPress: () => setPicker({
-                visible: true,
-                title: "Alarm Music",
-                options: SETTINGS_OPTIONS.alarmSound,
-                selectedValue: draft.config.alarms.sound_key,
-                onSelect: (v) => setConfig({ alarms: { sound_key: v } }),
-              })
-            }
-          ]}
+          items={alarmSettingsItems}
         />
         
       </UScroll>
