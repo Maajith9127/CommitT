@@ -157,7 +157,7 @@ export const LocationSection = React.memo(({
                                         radius: radius,
                                         color: isInverse ? "transparent" : "#4FA0FF40",
                                         lineColor: "#4FA0FF",
-                                        lineWidth: 2,
+                                        lineWidth: 12,
                                     },
                                 ]}
                             />

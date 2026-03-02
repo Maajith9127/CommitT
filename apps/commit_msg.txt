@@ -1,0 +1,3 @@
+style(ui): synchronize geofence border thickness across map components
+
+- Updated lineWidth in 'EventDetailLocation' from 2 to 12 for UI consistency with 'location-set'.
