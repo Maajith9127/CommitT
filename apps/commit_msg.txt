@@ -1,10 +1,5 @@
-feat(core): implement resilient, temporal-based task scheduling architecture
-
-Refactored the task execution system from a brittle, linked-list "Relay Race" pattern to a centralized, idempotent "Temporal Brain" architecture.
-
-Key Changes:
-- **Centralized Scheduler**: Implemented `syncTaskSchedule(taskId)` to act as the single source of truth for all verification alarms.
-- **Self-Healing Mutations**: Updated Task Create and Update mutations to trigger automatic schedule resets, ensuring all edits (time shifts/recurrence changes) are immediately reflected in the pending alarms.
-- **Decoupled Verification**: Removed hardcoded `next_instance_id` chaining from the Verification Runner, allowing the system to dynamically calculate the next point in time after every check-in.
-- **Watchdog Sync**: Added a background Cron job that scans for and "heals" any orphaned tasks missing active alarms every hour.
-- **Schema Resilience**: Improved system robustness by making scheduling stateless and derived directly from the current database records.
+feat(core): 
+--- Dev Environment & Tooling ---
+- **ADB Version Sync**: Resolved "Uncaught TypeError" and hangs by prioritizing modern Android SDK platforms-tools in `.bashrc` over legacy system packages.
+- **Connection Diagnostics**: Overhauled `connect-phone.ps1` with smarter device sharing (usbipd) and diagnostic coloring to ensure reliable physical device debugging.
+- **Improved Scripting**: Absolute pathing for ADB in WSL to prevent server-mismatch hangs during Expo/Physical device attachment.
