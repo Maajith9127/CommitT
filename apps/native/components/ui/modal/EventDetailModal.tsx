@@ -1,58 +1,23 @@
 /**
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  EventDetailModal — Global Singleton Event Viewer                            ║
- * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                              ║
- * ║  PURPOSE:                                                                    ║
- * ║  Full-screen bottom sheet that displays the details of a selected            ║
- * ║  calendar event / task instance.                                             ║
- * ║                                                                              ║
- * ║  ARCHITECTURE:                                                               ║
- * ║  This file is the ORCHESTRATOR. It owns:                                     ║
- * ║  • Singleton guard (prevents Expo Router double-mount)                       ║
- * ║  • Zustand state (selectedEventId, selectedEvent)                            ║
- * ║  • Verification state & mutation handler                                     ║
- * ║  • Modal shell (<Modal>, overlay, scroll container)                          ║
- * ║                                                                              ║
- * ║  All UI sections are delegated to focused sub-components:                    ║
- * ║  ┌────────────────────────────────────────────────────────────────────┐      ║
- * ║  │  EventDetailHeader      → Close button, title, description, badge  │      ║
- * ║  │  EventDetailTime        → Time window + verification circle        │      ║
- * ║  │  LocationSection        → Embedded Google Map                      │      ║
- * ║  │  PenaltySection         → Financial penalty details                │      ║
- * ║  │  WaiverSection          → Waiver / grace period details            │      ║
- * ║  └────────────────────────────────────────────────────────────────────┘      ║
- * ║                                                                              ║
- * ║  DATA FLOW:                                                                  ║
- * ║  1. User taps event → setSelectedEventId(id, data) → Zustand stores it       ║
- * ║  2. This modal reads Zustand → <Modal visible={true}> slides up              ║
- * ║  3. On close: setSelectedEventId(null) → modal hides                         ║
- * ║                                                                              ║
- * ║  VERIFICATION FLOW:                                                          ║
- * ║  1. User taps VerificationStatusCircle → handleVerifyCondition(key)          ║
- * ║  2. Spinner shows → backend mutation fires → result stored locally           ║
- * ║  3. Circle updates instantly from mutation's return value                    ║
- * ║                                                                              ║
- * ║  WHY LOCAL STATE (not live Convex subscription)?                             ║
- * ║  A live useQuery causes the Google Map to re-render infinitely.              ║
- * ║  We use the mutation's RETURN VALUE for instant UI feedback instead.         ║
- * ║                                                                              ║
- * ║  SINGLETON GUARD:                                                            ║
- * ║  Expo Router can mount _layout.tsx TWICE during Stack transitions.           ║
- * ║  Module-level `isInstanceMounted` ensures only ONE renders.                  ║
- * ║                                                                              ║
- * ║  KEY RULES:                                                                  ║
- * ║  • Never pass props — all data comes from Zustand.                           ║
- * ║  • Never mount in individual screens — only in _layout.tsx.                  ║
- * ║  • All hooks called unconditionally (Rules of Hooks).                        ║
- * ║                                                                              ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
+ * EventDetailModal
+ * 
+ * A centralized singleton component responsible for displaying detailed information
+ * regarding a specific task instance or calendar event.
+ * 
+ * Core Functionality:
+ * - Reactive Data Synchronization: Implements a hybrid approach using a static Zustand 
+ *   snapshot for immediate rendering (minimizing perceived latency) followed by a 
+ *   live Convex subscription for real-time status updates.
+ * - Condition Verification: Manages the lifecycle of condition verification mutations 
+ *   (e.g., location validation) and local UI state for immediate feedback.
+ * - Singleton Pattern: Ensures only one instance of the modal is mounted across the 
+ *   application coordinate system to prevent overlapping transitions.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, View, StyleSheet, ScrollView } from 'react-native';
 import { withUniwind } from 'uniwind';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 
 import { useCalendarStore } from '@/stores/useCalendarStore';
@@ -80,10 +45,7 @@ let isInstanceMounted = false;
 
 export const EventDetailModal = React.memo(function EventDetailModal() {
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 1. SINGLETON OWNERSHIP
-  // ═══════════════════════════════════════════════════════════════════════════
-
+  // 1. Singleton ownership management
   const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
@@ -98,24 +60,31 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
     };
   }, []);
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 2. ZUSTAND STATE (called unconditionally — Rules of Hooks)
-  // ═══════════════════════════════════════════════════════════════════════════
-
+  // 2. Data subscription and reactive synchronization
   const eventId = useCalendarStore((state) => state.selectedEventId);
-  const currentEvent = useCalendarStore((state) => state.selectedEvent);
+  const selectedTaskId = useCalendarStore((state) => state.selectedEventTaskId);
+  const selectedEventSnapshot = useCalendarStore((state) => state.selectedEvent);
   const setSelectedEventId = useCalendarStore((state) => state.setSelectedEventId);
+
+  // Establish a live backend subscription via useQuery.
+  // This ensures that any server-side state changes (e.g. checkpoint expiration)
+  // are reflected in the UI in real-time while the modal is active.
+  const liveEvent = useQuery(
+    api.api.instances.read.get, 
+    selectedTaskId ? { id: selectedTaskId as any } : "skip"
+  );
+
+  /** 
+   * Truthy union of static snapshot and live data.
+   * We prefer the live subscription, but fall back to the Zustand snapshot
+   * to prevent a "Loading" blink when the modal first slides up.
+   */
+  const currentEvent = liveEvent || selectedEventSnapshot; 
 
   const isVisible = !!eventId;
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 3. VERIFICATION STATE
-  //
-  //    Local state (not live subscription) to avoid Google Map re-renders.
-  //    Seeded from Zustand snapshot when a new event is opened.
-  // ═══════════════════════════════════════════════════════════════════════════
-
+  // 3. Verification state management
   const verifyMutation = useMutation(api.api.commitments.verify.default);
   const [verifyingMetric, setVerifyingMetric] = useState<string | null>(null);
   const [conditionStatuses, setConditionStatuses] = useState<Record<string, string>>({});
@@ -127,12 +96,23 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
     message: '',
   });
 
-  // Reset & seed when a DIFFERENT event is opened
+  // Track the ID we last seeded to avoid infinite overwrite loops with live data
+  const [seededTaskId, setSeededTaskId] = useState<string | null>(null);
+
   useEffect(() => {
-    if (eventId && currentEvent) {
+    // If we closed the modal, reset everything
+    if (!eventId) {
+      setConditionStatuses({});
+      setSeededTaskId(null);
+      return;
+    }
+
+    // Only seed the local verification state if a new task instance has been selected.
+    // This ensures that live data updates do not unexpectedly reset transient UI state
+    // while a user may be mid-interaction.
+    if (currentEvent && selectedTaskId !== seededTaskId) {
       const initial: Record<string, string> = {};
       
-      // Seed explicit conditions (e.g., location, photo)
       if (Array.isArray((currentEvent as any).conditions)) {
         (currentEvent as any).conditions.forEach((cond: any) => {
           if (cond.metric_key && cond.status) {
@@ -142,14 +122,11 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       }
 
       setConditionStatuses(initial);
-    } else {
-      setConditionStatuses({});
+      setSeededTaskId(selectedTaskId);
     }
-  }, [eventId]);
+  }, [eventId, currentEvent, selectedTaskId, seededTaskId]);
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 4. HANDLERS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. Input and Action Handlers
 
   const handleClose = useCallback(() => {
     setSelectedEventId(null);
@@ -214,9 +191,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
 
 
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 5. EARLY RETURNS (after all hooks)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. Early return logic (post-hook execution)
 
   if (!isOwner) return null;
 
@@ -228,9 +203,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // 6. RENDER — Clean composition of sub-components
-  // ═══════════════════════════════════════════════════════════════════════════
+  // 6. Primary Render Logic
 
   return (
     <Modal

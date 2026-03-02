@@ -11,10 +11,11 @@ const UView = withUniwind(View);
 const UText = withUniwind(Text);
 
 /**
- * Math utility to generate a perfect circle polygon for Google Maps.
- * Why? Google Maps natively supports "Circles", but our "Outside" inverse geofencing
- * requires drawing a massive polygon covering the whole world with a hole punched out of it.
- * This generates the precise coordinates for that "hole".
+ * Math utility to generate a circular polygon for geographic constraints.
+ * 
+ * Generates a series of coordinates representing a circular boundary. Used 
+ * to render geofence visualizations on the map, particularly for inverse 
+ * geofences where a transparent 'hole' is required.
  */
 export const getCirclePoints = (
   center: { latitude: number; longitude: number },
@@ -35,7 +36,7 @@ export const getCirclePoints = (
   return coords;
 };
 
-export const LocationSection = ({ 
+export const LocationSection = React.memo(({ 
     event, 
     onMapTouchStart, 
     onMapTouchEnd,
@@ -54,9 +55,12 @@ export const LocationSection = ({
     const { hasPermission, requestLocation, isLocating } = useLocation();
     const [isMapReady, setIsMapReady] = useState(false);
     
+    // Reset map initialization state when the task instance context changes.
+    // This ensures that the map view re-synchronizes with the coordinates 
+    // of the newly selected event and prevents stale data persistence.
     useEffect(() => {
         setIsMapReady(false);
-    }, [event]);
+    }, [event?._id]);
 
     if (!locCondition) return null;
     
@@ -170,4 +174,19 @@ export const LocationSection = ({
             </View>
         </UView>
     );
-};
+}, (prev, next) => {
+    // Memoization Guard:
+    // Only triggers a re-render if core geographic constraints or 
+    // verification states exhibit changes.
+    const prevLoc = prev.event?.conditions?.find((c: any) => c.metric_key === 'location')?.target?.value;
+    const nextLoc = next.event?.conditions?.find((c: any) => c.metric_key === 'location')?.target?.value;
+
+    return (
+        prev.event?._id === next.event?._id &&
+        prev.locStatus === next.locStatus &&
+        prev.isLocVerifying === next.isLocVerifying &&
+        prevLoc?.lat === nextLoc?.lat &&
+        prevLoc?.lng === nextLoc?.lng &&
+        prevLoc?.radius === nextLoc?.radius
+    );
+});

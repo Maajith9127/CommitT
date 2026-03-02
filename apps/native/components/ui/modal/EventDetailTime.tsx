@@ -1,24 +1,17 @@
 /**
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  EventDetailTime — Time Window Section with Verification Circle              ║
- * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                              ║
- * ║  Renders the time section of the EventDetailModal:                           ║
- * ║  • "All-day" row with a tappable VerificationStatusCircle                    ║ 
- * ║  • Start date/time                                                           ║
- * ║  • End date/time                                                             ║
- * ║  • Timezone label                                                            ║
- * ║                                                                              ║
- * ║  The VerificationStatusCircle is interactive — tapping it triggers           ║
- * ║  the time verification flow via the `onVerify` callback.                     ║
- * ║                                                                              ║
- * ║  This is a PRESENTATIONAL component. The verification logic                  ║
- * ║  (mutation, state updates) lives in EventDetailModal.                        ║
- * ║                                                                              ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
+ * EventDetailTime
+ * 
+ * Component responsible for rendering temporal metadata and verification status
+ * within the EventDetailModal.
+ * 
+ * Features:
+ * - Reactive countdown timers (Starts-in, Expires-in, Grace period).
+ * - Stay Throughout logic: Memoized calculation of missed checkpoints based 
+ *   on real-time temporal comparison.
+ * - Pulse animations for active countdowns.
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { View, Animated } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -100,43 +93,45 @@ export function EventDetailTime({
   const graceEnd = start + (graceMinutes * 60 * 1000);
 
   if (isStayThroughout) {
-    // ═════════════════════════════════════════════════════════════════════════
-    // STAY THROUGHOUT LOGIC — Missed Check-ins vs Maximum Allowed
-    // ═════════════════════════════════════════════════════════════════════════
-    // In continuous monitoring mode, we iterate over the root checkpoints array.
-    // We aggressively calculate the current failure tally on the client-side
-    // to instantly color code the UI (Green/Yellow/Red) based on risk.
+    // ── Stay Throughout Logic ────────────────────────────────────────────────
+    // In continuous monitoring mode, we tally up failure counts based on 
+    // randomized checkpoints. This UI calculate its own "missed" tally
+    // to provide high-frequency feedback even when background sync is slow.
+
     const maxMissed = config?.stay_throughout_config?.max_missed_checkins ?? 0;
     
-    let missedCount = 0;
-    if (checkpoints && Array.isArray(checkpoints)) {
-      missedCount = checkpoints.filter((cp: any) => {
-        // Backwards compatibility for parsing older task versions
-        const endTime = cp.end ?? cp.window_end_time;
-        const isExpired = now > endTime;
-        
-        const statusVals = Object.keys(cp.verification_status || {}).map((k: string) => cp.verification_status[k]);
-        
-        // A checkpoint is completely "missed" if:
-        // 1. A condition was explicitly failed (e.g. Photo rejected by AI)
-        // 2. The checkpoint window completely expired without ALL conditions passing.
-        const allVerified = statusVals.every((v: any) => v === "verified");
-        const anyExplicitlyFailed = statusVals.some((v: any) => v === "failed");
-        
-        return anyExplicitlyFailed || (isExpired && !allVerified);
-      }).length;
-    }
+    /**
+     * Tally current missed checkpoints.
+     * A checkpoint is missed if: Current Time > Checkpoint End AND it hasn't been verified.
+     * This calculation is memoized to prevent unnecessary re-renders unless
+     * `checkpoints` or `now` (current time) changes.
+     */
+    const missedCount = useMemo(() => {
+      let count = 0;
+      if (checkpoints && Array.isArray(checkpoints)) {
+        checkpoints.forEach((cp: any) => {
+          const endTime = cp.end ?? cp.window_end_time;
+          const isExpired = now > endTime;
+          
+          // Check if ALL required conditions for this ping were met
+          const statusVals = Object.keys(cp.verification_status || {}).map((k: string) => cp.verification_status[k]);
+          const allVerified = statusVals.length > 0 && statusVals.every((v: any) => v === "verified");
+          
+          if (isExpired && !allVerified) count++;
+        });
+      }
+      return count;
+    }, [checkpoints, now]);
 
     timerLabel = 'Missed Check-ins';
     timerValue = `${missedCount} / ${maxMissed} Max`;
-
-    // Visual Red-Scaling Risk Indicator
-    if (missedCount >= maxMissed) {
-      timerTextColor = 'text-red-500'; // Task is structurally failed or on the very edge
-    } else if (missedCount > 0 && missedCount >= maxMissed - 1) {
-      timerTextColor = 'text-yellow-400'; // Risk territory (1 missed checkin left)
+    // Determine text color based on missed count vs max allowed
+    if (missedCount === 0) {
+      timerTextColor = 'text-green-500';
+    } else if (missedCount < maxMissed) {
+      timerTextColor = 'text-yellow-400';
     } else {
-      timerTextColor = 'text-green-500'; // Safe territory
+      timerTextColor = 'text-red-500';
     }
   } else {
     // ═════════════════════════════════════════════════════════════════════════

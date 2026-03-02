@@ -1,24 +1,20 @@
 /**
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  useCalendarStore — Global Calendar State (Zustand)                         ║
- * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                            ║
- * ║  Manages all calendar-related state for the app:                           ║
- * ║                                                                            ║
- * ║  • events[]          - The list of calendar events (for the BigCalendar)   ║
- * ║  • rangeStart/End    - Visible date range (epoch ms)                       ║
- * ║  • selectedEventId   - Which event is currently open in the detail modal   ║
- * ║  • selectedEvent     - Full event data for the detail modal                ║
- * ║  • selectedDate      - The date the user is currently viewing              ║
- * ║                                                                            ║
- * ║  HOW THE MODAL READS DATA:                                                 ║
- * ║  When a user taps an event, the caller does:                               ║
- * ║    setSelectedEventId(instanceId, fullEventObject)                         ║
- * ║  This writes BOTH the ID (controls visibility) and the full data           ║
- * ║  (used for rendering) into Zustand in a single atomic action.              ║
- * ║  The EventDetailModal reads both values and renders immediately.           ║
- * ║                                                                            ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
+ * useCalendarStore
+ * 
+ * Centralized state management for calendar synchronization and event selection.
+ * 
+ * State Responsibilities:
+ * - events: Collection of verified/pending task instances for the calendar viewport.
+ * - rangeStart/End: Current temporal bounds of the calendar viewport (ms epoch).
+ * - selectedEventId: Primary identifier for the active event (controls Modal visibility).
+ * - selectedEventTaskId: Identifier used to establish live backend subscriptions.
+ * - selectedEvent: Static data snapshot used for immediate rendering during live sync transitions.
+ * - selectedDate: The current date focused in the viewport.
+ * 
+ * Reactive Architecture:
+ * This store implements a snapshot-to-live transition pattern.
+ * Upon selection, the UI seeds from the static 'selectedEvent' for instant availability,
+ * while 'selectedEventTaskId' triggers a live Convex subscription in the background.
  */
 
 import { create } from 'zustand';
@@ -84,16 +80,29 @@ type CalendarStore = {
   rangeEnd: number;
   setRange: (start: number, end: number) => void;
 
-  // ── Currently Selected Event (powers EventDetailModal) ──
-  /** The Convex `_id` of the selected task instance, or null when no modal is open */
+  // ── Currently Selected Event (Powers EventDetailModal) ──
+  /** 
+   * The Convex `_id` of the selected task instance. 
+   * Setting this to a non-null value triggers the root Modal to slide up.
+   */
   selectedEventId: string | null;
-  /** The full event object for the modal to render (title, start, end, conditions, etc.) */
+
+  /** 
+   * The reactive trigger for the Live Backend Subscription.
+   * Changing this ID causes the EventDetailModal to establish a fresh `useQuery`.
+   */
+  selectedEventTaskId: string | null;
+
+  /** 
+   * Initial static data snapshot. 
+   * Prevents "Loading" flickers by providing immediate data while the live query syncs.
+   */
   selectedEvent: any | null;
+
   /**
-   * Opens the modal by setting both the ID and data atomically.
-   * Call with `null` to close:
-   *   setSelectedEventId("abc123", eventData)  → opens modal
-   *   setSelectedEventId(null)                 → closes modal
+   * Opens or closes the modal atomically.
+   * @param id - The instance ID to open (or null to close)
+   * @param eventData - The initial snapshot to show during the transition to live
    */
   setSelectedEventId: (id: string | null, eventData?: any) => void;
 
@@ -115,15 +124,16 @@ const logger = (config: any) => (set: any, get: any, api: any) =>
       
       const state = get();
       
-      console.log(`\n[CalendarStore] 🔄 ${actionName}`);
-      console.log("─────────────────────────────────────────────────────────");
+      console.log(`\n[CalendarStore] Action: ${actionName}`);
+      console.log("---------------------------------------------------------");
       console.log(`{
   eventsCount: ${state.events.length},
   selectedEventId: ${state.selectedEventId || 'null'},
+  selectedEventTaskId: ${state.selectedEventTaskId || 'null'},
   range: [${dayjs(state.rangeStart).format('DD MMM')} - ${dayjs(state.rangeEnd).format('DD MMM')}],
-  lastEvent: ${JSON.stringify(state.events[state.events.length - 1] || null, null, 2)}
+  itemsCount: ${state.events.length}
 }`);
-      console.log("─────────────────────────────────────────────────────────\n");
+      console.log("---------------------------------------------------------\n");
     },
     get,
     api
@@ -138,6 +148,7 @@ export const useCalendarStore = create<CalendarStore>()(
     rangeStart: dayjs().startOf('month').valueOf(),
     rangeEnd: dayjs().endOf('month').valueOf(),
     selectedEventId: null,
+    selectedEventTaskId: null,
     selectedEvent: null,
     selectedDate: dayjs().toISOString(),
 
@@ -170,7 +181,11 @@ export const useCalendarStore = create<CalendarStore>()(
      */
     setSelectedEventId: (id: string | null, eventData?: any) =>
       set(
-        { selectedEventId: id, selectedEvent: eventData ?? null },
+        { 
+          selectedEventId: id, 
+          selectedEventTaskId: id, // Mapping 1:1 for the experiment
+          selectedEvent: eventData ?? null 
+        },
         false,
         "calendar/setSelectedEventId"
       ),
