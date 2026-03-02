@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalMutation } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import { syncTaskSchedule } from "../scheduling/scheduler";
 
 /**
  * runVerification(): The heartbeat of the system.
@@ -46,25 +47,14 @@ export const runVerification = internalMutation({
     });
 
     // -------------------------------------------------------------------------
-    // STEP 2: CONTINUE THE CHAIN via linked list
+    // STEP 2: RE-SYNC THE HEARTBEAT
     // -------------------------------------------------------------------------
-    if (instance.next_instance_id) {
-      const nextInstance = await ctx.db.get(instance.next_instance_id);
-      if (nextInstance) {
-        console.log(`[runVerification] Chaining to next instance: ${nextInstance._id} at ${new Date(nextInstance.end).toISOString()}`);
-        
-        const jobId = await ctx.scheduler.runAt(
-          nextInstance.end,
-          internal.execution.verification.runner.runVerification,
-          { instanceId: nextInstance._id, taskTitle: nextInstance.title },
-        );
-        await ctx.db.patch(nextInstance._id, { scheduled_job_id: jobId });
-      } else {
-        console.log(`[runVerification] Next instance ${instance.next_instance_id} not found. Chain ends.`);
-      }
-    } else {
-      console.log(`[runVerification] No next_instance_id. Chain complete for task ${instance.task_id}.`);
-    }
+    // Instead of manually chaining, we tell the Brain to find the NEXT 
+    // pending temporal slot in the database and schedule it. 
+    // This allows for dynamic edits to take effect immediately.
+    await syncTaskSchedule(ctx, instance.task_id);
+    
+    console.log(`[runVerification] Heartbeat sync complete for task ${instance.task_id}.`);
   },
 });
 

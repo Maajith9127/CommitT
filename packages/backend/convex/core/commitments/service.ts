@@ -2,7 +2,7 @@ import { MutationCtx } from "../../_generated/server";
 import { Id, Doc } from "../../_generated/dataModel";
 import { findConflict, formatConflictMessage } from "./conflictDetection";
 import { Instances } from "../instances/service";
-import { scheduleFirstInstance } from "../../execution/scheduling/scheduler";
+import { syncTaskSchedule } from "../../execution/scheduling/scheduler";
 import { validateCommitment } from "./validator";
 
 export type CreateArgs = {
@@ -82,11 +82,12 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
 
   console.log("[Service:createInternal] Task inserted with ID:", taskId);
 
-  // 4. GENERATE ALL INSTANCES FOR 1 YEAR + SCHEDULE FIRST
+  // 4. GENERATE ALL INSTANCES FOR 1 YEAR + SYNC SCHEDULE
   const firstInstanceId = await Instances.generateSeries(ctx, taskId, now);
-  if (firstInstanceId) {
-    await scheduleFirstInstance(ctx, firstInstanceId);
-  }
+  
+  // The schedule sync service will automatically find and schedule the 
+  // FIRST relevant upcoming instance based on the new data state.
+  await syncTaskSchedule(ctx, taskId);
 
   return { taskId };
 }
@@ -160,12 +161,12 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
   // 5. Update DB
   await ctx.db.patch(id, { ...updates, updated_at: Date.now() });
 
-  // 6. Reschedule: Clean up old instances, regenerate for 1 year
+  // 6. Reschedule: Clean up old instances, regenerate for 1 year, and sync the next alarm
   await Instances.cleanupFuture(ctx, id);
-  const firstInstanceId = await Instances.generateSeries(ctx, id);
-  if (firstInstanceId) {
-    await scheduleFirstInstance(ctx, firstInstanceId);
-  }
+  await Instances.generateSeries(ctx, id);
+
+  // Triggers the centralized brain to find the next valid temporal slot
+  await syncTaskSchedule(ctx, id);
 }
 
 /**

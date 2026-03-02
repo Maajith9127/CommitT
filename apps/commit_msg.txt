@@ -1,4 +1,10 @@
-ui(ux): implement reactive green status for verified checkpoints
+feat(core): implement resilient, temporal-based task scheduling architecture
 
-- Updated 'EventDetailModal' and 'useCalendarEvents' to derive status from live subscription checkpoints.
-- Ensures arrival-based tasks turn green immediately on the schedules screen upon successful check-in.
+Refactored the task execution system from a brittle, linked-list "Relay Race" pattern to a centralized, idempotent "Temporal Brain" architecture.
+
+Key Changes:
+- **Centralized Scheduler**: Implemented `syncTaskSchedule(taskId)` to act as the single source of truth for all verification alarms.
+- **Self-Healing Mutations**: Updated Task Create and Update mutations to trigger automatic schedule resets, ensuring all edits (time shifts/recurrence changes) are immediately reflected in the pending alarms.
+- **Decoupled Verification**: Removed hardcoded `next_instance_id` chaining from the Verification Runner, allowing the system to dynamically calculate the next point in time after every check-in.
+- **Watchdog Sync**: Added a background Cron job that scans for and "heals" any orphaned tasks missing active alarms every hour.
+- **Schema Resilience**: Improved system robustness by making scheduling stateless and derived directly from the current database records.
