@@ -99,6 +99,25 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   // Track the ID we last seeded to avoid infinite overwrite loops with live data
   const [seededTaskId, setSeededTaskId] = useState<string | null>(null);
 
+  // Derive the effective status for the header badge.
+  // For checkpoint-based tasks, we calculate the status from the live subscription
+  // to ensure the UI reflects real-time progression correctly.
+  const displayStatus = (() => {
+    if (!currentEvent) return "pending";
+    const style = currentEvent.config?.verification_style;
+    
+    // For 'just_show_up', we are 'proceeded' if the single checkpoint is verified.
+    if (style === "just_show_up" && Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
+      const cp = currentEvent.checkpoints[0];
+      const statuses = cp.verification_status || {};
+      const allVerified = Object.keys(statuses).every(key => (statuses as any)[key] === "verified");
+      return allVerified ? "proceeded" : currentEvent.status;
+    }
+    
+    // For 'stay_throughout', we rely on the backend aggregate for now.
+    return currentEvent.status;
+  })();
+
   useEffect(() => {
     // If we closed the modal, reset everything
     if (!eventId) {
@@ -112,8 +131,25 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
     // while a user may be mid-interaction.
     if (currentEvent && selectedTaskId !== seededTaskId) {
       const initial: Record<string, string> = {};
-      
-      if (Array.isArray((currentEvent as any).conditions)) {
+      const style = currentEvent.config?.verification_style;
+      const isCheckpointStyle = style === "stay_throughout" || style === "just_show_up";
+
+      if (isCheckpointStyle && Array.isArray(currentEvent.checkpoints)) {
+        // Core Logic: Pull verification state from the active time window (checkpoint).
+        // If multiple exist (stay_throughout), we pick the one matching 'now'.
+        const now = Date.now();
+        const activeCp = currentEvent.checkpoints.find((cp: any) => 
+          now >= (cp.start ?? cp.scheduled_time) && now <= (cp.end ?? cp.window_end_time)
+        );
+        
+        if (activeCp?.verification_status) {
+          const vs = activeCp.verification_status;
+          Object.keys(vs).forEach((key: string) => {
+            initial[key] = (vs as any)[key];
+          });
+        }
+      } else if (Array.isArray((currentEvent as any).conditions)) {
+        // Fallback for traditional single-event tasks.
         (currentEvent as any).conditions.forEach((cond: any) => {
           if (cond.metric_key && cond.status) {
             initial[cond.metric_key] = cond.status;
@@ -219,7 +255,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
           <EventDetailHeader
             title={currentEvent.title}
             description={currentEvent.description}
-            status={currentEvent.status}
+            status={displayStatus}
             onClose={handleClose}
           />
 

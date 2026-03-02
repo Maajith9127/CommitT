@@ -118,6 +118,29 @@ async function createOne(
         rootCheckpoints = checkpoints; // Securely assign to root payload variable
       }
     }
+  } else if (args.config.verification_style === "just_show_up") {
+    // ─────────────────────────────────────────────────────────────────────────────
+    // FEATURE: "Just Show Up" Checkpoint Generation (Single Entry Arrival Window)
+    // ─────────────────────────────────────────────────────────────────────────────
+    // For arrival-based tasks, we create exactly ONE checkpoint representing the 
+    // valid grace period from the start of the task.
+    // ─────────────────────────────────────────────────────────────────────────────
+    const graceMs = (args.config.grace_period_minutes ?? 0) * 60 * 1000;
+    const checkpointEnd = Math.min(args.end, args.start + graceMs);
+    
+    const verificationStatus: Record<string, "pending" | "verified" | "failed"> = {};
+    const isPast = args.start < Date.now();
+    for (const cond of args.conditions) {
+      verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
+    }
+
+    rootCheckpoints = [{
+      start: Math.floor(args.start),
+      end: Math.floor(checkpointEnd),
+      start_readable: new Date(args.start).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+      end_readable: new Date(checkpointEnd).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+      verification_status: verificationStatus,
+    }];
   }
 
   // Final Persist: Push the completed, hydrated Task Instance to the Convex Data Store

@@ -1,3 +1,13 @@
-style(ui): synchronize geofence border thickness across map components
+feat(core): implement unified checkpoint-based verification architecture
 
-- Updated lineWidth in 'EventDetailLocation' from 2 to 12 for UI consistency with 'location-set'.
+Implemented a fundamental shift in verification logic by unifying 'Just Show Up' and 'Stay Throughout' tasks under a single checkpoint-driven system.
+
+Backend Changes:
+- Modified Instance Service to automatically generate a single arrival/grace checkpoint for 'just_show_up' tasks.
+- Refactored 'verify' mutation to use a unified checkpoint verification branch, eliminating style-specific code paths.
+- Enforced arrival window validation; users can now only verify arrival tasks within their designated grace periods.
+
+Frontend Changes:
+- Updated 'EventDetailModal' to reactively derive instance status from live subscription checkpoints.
+- Implemented real-time 'proceeded' status transition for arrival-based tasks upon successful verification.
+- Optimized transient state seeding to pull from the currently active temporal checkpoint window.

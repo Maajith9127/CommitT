@@ -127,28 +127,25 @@ export default authedMutation({
 
     const condition = instance.conditions[conditionIndex];
 
-    // ── STEP 5: Core Loop - Normal vs Stay Throughout ──────────────────────
-    if (instance.config.verification_style === "stay_throughout") {
+    // ── STEP 5: Core Loop - Checkpoint-Based Verification ──────────────────
+    if (instance.config.verification_style === "stay_throughout" || instance.config.verification_style === "just_show_up") {
       // ═════════════════════════════════════════════════════════════════════════
-      // STAY THROUGHOUT BRANCH — Continuous Verification Architecture
+      // UNIFIED CHECKPOINT BRANCH — Handles Persistent & Arrival windows
       // ═════════════════════════════════════════════════════════════════════════
-      // In this mode, we do NOT touch the master `conditions[x].status`.
-      // Instead, we only interact with the `instance.checkpoints` root map.
-      // This allows the user to fail one ping, but pass others, heavily reducing
-      // false positives compared to a binary Pass/Fail design.
       if (!instance.checkpoints || instance.checkpoints.length === 0) {
-        return { success: true, status: "neutral", message: "No ping generated for this chunk yet." }; // Or failed? But UI wise innocent.
+        return { success: true, status: "neutral", message: "No verification windows generated yet." };
       }
 
-      // 1. Locate the specifically active ping window currently glowing on UI.
-      // Backwards Compatibility: We seamlessly fall back to `.scheduled_time` and `.window_end_time`
-      // for legacy document support to strictly prevent runtime crashes on older tasks.
+      // 1. Locate the specifically active checkpoint window.
       const activeCheckpointIndex = instance.checkpoints.findIndex((cp: any) => 
         now >= (cp.start ?? cp.scheduled_time) && now <= (cp.end ?? cp.window_end_time)
       );
 
       if (activeCheckpointIndex === -1) {
-         return { success: false, status: "failed", message: "There are no active random check-ins for you right now. Sit tight!" };
+         const message = instance.config.verification_style === "stay_throughout"
+           ? "There are no active random check-ins for you right now. Sit tight!"
+           : "You are outside the valid arrival/grace window for this task.";
+         return { success: false, status: "failed", message };
       }
 
       const activeCheckpoint = instance.checkpoints[activeCheckpointIndex];
@@ -156,8 +153,8 @@ export default authedMutation({
       
       // Idempotency: "verified" is final. "failed" inside the window allows a retry!
       if (currentStatus === "verified") {
-        console.log(`[verify] Stay Throughout condition "${args.metricKey}" already verified for this chunk.`);
-        return { success: true, status: "verified", message: "Ping already verified." };
+        console.log(`[verify] Condition "${args.metricKey}" already verified for this checkpoint.`);
+        return { success: true, status: "verified", message: "Checkpoint already verified." };
       }
 
       // 2. Execute the normal GPS/Picture Physics check
@@ -173,13 +170,10 @@ export default authedMutation({
           ...(activeCheckpoint.verification_status || {}),
           [args.metricKey]: newStatus,
         },
-        // Optionally lock in exact time they successfully cleared this specific ping
         completed_at: result.passed ? now : activeCheckpoint.completed_at
       };
 
-      // 4. Save back to the DB cleanly. 
-      // Notice we do NOT manually touch the Master Condition status or the Instance status here!
-      // Stay Throughout math relies entirely on the aggregated 'Missed vs Max Missed' backend service.
+      // 4. Save back to the DB.
       await ctx.db.patch(args.instanceId, { checkpoints: updatedCheckpoints as any });
 
       let finalMessage = result.passed ? `Checkpoint condition verified!` : ((result as any).reason ?? "Checkpoint failed.");
