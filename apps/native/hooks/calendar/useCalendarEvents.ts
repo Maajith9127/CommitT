@@ -34,11 +34,22 @@ export function useCalendarEvents() {
         colorIndex++;
       }
 
-      // Determine the calendar block color based on verification status
+      // 3. Determine the effective status for visual representation
+      const style = inst.config?.verification_style;
+      let effectiveStatus = inst.status;
+
+      if (style === "just_show_up" && Array.isArray(inst.checkpoints) && inst.checkpoints.length > 0) {
+        const cp = inst.checkpoints[0];
+        const statuses = cp.verification_status || {};
+        const allVerified = Object.keys(statuses).every(key => (statuses as any)[key] === "verified");
+        if (allVerified) effectiveStatus = "proceeded";
+      }
+
+      // Determine the calendar block color based on effective status
       let eventColor = taskColorMap.get(inst.task_id) || TASK_COLORS[0];
-      if (inst.status === "proceeded") {
+      if (effectiveStatus === "proceeded") {
         eventColor = "#4CD964"; // success green
-      } else if (inst.status === "failed") {
+      } else if (effectiveStatus === "failed") {
         eventColor = "#FF3B30"; // danger red
       }
 
