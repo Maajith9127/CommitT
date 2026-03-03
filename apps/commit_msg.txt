@@ -1,15 +1,10 @@
-feat(ui): standardize header dimensions and refine calendar layout
+feat(calendar): implement multi-stage instance management and UI refinements
 
-Refined the visual hierarchy and interaction density for the Schedules view and Global Header.
-
-Key Changes:
-
-Header Standardization: Scaled HEADER_ICON_SIZE to 32px across the global navbar, ensuring consistent visual weight between the Hamburger menu, Search, Today, and the User Avatar.
-Calendar Density: Adjusted numberOfDays in the Schedules view to 3, providing a more focused multi-day layout.
-Visual Polish:
-Refined the "Time" marker axis in the calendar—narrowed the container width to 17% and increased text prominence by removing opacity.
-Improved consistency of the dynamic "Today" action and User Avatar border styling.
-Stability: Cleaned up 
-
-_layout.tsx
- to restore missing styled-component declarations and resolve linting warnings.
+- UI/UX: Standardize calendar header styling (icon sizes, avatar proportions) to match Google Calendar aesthetic.
+- FEATURE: Add functional three-dot options menu to `EventDetailModal` with 'Delete' and 'Duplicate' capabilities.
+- ARCH: Implement "Three-Point Consistency" workflow for instance deletion:
+    - CLOUD: Update Convex `instances.delete` to trigger the 'Temporal Brain' (syncTaskSchedule) for authoritative scheduling sync.
+    - CACHE: Add `deleteInstance` to [useTaskActions](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTaskActions.ts:9:0-110:1) for targeted SQLite cleanup in local persistent storage.
+    - HARDWARE: Force immediate native alarm refresh via `scheduleNextAlarm` post-deletion to prevent "zombie" notifications.
+- FIX: Resolve various linting errors, duplicate state declarations, and missing hook dependencies in `EventDetailModal`.
+- DX: Integrate draft-seeding logic for instance duplication, bridging the gap between calendar view and creation flow.

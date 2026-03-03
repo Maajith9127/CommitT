@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { Doc } from "../../_generated/dataModel";
 import { Instances } from "../../core/instances/service";
+import { syncTaskSchedule } from "../../execution/scheduling/scheduler";
 
 /**
  * Delete a specific task instance.
@@ -24,7 +25,13 @@ export default authedMutation({
       throw new Error("[UNAUTHORIZED] You can only delete your own instances");
     }
 
+    const taskId = instance.task_id;
     await Instances.delete(ctx, args.id);
+
+    // CRITICAL: Synchronize the schedule brain
+    // This ensures if we move or delete an instance, the system automatically 
+    // re-evaluates which alarm should be set next.
+    await syncTaskSchedule(ctx, taskId);
 
     return { success: true };
   },

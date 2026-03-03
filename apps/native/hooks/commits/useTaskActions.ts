@@ -23,6 +23,7 @@ export function useTaskActions() {
   const setAssignee = useTaskDraftStore((state) => state.setAssignee);
 
   const removeTaskMutation = useMutation(api.api.commitments.delete.default);
+  const removeInstanceMutation = useMutation(api.api.instances.delete.default);
   const db = useSQLiteContext();
 
   // Navigate to Create Screen
@@ -75,10 +76,33 @@ export function useTaskActions() {
     console.log("[useTaskActions] Duplicate task:", taskId);
   }, []);
 
+  // Delete Individual Instance
+  const deleteInstance = useCallback(async (instanceConvexId: string) => {
+    // 1. Authoritative Cloud Delete
+    await removeInstanceMutation({ id: instanceConvexId as any });
+
+    // 2. Local Cache Cleanup
+    try {
+      await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [instanceConvexId]);
+      console.log('[useTaskActions] Local SQLite instance deleted:', instanceConvexId);
+    } catch (e) {
+      console.error('[useTaskActions] SQLite instance delete failed:', e);
+    }
+
+    // 3. Hardware Alarm Sync
+    try {
+      scheduleNextAlarm();
+      console.log('[useTaskActions] Native alarms refreshed after instance deletion');
+    } catch (e) {
+      console.error('[useTaskActions] Native alarm refresh failed:', e);
+    }
+  }, [removeInstanceMutation, db]);
+
   return {
     handleCreateNew,
     handleEditTask,
     deleteTask,
+    deleteInstance,
     pauseTask,
     duplicateTask,
     setDraft,

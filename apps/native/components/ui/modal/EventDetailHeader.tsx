@@ -35,6 +35,8 @@ export interface EventDetailHeaderProps {
   status?: string;
   /** Callback when the close (×) button is tapped */
   onClose: () => void;
+  /** Callback when the three-dot options menu is tapped with anchor position */
+  onMoreOptions?: (pos: { x: number; y: number }) => void;
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -44,13 +46,26 @@ export function EventDetailHeader({
   description,
   status,
   onClose,
+  onMoreOptions,
 }: EventDetailHeaderProps) {
   return (
     <>
-      {/* ── Close Button ── */}
+      {/* ── Top Row Actions (Close & More) ── */}
       <UView className="flex-row justify-between items-center px-4 py-4 pt-6">
         <UPressable onPress={onClose} hitSlop={10}>
           <MaterialCommunityIcons name="close" size={24} color="white" />
+        </UPressable>
+
+        <UPressable 
+          onPress={() => {
+            if (onMoreOptions) {
+               // Capture approximate position for anchoring (standard modal padding + button offset)
+               onMoreOptions({ x: 0, y: 60 }); 
+            }
+          }} 
+          hitSlop={10}
+        >
+          <MaterialCommunityIcons name="dots-vertical" size={24} color="white" />
         </UPressable>
       </UView>
 

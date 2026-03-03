@@ -14,7 +14,7 @@
  *   application coordinate system to prevent overlapping transitions.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Modal, View, StyleSheet, ScrollView } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { useMutation, useQuery } from 'convex/react';
@@ -27,7 +27,10 @@ import { EventDetailHeader } from './EventDetailHeader';
 import { EventDetailTime } from './EventDetailTime';
 import { LocationSection } from './EventDetailLocation';
 import { PenaltySection, WaiverSection } from './EventDetailConditions';
+import { ActionMenu, ActionMenuItem } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from './ConfirmationModal';
+import { useTaskActions } from '@/hooks/commits/useTaskActions';
+import { useRouter } from 'expo-router';
 
 // ── Uniwind-wrapped primitives ──────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -99,6 +102,11 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   // Track the ID we last seeded to avoid infinite overwrite loops with live data
   const [seededTaskId, setSeededTaskId] = useState<string | null>(null);
 
+  // ── Action Menu State ──
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+
   // Derive the effective status for the header badge.
   // For checkpoint-based tasks, we calculate the status from the live subscription
   // to ensure the UI reflects real-time progression correctly.
@@ -163,10 +171,60 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   }, [eventId, currentEvent, selectedTaskId, seededTaskId]);
 
   // 4. Input and Action Handlers
+  const router = useRouter();
+  const { deleteTask, deleteInstance, setDraft, resetDraft } = useTaskActions();
 
   const handleClose = useCallback(() => {
     setSelectedEventId(null);
+    setMenuVisible(false);
   }, [setSelectedEventId]);
+
+  const handleOpenMenu = useCallback((pos: { x: number; y: number }) => {
+      setMenuPosition(pos);
+      setMenuVisible(true);
+  }, []);
+
+  const actionMenuItems: ActionMenuItem[] = useMemo(() => [
+    {
+      icon: "delete-outline",
+      label: "Delete",
+      color: "#FF3B30",
+      onPress: () => setDeleteConfirmVisible(true),
+    },
+    {
+      icon: "content-copy",
+      label: "Duplicate",
+      onPress: () => {
+        if (!currentEvent) return;
+        resetDraft();
+        setDraft({
+          ...currentEvent,
+          _id: undefined,
+          id: undefined,
+        });
+        handleClose();
+        router.push("/(create-commit)/final");
+      },
+    },
+    {
+      icon: "content-copy",
+      label: "Copy to...",
+      onPress: () => console.log("Copy to action triggered"),
+    },
+    {
+      icon: "help-circle-outline",
+      label: "Help & feedback",
+      onPress: () => console.log("Help action triggered"),
+    },
+  ], [currentEvent, resetDraft, setDraft, handleClose, router]);
+
+  const confirmDelete = async () => {
+    if (selectedTaskId) {
+      await deleteInstance(selectedTaskId);
+      setDeleteConfirmVisible(false);
+      handleClose();
+    }
+  };
 
   const handleVerifyCondition = async (metricKey: string, evidence?: any) => {
     if (!currentEvent?._id || verifyingMetric) return;
@@ -257,6 +315,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             description={currentEvent.description}
             status={displayStatus}
             onClose={handleClose}
+            onMoreOptions={handleOpenMenu}
           />
 
           {/* ── Scrollable Content ── */}
@@ -295,7 +354,27 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
           </UScroll>
 
         </UView>
+
+        {/* ── Action Menu Component ── */}
+        <ActionMenu
+            visible={menuVisible}
+            onClose={() => setMenuVisible(false)}
+            anchorPosition={menuPosition}
+            items={actionMenuItems}
+        />
       </View>
+
+      {/* ── Delete Confirmation Modal ── */}
+      <ConfirmationModal
+        visible={deleteConfirmVisible}
+        title="Delete this commitment?"
+        message="This will permanently remove the task and all associated history."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmColor="#FF3B30"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirmVisible(false)}
+      />
 
       {/* ── Failure Reason Modal (overlays on top of the event modal) ── */}
       <ConfirmationModal
