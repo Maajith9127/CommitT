@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import dayjs from 'dayjs';
-import Animated from 'react-native-reanimated';
 import { View, Text, Alert } from 'react-native';
+import dayjs from 'dayjs';
 import { useMutation } from 'convex/react';
 import { useSQLiteContext } from 'expo-sqlite';
 import { api } from '@commit/backend/convex/_generated/api';
@@ -11,82 +10,76 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CalendarKit, { 
   CalendarBody, 
   CalendarHeader,
-  CalendarKitRef,
-  DraggingEvent,
-  DraggingEventProps
+  CalendarKitRef
 } from '@howljs/calendar-kit';
 import { withUniwind } from 'uniwind';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { CalendarShimmer } from '@/components/ui/skeletons/CalendarShimmer';
 import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
-import { HeaderTitle, FooterText } from "@/components/ui/text";
+import Animated from 'react-native-reanimated';
 
-// Extracted Configuration & Hooks
+// Import domain-specific hooks and configuration
 import { INITIAL_LOCALES, CUSTOM_THEME } from '@/components/calendar/CalendarConfig';
 import { useCalendarRange } from '@/hooks/calendar/useCalendarRange';
 import { useCalendarEvents } from '@/hooks/calendar/useCalendarEvents';
 import { useSkeletonAnimation } from '@/hooks/calendar/useSkeletonAnimation';
 
-// Uniwind components for styling
+// Styled primitive components optimized for consistent spacing and typography
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
 
 /**
  * Schedules Screen (`/app/(main)/schedules.tsx`)
  * 
- * The main calendar view rendering the user's commitments and schedules. 
- * Built on top of the extremely fast `@howljs/calendar-kit` which utilizes Reanimated 
- * and GestureHandler for pure native 60fps performance.
+ * OVERVIEW:
+ * This component provides a high-performance, interactive calendar view for long-term 
+ * commitment planning. It leverages native-driven animations and a strictly optimized 
+ * synchronization engine to handle complex time-based tasks.
  * 
- * ARCHITECTURE OVERVIEW:
- * 1. Range Management (`useCalendarRange`):
- *    The calendar lazily loads bounds. As the user swipes forward/backward, the hook 
- *    calculates the new viewport and updates the state.
+ * ARCHITECTURAL DESIGN PATTERNS:
  * 
- * 2. Data Fetching (`useCalendarEvents`):
- *    Subscribes to the local database / remote backend using the computed date payload 
- *    from `useCalendarRange`. Real-time push updates.
+ * 1. PERSISTENT SELECTION MODAL:
+ *    To prevent accidental mutations, we use a two-step UX. Users must 'Long Press' an 
+ *    event to activate edit handles. Only when handles are visible can an event be 
+ *    dragged or resized. A single tap always routes to the singleton detail view.
  * 
- * 3. Modal Architecture (CRITICAL):
- *    When a calendar event is clicked, we DO NOT mount a local modal layer here. 
- *    Doing so would force the massive `+@howljs/calendar-kit` to execute a heavy React 
- *    re-render cycle, stuttering the app. Instead, we use Zustand (`setSelectedEvent`) 
- *    to pop the Singleton `<EventDetailModal>` located at the root `_layout.tsx`, 
- *    achieving sub-millisecond tap-to-render times.
+ * 2. TRIPLE-WRITE PROTOCOL (AUTHORITATIVE SYNC):
+ *    Consistency is the highest priority. When a temporal shift is confirmed:
+ *    A. CLOUD WRITE: Update the Convex state (Authoritative source).
+ *    B. LOCAL CACHE: Sync the result to SQLite (Ensures offline UI validity).
+ *    C. HARDWARE SYNC: Signal the Native Alarm module to reschedule system triggers.
+ * 
+ * 3. HEADLESS RANGE MANAGEMENT:
+ *    As the user navigates through time (swiping days/weeks), the `useCalendarRange` 
+ *    hook computes the visible window. This range is mirrored to the `useCalendarStore`, 
+ *    which triggers background fetchers to hydrate the local cache with relevant data.
  */
 export default function SchedulesScreen() {
+  // --- REFERENCES & CONTEXT ---
+  
+  // Direct handle to the Calendar controller for imperative actions like 'Go to Date'
   const calendarRef = useRef<CalendarKitRef>(null);
+
+  // SQLite Database instance for local cache synchronization
   const db = useSQLiteContext();
+
+  // Convex mutation for persisting remote updates
   const updateInstance = useMutation(api.api.instances.update.update);
 
-  // 1. Range Management (Infinite Scroll Logic)
-  const { range, handleVisibleDateChange } = useCalendarRange();
+  // --- 1. LOCAL INTERACTION STATE ---
 
-  // 2. Data Fetching (LOCAL — events stay in this component, not pushed to Zustand)
-  const { events, isLoading } = useCalendarEvents();
+  /**
+   * selectedCalendarEvent:
+   * Holds the event object that is currently in 'Edit Mode'.
+   * When defined, the Calendar component renders interactive resize and drag handles.
+   */
+  const [selectedCalendarEvent, setSelectedCalendarEvent] = useState<any>(undefined);
 
-  // Sync the local range from the calendar kit back to the global store
-  // so the headless background fetcher knows what to download!
-  const setRange = useCalendarStore((state) => state.setRange);
-  useEffect(() => {
-    setRange(range.rangeStart, range.rangeEnd);
-  }, [range.rangeStart, range.rangeEnd]);
-
-  // 3. Visual State
-  const { showSkeleton, animatedOverlayStyle } = useSkeletonAnimation();
-
-    
-  // 4. Navigation Control (Sync with Global Store)
-  const selectedDate = useCalendarStore((state) => state.selectedDate);
-  const setSelectedEventId = useCalendarStore((state) => state.setSelectedEventId);
-
-  useEffect(() => {
-    if (calendarRef.current && selectedDate) {
-      calendarRef.current.goToDate({ date: selectedDate, animatedDate: true });
-    }
-  }, [selectedDate]);
-
-  // 5. Drag-and-Drop Confirmation State
+  /**
+   * dragConfirm:
+   * Staging state for a proposed change. Triggered after a drag/resize finishes but 
+   * before the 'Triple-Write' protocol is executed.
+   */
   const [dragConfirm, setDragConfirm] = useState<{
     visible: boolean;
     event?: any;
@@ -96,62 +89,118 @@ export default function SchedulesScreen() {
     overlapMessage?: string;
   }>({ visible: false });
 
-  // -- Render Helpers --
+  // Range management: Computes current view bounds for lazy data loading
+  const { range, handleVisibleDateChange } = useCalendarRange();
 
+  // Primary event data source: Listens to Convex subscription via an optimized hook
+  const { events, isLoading } = useCalendarEvents();
+
+  // --- 2. GLOBAL SYNCHRONIZATION EFFECTS ---
+
+  /**
+   * Sync range to Global Store:
+   * Notifies the rest of the application (and background sync processes) about 
+   * exactly which time-slices are currently visible to the user.
+   */
+  const setRange = useCalendarStore((state) => state.setRange);
+  useEffect(() => {
+    setRange(range.rangeStart, range.rangeEnd);
+  }, [range.rangeStart, range.rangeEnd]);
+
+  // Loading Micro-Interaction: Controls skeleton visibility and fade animations
+  const { showSkeleton, animatedOverlayStyle } = useSkeletonAnimation();
+
+  /**
+   * Deep Navigation Listener:
+   * Allows the UI to snap to a specific date (e.g., when clicking a 'Today' button
+   * or following a push notification link).
+   */
+  const selectedDate = useCalendarStore((state) => state.selectedDate);
+  const setSelectedEventId = useCalendarStore((state) => state.setSelectedEventId);
+
+  useEffect(() => {
+    if (calendarRef.current && selectedDate) {
+      calendarRef.current.goToDate({ date: selectedDate, animatedDate: true });
+    }
+  }, [selectedDate]);
+
+  // --- 3. COMPONENT RENDERING & USER INTERACTION ---
+
+  /**
+   * renderEvent:
+   * Pure functional child renderer for event blocks. 
+   * Optimized for 60fps performance during fast scrolling.
+   */
   const renderEvent = useCallback((event: any) => {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <UText className="text-white font-bold text-center text-[10px]">
+      <UView className="flex-1 justify-center items-center px-1">
+        <UText className="text-white font-bold text-center text-[10px]" numberOfLines={2}>
           {event.title}
         </UText>
-      </View>
+      </UView>
     );
   }, []);
 
+  /**
+   * handleEventPress (Single Tap):
+   * Sets the global 'Selected Event ID' which signals the root _layout to mount 
+   * the singleton EventDetailModal. This avoids heavy re-renders of the large calendar.
+   */
   const handleEventPress = useCallback((event: any) => {
-    // Push the full event data into Zustand's single-event slot
     const eventData = event.originalData || event;
-    console.log("[Calendar] Event Pressed (ID):", eventData._id);
+    console.log("[Calendar] Interaction: Routing to Detail for", eventData._id);
     setSelectedEventId(eventData._id, eventData);
+  }, [setSelectedEventId]);
+
+  /**
+   * handleEventLongPress:
+   * Enters 'Edit Mode'. This is a friction-based gesture to prevent accidental events moves.
+   */
+  const handleEventLongPress = useCallback((event: any) => {
+    console.log("[Calendar] Interaction: Entering Edit Mode for", event.title);
+    setSelectedCalendarEvent(event);
   }, []);
 
   /**
-   * handleDragEventEnd
-   * 
-   * Triggered when a user finishes dragging an event to a new time slot.
-   * This provides detailed logs of the transition for verification.
+   * handleDragSelectedEventEnd:
+   * Fires when the user finishes a drag-and-drop or resize operation.
+   * Normalizes timestamps from the library's internal payload format.
    */
-  /**
-   * handleDragEventEnd
-   * 
-   * Orchestrates the event update lifecycle following a user-initiated drag-and-drop 
-   * operation. This callback captures the transition and triggers the confirmation UI.
-   * 
-   * @param updatedEvent - The event object containing the mutated start/end timestamps.
-   */
-  const handleDragEventEnd = useCallback((updatedEvent: any) => {
+  const handleDragSelectedEventEnd = useCallback((...args: any[]) => {
+    let [event, newStart, newEnd] = args;
+
+    // Library API Normalization:
+    // Some versions of the library provide a single 'updatedEvent' object instead of 
+    // separate start/end strings. We guard against this variation here.
+    if (!newStart && event) {
+      newStart = event.start?.dateTime || event.start?.date;
+      newEnd = event.end?.dateTime || event.end?.date;
+    }
+
     setDragConfirm({
         visible: true,
-        event: updatedEvent,
-        newStart: updatedEvent.start.dateTime || updatedEvent.start.date,
-        newEnd: updatedEvent.end.dateTime || updatedEvent.end.date,
+        event: event,
+        newStart: newStart,
+        newEnd: newEnd,
     });
-    
-    console.log("[SCHEDULER_EVENT] INTERCEPTED_FOR_CONFIRMATION:", updatedEvent.title);
   }, []);
 
+  // --- 4. PERSISTENCE WORKFLOW (THE "TRIPLE-WRITE") ---
+
   /**
-   * executeEventUpdate
-   * 
-   * Effectively persists the temporal mutation to the backend after user validation.
+   * executeEventUpdate:
+   * The core of the application's data integrity engine.
+   * Ensures that a single user action (Update) propagates to all architectural layers.
    */
   const executeEventUpdate = useCallback(async () => {
     if (!dragConfirm.event || !dragConfirm.newStart || !dragConfirm.newEnd) return;
     
-    const instanceId = dragConfirm.event.id;
-    console.log("[SCHEDULER_EVENT] COMMITTING_TRANSITION_TO_BACKEND:", instanceId);
+    // Resolve ID: Handle mismatch between raw '_id' (Convex) and library-provided 'id'.
+    const instanceId = dragConfirm.event._id || dragConfirm.event.id;
+    console.log("[SYNC_FLOW] Stage 1: Initializing Cloud Mutation for", instanceId);
 
     try {
+        // Step 1: PERSIST TO CLOUD (Authoritative source)
         const result = await updateInstance({
             id: instanceId,
             start: new Date(dragConfirm.newStart).getTime(),
@@ -159,44 +208,50 @@ export default function SchedulesScreen() {
         });
 
         if (result.success && result.instance) {
-            console.log("[SCHEDULER_EVENT] BACKEND_PERSISTENCE_SUCCESS. Proceeding to Local Sync.");
+            console.log("[SYNC_FLOW] Stage 2: Cloud success. Commencing Local Persistence.");
 
-            // 1. Sync the authoritative state to the local SQLite cache
+            // Step 2: SYNC TO LOCAL SQLITE CACHE (For offline UI consistency)
             await updateSingleInstanceInLocalDb(db, result.instance as any);
-            console.log("[SCHEDULER_EVENT] LOCAL_CACHE_SYNC_SUCCESS.");
 
-            // 2. Trigger hardware alarm synchronization
+            // Step 3: SIGNAL HARDWARE ALARMS (Native Android/iOS background logic)
             try {
               scheduleNextAlarm();
-              console.log("[SCHEDULER_EVENT] NATIVE_HARDWARE_ALARM_SYNC_SUCCESS.");
-            } catch (alarmError) {
-              console.error("[SCHEDULER_EVENT] NATIVE_ALARM_SYNC_FAILED:", alarmError);
+              console.log("[SYNC_FLOW] Stage 3: Native Alarms Refreshed.");
+            } catch (err) {
+              console.error("[SYNC_FLOW] Stage 3 FAILURE: Alarms may be out of sync.", err);
             }
 
+            // SUCCESS CLEANUP: Hide handles and dismiss modal
             setDragConfirm({ visible: false });
+            setSelectedCalendarEvent(undefined); 
         } else if (result.error === "OVERLAP_DETECTED") {
-            // Re-trigger modal with acknowledgment state
+            // BACKEND REJECTION: Handle schedule collisions gracefully
             setDragConfirm(prev => ({ 
                 ...prev, 
                 visible: true, 
                 isOverlapError: true,
                 overlapMessage: result.message
             }));
-            console.warn("[SCHEDULER_EVENT] BACKEND_PERSISTENCE_BLOCKED: Overlap detected");
+        } else {
+            console.warn("[SYNC_FLOW] Backend rejected update without explicit reason.");
+            setDragConfirm({ visible: false });
         }
     } catch (error: any) {
-        console.error("[SCHEDULER_EVENT] BACKEND_PERSISTENCE_FAILURE:", error);
-        Alert.alert("Sync Error", "Failed to reach the server. Please check your connection.");
+        console.error("[SYNC_FLOW] CRITICAL FAILURE: Persistence layer crashed.", error);
+        Alert.alert("Sync Error", "Critical failure while reaching the server.");
         setDragConfirm({ visible: false });
     }
-  }, [dragConfirm, updateInstance]);
+  }, [dragConfirm, updateInstance, db]);
+
+  // --- 5. RENDER LIFECYCLE ---
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <UView className="flex-1 bg-black relative">
-          {/* Fixed Time Axis Header */}
-          <UView className="absolute top-5 left-0 w-[20%] items-center z-10">
-               <UText className="text-white font-bold">Time</UText>
+          
+          {/* Static Time Marker Axis (Floating Header) */}
+          <UView className="absolute top-5 left-0 w-[20%] items-center z-10 pointer-events-none">
+               <UText className="text-white font-bold opacity-80">Time</UText>
           </UView>
 
           <CalendarKit
@@ -212,18 +267,22 @@ export default function SchedulesScreen() {
             useHaptic={true}
             allowPinchToZoom={true}
             allowDragToEdit={true}
-            dragStep={15}
-            onDragEventEnd={handleDragEventEnd}
-            onPressEvent={handleEventPress}
-            onChange={(event) => handleVisibleDateChange(calendarRef)}
+            
+            // Interaction API Configuration
+            selectedEvent={selectedCalendarEvent} // Handles visualization
+            onDragSelectedEventEnd={handleDragSelectedEventEnd} // Mutation trigger
+            onLongPressEvent={handleEventLongPress} // Explicit select
+            onPressEvent={handleEventPress} // Navigation
+            onPressBackground={() => setSelectedCalendarEvent(undefined)} // Deselect
+            
+            // Core Logic Hooks
+            onChange={() => handleVisibleDateChange(calendarRef)}
           >
             <CalendarHeader />
-            <CalendarBody 
-                renderEvent={renderEvent}
-            />
+            <CalendarBody renderEvent={renderEvent} />
           </CalendarKit>
 
-          {/* Loading Skeleton Overlay */}
+          {/* ASYNC Hydration Shimmer Overlay */}
           {showSkeleton && (
             <Animated.View 
               style={[
@@ -236,15 +295,15 @@ export default function SchedulesScreen() {
             </Animated.View>
           )}
 
-          {/* Drag and Drop Confirmation Modal */}
+          {/* Temporal Mutation Confirm: Prevents accidental rescheduling */}
           <ConfirmationModal
             visible={dragConfirm.visible}
             title={
                 dragConfirm.isOverlapError 
                     ? (dragConfirm.overlapMessage || "Schedule Conflict")
                     : (dragConfirm.event && dragConfirm.newStart 
-                        ? `Move "${dragConfirm.event.title}" to ${dayjs(dragConfirm.newStart).format('h:mm A')} - ${dayjs(dragConfirm.newEnd).format('h:mm A')} on ${dayjs(dragConfirm.newStart).format('DD MMM')}?`
-                        : "Reschedule Commitment?")
+                        ? `Update "${dragConfirm.event.title || 'Event'}" to ${dayjs(dragConfirm.newStart).format('h:mm A')} - ${dayjs(dragConfirm.newEnd).format('h:mm A')} on ${dayjs(dragConfirm.newStart).format('DD MMM')}?`
+                        : "Confirm Temporal Shift?")
             }
             onConfirm={dragConfirm.isOverlapError ? () => setDragConfirm({ visible: false }) : executeEventUpdate}
             onCancel={() => setDragConfirm({ visible: false })}
@@ -253,7 +312,6 @@ export default function SchedulesScreen() {
             cancelColor="#FF3B30"
             singleButton={dragConfirm.isOverlapError}
           />
-
       </UView>
     </GestureHandlerRootView>
   );

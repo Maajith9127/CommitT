@@ -1,8 +1,21 @@
-feat(sync): implement 'Triple-Write' protocol for event rescheduling
+feat(calendar): implement persistent selection mode and triple-write sync protocol
 
-- ARCHITECTURE: Establish an atomic synchronization lifecycle across Cloud (Convex), Cache (SQLite), and Kernel (Android Alarms).
-- BACKEND: Enhance `instances:update` mutation to return authoritative hydrated state after recalculating checkpoints.
-- MOBILE: Implement `local-db-instances` repository using a "Search-Clobber-Spawn" pattern for zero-stale-data local updates.
-- UI: Integrate real-time SQLite sync and native alarm triggering into the [Schedules](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:33:0-259:1) drag-and-drop lifecycle.
-- RELIABILITY: Ensure hardware-level alarm alignment immediately following any temporal shift in the calendar.
-- LOGGING: Add production-grade telemetry for all phases of the synchronization transaction.
+Refactored the calendar interaction model to improve stability and prevent 
+accidental temporal mutations. Significant architectural improvements to 
+the synchronization lifecycle.
+
+Key Changes:
+- Interaction: Implemented friction-based 'Long Press' to activate event 
+  selection handles. Handles now persist until background tap or commit.
+- Logic: Unified drag-and-drop and resize operations under the 
+  'onDragSelectedEventEnd' callback with defensive timestamp normalization.
+- Sync: Implemented 'Triple-Write' protocol in executeEventUpdate:
+    1. Authoritative Cloud mutation (Convex).
+    2. Local instance synchronization (SQLite).
+    3. Hardware trigger refresh (Native Alarms).
+- UX: Integrated ConfirmationModal for staging temporal shifts and 
+  added overlap error handling for schedule collisions.
+- Docs: Added comprehensive architectural comments detailing design 
+  patterns (Headless Range Management, Persistence layers).
+
+Fixes identifier resolution between backend (_id) and UI-mapped (id) instances.
