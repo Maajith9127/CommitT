@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import dayjs from 'dayjs';
 import Animated from 'react-native-reanimated';
-import { View, Text } from 'react-native';
+import { View, Text, Alert } from 'react-native';
+import { useMutation } from 'convex/react';
+import { api } from '@commit/backend/convex/_generated/api';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CalendarKit, { 
   CalendarBody, 
@@ -51,6 +53,7 @@ const UText = withUniwind(Text);
  */
 export default function SchedulesScreen() {
   const calendarRef = useRef<CalendarKitRef>(null);
+  const updateInstance = useMutation(api.api.instances.update.update);
 
   // 1. Range Management (Infinite Scroll Logic)
   const { range, handleVisibleDateChange } = useCalendarRange();
@@ -85,6 +88,8 @@ export default function SchedulesScreen() {
     event?: any;
     newStart?: string;
     newEnd?: string;
+    isOverlapError?: boolean;
+    overlapMessage?: string;
   }>({ visible: false });
 
   // -- Render Helpers --
@@ -137,13 +142,37 @@ export default function SchedulesScreen() {
    * Effectively persists the temporal mutation to the backend after user validation.
    */
   const executeEventUpdate = useCallback(async () => {
-    if (!dragConfirm.event || !dragConfirm.newStart) return;
+    if (!dragConfirm.event || !dragConfirm.newStart || !dragConfirm.newEnd) return;
     
-    console.log("[SCHEDULER_EVENT] COMMITTING_TRANSITION:", dragConfirm.event.title);
-    // TO BE IMPLEMENTED: Backend mutation call
-    
-    setDragConfirm({ visible: false });
-  }, [dragConfirm]);
+    const instanceId = dragConfirm.event.id;
+    console.log("[SCHEDULER_EVENT] COMMITTING_TRANSITION_TO_BACKEND:", instanceId);
+
+    try {
+        const result = await updateInstance({
+            id: instanceId,
+            start: new Date(dragConfirm.newStart).getTime(),
+            end: new Date(dragConfirm.newEnd).getTime(),
+        });
+
+        if (result.success) {
+            console.log("[SCHEDULER_EVENT] BACKEND_PERSISTENCE_SUCCESS");
+            setDragConfirm({ visible: false });
+        } else if (result.error === "OVERLAP_DETECTED") {
+            // Re-trigger modal with acknowledgment state
+            setDragConfirm(prev => ({ 
+                ...prev, 
+                visible: true, 
+                isOverlapError: true,
+                overlapMessage: result.message
+            }));
+            console.warn("[SCHEDULER_EVENT] BACKEND_PERSISTENCE_BLOCKED: Overlap detected");
+        }
+    } catch (error: any) {
+        console.error("[SCHEDULER_EVENT] BACKEND_PERSISTENCE_FAILURE:", error);
+        Alert.alert("Sync Error", "Failed to reach the server. Please check your connection.");
+        setDragConfirm({ visible: false });
+    }
+  }, [dragConfirm, updateInstance]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -193,14 +222,19 @@ export default function SchedulesScreen() {
           {/* Drag and Drop Confirmation Modal */}
           <ConfirmationModal
             visible={dragConfirm.visible}
-            title={dragConfirm.event && dragConfirm.newStart ? (
-                `Move "${dragConfirm.event.title}" to ${dayjs(dragConfirm.newStart).format('h:mm A')} on ${dayjs(dragConfirm.newStart).format('DD MMM')}?`
-            ) : "Reschedule Commitment?"}
-            onConfirm={executeEventUpdate}
+            title={
+                dragConfirm.isOverlapError 
+                    ? (dragConfirm.overlapMessage || "Schedule Conflict")
+                    : (dragConfirm.event && dragConfirm.newStart 
+                        ? `Move "${dragConfirm.event.title}" to ${dayjs(dragConfirm.newStart).format('h:mm A')} - ${dayjs(dragConfirm.newEnd).format('h:mm A')} on ${dayjs(dragConfirm.newStart).format('DD MMM')}?`
+                        : "Reschedule Commitment?")
+            }
+            onConfirm={dragConfirm.isOverlapError ? () => setDragConfirm({ visible: false }) : executeEventUpdate}
             onCancel={() => setDragConfirm({ visible: false })}
-            confirmText="Update"
+            confirmText={dragConfirm.isOverlapError ? "OK" : "Update"}
             confirmColor="#4FA0FF"
             cancelColor="#FF3B30"
+            singleButton={dragConfirm.isOverlapError}
           />
 
       </UView>

@@ -3,6 +3,85 @@ import { Id, Doc } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { generateTimeSlots } from "./generator";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DOMAIN RULE ENGINES (Checkpoints & Verification)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Generates randomized 5-minute checkpoints for "Stay Throughout" tasks.
+ */
+function generateStayThroughoutCheckpoints(args: {
+  start: number;
+  end: number;
+  conditions: any[];
+  config: Doc<"taskInstances">["config"];
+}) {
+  const intensity = args.config.stay_throughout_config?.intensity ?? "moderate";
+  let probabilityWeight = 0.50;
+  if (intensity === "relaxed") probabilityWeight = 0.20;
+  if (intensity === "strict") probabilityWeight = 0.80;
+  
+  const CHUNK_SIZE_MS = 5 * 60 * 1000;
+  const durationMs = args.end - args.start;
+  const checkpoints: any[] = [];
+  
+  if (durationMs <= 0) return undefined;
+  
+  const totalChunks = Math.ceil(durationMs / CHUNK_SIZE_MS);
+  for (let i = 0; i < totalChunks; i++) {
+    const chunkStart = args.start + (i * CHUNK_SIZE_MS);
+    const chunkEnd = Math.min(args.end, chunkStart + CHUNK_SIZE_MS);
+    
+    if ((chunkEnd - chunkStart) < 60 * 1000) continue;
+    
+    if (Math.random() <= probabilityWeight) {
+      const verificationStatus: Record<string, string> = {};
+      const isPast = chunkStart < Date.now();
+      for (const cond of args.conditions) {
+        verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
+      }
+      
+      checkpoints.push({
+        start: Math.floor(chunkStart),
+        end: Math.floor(chunkEnd),
+        start_readable: new Date(chunkStart).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+        end_readable: new Date(chunkEnd).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+        verification_status: verificationStatus,
+      });
+    }
+  }
+  
+  if (checkpoints.length === 0) return undefined;
+  return checkpoints.sort((a, b) => a.start - b.start);
+}
+
+/**
+ * Generates a single arrival-window checkpoint for "Just Show Up" tasks.
+ */
+function generateJustShowUpCheckpoints(args: {
+  start: number;
+  end: number;
+  conditions: any[];
+  config: Doc<"taskInstances">["config"];
+}) {
+  const graceMs = (args.config.grace_period_minutes ?? 0) * 60 * 1000;
+  const checkpointEnd = Math.min(args.end, args.start + graceMs);
+  
+  const verificationStatus: Record<string, string> = {};
+  const isPast = args.start < Date.now();
+  for (const cond of args.conditions) {
+    verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
+  }
+
+  return [{
+    start: Math.floor(args.start),
+    end: Math.floor(checkpointEnd),
+    start_readable: new Date(args.start).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+    end_readable: new Date(checkpointEnd).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
+    verification_status: verificationStatus,
+  }];
+}
+
 export type InstanceCreateArgs = {
   task_id: Id<"tasks">;
   assignee_id: string;
@@ -30,117 +109,25 @@ async function createOne(
   let rootCheckpoints: any[] | undefined = undefined;
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // FEATURE: Randomized "Stay Throughout" Checkpoint Generation (Fixed 5-Min Blocks)
+  // FEATURE: Unified Checkpoint Generation
   // ─────────────────────────────────────────────────────────────────────────────
-  // Core Domain Concept: If a task requires continuous verification ("stay_throughout"), 
-  // we strictly chunk its entire time block into discrete 5-minute segments.
-  //
-  // Depending on the user's explicit "intensity" setting, each 5-minute chunk runs
-  // a probability check. This fundamentally flips the logic from "Guilty" to 
-  // "Innocent Until Proven Guilty" - users are assumed compliant, but get randomly 
-  // spot-checked at unexpected times based on their configured strictness.
-  // 
-  // Example Probabilities per 5 Minutes:
-  // - Relaxed: ~20% chance of a random ping in a given chunk.
-  // - Moderate: ~50% chance of a random ping in a given chunk.
-  // - Strict: ~80% chance of a random ping in a given chunk.
-  //
-  // Edge Case Handling: A 5-minute task on "Relaxed" has an 80% chance of NEVER 
-  // getting a verification ping!
+  // We delegate the generation of verification windows to specialized rule engines.
+  // This ensures consistency between different parts of the system (create vs. update).
   // ─────────────────────────────────────────────────────────────────────────────
   if (args.config.verification_style === "stay_throughout") {
-    // @ts-ignore - 'intensity' is guaranteed to exist when verification_style is 'stay_throughout'
-    const intensity = args.config.stay_throughout_config?.intensity ?? "moderate";
-    
-    // 1. Establish the exact weighted probability based on the Intensity matrix
-    let probabilityWeight = 0.50; // Moderate: 50% chance per 5 mins
-    if (intensity === "relaxed") probabilityWeight = 0.20;
-    if (intensity === "strict") probabilityWeight = 0.80;
-    
-    // 2. Define the global standard block boundary (5 minutes in milliseconds)
-    const CHUNK_SIZE_MS = 5 * 60 * 1000;
-    const durationMs = args.end - args.start;
-    
-    if (durationMs > 0) {
-      const checkpoints: { 
-        start: number; 
-        end: number; 
-        start_readable: string;
-        end_readable: string;
-        verification_status: Record<string, "pending" | "verified" | "failed">;
-      }[] = [];
-      
-      // 3. Slice the entire session block mathematically into chunks.
-      // We use Math.ceil to elegantly capture any fractional leftover time. 
-      // (e.g., A 12-minute session results in exactly [5min, 5min, 2min] blocks).
-      const totalChunks = Math.ceil(durationMs / CHUNK_SIZE_MS);
-      
-      for (let i = 0; i < totalChunks; i++) {
-        // Calculate the absolute epoch bounds for the current chunk iteration
-        const chunkStart = args.start + (i * CHUNK_SIZE_MS);
-        
-        // Strict-capping: The final boundary chunk might project past the task's valid end time.
-        // We cap it cleanly at `args.end` to guarantee pings NEVER bleed outside the session.
-        const chunkEnd = Math.min(args.end, chunkStart + CHUNK_SIZE_MS);
-        const actualChunkDuration = chunkEnd - chunkStart;
-        
-        // Safety Valve: If the terminating chunk fragment is less than 60 seconds, 
-        // silently skip it. You cannot reasonably verify a ping at the literal buzzer.
-        if (actualChunkDuration < 60 * 1000) continue;
-        
-        // 4. Execution Roll: Does this 5-minute chunk get selected for verification?
-        if (Math.random() <= probabilityWeight) {
-          // The user's goal is simply to verify anytime within this specific 5-minute block.
-          // No confusing sub-random offsets. The checkpoint boundaries ARE the chunk boundaries.
-          
-          // Build the exact dict tracking every single active condition at this specific moment
-          const verificationStatus: Record<string, "pending" | "verified" | "failed"> = {};
-          // Protection Logic: If the user creates the Task AFTER this specific checkpoint's start time,
-          // they mathematically cannot complete it. We auto-verify it to prevent unfair penalization!
-          const isPast = chunkStart < Date.now();
-          for (const cond of args.conditions) {
-            verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
-          }
-          
-          checkpoints.push({
-            start: Math.floor(chunkStart),
-            end: Math.floor(chunkEnd),
-            start_readable: new Date(chunkStart).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
-            end_readable: new Date(chunkEnd).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
-            verification_status: verificationStatus,
-          });
-        }
-      }
-      
-      // 5. Root Array Finalization
-      if (checkpoints.length > 0) {
-        checkpoints.sort((a, b) => a.start - b.start);
-        rootCheckpoints = checkpoints; // Securely assign to root payload variable
-      }
-    }
+    rootCheckpoints = generateStayThroughoutCheckpoints({
+      start: args.start,
+      end: args.end,
+      conditions: args.conditions,
+      config: args.config,
+    });
   } else if (args.config.verification_style === "just_show_up") {
-    // ─────────────────────────────────────────────────────────────────────────────
-    // FEATURE: "Just Show Up" Checkpoint Generation (Single Entry Arrival Window)
-    // ─────────────────────────────────────────────────────────────────────────────
-    // For arrival-based tasks, we create exactly ONE checkpoint representing the 
-    // valid grace period from the start of the task.
-    // ─────────────────────────────────────────────────────────────────────────────
-    const graceMs = (args.config.grace_period_minutes ?? 0) * 60 * 1000;
-    const checkpointEnd = Math.min(args.end, args.start + graceMs);
-    
-    const verificationStatus: Record<string, "pending" | "verified" | "failed"> = {};
-    const isPast = args.start < Date.now();
-    for (const cond of args.conditions) {
-      verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
-    }
-
-    rootCheckpoints = [{
-      start: Math.floor(args.start),
-      end: Math.floor(checkpointEnd),
-      start_readable: new Date(args.start).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
-      end_readable: new Date(checkpointEnd).toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' }),
-      verification_status: verificationStatus,
-    }];
+    rootCheckpoints = generateJustShowUpCheckpoints({
+      start: args.start,
+      end: args.end,
+      conditions: args.conditions,
+      config: args.config,
+    });
   }
 
   // Final Persist: Push the completed, hydrated Task Instance to the Convex Data Store
@@ -260,6 +247,7 @@ export const Instances = {
   cleanupFuture,
   update,
   delete: deleteInstance,
+  checkOverlap,
 };
 
 async function update(
@@ -267,12 +255,59 @@ async function update(
   id: Id<"taskInstances">,
   updates: {
     status?: "pending" | "completed" | "failed" | "skipped" | "proceeding" | "proceeded";
+    start?: number;
+    end?: number;
     [key: string]: any;
   }
 ) {
   const patch: any = { ...updates };
+  
+  // Normalization: Map legacy UI statuses to backend domain statuses
   if (patch.status === "completed") patch.status = "proceeded";
   if (patch.status === "skipped") patch.status = "failed";
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // FEATURE: Intelligent Temporal Rescheduling
+  // ─────────────────────────────────────────────────────────────────────────────
+  // If the start or end time changes, the existing checkpoints (verification 
+  // windows) become mathematically invalid. We must recalculate them using 
+  // the exact same rule engines used during initial creation.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (updates.start !== undefined || updates.end !== undefined) {
+    const existing = await ctx.db.get(id);
+    
+    if (existing) {
+      const newStart = updates.start ?? existing.start;
+      const newEnd = updates.end ?? existing.end;
+
+      console.log(`[SERVICE:update] TEMPORAL_SHIFT_DETECTED for ${id}. Recalculating checkpoints.`);
+
+      // 1. Recalculate checkpoints using the centralized rule engines
+      if (existing.config.verification_style === "stay_throughout") {
+        patch.checkpoints = generateStayThroughoutCheckpoints({
+          start: newStart,
+          end: newEnd,
+          conditions: existing.conditions,
+          config: existing.config,
+        });
+      } else if (existing.config.verification_style === "just_show_up") {
+        patch.checkpoints = generateJustShowUpCheckpoints({
+          start: newStart,
+          end: newEnd,
+          conditions: existing.conditions,
+          config: existing.config,
+        });
+      }
+
+      // 2. Reset condition progress
+      // When a task moves to a new slot, any previous progress/neutral status
+      // should be cleared to ensure a clean start in the new window.
+      patch.conditions = existing.conditions.map((c: any) => ({
+        ...c,
+        status: "neutral",
+      }));
+    }
+  }
 
   await ctx.db.patch(id, patch);
 }
@@ -287,4 +322,33 @@ async function deleteInstance(ctx: MutationCtx, id: Id<"taskInstances">) {
   }
 
   await ctx.db.delete(id);
+}
+
+/**
+ * Checks for schedule overlaps for a specific user and time range.
+ */
+async function checkOverlap(
+  ctx: MutationCtx,
+  args: {
+    assignee_id: string;
+    start: number;
+    end: number;
+    exclude_id?: Id<"taskInstances">;
+  }
+) {
+  const { assignee_id, start, end, exclude_id } = args;
+
+  const existingInRegion = await ctx.db
+    .query("taskInstances")
+    .withIndex("by_assignee_start", (q: any) => 
+      q.eq("assignee_id", assignee_id)
+       .lt("start", end)
+    )
+    .collect();
+
+  const overlap = existingInRegion.find(
+    (inst: any) => inst._id !== exclude_id && inst.end > start
+  );
+
+  return overlap ?? null;
 }

@@ -1,19 +1,9 @@
-refactor(native/schedules): implement interactive event rescheduling and validation lifecycle
+refactor(backend): modularize checkpoint generation and enhance temporal rescheduling
 
-[ARCHITECTURE OVERVIEW]
-Implemented the 'Drag-to-Edit' capability for the Schedules screen, establishing a secure state-interception pattern for temporal mutations. This ensures that user gestures are validated through a dedicated confirmation layer before any persistence logic is triggered.
-
-[TECHNICAL CHANGES]
-- FEATURE: Enabled high-performance dragging in `@howljs/calendar-kit` via 'allowDragToEdit'.
-- LOGIC: Configured 'dragStep' to 15-minute increments to maintain structural alignment with the task grid.
-- STATE: Introduced a 'dragConfirm' local state to hold proposed temporal snapshots (start/end) during the validation transition.
-- HANDLERS: Decoupled 'handleDragEventEnd' (gesture capture) from 'executeEventUpdate' (committed state change).
-- REFACTOR: Upgraded 'ConfirmationModal' to support dynamic title-based messaging and status-aware color coding.
-
-[UX IMPROVEMENTS]
-- Added high-context modal titles that consolidate the event name, proposed time, and date into a single high-impact string.
-- Standardized action semantics by applying color codes: Blue (#4FA0FF) for confirmation and Red (#FF3B30) for destructive/cancel actions.
-- Integrated 'dayjs' for localized, human-friendly time formatting during the transition preview.
-
-[INTERNAL LOGGING]
-- Replaced informal debug logs with standardized [SCHEDULER_EVENT] telemetry for better production monitoring.
+- Decouple verification rules from database logic by extracting standalone generators for 'Stay Throughout' and 'Just Show Up' tasks.
+- Implement 'Intelligent Temporal Rescheduling' in Instance service to automatically recalculate pings when an event's time slot shifts.
+- Centralize date/time formatting in [convex/lib/formatters.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/formatters.ts:0:0-0:0) ensuring consistent IST (Asia/Kolkata) localization across the system.
+- Refactor API layer to be lean, offloading collision hardaware and business logic to the core domain service.
+- Integrate schedule synchronization ([syncTaskSchedule](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/scheduling/scheduler.ts:4:0-66:1)) into individual updates to maintain background alarm integrity.
+- Enhance frontend Confirmation Modal to provide descriptive conflict feedback, including conflicting event titles, dates, and time slots.
+- Improve error propagation by shifting from raw exceptions to structured result objects for business logic violations.

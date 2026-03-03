@@ -42,6 +42,7 @@ import type * as execution_watchdog from "../execution/watchdog.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as lib_errorHandler from "../lib/errorHandler.js";
+import type * as lib_formatters from "../lib/formatters.js";
 import type * as lib_index from "../lib/index.js";
 import type * as lib_logger from "../lib/logger.js";
 import type * as lib_validators from "../lib/validators.js";
@@ -94,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   healthCheck: typeof healthCheck;
   http: typeof http;
   "lib/errorHandler": typeof lib_errorHandler;
+  "lib/formatters": typeof lib_formatters;
   "lib/index": typeof lib_index;
   "lib/logger": typeof lib_logger;
   "lib/validators": typeof lib_validators;
