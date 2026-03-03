@@ -1,14 +1,31 @@
+/**
+ * INSTANCES SERVICE
+ * ─────────────────────────────────────────────────────────────────────────────
+ * This module is the core engine for managing Task Instances (occurrences).
+ * It handles the lifecycle of an individual event: creation, rules-based
+ * checkpoint generation, series expansion, and temporal rescheduling.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
 import { MutationCtx } from "../../_generated/server";
 import { Id, Doc } from "../../_generated/dataModel";
 import { internal } from "../../_generated/api";
 import { generateTimeSlots } from "./generator";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DOMAIN RULE ENGINES (Checkpoints & Verification)
+// [SECTION] DOMAIN RULE ENGINES
+// These functions encode the "How" of verification. They are pure logic engines
+// that transform a time window into a set of actionable checkpoints.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Generates randomized 5-minute checkpoints for "Stay Throughout" tasks.
+ * 
+ * Logic:
+ * 1. Divide the total duration into 5-minute chunks.
+ * 2. Apply a probability weight based on user-configured 'intensity'.
+ * 3. Randomly select chunks for verification to create an unpredictable schedule.
+ * 4. Auto-verify past chunks to prevent unfair failure for late-recorded tasks.
  */
 function generateStayThroughoutCheckpoints(args: {
   start: number;
@@ -17,7 +34,9 @@ function generateStayThroughoutCheckpoints(args: {
   config: Doc<"taskInstances">["config"];
 }) {
   const intensity = args.config.stay_throughout_config?.intensity ?? "moderate";
-  let probabilityWeight = 0.50;
+  
+  // Weights determine the likelihood of a 5-minute slot being picked for verification
+  let probabilityWeight = 0.50; // Moderate: 50% chance
   if (intensity === "relaxed") probabilityWeight = 0.20;
   if (intensity === "strict") probabilityWeight = 0.80;
   
@@ -30,13 +49,18 @@ function generateStayThroughoutCheckpoints(args: {
   const totalChunks = Math.ceil(durationMs / CHUNK_SIZE_MS);
   for (let i = 0; i < totalChunks; i++) {
     const chunkStart = args.start + (i * CHUNK_SIZE_MS);
-    const chunkEnd = Math.min(args.end, chunkStart + CHUNK_SIZE_MS);
+    const chunkEnd = Math.min(args.end, chunkStart + CHUNK_SIZE_MS); // Cap at task end
     
+    // Skip chunks shorter than 60s (impossible to verify)
     if ((chunkEnd - chunkStart) < 60 * 1000) continue;
     
+    // Probability Roll: The "Game Logic" of the spot-check system
     if (Math.random() <= probabilityWeight) {
       const verificationStatus: Record<string, string> = {};
       const isPast = chunkStart < Date.now();
+      
+      // Initialize pings. If the time is already past, we mark as verified
+      // to avoid penalizing the user for system delays or late task creation.
       for (const cond of args.conditions) {
         verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
       }
@@ -57,6 +81,9 @@ function generateStayThroughoutCheckpoints(args: {
 
 /**
  * Generates a single arrival-window checkpoint for "Just Show Up" tasks.
+ * 
+ * Logic: Creates exactly ONE checkpoint starting from the task start 
+ * and ending after the configured 'grace_period'.
  */
 function generateJustShowUpCheckpoints(args: {
   start: number;
@@ -96,24 +123,27 @@ export type InstanceCreateArgs = {
   status?: "pending" | "proceeding" | "proceeded" | "failed";
 };
 
+/**
+ * Hydrates and persists a single task instance into the database.
+ * 
+ * Responsibilities:
+ * 1. Initializing condition statuses to 'neutral'.
+ * 2. Invoking rule engines to generate the appropriate checkpoints.
+ * 3. Saving the final document to the 'taskInstances' table.
+ */
 async function createOne(
   ctx: MutationCtx,
   args: InstanceCreateArgs
 ): Promise<Id<"taskInstances">> {
-  // By default, every condition inside a brand new task instance starts out completely neutral.
-  // It is neither verified nor failed until the user explicitly takes action (or misses the window).
+  // Reset all verification conditions to neutral start state
   let processedConditions = args.conditions.map((c: any) => ({
     ...c,
     status: "neutral" as const,
   }));
+
   let rootCheckpoints: any[] | undefined = undefined;
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // FEATURE: Unified Checkpoint Generation
-  // ─────────────────────────────────────────────────────────────────────────────
-  // We delegate the generation of verification windows to specialized rule engines.
-  // This ensures consistency between different parts of the system (create vs. update).
-  // ─────────────────────────────────────────────────────────────────────────────
+  // Delegate checkpoint creation based on user preference
   if (args.config.verification_style === "stay_throughout") {
     rootCheckpoints = generateStayThroughoutCheckpoints({
       start: args.start,
@@ -130,7 +160,7 @@ async function createOne(
     });
   }
 
-  // Final Persist: Push the completed, hydrated Task Instance to the Convex Data Store
+  // Persist to Convex
   const instanceId = await ctx.db.insert("taskInstances", {
     task_id: args.task_id,
     assignee_id: args.assignee_id,
@@ -140,8 +170,8 @@ async function createOne(
     title: args.title,
     description: args.description,
     recurrence: args.recurrence,
-    conditions: processedConditions, // Initialized globally as neutral
-    checkpoints: rootCheckpoints,    // The newly structured root-level timeline mapping
+    conditions: processedConditions,
+    checkpoints: rootCheckpoints,
     config: args.config,
     next_instance_id: args.next_instance_id,
   });
@@ -150,42 +180,34 @@ async function createOne(
 }
 
 /**
- * Generates ALL task instances for the next 1 year and inserts them as
- * DB records, linked together via next_instance_id (linked-list chain).
- *
- * Returns the ID of the FIRST instance, or null if no slots found.
+ * Generates the entire recurrence series (1 year) for a task.
+ * 
+ * Responsibilities:
+ * 1. Calculate valid time slots using the Recurrence Engine (generator.ts).
+ * 2. Create individual instance records for every slot.
+ * 3. Link them in a chain (Linked List) via `next_instance_id`.
+ * 
+ * @returns The ID of the first (next) upcoming instance.
  */
 async function generateSeries(
   ctx: MutationCtx,
   taskId: Id<"tasks">,
   fromTime: number = Date.now(),
 ): Promise<Id<"taskInstances"> | null> {
-  // 1. Fetch the task to get recurrence rules and snapshot data
   const task = await ctx.db.get(taskId);
-  if (!task) {
-    console.log(`[Instances.generateSeries] Task ${taskId} not found.`);
-    return null;
-  }
+  if (!task) return null;
 
-  // 2. Build recurrence config
-  const recurrence = task.recurrence;
-
-  // TODO: Get timezone from user profile. Defaulting to IST (330 minutes) for now.
+  // IST (Asia/Kolkata) Offset: 330 minutes
+  // TODO: Fetch this from the User's profile settings in future updates.
   const timezoneOffset = 330;
 
-  // 3. Generate all time slots for the next year
-  const slots = generateTimeSlots(recurrence, fromTime, timezoneOffset);
+  // 1. Calculate future dates based on recurrence rules
+  const slots = generateTimeSlots(task.recurrence, fromTime, timezoneOffset);
 
-  if (slots.length === 0) {
-    console.log(`[Instances.generateSeries] No slots generated for task ${taskId}.`);
-    return null;
-  }
+  if (slots.length === 0) return null;
 
-  console.log(`[Instances.generateSeries] Generating ${slots.length} instances for task ${taskId}`);
-
-  // 4. Insert all instances (without next_instance_id first)
+  // 2. Map slots to Database Records
   const instanceIds: Id<"taskInstances">[] = [];
-
   for (const slot of slots) {
     const instanceId = await createOne(ctx, {
       task_id: taskId,
@@ -195,44 +217,40 @@ async function generateSeries(
       end: slot.endTime,
       title: task.title,
       description: task.description,
-      recurrence: recurrence,
+      recurrence: task.recurrence,
       conditions: task.conditions,
       config: task.config,
-      // Will be linked in the next step
     });
     instanceIds.push(instanceId);
   }
 
-  // 5. Link the chain: each instance points to the next one
+  // 3. Link the series for easy traversal (Next-Pointer pattern)
   for (let i = 0; i < instanceIds.length - 1; i++) {
     await ctx.db.patch(instanceIds[i], {
       next_instance_id: instanceIds[i + 1],
     });
   }
-  // Last instance has no next_instance_id (undefined by default)
-
-  console.log(`[Instances.generateSeries] Created ${instanceIds.length} instances.`);
 
   return instanceIds[0];
 }
 
 /**
- * Deletes all FUTURE instances for a task and cancels any active scheduled jobs.
- * Past instances (status === "proceeded") are preserved as history.
+ * Performs cleanup for a recurring series.
+ * 
+ * Logic:
+ * 1. Cancel background jobs (alarms) for future pings.
+ * 2. Delete pending/future instances.
+ * 3. Preserves historic records (status === "proceeded") for accounting/logs.
  */
 async function cleanupFuture(ctx: MutationCtx, taskId: Id<"tasks">) {
   const now = Date.now();
-
-  // Get ALL instances for this task
   const allInstances = await ctx.db
     .query("taskInstances")
     .withIndex("by_task", (q: any) => q.eq("task_id", taskId))
     .collect();
 
   for (const instance of allInstances) {
-    // Only delete future/pending instances — keep past ones as history
     if (instance.start >= now || instance.status === "pending") {
-      // Cancel any active scheduled job
       if (instance.scheduled_job_id) {
         await ctx.scheduler.cancel(instance.scheduled_job_id);
       }
@@ -241,6 +259,9 @@ async function cleanupFuture(ctx: MutationCtx, taskId: Id<"tasks">) {
   }
 }
 
+/**
+ * Public instance management interface.
+ */
 export const Instances = {
   createOne,
   generateSeries,
@@ -250,6 +271,15 @@ export const Instances = {
   checkOverlap,
 };
 
+/**
+ * Updates an individual task instance with smart temporal rescheduling.
+ * 
+ * Logic:
+ * 1. Handle status normalization (Completed -> Proceeded).
+ * 2. If 'start' or 'end' times move, trigger "Intelligent Rescheduling":
+ *    - Re-run the Rule Engines to spawn new checkpoints for the new slot.
+ *    - Reset all conditions to 'neutral' to ensure a fresh verification lifecycle.
+ */
 async function update(
   ctx: MutationCtx,
   id: Id<"taskInstances">,
@@ -262,17 +292,11 @@ async function update(
 ) {
   const patch: any = { ...updates };
   
-  // Normalization: Map legacy UI statuses to backend domain statuses
+  // Normalize UI status to Backend state machine
   if (patch.status === "completed") patch.status = "proceeded";
   if (patch.status === "skipped") patch.status = "failed";
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // FEATURE: Intelligent Temporal Rescheduling
-  // ─────────────────────────────────────────────────────────────────────────────
-  // If the start or end time changes, the existing checkpoints (verification 
-  // windows) become mathematically invalid. We must recalculate them using 
-  // the exact same rule engines used during initial creation.
-  // ─────────────────────────────────────────────────────────────────────────────
+  // Temporal Sync: Ensure verification logic follows the new time slot
   if (updates.start !== undefined || updates.end !== undefined) {
     const existing = await ctx.db.get(id);
     
@@ -280,9 +304,9 @@ async function update(
       const newStart = updates.start ?? existing.start;
       const newEnd = updates.end ?? existing.end;
 
-      console.log(`[SERVICE:update] TEMPORAL_SHIFT_DETECTED for ${id}. Recalculating checkpoints.`);
+      console.log(`[INSTANCES:update] Triggering RESCHEDULE for instance ${id}`);
 
-      // 1. Recalculate checkpoints using the centralized rule engines
+      // Recalculate verification checkpoints for the new window
       if (existing.config.verification_style === "stay_throughout") {
         patch.checkpoints = generateStayThroughoutCheckpoints({
           start: newStart,
@@ -299,9 +323,7 @@ async function update(
         });
       }
 
-      // 2. Reset condition progress
-      // When a task moves to a new slot, any previous progress/neutral status
-      // should be cleared to ensure a clean start in the new window.
+      // Reset conditions (Previous effort is invalidated by a time change)
       patch.conditions = existing.conditions.map((c: any) => ({
         ...c,
         status: "neutral",
@@ -312,11 +334,13 @@ async function update(
   await ctx.db.patch(id, patch);
 }
 
+/**
+ * Safely deletes an instance and tears down its background listeners.
+ */
 async function deleteInstance(ctx: MutationCtx, id: Id<"taskInstances">) {
   const instance = await ctx.db.get(id);
   if (!instance) return;
 
-  // Cancel any scheduled jobs associated with this instance
   if (instance.scheduled_job_id) {
     await ctx.scheduler.cancel(instance.scheduled_job_id);
   }
@@ -325,7 +349,11 @@ async function deleteInstance(ctx: MutationCtx, id: Id<"taskInstances">) {
 }
 
 /**
- * Checks for schedule overlaps for a specific user and time range.
+ * Schedule Conflict Utility.
+ * Searches for any other instance assigned to this user that overlaps
+ * with the provided time range.
+ * 
+ * @returns The conflicting document or null.
  */
 async function checkOverlap(
   ctx: MutationCtx,
@@ -338,6 +366,7 @@ async function checkOverlap(
 ) {
   const { assignee_id, start, end, exclude_id } = args;
 
+  // Efficient range query using compound index
   const existingInRegion = await ctx.db
     .query("taskInstances")
     .withIndex("by_assignee_start", (q: any) => 
@@ -346,9 +375,11 @@ async function checkOverlap(
     )
     .collect();
 
+  // Fine-grained filter for end-time overlap
   const overlap = existingInRegion.find(
     (inst: any) => inst._id !== exclude_id && inst.end > start
   );
 
   return overlap ?? null;
 }
+

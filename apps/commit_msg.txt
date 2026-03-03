@@ -1,9 +1,8 @@
-refactor(backend): modularize checkpoint generation and enhance temporal rescheduling
+docs(backend): modularized logic and comprehensive documentation for Instance service
 
-- Decouple verification rules from database logic by extracting standalone generators for 'Stay Throughout' and 'Just Show Up' tasks.
-- Implement 'Intelligent Temporal Rescheduling' in Instance service to automatically recalculate pings when an event's time slot shifts.
-- Centralize date/time formatting in [convex/lib/formatters.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/formatters.ts:0:0-0:0) ensuring consistent IST (Asia/Kolkata) localization across the system.
-- Refactor API layer to be lean, offloading collision hardaware and business logic to the core domain service.
-- Integrate schedule synchronization ([syncTaskSchedule](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/scheduling/scheduler.ts:4:0-66:1)) into individual updates to maintain background alarm integrity.
-- Enhance frontend Confirmation Modal to provide descriptive conflict feedback, including conflicting event titles, dates, and time slots.
-- Improve error propagation by shifting from raw exceptions to structured result objects for business logic violations.
+- Refactor checkpoint generation into standalone Domain Rule Engines to decouple business logic from persistence.
+- Implement 'Intelligent Rescheduling' to automatically recalculate verification windows during temporal shifts.
+- Add professional JSDoc and architectural headers to [convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0) for enterprise-grade maintainability.
+- Provide detailed internal documentation on the probability-based spot-check engine and the Linked-List series pattern.
+- Ensure strict data integrity by resetting condition statuses to 'neutral' when a task’s time window is modified.
+- Standardize developer onboarding through pedagogical comments explaining the "Innocent Until Proven Guilty" verification philosophy.
