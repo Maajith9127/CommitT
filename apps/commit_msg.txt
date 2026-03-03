@@ -1,21 +1,14 @@
-feat(calendar): implement persistent selection mode and triple-write sync protocol
+feat(header): refactor schedules navbar to match premium calendar standards
 
-Refactored the calendar interaction model to improve stability and prevent 
-accidental temporal mutations. Significant architectural improvements to 
-the synchronization lifecycle.
+Refined the global sticky header in 
+
+_layout.tsx
+ to implement a high-density, functional aesthetic inspired by Google Calendar.
 
 Key Changes:
-- Interaction: Implemented friction-based 'Long Press' to activate event 
-  selection handles. Handles now persist until background tap or commit.
-- Logic: Unified drag-and-drop and resize operations under the 
-  'onDragSelectedEventEnd' callback with defensive timestamp normalization.
-- Sync: Implemented 'Triple-Write' protocol in executeEventUpdate:
-    1. Authoritative Cloud mutation (Convex).
-    2. Local instance synchronization (SQLite).
-    3. Hardware trigger refresh (Native Alarms).
-- UX: Integrated ConfirmationModal for staging temporal shifts and 
-  added overlap error handling for schedule collisions.
-- Docs: Added comprehensive architectural comments detailing design 
-  patterns (Headless Range Management, Persistence layers).
 
-Fixes identifier resolution between backend (_id) and UI-mapped (id) instances.
+Navigation UX: Replaced the full date string with a dynamic "Month-only" title (e.g., "March") and added a chevron-down toggle to signal DatePicker interaction.
+Icon Standardization: Unified the scaling of all header actions (Hamburger Menu, Search, and Today) to 26px, perfectly synchronizing with the bottom TabBar design system.
+Dynamic Avatar: Integrated a prominent w-10 h-10 user avatar that intelligently loads the session image with a robust fallback to the user's first initial.
+Aesthetic Refinement: Restored the calendar-today action icon and ensured solid white color consistency across all header elements for a clean, high-contrast look.
+Layout Optimization: Adjusted component gaps and touch targets to ensure standard mobile interaction guidelines are met.

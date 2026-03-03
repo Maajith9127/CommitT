@@ -1,5 +1,5 @@
 import { Tabs, usePathname, useRouter } from "expo-router";
-import { Text, View, Pressable } from "react-native";
+import { Text, View, Pressable, Image } from "react-native";
 import { withUniwind } from "uniwind";
 import { BottomTabBar } from "@/components/ui/index";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -101,12 +101,34 @@ export default function MainLayout() {
     // The Schedules screen gets a special interactive header (Date Picker trigger)
     if (pathname.includes("/schedules")) {
       return { 
-        title: dayjs().format("MMMM D, YYYY"), 
-        icon,
+        title: dayjs(selectedDate).format("MMMM"), 
+        icon: "menu", // Hamburger menu style
         rightAction: (
-            <UPressable onPress={() => setSelectedDate(dayjs().toISOString())}>
-                <MaterialCommunityIcons name="calendar-today" size={34} color="white" />
-            </UPressable>
+            <UView className="flex-row items-center gap-4">
+                <UPressable>
+                    <MaterialCommunityIcons name="magnify" size={26} color="white" />
+                </UPressable>
+                <UPressable 
+                    onPress={() => setSelectedDate(dayjs().toISOString())}
+                    className="items-center justify-center"
+                >
+                    <MaterialCommunityIcons name="calendar-today" size={26} color="white" />
+                </UPressable>
+                {/* User Avatar - Enlarged per Google Calendar Spec */}
+                <UView className="w-10 h-10 rounded-full bg-[#1e1e1e] items-center justify-center border-2 border-white overflow-hidden ml-1">
+                    {session?.user?.image ? (
+                        <Image 
+                            source={{ uri: session.user.image }} 
+                            style={{ width: '100%', height: '100%' }}
+                            resizeMode="cover"
+                        />
+                    ) : (
+                        <UText className="text-[10px] text-white font-bold">
+                            {session?.user?.name?.charAt(0) || "U"}
+                        </UText>
+                    )}
+                </UView>
+            </UView>
         )
       };
     }
@@ -136,14 +158,18 @@ export default function MainLayout() {
         <UView className="w-full flex-row items-center justify-between bg-black pt-14 pb-4 px-4">
            
            {/* Header Left: Icon & Dynamic Title */}
-           <UView className="flex-row items-center gap-2">
-              <MaterialCommunityIcons name={icon} size={30} color="white" />
+           <UView className="flex-row items-center gap-3">
+              <MaterialCommunityIcons name={icon as any} size={26} color="white" />
               
               {isSchedules ? (
-                  <UPressable onPress={() => setDatePickerVisible(true)}>
-                        <HeaderTitle className="text-2xl text-white font-bold">
-                            {dayjs(selectedDate).format("MMMM D, YYYY")}
+                  <UPressable 
+                    onPress={() => setDatePickerVisible(true)}
+                    className="flex-row items-center gap-1"
+                  >
+                        <HeaderTitle className="text-2xl text-white">
+                            {title}
                         </HeaderTitle> 
+                        <MaterialCommunityIcons name="chevron-down" size={20} color="white" />
                   </UPressable>
               ) : (
                   <HeaderTitle className="text-2xl text-white">{title}</HeaderTitle>
