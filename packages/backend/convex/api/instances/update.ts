@@ -69,6 +69,14 @@ export const update = authedMutation({
     // re-evaluates which alarm should be set next.
     await syncTaskSchedule(ctx, instance.task_id);
 
-    return { success: true };
+    // Fetch the final hydrated state to return to the client for local sync
+    const updatedInstance = await ctx.db.get(id);
+
+    console.log(`[CONVEX_UPDATE] TRANSACTION_COMPLETE: Returning authoritative state for ${id}`);
+
+    return { 
+      success: true,
+      instance: updatedInstance
+    };
   },
 });

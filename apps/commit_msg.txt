@@ -1,8 +1,8 @@
-docs(backend): modularized logic and comprehensive documentation for Instance service
+feat(sync): implement 'Triple-Write' protocol for event rescheduling
 
-- Refactor checkpoint generation into standalone Domain Rule Engines to decouple business logic from persistence.
-- Implement 'Intelligent Rescheduling' to automatically recalculate verification windows during temporal shifts.
-- Add professional JSDoc and architectural headers to [convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0) for enterprise-grade maintainability.
-- Provide detailed internal documentation on the probability-based spot-check engine and the Linked-List series pattern.
-- Ensure strict data integrity by resetting condition statuses to 'neutral' when a task’s time window is modified.
-- Standardize developer onboarding through pedagogical comments explaining the "Innocent Until Proven Guilty" verification philosophy.
+- ARCHITECTURE: Establish an atomic synchronization lifecycle across Cloud (Convex), Cache (SQLite), and Kernel (Android Alarms).
+- BACKEND: Enhance `instances:update` mutation to return authoritative hydrated state after recalculating checkpoints.
+- MOBILE: Implement `local-db-instances` repository using a "Search-Clobber-Spawn" pattern for zero-stale-data local updates.
+- UI: Integrate real-time SQLite sync and native alarm triggering into the [Schedules](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:33:0-259:1) drag-and-drop lifecycle.
+- RELIABILITY: Ensure hardware-level alarm alignment immediately following any temporal shift in the calendar.
+- LOGGING: Add production-grade telemetry for all phases of the synchronization transaction.

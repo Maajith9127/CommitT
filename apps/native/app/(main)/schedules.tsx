@@ -3,7 +3,10 @@ import dayjs from 'dayjs';
 import Animated from 'react-native-reanimated';
 import { View, Text, Alert } from 'react-native';
 import { useMutation } from 'convex/react';
+import { useSQLiteContext } from 'expo-sqlite';
 import { api } from '@commit/backend/convex/_generated/api';
+import { scheduleNextAlarm } from '@/modules/scheduler-module';
+import { updateSingleInstanceInLocalDb } from '@/lib/local-db-instances';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import CalendarKit, { 
   CalendarBody, 
@@ -53,6 +56,7 @@ const UText = withUniwind(Text);
  */
 export default function SchedulesScreen() {
   const calendarRef = useRef<CalendarKitRef>(null);
+  const db = useSQLiteContext();
   const updateInstance = useMutation(api.api.instances.update.update);
 
   // 1. Range Management (Infinite Scroll Logic)
@@ -154,8 +158,21 @@ export default function SchedulesScreen() {
             end: new Date(dragConfirm.newEnd).getTime(),
         });
 
-        if (result.success) {
-            console.log("[SCHEDULER_EVENT] BACKEND_PERSISTENCE_SUCCESS");
+        if (result.success && result.instance) {
+            console.log("[SCHEDULER_EVENT] BACKEND_PERSISTENCE_SUCCESS. Proceeding to Local Sync.");
+
+            // 1. Sync the authoritative state to the local SQLite cache
+            await updateSingleInstanceInLocalDb(db, result.instance as any);
+            console.log("[SCHEDULER_EVENT] LOCAL_CACHE_SYNC_SUCCESS.");
+
+            // 2. Trigger hardware alarm synchronization
+            try {
+              scheduleNextAlarm();
+              console.log("[SCHEDULER_EVENT] NATIVE_HARDWARE_ALARM_SYNC_SUCCESS.");
+            } catch (alarmError) {
+              console.error("[SCHEDULER_EVENT] NATIVE_ALARM_SYNC_FAILED:", alarmError);
+            }
+
             setDragConfirm({ visible: false });
         } else if (result.error === "OVERLAP_DETECTED") {
             // Re-trigger modal with acknowledgment state
