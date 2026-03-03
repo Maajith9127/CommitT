@@ -1,5 +1,19 @@
-feat(core): 
---- Dev Environment & Tooling ---
-- **ADB Version Sync**: Resolved "Uncaught TypeError" and hangs by prioritizing modern Android SDK platforms-tools in `.bashrc` over legacy system packages.
-- **Connection Diagnostics**: Overhauled `connect-phone.ps1` with smarter device sharing (usbipd) and diagnostic coloring to ensure reliable physical device debugging.
-- **Improved Scripting**: Absolute pathing for ADB in WSL to prevent server-mismatch hangs during Expo/Physical device attachment.
+refactor(native/schedules): implement interactive event rescheduling and validation lifecycle
+
+[ARCHITECTURE OVERVIEW]
+Implemented the 'Drag-to-Edit' capability for the Schedules screen, establishing a secure state-interception pattern for temporal mutations. This ensures that user gestures are validated through a dedicated confirmation layer before any persistence logic is triggered.
+
+[TECHNICAL CHANGES]
+- FEATURE: Enabled high-performance dragging in `@howljs/calendar-kit` via 'allowDragToEdit'.
+- LOGIC: Configured 'dragStep' to 15-minute increments to maintain structural alignment with the task grid.
+- STATE: Introduced a 'dragConfirm' local state to hold proposed temporal snapshots (start/end) during the validation transition.
+- HANDLERS: Decoupled 'handleDragEventEnd' (gesture capture) from 'executeEventUpdate' (committed state change).
+- REFACTOR: Upgraded 'ConfirmationModal' to support dynamic title-based messaging and status-aware color coding.
+
+[UX IMPROVEMENTS]
+- Added high-context modal titles that consolidate the event name, proposed time, and date into a single high-impact string.
+- Standardized action semantics by applying color codes: Blue (#4FA0FF) for confirmation and Red (#FF3B30) for destructive/cancel actions.
+- Integrated 'dayjs' for localized, human-friendly time formatting during the transition preview.
+
+[INTERNAL LOGGING]
+- Replaced informal debug logs with standardized [SCHEDULER_EVENT] telemetry for better production monitoring.

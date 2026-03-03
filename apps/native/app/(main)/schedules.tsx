@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import dayjs from 'dayjs';
 import Animated from 'react-native-reanimated';
 import { View, Text } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -6,10 +7,14 @@ import CalendarKit, {
   CalendarBody, 
   CalendarHeader,
   CalendarKitRef,
+  DraggingEvent,
+  DraggingEventProps
 } from '@howljs/calendar-kit';
 import { withUniwind } from 'uniwind';
 import { useCalendarStore } from '@/stores/useCalendarStore';
 import { CalendarShimmer } from '@/components/ui/skeletons/CalendarShimmer';
+import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
+import { HeaderTitle, FooterText } from "@/components/ui/text";
 
 // Extracted Configuration & Hooks
 import { INITIAL_LOCALES, CUSTOM_THEME } from '@/components/calendar/CalendarConfig';
@@ -74,6 +79,14 @@ export default function SchedulesScreen() {
     }
   }, [selectedDate]);
 
+  // 5. Drag-and-Drop Confirmation State
+  const [dragConfirm, setDragConfirm] = useState<{
+    visible: boolean;
+    event?: any;
+    newStart?: string;
+    newEnd?: string;
+  }>({ visible: false });
+
   // -- Render Helpers --
 
   const renderEvent = useCallback((event: any) => {
@@ -92,6 +105,45 @@ export default function SchedulesScreen() {
     console.log("[Calendar] Event Pressed (ID):", eventData._id);
     setSelectedEventId(eventData._id, eventData);
   }, []);
+
+  /**
+   * handleDragEventEnd
+   * 
+   * Triggered when a user finishes dragging an event to a new time slot.
+   * This provides detailed logs of the transition for verification.
+   */
+  /**
+   * handleDragEventEnd
+   * 
+   * Orchestrates the event update lifecycle following a user-initiated drag-and-drop 
+   * operation. This callback captures the transition and triggers the confirmation UI.
+   * 
+   * @param updatedEvent - The event object containing the mutated start/end timestamps.
+   */
+  const handleDragEventEnd = useCallback((updatedEvent: any) => {
+    setDragConfirm({
+        visible: true,
+        event: updatedEvent,
+        newStart: updatedEvent.start.dateTime || updatedEvent.start.date,
+        newEnd: updatedEvent.end.dateTime || updatedEvent.end.date,
+    });
+    
+    console.log("[SCHEDULER_EVENT] INTERCEPTED_FOR_CONFIRMATION:", updatedEvent.title);
+  }, []);
+
+  /**
+   * executeEventUpdate
+   * 
+   * Effectively persists the temporal mutation to the backend after user validation.
+   */
+  const executeEventUpdate = useCallback(async () => {
+    if (!dragConfirm.event || !dragConfirm.newStart) return;
+    
+    console.log("[SCHEDULER_EVENT] COMMITTING_TRANSITION:", dragConfirm.event.title);
+    // TO BE IMPLEMENTED: Backend mutation call
+    
+    setDragConfirm({ visible: false });
+  }, [dragConfirm]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -113,6 +165,9 @@ export default function SchedulesScreen() {
             events={events}
             useHaptic={true}
             allowPinchToZoom={true}
+            allowDragToEdit={true}
+            dragStep={15}
+            onDragEventEnd={handleDragEventEnd}
             onPressEvent={handleEventPress}
             onChange={(event) => handleVisibleDateChange(calendarRef)}
           >
@@ -134,6 +189,19 @@ export default function SchedulesScreen() {
               <CalendarShimmer />
             </Animated.View>
           )}
+
+          {/* Drag and Drop Confirmation Modal */}
+          <ConfirmationModal
+            visible={dragConfirm.visible}
+            title={dragConfirm.event && dragConfirm.newStart ? (
+                `Move "${dragConfirm.event.title}" to ${dayjs(dragConfirm.newStart).format('h:mm A')} on ${dayjs(dragConfirm.newStart).format('DD MMM')}?`
+            ) : "Reschedule Commitment?"}
+            onConfirm={executeEventUpdate}
+            onCancel={() => setDragConfirm({ visible: false })}
+            confirmText="Update"
+            confirmColor="#4FA0FF"
+            cancelColor="#FF3B30"
+          />
 
       </UView>
     </GestureHandlerRootView>

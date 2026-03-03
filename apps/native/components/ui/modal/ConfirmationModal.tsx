@@ -1,3 +1,4 @@
+import React from "react";
 import { Modal, Pressable, View, Text } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText, HeaderTitle } from "@/components/ui/text";
