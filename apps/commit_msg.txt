@@ -1,14 +1,15 @@
-feat(header): refactor schedules navbar to match premium calendar standards
+feat(ui): standardize header dimensions and refine calendar layout
 
-Refined the global sticky header in 
-
-_layout.tsx
- to implement a high-density, functional aesthetic inspired by Google Calendar.
+Refined the visual hierarchy and interaction density for the Schedules view and Global Header.
 
 Key Changes:
 
-Navigation UX: Replaced the full date string with a dynamic "Month-only" title (e.g., "March") and added a chevron-down toggle to signal DatePicker interaction.
-Icon Standardization: Unified the scaling of all header actions (Hamburger Menu, Search, and Today) to 26px, perfectly synchronizing with the bottom TabBar design system.
-Dynamic Avatar: Integrated a prominent w-10 h-10 user avatar that intelligently loads the session image with a robust fallback to the user's first initial.
-Aesthetic Refinement: Restored the calendar-today action icon and ensured solid white color consistency across all header elements for a clean, high-contrast look.
-Layout Optimization: Adjusted component gaps and touch targets to ensure standard mobile interaction guidelines are met.
+Header Standardization: Scaled HEADER_ICON_SIZE to 32px across the global navbar, ensuring consistent visual weight between the Hamburger menu, Search, Today, and the User Avatar.
+Calendar Density: Adjusted numberOfDays in the Schedules view to 3, providing a more focused multi-day layout.
+Visual Polish:
+Refined the "Time" marker axis in the calendar—narrowed the container width to 17% and increased text prominence by removing opacity.
+Improved consistency of the dynamic "Today" action and User Avatar border styling.
+Stability: Cleaned up 
+
+_layout.tsx
+ to restore missing styled-component declarations and resolve linting warnings.

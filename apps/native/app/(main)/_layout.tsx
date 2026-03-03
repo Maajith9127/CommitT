@@ -19,6 +19,10 @@ import dayjs from "dayjs";
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
 const UPressable = withUniwind(Pressable);
+const UImage = withUniwind(Image);
+
+// Standardized visual dimensions for header actions
+const HEADER_ICON_SIZE = 32;
 
 /**
  * MainLayout — Root Component for the Authenticated App (`/app/(main)`)
@@ -106,16 +110,16 @@ export default function MainLayout() {
         rightAction: (
             <UView className="flex-row items-center gap-4">
                 <UPressable>
-                    <MaterialCommunityIcons name="magnify" size={26} color="white" />
+                    <MaterialCommunityIcons name="magnify" size={HEADER_ICON_SIZE} color="white" />
                 </UPressable>
                 <UPressable 
                     onPress={() => setSelectedDate(dayjs().toISOString())}
                     className="items-center justify-center"
                 >
-                    <MaterialCommunityIcons name="calendar-today" size={26} color="white" />
+                    <MaterialCommunityIcons name="calendar-today" size={HEADER_ICON_SIZE} color="white" />
                 </UPressable>
-                {/* User Avatar - Enlarged per Google Calendar Spec */}
-                <UView className="w-10 h-10 rounded-full bg-[#1e1e1e] items-center justify-center border-2 border-white overflow-hidden ml-1">
+                {/* User Avatar - Proportional to header icons */}
+                <UView className="w-8 h-8 rounded-full bg-[#1e1e1e] items-center justify-center border-2 border-white overflow-hidden ml-1">
                     {session?.user?.image ? (
                         <Image 
                             source={{ uri: session.user.image }} 
@@ -159,7 +163,7 @@ export default function MainLayout() {
            
            {/* Header Left: Icon & Dynamic Title */}
            <UView className="flex-row items-center gap-3">
-              <MaterialCommunityIcons name={icon as any} size={26} color="white" />
+              <MaterialCommunityIcons name={icon as any} size={HEADER_ICON_SIZE} color="white" />
               
               {isSchedules ? (
                   <UPressable 

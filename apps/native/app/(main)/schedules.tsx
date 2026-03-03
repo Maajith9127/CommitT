@@ -250,13 +250,13 @@ export default function SchedulesScreen() {
       <UView className="flex-1 bg-black relative">
           
           {/* Static Time Marker Axis (Floating Header) */}
-          <UView className="absolute top-5 left-0 w-[20%] items-center z-10 pointer-events-none">
-               <UText className="text-white font-bold opacity-80">Time</UText>
+          <UView className="absolute top-5 left-0 w-[17%] items-center z-10 pointer-events-none">
+               <UText className="text-white font-bold ">Time</UText>
           </UView>
 
           <CalendarKit
             ref={calendarRef}
-            numberOfDays={4}
+            numberOfDays={3}
             locale="en"
             initialLocales={INITIAL_LOCALES}
             hourFormat="h A"
