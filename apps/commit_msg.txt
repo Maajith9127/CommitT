@@ -1,18 +1,6 @@
-fix(hooks): resolve deletion sync gap in useTaskActions to prevent phantom alarms
+ui: refine instance deletion UX and manual edit visibility
 
-[Problem]
-Task deletion followed an inverted sequence, attempting to re-schedule native
-hardware alarms before the local SQLite cache or Cloud state were fully cleared.
-This resulted in "Phantom Alarms"—notifications that would trigger for tasks 
-the user had already deleted because the scheduler saw a stale database state.
-
-[Solution]
-Standardized the `deleteTask` execution flow to follow a strict "Three-Point 
-Consistency" pattern:
-1. Cloud (Convex): Authoritative removal of commitment and temporal records.
-2. Cache (SQLite): Immediate local cleanup of instances and task definitions.
-3. Hardware (Native): Final re-calculation of upcoming alarms using the clean state.
-
-[Impact]
-Eliminates ghost notifications and ensures the physical phone alarm is perfectly 
-mirrored with the current application state immediately after a deletion.
+- Updated `EventDetailModal` to use a cleaner, more direct confirmation 
+  prompt ("Delete this instance?") and removed redundant sub-text.
+- Added visual 'EDITED' status labels to calendar events to distinguish 
+  manually moved commitments from automated recurrence.

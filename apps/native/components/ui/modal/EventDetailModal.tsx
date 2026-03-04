@@ -367,8 +367,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       {/* ── Delete Confirmation Modal ── */}
       <ConfirmationModal
         visible={deleteConfirmVisible}
-        title="Delete this commitment?"
-        message="This will permanently remove the task and all associated history."
+        title="Delete this instance?"
         confirmText="Delete"
         cancelText="Cancel"
         confirmColor="#FF3B30"
