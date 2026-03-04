@@ -198,6 +198,7 @@ export default function FinalScreen() {
     visible: false,
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
 
 
@@ -287,8 +288,7 @@ export default function FinalScreen() {
    * Submit the task to the backend via the centralized Triple-Write Architecture
    */
   const submitTask = useCallback(async () => {
-    setConfirmModalVisible(false);
-
+    setIsSubmitting(true);
     try {
       // Execute our entirely abstracted Custom Hook orchestrating the DB, Convex, and Android!
       const { success, error } = await executeCommit(draft, isEditMode);
@@ -308,6 +308,9 @@ export default function FinalScreen() {
         visible: true,
         message: "Network configuration totally failed. Attempt recovery."
       });
+    } finally {
+      setIsSubmitting(false);
+      setConfirmModalVisible(false);
     }
   }, [draft, isEditMode, router]);
 
@@ -576,6 +579,7 @@ export default function FinalScreen() {
         cancelColor={COLORS.danger}
         onConfirm={submitTask}
         onCancel={() => setConfirmModalVisible(false)}
+        isLoading={isSubmitting}
       />
 
       {/* Modal: Error Display */}

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, FlatList, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router"; // Essential for navigation
 import { withUniwind } from "uniwind";
@@ -102,6 +102,8 @@ export default function CommitsScreen() {
     clearSelection,
   } = useTaskSelection();
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // 4. Visual Layer (Skeleton logic moved to list render)
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -178,12 +180,16 @@ export default function CommitsScreen() {
     [requestDelete]
   );
 
-  /** wrapper for confirming deletion */
   const confirmDelete = useCallback(async () => {
     if (selectedTask?._id) {
-      await deleteTask(selectedTask._id);
+      setIsDeleting(true);
+      try {
+        await deleteTask(selectedTask._id);
+        clearSelection();
+      } finally {
+        setIsDeleting(false);
+      }
     }
-    clearSelection();
   }, [selectedTask, deleteTask, clearSelection]);
 
 
@@ -290,6 +296,7 @@ export default function CommitsScreen() {
         confirmColor={COLORS.danger}
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
+        isLoading={isDeleting}
       />
     </UView>
   );

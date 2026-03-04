@@ -1,5 +1,4 @@
-import React from "react";
-import { Modal, Pressable, View, Text } from "react-native";
+import { Modal, Pressable, View, Text, ActivityIndicator } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText, HeaderTitle } from "@/components/ui/text";
 
@@ -16,6 +15,7 @@ export type ConfirmationModalProps = {
   confirmColor?: string; // Color prop for confirm button
   cancelColor?: string;  // Color prop for cancel button
   singleButton?: boolean; // If true, only shows confirm button (for acknowledgement modals)
+  isLoading?: boolean;    // If true, shows a spinner in the confirm button
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -29,6 +29,7 @@ export function ConfirmationModal({
   confirmColor = "#4FA0FF",
   cancelColor = "#4FA0FF", // Default cancel to blue
   singleButton = false,
+  isLoading = false,
   onConfirm,
   onCancel,
 }: ConfirmationModalProps) {
@@ -68,10 +69,10 @@ export function ConfirmationModal({
           <UView className={`flex-row ${singleButton ? "justify-center" : "justify-end"} space-x-6 gap-8`}>
             {/* 2. Cancel Button - only show if not single button mode */}
             {!singleButton && (
-              <UPressable onPress={onCancel} hitSlop={10}>
+              <UPressable onPress={onCancel} hitSlop={10} disabled={isLoading}>
                   <FooterText 
                       className="text-base font-bold uppercase"
-                      style={{ color: cancelColor }}
+                      style={{ color: cancelColor, opacity: isLoading ? 0.5 : 1 }}
                   >
                       {cancelText}
                   </FooterText>
@@ -79,13 +80,17 @@ export function ConfirmationModal({
             )}
 
             {/* 3. Confirm Button */}
-            <UPressable onPress={onConfirm} hitSlop={10}>
-                <FooterText 
-                    className="text-base font-bold uppercase"
-                    style={{ color: confirmColor }}
-                >
-                    {confirmText}
-                </FooterText>
+            <UPressable onPress={onConfirm} hitSlop={10} disabled={isLoading}>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={confirmColor} />
+                ) : (
+                  <FooterText 
+                      className="text-base font-bold uppercase"
+                      style={{ color: confirmColor }}
+                  >
+                      {confirmText}
+                  </FooterText>
+                )}
             </UPressable>
           </UView>
         </UView>

@@ -106,6 +106,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Derive the effective status for the header badge.
   // For checkpoint-based tasks, we calculate the status from the live subscription
@@ -220,9 +221,14 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
 
   const confirmDelete = async () => {
     if (selectedTaskId) {
-      await deleteInstance(selectedTaskId);
-      setDeleteConfirmVisible(false);
-      handleClose();
+      setIsDeleting(true);
+      try {
+        await deleteInstance(selectedTaskId);
+        setDeleteConfirmVisible(false);
+        handleClose();
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -373,6 +379,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         confirmColor="#FF3B30"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteConfirmVisible(false)}
+        isLoading={isDeleting}
       />
 
       {/* ── Failure Reason Modal (overlays on top of the event modal) ── */}

@@ -59,6 +59,7 @@ export default function SchedulesScreen() {
     newEnd?: string;
     isOverlapError?: boolean;
     overlapMessage?: string;
+    isLoading?: boolean;
   }>({ visible: false });
 
   // Range management: Computes current view bounds for lazy data loading
@@ -142,6 +143,7 @@ export default function SchedulesScreen() {
   const executeEventUpdate = useCallback(async () => {
     if (!dragConfirm.event || !dragConfirm.newStart || !dragConfirm.newEnd) return;
     
+    setDragConfirm(prev => ({ ...prev, isLoading: true }));
     const instanceId = dragConfirm.event._id || dragConfirm.event.id;
 
     try {
@@ -156,17 +158,18 @@ export default function SchedulesScreen() {
             try {
               scheduleNextAlarm();
             } catch (err) {}
-            setDragConfirm({ visible: false });
+            setDragConfirm({ visible: false, isLoading: false });
             setSelectedCalendarEvent(undefined); 
         } else if (result.error === "OVERLAP_DETECTED") {
             setDragConfirm(prev => ({ 
                 ...prev, 
                 visible: true, 
                 isOverlapError: true,
-                overlapMessage: result.message
+                overlapMessage: result.message,
+                isLoading: false, // Reset loading state on overlap error
             }));
         } else {
-            setDragConfirm({ visible: false });
+            setDragConfirm({ visible: false, isLoading: false });
         }
     } catch (error: any) {
         Alert.alert("Sync Error", "Critical failure while reaching the server.");
@@ -237,6 +240,7 @@ export default function SchedulesScreen() {
             confirmColor="#4FA0FF"
             cancelColor="#FF3B30"
             singleButton={dragConfirm.isOverlapError}
+            isLoading={dragConfirm.isLoading}
           />
       </UView>
     </GestureHandlerRootView>
