@@ -1,10 +1,25 @@
-feat(calendar): implement multi-stage instance management and UI refinements
+feat(calendar): implement exception-aware recurrence engine and manual event protection
 
-- UI/UX: Standardize calendar header styling (icon sizes, avatar proportions) to match Google Calendar aesthetic.
-- FEATURE: Add functional three-dot options menu to `EventDetailModal` with 'Delete' and 'Duplicate' capabilities.
-- ARCH: Implement "Three-Point Consistency" workflow for instance deletion:
-    - CLOUD: Update Convex `instances.delete` to trigger the 'Temporal Brain' (syncTaskSchedule) for authoritative scheduling sync.
-    - CACHE: Add `deleteInstance` to [useTaskActions](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTaskActions.ts:9:0-110:1) for targeted SQLite cleanup in local persistent storage.
-    - HARDWARE: Force immediate native alarm refresh via `scheduleNextAlarm` post-deletion to prevent "zombie" notifications.
-- FIX: Resolve various linting errors, duplicate state declarations, and missing hook dependencies in `EventDetailModal`.
-- DX: Integrate draft-seeding logic for instance duplication, bridging the gap between calendar view and creation flow.
+[Problem]
+Recurring task generation followed strict template rules but ignored manual overrides
+made to individual instances (e.g., dragging a 6am Gym session to 5pm). This caused
+silent overlaps and data loss when habit templates were updated or new habits added.
+
+[Solution]
+Introduced an "Exception Pattern" to the scheduling engine to treat manual user
+edits as "cemented" commitments that the automated system cannot overwrite.
+
+Key Changes:
+- Schema: Added 'is_manual_edit' and 'is_deleted_exception' flags to taskInstances.
+- Service: Instances.update now automatically marks events as manual upon time-shifts.
+- Generator: generateSeries now performs a bulk-fetch of manual exceptions and 
+  intelligently skips slots that would clash with user-customized events.
+- Persistence: cleanupFuture specifically excludes manually edited events to 
+  protect user work during habit re-naming or rule updates.
+- UI: Added a high-vibrancy 'EDITED' label in the schedules view to provide
+  immediate visual feedback for exception-level commitments.
+
+[Impact]
+- Zero-cost conflict detection (O(1) database calls per series generation).
+- Permanent protection of manual user adjustments.
+- Clearer visual distinction between automated and customized schedule items.

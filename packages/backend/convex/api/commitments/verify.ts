@@ -27,7 +27,7 @@
  * ║  2. "Stay Throughout" (Continuous Mode)                                      ║
  * ║     A highly advanced strict accountability mode. Validates the user across  ║
  * ║     random, unpredictable 5-minute checkpoint pings. Verification updates    ║
- * ║     are dynamically sandboxed to the active Checkpoint Root Map dict.      ║
+ * ║     are dynamically sandboxed to the active Checkpoint Root Map dict.        ║
  * ║     The master state relies entirely on an aggregated cron evaluation.       ║
  * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝

@@ -206,9 +206,31 @@ async function generateSeries(
 
   if (slots.length === 0) return null;
 
-  // 2. Map slots to Database Records
+  // 2. BULK FETCH EXCEPTIONS
+  // We fetch all "Manually Edited" instances for this user across the generation horizon.
+  // This allows us to respect specific user changes (e.g. "Gym moved to 5 PM") 
+  // without creating clashing series occurrences.
+  const editedExceptions = await ctx.db
+    .query("taskInstances")
+    .withIndex("by_assignee_start", (q) => q.eq("assignee_id", task.assignee_id).gte("start", fromTime))
+    .filter((q) => q.eq(q.field("is_manual_edit"), true))
+    .collect();
+
+  console.log(`[Service:generateSeries] Fetched ${editedExceptions.length} manual exceptions to check against.`);
+
+  // 3. Map slots to Database Records — with Collision Avoidance
   const instanceIds: Id<"taskInstances">[] = [];
   for (const slot of slots) {
+    // High-performance overlap check against pre-fetched local cache
+    const overlappingManualEvent = editedExceptions.find(ex => 
+      slot.startTime < ex.end && ex.start < slot.endTime
+    );
+
+    if (overlappingManualEvent) {
+      console.log(`[Service:generateSeries] SLAPPING COLLISION: Skipping slot ${new Date(slot.startTime).toISOString()} because it overlaps with manual edit: "${overlappingManualEvent.title}"`);
+      continue; // Respect the manual edit; do not spawn a series default
+    }
+
     const instanceId = await createOne(ctx, {
       task_id: taskId,
       assignee_id: task.assignee_id,
@@ -250,7 +272,9 @@ async function cleanupFuture(ctx: MutationCtx, taskId: Id<"tasks">) {
     .collect();
 
   for (const instance of allInstances) {
-    if (instance.start >= now || instance.status === "pending") {
+    // CRITICAL PROD LOGIC: Protect manual edits from being nuked during series updates.
+    // We only clean up automated/pending instances that the user hasn't specifically customized.
+    if ((instance.start >= now || instance.status === "pending") && !instance.is_manual_edit) {
       if (instance.scheduled_job_id) {
         await ctx.scheduler.cancel(instance.scheduled_job_id);
       }
@@ -292,6 +316,12 @@ async function update(
 ) {
   const patch: any = { ...updates };
   
+  // If the user manually changed the time slot (e.g. via drag-and-drop in schedules.tsx),
+  // we mark it as a "Manual Exception" to protect it from series regeneration.
+  if (updates.start !== undefined || updates.end !== undefined) {
+    patch.is_manual_edit = true;
+  }
+
   // Normalize UI status to Backend state machine
   if (patch.status === "completed") patch.status = "proceeded";
   if (patch.status === "skipped") patch.status = "failed";

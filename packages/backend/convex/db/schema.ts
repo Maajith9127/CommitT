@@ -84,6 +84,9 @@ export default defineSchema({
     status: taskStatusEnum,
     start: v.number(),
     end: v.number(),
+    // Metadata for exception handling (manual moves/removals)
+    is_manual_edit: v.optional(v.boolean()),
+    is_deleted_exception: v.optional(v.boolean()),
     // Snapshot of rules at creation time
     title: v.string(),
     description: v.string(),

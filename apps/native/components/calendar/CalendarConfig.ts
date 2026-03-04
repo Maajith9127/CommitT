@@ -29,7 +29,7 @@ export const CUSTOM_THEME = {
     onPrimary: '#ffffff',
     background: '#1A1A1A',
     onBackground: '#ffffff',
-    border: '#000000ff',
+    border: '#000000',
     text: '#ffffff',
     surface: '#1A1A1A',
     onSurface: '#cccccc',
