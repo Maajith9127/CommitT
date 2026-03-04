@@ -44,26 +44,29 @@ export function useTaskActions() {
   }, [setDraft, router]);
 
   const deleteTask = useCallback(async (taskId: string) => {
-    // Delete task instances from local DB before we tell native to schedule next
+    // 1. Authoritative Cloud Delete
+    // This removes the commitment definition and clears the server-side temporal brain.
+    await removeTaskMutation({ id: taskId as any });
+
+    // 2. Local Cache Cleanup (SQLite)
+    // We wipe instances first to satisfy any lingering foreign key constraints (even if PRAGMA is off)
     try {
-      // Explicitly delete instances first to be 100% safe (even if PRAGMA foreign_keys is off)
       await db.runAsync('DELETE FROM task_instances WHERE task_id IN (SELECT id FROM local_tasks WHERE convex_id = ?)', [taskId]);
       await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [taskId]);
-      console.log('[useTaskActions] Local DB delete OK for:', taskId);
-      
-      // Now re-trigger the scheduler to process the deletion
-      try {
-        scheduleNextAlarm();
-        console.log('[useTaskActions] Scheduled globally next alarm after deletion');
-      } catch (schedError) {
-        console.error('[useTaskActions] scheduling fallback failed', schedError);
-      }
+      console.log('[useTaskActions] Local DB cleanup complete for:', taskId);
     } catch (localError) {
       console.error('[useTaskActions] Local DB delete failed (non-critical):', localError);
     }
 
-    // Use the convex mutation as the final step (it operates in the background via useMutation hook)
-    await removeTaskMutation({ id: taskId as any });
+    // 3. Hardware Alarm Sync
+    // CRITICAL: We re-trigger the scheduler AFTER local deletion to ensure
+    // it sees the updated database state when finding the next upcoming alarm.
+    try {
+      scheduleNextAlarm();
+      console.log('[useTaskActions] Native alarms refreshed post-deletion sequence');
+    } catch (e) {
+      console.error('[useTaskActions] Native alarm refresh failed:', e);
+    }
   }, [removeTaskMutation, db]);
 
   // Pause Task (Placeholder)

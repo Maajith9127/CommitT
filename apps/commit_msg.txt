@@ -1,25 +1,18 @@
-feat(calendar): implement exception-aware recurrence engine and manual event protection
+fix(hooks): resolve deletion sync gap in useTaskActions to prevent phantom alarms
 
 [Problem]
-Recurring task generation followed strict template rules but ignored manual overrides
-made to individual instances (e.g., dragging a 6am Gym session to 5pm). This caused
-silent overlaps and data loss when habit templates were updated or new habits added.
+Task deletion followed an inverted sequence, attempting to re-schedule native
+hardware alarms before the local SQLite cache or Cloud state were fully cleared.
+This resulted in "Phantom Alarms"—notifications that would trigger for tasks 
+the user had already deleted because the scheduler saw a stale database state.
 
 [Solution]
-Introduced an "Exception Pattern" to the scheduling engine to treat manual user
-edits as "cemented" commitments that the automated system cannot overwrite.
-
-Key Changes:
-- Schema: Added 'is_manual_edit' and 'is_deleted_exception' flags to taskInstances.
-- Service: Instances.update now automatically marks events as manual upon time-shifts.
-- Generator: generateSeries now performs a bulk-fetch of manual exceptions and 
-  intelligently skips slots that would clash with user-customized events.
-- Persistence: cleanupFuture specifically excludes manually edited events to 
-  protect user work during habit re-naming or rule updates.
-- UI: Added a high-vibrancy 'EDITED' label in the schedules view to provide
-  immediate visual feedback for exception-level commitments.
+Standardized the `deleteTask` execution flow to follow a strict "Three-Point 
+Consistency" pattern:
+1. Cloud (Convex): Authoritative removal of commitment and temporal records.
+2. Cache (SQLite): Immediate local cleanup of instances and task definitions.
+3. Hardware (Native): Final re-calculation of upcoming alarms using the clean state.
 
 [Impact]
-- Zero-cost conflict detection (O(1) database calls per series generation).
-- Permanent protection of manual user adjustments.
-- Clearer visual distinction between automated and customized schedule items.
+Eliminates ghost notifications and ensures the physical phone alarm is perfectly 
+mirrored with the current application state immediately after a deletion.
