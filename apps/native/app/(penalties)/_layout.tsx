@@ -4,9 +4,10 @@ export default function PenaltiesLayout() {
   return (
     <Stack
       screenOptions={{
-        presentation: "modal",
-        animation: "fade_from_bottom",
+        presentation: "transparentModal",
+        animation: "fade",
         headerShown: false,
+        contentStyle: { backgroundColor: "black" },
       }}
     />
   );

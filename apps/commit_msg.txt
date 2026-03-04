@@ -1,28 +1,22 @@
-ux: implement full-lifecycle loading feedback for asynchronous operations
+feat(penalties): implement Embarrassing Photo scaffold and navigation polish
 
-[Problem]
-High-latency transactions (Cloud + Cache + Hardware sync) felt "stuck" due 
-to lack of visual feedback. Confirmation modals disappeared instantly, 
-leaving a 200ms-400ms gap where the app appeared frozen while background 
-sync was still active.
+[Context]
+The habit enforcement system required concrete digital forfeits to drive 
+user accountability. This update establishes the foundation for the "Embarrassing 
+Photo" penalty, mirroring the modular architecture of the financial stakes.
 
-[Solution]
-Integrated a unified loading state architecture across all critical 
-Commitment/Instance workflows.
-
-Key Changes:
-- UI: Added 'isLoading' prop to 'ConfirmationModal' with integrated 
-  ActivityIndicator swap-logic to prevent layout shift.
-- Safety: Implemented strict button-disabling during loading to prevent 
-  double-submission and race conditions in SQLite transactions.
-- Schedules: Added feedback for drag-and-drop temporal shifts and 
-  conflict-resolution ack.
-- Creation: Locked the 'FinalScreen' modal during the "Triple-Write" 
-  protocol (Convex -> SQLite -> Android Native) to ensure full consistency.
-- Detail View: Refined instance deletion to show active progress within 
-  the event modal.
+[Key Changes]
+- Feature: Created [EmbarrassingPhotoScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:17:0-154:1) featuring a multi-section 
+  configuration workflow:
+    * Media: Placeholder area for evidence/cringe photo upload.
+    * Metadata: Multiline text entry for self-deprecating descriptions.
+    * Routing: Channel selection (WhatsApp/Instagram) and recipient targeting.
+- UX: Upgraded [(penalties)](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/input.tsx:5:0-13:1) group navigation to use a high-performance 
+  `transparentModal` presentation with a synced 150ms fade transition.
+- UI: Hidden scroll indicators across both Money and Photo penalty screens 
+  to ensure a clean, premium interface consistent with BeReal/Instagram patterns.
 
 [Impact]
-- Eliminates "App Freeze" perception by providing 60fps visual feedback.
-- Prevents database corruption from duplicate concurrent mutations.
-- Improves perceived performance and trust through deterministic states.
+- Provides a tangible non-financial consequence for missed commitments.
+- Standardizes the "Pinterest-style" vertical config layout across penalty types.
+- Ensures zero-latency transition between the creation and penalty flows.

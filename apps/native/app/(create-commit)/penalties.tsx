@@ -39,7 +39,7 @@ export default function PenaltiesScreen() {
           iconColor="#FF3B30"
           title="Embarrassing Photo"
           subtitle="Send a cringe picture to someone"
-          onPress={() => router.push("/(create-commit)/penalty-photo")}
+          onPress={() => router.push("/(penalties)/embarrassing-photo")}
         />
 
         {/* 3 — CRINGE MESSAGE */}

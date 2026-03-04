@@ -22,7 +22,11 @@ export default function MoneyPenaltyScreen() {
 
   return (
     <UView className="flex-1 bg-black">
-      <UScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+      <UScrollView 
+        className="flex-1" 
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
         <ScreenContainer>
           {/* TOP TITLE */}
           <UView className="mt-12">
