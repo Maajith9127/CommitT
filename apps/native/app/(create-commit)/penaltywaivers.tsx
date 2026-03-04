@@ -1,90 +1,30 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "expo-router";
-import { ScrollView, View, TouchableOpacity, Animated, Dimensions } from "react-native";
+import { ScrollView, View } from "react-native";
 import { withUniwind } from "uniwind";
 import { ScreenHeader } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
-import { AuthTitle, HeaderTitle, FooterText } from "@/components/ui/text";
+import { AuthTitle, HeaderTitle } from "@/components/ui/text";
 import { PrimaryButton } from "@/components/ui/button";
-import { DimmingOverlay } from "@/components/ui/overlay/DimmingOverlay";
-import { AnimatedBottomSheet } from "@/components/ui/overlay/AnimatedBottomSheet";
-import { CaptchaWaiverContent } from "@/components/ui/waivers/CaptchaWaiverContent";
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-// The modal takes up 80% of the screen now
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.8;
 
 export default function PenaltyWaiversScreen() {
   const router = useRouter();
   const [selectedWaiver, setSelectedWaiver] = useState<string | null>(null);
 
-  // Slide animation
-  const slideAnim = useRef(new Animated.Value(MODAL_HEIGHT)).current;
-  // Fade animation for overlay
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (selectedWaiver) {
-      // ANIMATE IN
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          bounciness: 8,
-          speed: 20,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1, // Fully visible overlay
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      // ANIMATE OUT
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          toValue: MODAL_HEIGHT,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 0, // Hide overlay
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [selectedWaiver]);
-
   const handleWaiverSelect = (waiver: string) => {
     setSelectedWaiver(waiver);
+    if (waiver === "captcha") {
+      router.push("/(penaltywaiver)/setup");
+    } else {
+      if (waiver === "paragraph") router.push("/(create-commit)/waiver-paragraph");
+      if (waiver === "intense") router.push("/(create-commit)/waiver-intense");
+      if (waiver === "run") router.push("/(create-commit)/waiver-run");
+    }
   };
 
-  const handleClose = () => {
-    setSelectedWaiver(null);
-  };
-
-  const handleConfirmCaptcha = (data: { count: number; difficulty: string }) => {
-    router.push({
-      pathname: "/(create-commit)/waiver-captcha",
-      params: { count: data.count, difficulty: data.difficulty },
-    });
-  };
-
-  const handleConfirmGeneric = () => {
-    if (selectedWaiver === "paragraph") router.push("/(create-commit)/waiver-paragraph");
-    if (selectedWaiver === "intense") router.push("/(create-commit)/waiver-intense");
-    if (selectedWaiver === "run") router.push("/(create-commit)/waiver-run");
-  };
-
-  // Determine Modal Title based on selection
-  const getModalTitle = () => {
-    if (selectedWaiver === "captcha") return "Solve Captchas";
-    return "Selected Option";
-  };
 
   return (
     <UView className="flex-1 bg-black">
@@ -97,10 +37,10 @@ export default function PenaltyWaiversScreen() {
         </AuthTitle>
       </ScreenHeader>
 
-      {/* SCROLLABLE CONTENT ONLY */}
+      {/* SCROLLABLE CONTENT */}
       <UScroll
         className="flex-1 mt-4 px-4"
-        contentContainerStyle={{ paddingBottom: MODAL_HEIGHT + 20 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
         {/* 1 — SOLVE CAPTCHAS */}
@@ -112,6 +52,7 @@ export default function PenaltyWaiversScreen() {
           onPress={() => handleWaiverSelect("captcha")}
           selected={selectedWaiver === "captcha"}
           selectionColor="#4CD964"
+          showArrow={true}
         />
 
         {/* 2 — TYPE A LONG PARAGRAPH */}
@@ -123,6 +64,7 @@ export default function PenaltyWaiversScreen() {
           onPress={() => handleWaiverSelect("paragraph")}
           selected={selectedWaiver === "paragraph"}
           selectionColor="#4CD964"
+          showArrow={true}
         />
 
         {/* 3 — REDO COMMITMENT WITH INTENSITY */}
@@ -134,6 +76,7 @@ export default function PenaltyWaiversScreen() {
           onPress={() => handleWaiverSelect("intense")}
           selected={selectedWaiver === "intense"}
           selectionColor="#4CD964"
+          showArrow={true}
         />
 
         {/* 4 — RUN 5 KM */}
@@ -145,33 +88,10 @@ export default function PenaltyWaiversScreen() {
           onPress={() => handleWaiverSelect("run")}
           selected={selectedWaiver === "run"}
           selectionColor="#4CD964"
+          showArrow={true}
         />
       </UScroll>
 
-      {/* DIMMING OVERLAY */}
-      <DimmingOverlay opacity={fadeAnim} visible={!!selectedWaiver} onPress={handleClose} />
-
-      {/* BOTTOM SHEET MODAL (ANIMATED) */}
-      <AnimatedBottomSheet
-        animValue={slideAnim}
-        height={MODAL_HEIGHT}
-        onClose={handleClose}
-        title={getModalTitle()}
-      >
-        {selectedWaiver === "captcha" ? (
-          <CaptchaWaiverContent onConfirm={handleConfirmCaptcha} />
-        ) : (
-          // DEFAULT CONTENT FOR OTHERS
-          <UView className="flex-1">
-            <FooterText className="text-gray-400 mb-8">
-              You have selected a waiver method. Confirm to proceed.
-            </FooterText>
-            <View className="flex-1 justify-end mb-8">
-              <PrimaryButton onPress={handleConfirmGeneric}>Confirm Selection</PrimaryButton>
-            </View>
-          </UView>
-        )}
-      </AnimatedBottomSheet>
     </UView>
   );
 }

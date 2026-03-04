@@ -1,8 +1,10 @@
-feat(native): implement 'Digital Forfeit' penalty flow and premium 'Email Preview' setup
+feat(native): refactor penalty waiver flow to page-based navigation and enhance captcha setup
 
-- Developed the [EmbarrassingPhotoScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:18:0-177:1) with high-fidelity UI for photo uploads and 'Self Deprecation' descriptions.
-- Created a signature 'Email Preview' screen featuring a Gmail-style header and a modern X/Post-style inline image preview.
-- Enhanced the [ConditionCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/ConditionCard.tsx:22:0-74:1) component with a `showArrow` property for consistent interactive visual cues.
-- Configured sub-screen navigation with a "quick right snap" animation (`slide_from_right`) for the configuration flow.
-- Expanded penalty options with the 'Commit Direct' channel and streamlined the UI by removing redundant recipient selection.
-- Standardized the entire flow with the project's 'Pure Black' theme and custom typography components.
+- Replace modal-based waiver selection with a dedicated page-based flow for improved integration
+- Implement [(penaltywaiver)](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/captcha/CaptchaGenerator.tsx:4:0-4:44) route group with `slide_from_right` animations for a seamless "right-snap" feel
+- Redesign CAPTCHA setup screen with unified headers (3xl green titles) and synchronized subheadings
+- Enhance [CaptchaWaiverContent](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/waivers/CaptchaWaiverContent.tsx:16:0-127:1) with dynamic mood-based robot icons and high-impact values (6xl)
+- Optimize slider performance with debounced state synchronization and memoized callbacks
+- Solve visual inconsistencies including layout jitter and infinite height stretching in scroll views
+- Refine navigation flow by implementing a sticky primary action footer with high-contrast white text
+- Standardize instructional content hierarchy by centralizing text into the screen header
