@@ -1,22 +1,22 @@
-feat(penalties): implement Embarrassing Photo scaffold and navigation polish
+feat(penalties): implement native gallery integration for Embarrassing Photo
 
-[Context]
-The habit enforcement system required concrete digital forfeits to drive 
-user accountability. This update establishes the foundation for the "Embarrassing 
-Photo" penalty, mirroring the modular architecture of the financial stakes.
+[Summary]
+Activated the physical payload for the Embarrassing Photo penalty by 
+integrating native device media library access and resolving SDK-level 
+incompatibilities.
 
-[Key Changes]
-- Feature: Created [EmbarrassingPhotoScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:17:0-154:1) featuring a multi-section 
-  configuration workflow:
-    * Media: Placeholder area for evidence/cringe photo upload.
-    * Metadata: Multiline text entry for self-deprecating descriptions.
-    * Routing: Channel selection (WhatsApp/Instagram) and recipient targeting.
-- UX: Upgraded [(penalties)](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/input.tsx:5:0-13:1) group navigation to use a high-performance 
-  `transparentModal` presentation with a synced 150ms fade transition.
-- UI: Hidden scroll indicators across both Money and Photo penalty screens 
-  to ensure a clean, premium interface consistent with BeReal/Instagram patterns.
+[Technical Changes]
+- Feature: Integrated `expo-image-picker` with the following configuration:
+    * Permission Logic: Automatic media library request/denial handling.
+    * Square Aspect Lock: Forced [1:1] editing to maintain UI consistency 
+      within circular/modern card layouts.
+    * Instant Preview: Reactive URI binding to replace upload placeholders 
+      with selected high-quality image previews.
+- Fix: Resolved `NoSuchMethodError` (Kotlin) by synchronizing 
+  `expo-image-picker` versioning with the host Expo SDK (^54.0.30) 
+  via a clean native prebuild.
 
 [Impact]
-- Provides a tangible non-financial consequence for missed commitments.
-- Standardizes the "Pinterest-style" vertical config layout across penalty types.
-- Ensures zero-latency transition between the creation and penalty flows.
+- Enables users to physically commit embarrassing media as a forfeit.
+- Ensures native Android/iOS stability across the JSI bridge.
+- Maintains 60fps UI performance during image selection and layout rendering.

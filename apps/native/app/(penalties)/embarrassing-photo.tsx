@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { View, ScrollView, Image, Pressable, TextInput } from "react-native";
+import { View, ScrollView, Image, Pressable, TextInput, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -22,10 +23,35 @@ export default function EmbarrassingPhotoScreen() {
   const [selectedChannel, setSelectedChannel] = useState<string>("whatsapp");
   const [selectedRecipient, setSelectedRecipient] = useState<string>("partner");
 
-  const handlePickImage = () => {
-    // Placeholder for image picking logic
-    // In a real app, this would use expo-image-picker
-    console.log("Picking image...");
+  const handlePickImage = async () => {
+    try {
+      // 1. Request Permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          "Permission Denied",
+          "We need access to your gallery to upload an embarrassing photo!"
+        );
+        return;
+      }
+
+      // 2. Launch Image Picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1], // Force a square for the cringe photo
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setPhotoUri(result.assets[0].uri);
+        console.log("[Photo] Image selected successfully:", result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("[Photo] Error picking image:", error);
+      Alert.alert("Error", "Something went wrong while picking the photo.");
+    }
   };
 
   return (
