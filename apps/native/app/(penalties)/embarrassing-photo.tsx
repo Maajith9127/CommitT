@@ -21,7 +21,6 @@ export default function EmbarrassingPhotoScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [selectedChannel, setSelectedChannel] = useState<string>("whatsapp");
-  const [selectedRecipient, setSelectedRecipient] = useState<string>("partner");
 
   const handlePickImage = async () => {
     try {
@@ -126,6 +125,7 @@ export default function EmbarrassingPhotoScreen() {
               subtitle="Send automatically to chosen contacts"
               selected={selectedChannel === "whatsapp"}
               onPress={() => setSelectedChannel("whatsapp")}
+              showArrow={true}
             />
             <ConditionCard
               icon="instagram"
@@ -134,6 +134,7 @@ export default function EmbarrassingPhotoScreen() {
               subtitle="Directly to your followers"
               selected={selectedChannel === "instagram"}
               onPress={() => setSelectedChannel("instagram")}
+              showArrow={true}
             />
             <ConditionCard
               icon="email-outline"
@@ -141,34 +142,29 @@ export default function EmbarrassingPhotoScreen() {
               title="Email Blast"
               subtitle="To your custom contact list"
               selected={selectedChannel === "email"}
-              onPress={() => setSelectedChannel("email")}
+              onPress={() => {
+                setSelectedChannel("email");
+                router.push({
+                  pathname: "/(penalties)/email-setup",
+                  params: { 
+                    photoUri: photoUri || "",
+                    description: description || ""
+                  }
+                });
+              }}
+              showArrow={true}
+            />
+            <ConditionCard
+              icon="shield-account-outline"
+              iconColor="#A855F7"
+              title="Commit Direct"
+              subtitle="Send to a specific Commit user"
+              selected={selectedChannel === "commit"}
+              onPress={() => setSelectedChannel("commit")}
+              showArrow={true}
             />
           </UView>
 
-          {/* RECIPIENT ROW */}
-          <UView className="flex-row items-center mt-8 gap-2">
-            <HeaderTitle className="text-2xl">Recipient</HeaderTitle>
-            <MaterialCommunityIcons name="chevron-down-circle" size={24} color="#4FA0FF" />
-          </UView>
-
-          <UView className="mt-4">
-            <ConditionCard
-              icon="account-group"
-              iconColor="#4FA0FF"
-              title="Accountability Partner"
-              subtitle="Best friend or mentor"
-              selected={selectedRecipient === "partner"}
-              onPress={() => setSelectedRecipient("partner")}
-            />
-            <ConditionCard
-              icon="account-heart"
-              iconColor="#FF3B30"
-              title="Your Crush / Partner"
-              subtitle="Maximum embarrassment level"
-              selected={selectedRecipient === "crush"}
-              onPress={() => setSelectedRecipient("crush")}
-            />
-          </UView>
         </ScreenContainer>
       </UScrollView>
 
@@ -176,6 +172,7 @@ export default function EmbarrassingPhotoScreen() {
       <UView className="absolute bottom-0 left-0 right-0 bg-black px-4 py-4 pb-8">
         <PrimaryButton onPress={() => router.back()}>Lock Consequence</PrimaryButton>
       </UView>
+
     </UView>
   );
 }

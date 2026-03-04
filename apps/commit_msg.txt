@@ -1,22 +1,8 @@
-feat(penalties): implement native gallery integration for Embarrassing Photo
+feat(native): implement 'Digital Forfeit' penalty flow and premium 'Email Preview' setup
 
-[Summary]
-Activated the physical payload for the Embarrassing Photo penalty by 
-integrating native device media library access and resolving SDK-level 
-incompatibilities.
-
-[Technical Changes]
-- Feature: Integrated `expo-image-picker` with the following configuration:
-    * Permission Logic: Automatic media library request/denial handling.
-    * Square Aspect Lock: Forced [1:1] editing to maintain UI consistency 
-      within circular/modern card layouts.
-    * Instant Preview: Reactive URI binding to replace upload placeholders 
-      with selected high-quality image previews.
-- Fix: Resolved `NoSuchMethodError` (Kotlin) by synchronizing 
-  `expo-image-picker` versioning with the host Expo SDK (^54.0.30) 
-  via a clean native prebuild.
-
-[Impact]
-- Enables users to physically commit embarrassing media as a forfeit.
-- Ensures native Android/iOS stability across the JSI bridge.
-- Maintains 60fps UI performance during image selection and layout rendering.
+- Developed the [EmbarrassingPhotoScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:18:0-177:1) with high-fidelity UI for photo uploads and 'Self Deprecation' descriptions.
+- Created a signature 'Email Preview' screen featuring a Gmail-style header and a modern X/Post-style inline image preview.
+- Enhanced the [ConditionCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/ConditionCard.tsx:22:0-74:1) component with a `showArrow` property for consistent interactive visual cues.
+- Configured sub-screen navigation with a "quick right snap" animation (`slide_from_right`) for the configuration flow.
+- Expanded penalty options with the 'Commit Direct' channel and streamlined the UI by removing redundant recipient selection.
+- Standardized the entire flow with the project's 'Pure Black' theme and custom typography components.

@@ -17,6 +17,7 @@ export type ConditionCardProps = {
   titleColor?: string;
   selected?: boolean;
   selectionColor?: string;
+  showArrow?: boolean;
 };
 
 export function ConditionCard({
@@ -30,6 +31,7 @@ export function ConditionCard({
   titleColor = "#FFFFFF",
   selected = false,
   selectionColor = "#4FA0FF",
+  showArrow = false,
 }: ConditionCardProps) {
   return (
     <UButton
@@ -58,6 +60,15 @@ export function ConditionCard({
 
           <FooterText className="mt-1 text-gray-400 text-sm">{subtitle}</FooterText>
         </UView>
+
+        {/* RIGHT ARROW */}
+        {showArrow && (
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color="#8E8E93"
+          />
+        )}
       </UView>
     </UButton>
   );
