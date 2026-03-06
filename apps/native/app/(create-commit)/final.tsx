@@ -126,6 +126,12 @@ const SETTINGS_OPTIONS = {
     { label: "Energetic", value: "Energetic" },
     { label: "Warning", value: "Warning" },
   ],
+  waiverDeadline: [
+    { label: "5 hours", value: 300 },
+    { label: "10 hours", value: 600 },
+    { label: "24 hours", value: 1440 },
+    { label: "2 days", value: 2880 },
+  ],
 } as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -457,6 +463,49 @@ export default function FinalScreen() {
     }
   ], [draft.config.alarms, setConfig]);
 
+  /**
+   * Represents the dynamic form schema for the "Waiver Settings" section.
+   */
+  const waiverSettingsItems = useMemo(() => [
+    {
+      id: "waiverDeadline",
+      title: "Waiver Deadline",
+      type: "select" as const,
+      selectValue: draft.penalty_waiver?.deadline_minutes 
+        ? (draft.penalty_waiver.deadline_minutes >= 1440 
+          ? `${Math.floor(draft.penalty_waiver.deadline_minutes / 1440)} days` 
+          : `${Math.floor(draft.penalty_waiver.deadline_minutes / 60)} hours`)
+        : "Set deadline",
+      onPress: () => setPicker({
+        visible: true,
+        title: "Waiver Deadline",
+        options: SETTINGS_OPTIONS.waiverDeadline,
+        selectedValue: draft.penalty_waiver?.deadline_minutes ?? 600,
+        onSelect: (v) => setDraft({ 
+          penalty_waiver: { 
+            ...(draft.penalty_waiver || { type: "captcha", config: {} }), 
+            deadline_minutes: v 
+          } 
+        }),
+      })
+    },
+    {
+      id: "allowEarlyWaiver",
+      title: "Allow Early Waiver",
+      type: "toggle" as const,
+      value: draft.penalty_waiver?.config?.allow_early ?? false,
+      onValueChange: (v: boolean) => setDraft({
+        penalty_waiver: {
+          ...(draft.penalty_waiver || { type: "captcha", config: {}, deadline_minutes: 600 }),
+          config: {
+            ...(draft.penalty_waiver?.config || {}),
+            allow_early: v
+          }
+        }
+      })
+    }
+  ], [draft.penalty_waiver, setDraft]);
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render
@@ -586,8 +635,18 @@ export default function FinalScreen() {
         </UView>
 
         <SettingsToggleCard
-          className="mb-6"
+          className="mb-4"
           items={alarmSettingsItems}
+        />
+
+        {/* Section: Waiver Settings */}
+        <UView className="mt-2 mb-2">
+          <HeaderTitle>Waiver Rules</HeaderTitle>
+        </UView>
+
+        <SettingsToggleCard
+          className="mb-6"
+          items={waiverSettingsItems}
         />
         
       </UScroll>

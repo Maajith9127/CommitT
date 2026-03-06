@@ -85,8 +85,9 @@ export type TaskDraft = {
    * Penalty Waiver: Defines governance/consensus rules for waiving a penalty.
    */
   penalty_waiver?: {
-    type: "governance" | "consensus";
+    type: "captcha" | "paragraph";
     config: any;
+    deadline_minutes: number;
   } | null;
 
   // UI-only: camera target for map components
