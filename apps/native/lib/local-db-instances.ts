@@ -36,6 +36,8 @@ export async function updateSingleInstanceInLocalDb(
     status: string;
     config: any;
     checkpoints: any[];
+    conditions?: any[];                                        // Per-instance condition statuses
+    penalty?: { type: string; config: any } | null;            // Immutable snapshot from parent task
   }
 ) {
   const now = Date.now();
@@ -70,20 +72,24 @@ export async function updateSingleInstanceInLocalDb(
     
     await db.runAsync(
       `INSERT INTO task_instances 
-        (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, config_json, checkpoints, created_at, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, status, title,
+         config_json, checkpoints, conditions_json, penalty_json,
+         created_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         localInstanceId,
         localTaskId,
         convexInstanceId,
-        convexInstance.start, // scheduled_timestamp matches start_time for simple tasks
+        convexInstance.start,
         convexInstance.start,
         convexInstance.end,
+        convexInstance.status,
         convexInstance.title,
         JSON.stringify(convexInstance.config || {}),
         JSON.stringify(convexInstance.checkpoints || []),
+        convexInstance.conditions ? JSON.stringify(convexInstance.conditions) : null,
+        convexInstance.penalty ? JSON.stringify(convexInstance.penalty) : null,
         now,
-        convexInstance.status
       ]
     );
 

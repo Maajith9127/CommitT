@@ -12,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 7;
+const DATABASE_VERSION = 8;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -145,17 +145,21 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
 
   // ── Migration 3 → 4 (add title to task_instances for explicit querying)
   if (currentVersion === 3) {
-    await db.execAsync(`
-      ALTER TABLE task_instances ADD COLUMN title TEXT DEFAULT '';
-    `);
+    try {
+      await db.execAsync(`ALTER TABLE task_instances ADD COLUMN title TEXT DEFAULT '';`);
+    } catch (e) {
+      console.log('[Migration 3→4] Column title might already exist', e);
+    }
     currentVersion = 4;
   }
 
   // ── Migration 4 → 5 (add config_json to local_tasks for alarm settings)
   if (currentVersion === 4) {
-    await db.execAsync(`
-      ALTER TABLE local_tasks ADD COLUMN config_json TEXT NOT NULL DEFAULT '{}';
-    `);
+    try {
+      await db.execAsync(`ALTER TABLE local_tasks ADD COLUMN config_json TEXT NOT NULL DEFAULT '{}';`);
+    } catch (e) {
+      console.log('[Migration 4→5] Column config_json on local_tasks might already exist', e);
+    }
     currentVersion = 5;
   }
 
@@ -183,6 +187,37 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       await db.execAsync(`ALTER TABLE task_instances ADD COLUMN checkpoints TEXT NOT NULL DEFAULT '[]';`);
     } catch (e) {}
     currentVersion = 7;
+  }
+
+  // ── Migration 7 → 8 (add penalty + conditions columns for full Convex parity)
+  // ─────────────────────────────────────────────────────────────────────────────
+  // local_tasks gets:
+  //   • penalty_json — Stores the penalty rule { type, config } from Convex task
+  //
+  // task_instances gets:
+  //   • penalty_json    — Immutable penalty snapshot from parent task
+  //   • conditions_json — Per-instance condition statuses (verification results)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (currentVersion === 7) {
+    // local_tasks: penalty master rule
+    try {
+      await db.execAsync(`ALTER TABLE local_tasks ADD COLUMN penalty_json TEXT DEFAULT NULL;`);
+    } catch (e) {
+      console.log('[Migration 7→8] penalty_json on local_tasks might already exist', e);
+    }
+
+    // task_instances: penalty snapshot + per-instance conditions
+    try {
+      await db.execAsync(`ALTER TABLE task_instances ADD COLUMN penalty_json TEXT DEFAULT NULL;`);
+    } catch (e) {
+      console.log('[Migration 7→8] penalty_json on task_instances might already exist', e);
+    }
+    try {
+      await db.execAsync(`ALTER TABLE task_instances ADD COLUMN conditions_json TEXT DEFAULT NULL;`);
+    } catch (e) {
+      console.log('[Migration 7→8] conditions_json on task_instances might already exist', e);
+    }
+    currentVersion = 8;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

@@ -1,7 +1,6 @@
-feat(native): implement penalty waiver configuration on final confirmation screen
+feat(native): sync penalty and verification data to local sqlite
 
-- Add 'Waiver Rules' section to 'final.tsx' using the standard 'SettingsToggleCard' pattern for UX consistency.
-- Implement 'Waiver Deadline' configuration allowing users to select grace periods (5h, 10h, 24h, 2d) for penalty mitigation.
-- Add 'Allow Early Waiver' toggle to the draft state, permitting survival challenges to be attempted prior to commitment failure.
-- Refactor 'TaskDraft' store schema to achieve parity with backend 'PenaltyWaiverSchema', adding 'deadline_minutes' and updating type discriminators to 'captcha' | 'paragraph'.
-- Synchronize UI selection options with internal minute-based duration logic for robust backend persistence.
+- Implement SQLite Migration 7 -> 8 to add penalty_json and conditions_json columns.
+- Fix "duplicate column" crash bugs in migrations V3-V5 by wrapping ALTER TABLE in try-catches for fresh install robustness.
+- Update Task and Instance repositories to persist penalty snapshots and instance verification statuses.
+- Achieve 1:1 parity between Convex Cloud and Local DB to support penalty-aware scheduling and offline-first waivers.

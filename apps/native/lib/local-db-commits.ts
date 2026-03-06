@@ -32,8 +32,10 @@ export async function insertTaskToLocalDb(
   await db.runAsync(
     `INSERT INTO local_tasks
       (id, convex_id, assigner_id, assignee_id, title, description,
-       visibility, recurrence_json, conditions_json, config_json, created_at, updated_at, synced_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       visibility, recurrence_json, conditions_json, config_json,
+       penalty_json,
+       created_at, updated_at, synced_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       localId,
       remoteId,
@@ -45,6 +47,7 @@ export async function insertTaskToLocalDb(
       JSON.stringify(draft.recurrence),
       JSON.stringify(cleanedConditions),
       JSON.stringify(draft.config),
+      draft.penalty ? JSON.stringify(draft.penalty) : null,
       now,
       now,
       now,
@@ -69,6 +72,7 @@ export async function updateTaskInLocalDb(
     `UPDATE local_tasks SET
       title = ?, description = ?, visibility = ?,
       recurrence_json = ?, conditions_json = ?, config_json = ?,
+      penalty_json = ?,
       updated_at = ?, synced_at = ?
     WHERE convex_id = ?`,
     [
@@ -78,6 +82,7 @@ export async function updateTaskInLocalDb(
       JSON.stringify(draft.recurrence),
       JSON.stringify(cleanedConditions),
       JSON.stringify(draft.config),
+      draft.penalty ? JSON.stringify(draft.penalty) : null,
       now,
       now,
       remoteId,
@@ -110,8 +115,10 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
 
   const statement = await db.prepareAsync(
     `INSERT INTO task_instances 
-      (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, title, config_json, checkpoints, created_at) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, status, title,
+       config_json, checkpoints, conditions_json, penalty_json,
+       created_at) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
   try {
@@ -126,9 +133,12 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
         instance.start,
         instance.start,
         instance.end,
+        instance.status || 'pending',
         instance.title,
         JSON.stringify(instance.config || {}),
         JSON.stringify(instance.checkpoints || []),
+        instance.conditions ? JSON.stringify(instance.conditions) : null,
+        instance.penalty ? JSON.stringify(instance.penalty) : null,
         now,
       ]);
     }
