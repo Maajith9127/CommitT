@@ -117,8 +117,8 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
     `INSERT INTO task_instances 
       (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, status, title,
        config_json, checkpoints, conditions_json, penalty_json,
-       created_at) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       is_manual_edit, created_at) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
   try {
@@ -139,6 +139,7 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
         JSON.stringify(instance.checkpoints || []),
         instance.conditions ? JSON.stringify(instance.conditions) : null,
         instance.penalty ? JSON.stringify(instance.penalty) : null,
+        instance.is_manual_edit ? 1 : 0,
         now,
       ]);
     }

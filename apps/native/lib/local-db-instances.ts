@@ -38,6 +38,7 @@ export async function updateSingleInstanceInLocalDb(
     checkpoints: any[];
     conditions?: any[];                                        // Per-instance condition statuses
     penalty?: { type: string; config: any } | null;            // Immutable snapshot from parent task
+    is_manual_edit?: boolean;                                   // Protects from deletion when parent task is removed
   }
 ) {
   const now = Date.now();
@@ -74,8 +75,8 @@ export async function updateSingleInstanceInLocalDb(
       `INSERT INTO task_instances 
         (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, status, title,
          config_json, checkpoints, conditions_json, penalty_json,
-         created_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         is_manual_edit, created_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         localInstanceId,
         localTaskId,
@@ -89,6 +90,7 @@ export async function updateSingleInstanceInLocalDb(
         JSON.stringify(convexInstance.checkpoints || []),
         convexInstance.conditions ? JSON.stringify(convexInstance.conditions) : null,
         convexInstance.penalty ? JSON.stringify(convexInstance.penalty) : null,
+        convexInstance.is_manual_edit ? 1 : 0,
         now,
       ]
     );

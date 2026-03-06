@@ -12,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 8;
+const DATABASE_VERSION = 9;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -218,6 +218,21 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
       console.log('[Migration 7→8] conditions_json on task_instances might already exist', e);
     }
     currentVersion = 8;
+  }
+
+  // ── Migration 8 → 9 (add is_manual_edit flag for instance preservation on task deletion)
+  // ─────────────────────────────────────────────────────────────────────────────
+  // When a task is deleted, all instances get nuked EXCEPT those the user
+  // manually edited (e.g., rescheduled via drag-and-drop). This column mirrors
+  // the Convex `is_manual_edit` boolean on taskInstances.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (currentVersion === 8) {
+    try {
+      await db.execAsync(`ALTER TABLE task_instances ADD COLUMN is_manual_edit INTEGER DEFAULT 0;`);
+    } catch (e) {
+      console.log('[Migration 8→9] is_manual_edit on task_instances might already exist', e);
+    }
+    currentVersion = 9;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

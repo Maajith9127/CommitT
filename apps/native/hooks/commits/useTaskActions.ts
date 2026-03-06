@@ -46,16 +46,44 @@ export function useTaskActions() {
   const deleteTask = useCallback(async (taskId: string) => {
     // 1. Authoritative Cloud Delete
     // This removes the commitment definition and clears the server-side temporal brain.
+    // NOTE: Convex's `cleanupFuture` already preserves `is_manual_edit` instances server-side.
     await removeTaskMutation({ id: taskId as any });
 
     // 2. Local Cache Cleanup (SQLite)
-    // We wipe instances first to satisfy any lingering foreign key constraints (even if PRAGMA is off)
+    // ─────────────────────────────────────────────────────────────────────
+    // CRITICAL EDGE CASE: ON DELETE CASCADE would nuke ALL child instances,
+    // including manually edited ones the user customized. We handle this
+    // surgically to match the Convex backend's `cleanupFuture` behavior.
+    // ─────────────────────────────────────────────────────────────────────
     try {
-      await db.runAsync('DELETE FROM task_instances WHERE task_id IN (SELECT id FROM local_tasks WHERE convex_id = ?)', [taskId]);
-      await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [taskId]);
-      console.log('[useTaskActions] Local DB cleanup complete for:', taskId);
+      // Step A: Find the local task ID from the Convex ID
+      const taskRow = await db.getFirstAsync<{ id: string }>(
+        'SELECT id FROM local_tasks WHERE convex_id = ?',
+        [taskId]
+      );
+
+      if (taskRow) {
+        const localTaskId = taskRow.id;
+
+        // Step B: Delete all instances that are NOT manually edited
+        // This preserves drag-and-drop rescheduled instances as historical proof.
+        await db.runAsync(
+          'DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0',
+          [localTaskId]
+        );
+
+        // Step C: Orphan any surviving edited instances so CASCADE doesn't kill them.
+        // We temporarily disable foreign keys, delete the parent, then re-enable.
+        await db.execAsync('PRAGMA foreign_keys = OFF;');
+        await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [localTaskId]);
+        await db.execAsync('PRAGMA foreign_keys = ON;');
+
+        console.log('[useTaskActions] Local DB cleanup complete. Edited instances preserved for:', taskId);
+      }
     } catch (localError) {
       console.error('[useTaskActions] Local DB delete failed (non-critical):', localError);
+      // Failsafe: re-enable foreign keys even if something breaks
+      try { await db.execAsync('PRAGMA foreign_keys = ON;'); } catch (_) {}
     }
 
     // 3. Hardware Alarm Sync

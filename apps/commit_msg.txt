@@ -1,6 +1,7 @@
-feat(native): sync penalty and verification data to local sqlite
+feat(native): implement surgical task deletion with instance preservation
 
-- Implement SQLite Migration 7 -> 8 to add penalty_json and conditions_json columns.
-- Fix "duplicate column" crash bugs in migrations V3-V5 by wrapping ALTER TABLE in try-catches for fresh install robustness.
-- Update Task and Instance repositories to persist penalty snapshots and instance verification statuses.
-- Achieve 1:1 parity between Convex Cloud and Local DB to support penalty-aware scheduling and offline-first waivers.
+- Implement SQLite Migration 8 -> 9 to add 'is_manual_edit' flag to task instances.
+- Refactor 'deleteTask' logic to surgically remove only unedited instances while orphaning/preserving manually edited ones (matching Convex backend behavior).
+- Use temporary foreign key bypass (PRAGMA foreign_keys = OFF) to allow parent task removal without cascading into protected instances.
+- Update local persistence repositories to synchronize 'is_manual_edit' status across bulk sync and individual update paths.
+- Enhance DB Debug Inspector UI to detect and display orphaned 'Preserved Instances' with distinct visual treatment.

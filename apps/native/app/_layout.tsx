@@ -42,6 +42,7 @@ function DbDebugFab() {
   const db = useSQLiteContext();
   const [visible, setVisible] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
+  const [orphanedInstances, setOrphanedInstances] = useState<any[]>([]);
 
   const inspect = async () => {
     try {
@@ -56,9 +57,18 @@ function DbDebugFab() {
           return { ...task, instances };
         })
       );
+
+      // Find orphaned instances (edited instances that survived task deletion)
+      const orphans = await db.getAllAsync(
+        `SELECT * FROM task_instances 
+         WHERE task_id NOT IN (SELECT id FROM local_tasks) 
+         ORDER BY start_time DESC`
+      );
+
       setRows(enhancedTasks);
+      setOrphanedInstances(orphans as any[]);
       setVisible(true);
-      console.log('📦 Local DB tasks + instances fetched! Count:', enhancedTasks.length);
+      console.log(`📦 Local DB: ${enhancedTasks.length} tasks, ${(orphans as any[]).length} orphaned (preserved) instances`);
     } catch (e) {
       Alert.alert('DB Error', String(e));
     }
@@ -200,6 +210,45 @@ function DbDebugFab() {
                 </View>
                 );
               })
+            )}
+
+            {/* ── Orphaned (Preserved) Instances ── */}
+            {orphanedInstances.length > 0 && (
+              <>
+                <View style={{ marginTop: 16, marginBottom: 8 }}>
+                  <Text style={{ color: '#FF9500', fontSize: 16, fontWeight: 'bold' }}>
+                    🛡️ Preserved Instances ({orphanedInstances.length})
+                  </Text>
+                  <Text style={{ color: '#888', fontSize: 11, marginTop: 2 }}>
+                    Edited instances that survived task deletion
+                  </Text>
+                </View>
+                {orphanedInstances.map((inst: any, idx: number) => (
+                  <View
+                    key={inst.id || idx}
+                    style={{
+                      backgroundColor: '#1a1a1a',
+                      borderRadius: 10,
+                      padding: 14,
+                      marginBottom: 10,
+                      borderLeftWidth: 3,
+                      borderLeftColor: '#FF9500',
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13, marginBottom: 4 }}>
+                      {inst.title || 'Untitled'} — {inst.status}
+                    </Text>
+                    <Text style={{ color: '#FF9500', fontSize: 10, marginBottom: 4 }}>
+                      {new Date(inst.start_time).toLocaleString()} → {new Date(inst.end_time).toLocaleString()}
+                    </Text>
+                    <View style={{ backgroundColor: '#0a0a0a', padding: 6, borderRadius: 4 }}>
+                      <Text style={{ color: '#aaa', fontSize: 9, fontFamily: 'monospace' }}>
+                        {JSON.stringify(inst, null, 2)}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </>
             )}
           </ScrollView>
         </View>
