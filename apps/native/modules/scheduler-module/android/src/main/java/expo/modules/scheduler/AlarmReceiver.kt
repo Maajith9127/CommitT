@@ -36,6 +36,15 @@ class AlarmReceiver : BroadcastReceiver() {
         Log.i(TAG, "==== [HARDWARE ALARM TRIGGERED] ====")
         Log.d(TAG, "[HARDWARE TRIGGER] Operating System successfully pinged AlarmReceiver at ${formatTimestamp(currentTimeMs)}.")
 
+        // 0. Log the raw intent to see all available keys
+        val bundle = intent.extras
+        if (bundle != null) {
+            Log.v(TAG, "[HARDWARE TRIGGER] Raw Intent Keys: ${bundle.keySet().joinToString(", ")}")
+            for (key in bundle.keySet()) {
+                Log.v(TAG, "[HARDWARE TRIGGER]   $key -> ${bundle.get(key)}")
+            }
+        }
+
         // 1. Unwrap all custom data tied to this alarm
         val instanceId = intent.getStringExtra(EXTRA_INSTANCE_ID) ?: ""
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "Unknown Task"
@@ -47,12 +56,16 @@ class AlarmReceiver : BroadcastReceiver() {
         val isStayThroughout = intent.getBooleanExtra(EXTRA_IS_STAY_THROUGHOUT, false)
 
         val typeText = alarmType.replace("_", " ")
-        Log.d(TAG, "[HARDWARE TRIGGER] Parsing Input -> Target Task: [$title], Mode: [$typeText], Identifier: [$instanceId], Sound: [$soundKey], Continuous: [$isStayThroughout]")
+        Log.i(TAG, "[HARDWARE TRIGGER] Parsed -> Task: [$title], Type: [$typeText], ID: [$instanceId], Sound: [$soundKey]")
         
         // Check for Android "Doze" drift - if the OS was highly constrained on battery, 
         // it may have delayed this execution slightly.
         val driftMs = currentTimeMs - fireAtMs
-        Log.d(TAG, "[HARDWARE METRICS] Expected: ${formatTimestamp(fireAtMs)} | Actual: ${formatTimestamp(currentTimeMs)} | Hardware Drift: $driftMs ms")
+        Log.d(TAG, "[HARDWARE METRICS] Target: ${formatTimestamp(fireAtMs)} | Actual: ${formatTimestamp(currentTimeMs)} | Drift: $driftMs ms")
+
+        if (driftMs > 30000) {
+            Log.w(TAG, "[HARDWARE WARNING] High drift detected ($driftMs ms). OS Battery optimization might be delaying alarms.")
+        }
 
         // 2. Prepare an Intent to aggressively launch the full-screen visual UI
         val activityIntent = Intent(context, AlarmActivity::class.java).apply {
@@ -77,16 +90,13 @@ class AlarmReceiver : BroadcastReceiver() {
             
             // 🚨 CRITICAL RESILIENCE FIX 🚨 
             // Before we even ATTEMPT to show the UI... calculate and guarantee the NEXT alarm.
-            // Why? If the user has heavily constrained background apps (or just aggressively swipes 
-            // the Notification away right as it spawns), giving Android the Next Alarm Instruction 
-            // right here in the BroadcastReceiver guarantees it NEVER gets killed or lost.
-            Log.d(TAG, "[RESILIENCE] Triggering immediate forward-propagation of the schedule chain.")
+            Log.i(TAG, "[RESILIENCE] Triggering immediate forward-propagation of the schedule chain.")
             AlarmScheduler.scheduleNextAlarm(context)
 
             // Execute the hand-off to display the UI!
             context.startActivity(activityIntent)
             
-            Log.d(TAG, "[UI ELEVATION] Activity request successfully handed to OS.")
+            Log.i(TAG, "[UI ELEVATION] Activity request successfully handed to OS.")
         } catch (exception: Exception) {
             // Critical Exception Handling: Background capabilities might be restricted on some extreme devices (e.g., Xiaomi/MIUI).
             Log.e(TAG, "[CRITICAL UI FAILURE] OS blocked AlarmActivity foreground elevation: ${exception.message}", exception)

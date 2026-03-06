@@ -68,6 +68,7 @@ object AlarmScheduler {
             )
             
             val currentTimeMs = System.currentTimeMillis()
+            Log.d(TAG, "[TIME] Current System Time: $currentTimeMs (${formatTimestamp(currentTimeMs)})")
             
             Log.d(TAG, "[DATABASE QUERY] Fetching future unexecuted task instances...")
             
@@ -82,6 +83,8 @@ object AlarmScheduler {
                 arrayOf(currentTimeMs.toString())
             )
 
+            Log.d(TAG, "[DATABASE QUERY] Found ${cursor.count} potential pending instances.")
+
             // Did we actually find any tasks?
             if (cursor.moveToFirst()) {
                 Log.d(TAG, "[LOGIC ROUTING] Tasks identified. Calculating precise Pre-Alarm staggered offsets.")
@@ -95,6 +98,7 @@ object AlarmScheduler {
                 var bestSoundKey = "Default"
                 var bestIsStayThroughout = false
 
+                var rowIndex = 0
                 do {
                     // Pull the row data out of the current cursor alignment
                     val id = cursor.getString(0)
@@ -103,6 +107,9 @@ object AlarmScheduler {
                     val configJsonStr = cursor.getString(3) ?: "{}"
                     val checkpointsStr = cursor.getString(4) ?: "[]"
                     val mainEnd = cursor.getLong(5)
+
+                    Log.v(TAG, "[EVAL_ROW_$rowIndex] ID: $id | Title: $title | Start: $mainStart | End: $mainEnd")
+                    Log.v(TAG, "[EVAL_ROW_$rowIndex] Config: $configJsonStr")
 
                     var currentSoundKey = "Default"
                     var isStayThroughout = false
@@ -115,13 +122,18 @@ object AlarmScheduler {
                         if (json.has("verification_style")) {
                             isStayThroughout = json.getString("verification_style") == "stay_throughout"
                         }
-                    } catch (e: Exception) {}
+                    } catch (e: Exception) {
+                        Log.e(TAG, "[EVAL_ROW_$rowIndex] JSON Metadata Parse Failure: ${e.message}")
+                    }
 
                     // Execute algorithmic check to find the absolute closest actionable alarm
                     val (triggerTime, alarmType) = findNextTrigger(mainStart, currentTimeMs, configJsonStr, checkpointsStr)
                     
+                    Log.v(TAG, "[EVAL_ROW_$rowIndex] Result -> Trigger: $triggerTime, Type: $alarmType")
+
                     // Keep substituting the "Best" trigger time if it's the closest to 'Now'.
                     if (triggerTime < bestTriggerTime) {
+                        Log.d(TAG, "[BEST_FOUND] New Best: $title at $triggerTime (Type: $alarmType)")
                         bestTriggerTime = triggerTime
                         bestInstanceId = id
                         bestTitle = title
@@ -130,11 +142,12 @@ object AlarmScheduler {
                         bestSoundKey = currentSoundKey
                         bestIsStayThroughout = isStayThroughout
                     }
+                    rowIndex++
                 } while (cursor.moveToNext())
 
                 // After all 20 evaluations, we officially register the "Best" absolute nearest execution.
                 if (bestTriggerTime != Long.MAX_VALUE) {
-                    Log.d(TAG, "[ALARM SELECTED] Earliest trigger -> Type: [$bestAlarmType], Target: [$bestTitle], Time: ${formatTimestamp(bestTriggerTime)}")
+                    Log.i(TAG, "[ALARM SELECTED] Earliest trigger -> Type: [$bestAlarmType], Target: [$bestTitle], InstanceId: [$bestInstanceId], Time: ${formatTimestamp(bestTriggerTime)}")
                     
                     // Dispatch the registration instruction down to the Operating System!
                     setOSAlarm(context, bestInstanceId, bestTitle, bestTriggerTime, currentTimeMs, bestAlarmType, bestMainTime, bestSoundKey, bestIsStayThroughout)
@@ -145,11 +158,11 @@ object AlarmScheduler {
                     cursor.moveToFirst()
                     syncToStickyNote(context, cursor)
                 } else {
-                    Log.d(TAG, "[LOGIC ROUTING] All queried events evaluated technically in the past. Purging cache.")
+                    Log.w(TAG, "[LOGIC ROUTING] All queried events evaluated technically in the past. Purging cache.")
                     clearStickyNote(context)
                 }
             } else {
-                Log.d(TAG, "[LOGIC ROUTING] SQLite confirmed zero upcoming tasks. Purging caching layer.")
+                Log.i(TAG, "[LOGIC ROUTING] SQLite confirmed zero upcoming tasks. Purging caching layer.")
                 clearStickyNote(context) // Clean the sticky note, there's nothing to warn the user about
             }
             cursor.close() // ALWAYS close your cursors, memory leaks are bad!
@@ -200,7 +213,7 @@ object AlarmScheduler {
             Log.w(TAG, "[PRE-ALARM MATH] Failed to parse config_json cleanly. Falling back to default lead: 15m, interval: 2m.")
         }
         
-        Log.d(TAG, "[ALARM MATH] Config read -> Lead: $leadTimeMinutes mins, Interval: $intervalMinutes mins, Continuous: $isStayThroughout")
+        Log.v(TAG, "[ALARM MATH] Lead: $leadTimeMinutes, Interval: $intervalMinutes, StayThroughout: $isStayThroughout")
 
         // 1. Calculate T-minus staggered target intervals dynamically!
         val preAlarmOffsetsMs = mutableListOf<Long>()
@@ -217,12 +230,14 @@ object AlarmScheduler {
         for (offset in preAlarmOffsetsMs) {
             val preAlarmTime = mainStartMs - offset
             if (preAlarmTime > nowMs) {
+                Log.v(TAG, "[ALARM MATH] Found future PRE_ALARM at $preAlarmTime")
                 return Pair(preAlarmTime, "PRE_ALARM") // Pre-alarms always take absolute priority before the event
             }
         }
         
         // 2. If no future pre-alarms remain, evaluate Main Event Start boundary safely
         if (mainStartMs > nowMs) {
+            Log.v(TAG, "[ALARM MATH] Found future MAIN_ALARM at $mainStartMs")
             if (mainStartMs < closestFutureTrigger) {
                 closestFutureTrigger = mainStartMs
                 closestTriggerType = "MAIN_ALARM"
@@ -233,6 +248,7 @@ object AlarmScheduler {
         if (isStayThroughout) {
             try {
                 val checkpointsArray = org.json.JSONArray(checkpointsStr)
+                Log.v(TAG, "[ALARM MATH] Evaluating ${checkpointsArray.length()} checkpoints...")
                 for (i in 0 until checkpointsArray.length()) {
                     val checkpoint = checkpointsArray.getJSONObject(i)
                     val cpStart = if (checkpoint.has("start")) {
@@ -244,6 +260,7 @@ object AlarmScheduler {
                     }
 
                     if (cpStart > nowMs) {
+                        Log.v(TAG, "[ALARM MATH] Found future CHECKPOINT at $cpStart")
                         if (cpStart < closestFutureTrigger) {
                             closestFutureTrigger = cpStart
                             closestTriggerType = "CHECKPOINT_ALARM"
@@ -287,7 +304,7 @@ object AlarmScheduler {
             // Hard string substitution replacing status for completion 
             val updateQuery = "UPDATE task_instances SET status = 'proceeded' WHERE id = ?"
             database.execSQL(updateQuery, arrayOf(instanceId))
-            Log.d(TAG, "[MUTATION LOGIC] Main event $instanceId flagged strictly as proceeded.")
+            Log.i(TAG, "[MUTATION SUCCESS] Instance $instanceId flagged strictly as proceeded.")
         } catch (exception: Exception) {
             Log.e(TAG, "[MUTATION FAULT] Read/Write execution shattered during status write. Error: ${exception.message}", exception)
         } finally {
@@ -335,9 +352,10 @@ object AlarmScheduler {
 
             // Stitch all list items together with a double semicolon `;;` and store!
             val payloadString = synchronizationSet.joinToString(";;")
+            Log.d(TAG, "[STICKY NOTE SYNC] Full Payload String: $payloadString")
             getDeviceProtectedContext(context)?.edit()?.putString(KEY_ALARMS_LIST, payloadString)?.apply()
             
-            Log.d(TAG, "[STICKY NOTE FLUSH] Synced exactly ${synchronizationSet.size} events structurally into Device Encrypted storage payload.")
+            Log.i(TAG, "[STICKY NOTE FLUSH] Synced exactly ${synchronizationSet.size} events structurally into Device Encrypted storage payload.")
         } catch (exception: Exception) {
             Log.e(TAG, "[STICKY NOTE FAULT] Catastrophic DE Storage write rejection: ${exception.message}", exception)
         }
@@ -347,8 +365,8 @@ object AlarmScheduler {
      * Erases the note completely (used when the user deletes all their tasks).
      */
     private fun clearStickyNote(context: Context) {
+        Log.i(TAG, "[STICKY NOTE] Explicitly clearing cached payload.")
         getDeviceProtectedContext(context)?.edit()?.remove(KEY_ALARMS_LIST)?.apply()
-        Log.d(TAG, "[STICKY NOTE FLUSH] Cached payload explicitly deleted.")
     }
 
     /**
@@ -366,11 +384,13 @@ object AlarmScheduler {
             return
         }
 
+        Log.d(TAG, "[FALLBACK RECOVERY] Raw Payload: $serializedPayload")
+
         val currentTimeMs = System.currentTimeMillis()
         
         // 2. Chop up the string back into a list of tasks
         val delimitedTasks = serializedPayload.split(";;")
-        Log.d(TAG, "[FALLBACK RECOVERY] Payload deserialized. Inspecting ${delimitedTasks.size} raw objects.")
+        Log.i(TAG, "[FALLBACK RECOVERY] Payload deserialized. Inspecting ${delimitedTasks.size} raw objects.")
 
         var bestTriggerTime = Long.MAX_VALUE
         var bestInstanceId = ""
@@ -382,6 +402,7 @@ object AlarmScheduler {
 
         // 3. Exactly identical mathematical iteration logic
         for (taskPayload in delimitedTasks) {
+            Log.v(TAG, "[FALLBACK_EVAL] Segments: $taskPayload")
             val taskSegments = taskPayload.split("|")
             if (taskSegments.size >= 4) {
                 // Slice the pieces back out
@@ -401,7 +422,9 @@ object AlarmScheduler {
                     if (safeCheckpoints.isNotEmpty()) {
                         checkpointsStr = String(android.util.Base64.decode(safeCheckpoints, android.util.Base64.DEFAULT))
                     }
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    Log.e(TAG, "[FALLBACK_EVAL] Base64 Decode Failure: ${e.message}")
+                }
 
                 var currentSoundKey = "Default"
                 var isStayThroughout = false
@@ -417,12 +440,16 @@ object AlarmScheduler {
                 } catch (e: Exception) {}
 
                 // Global timeline evaluation. End time strictly handles duration filtering safely.
-                if (mainEnd < currentTimeMs) continue 
+                if (mainEnd < currentTimeMs) {
+                    Log.v(TAG, "[FALLBACK_EVAL] Skipping expired: $title (End: $mainEnd)")
+                    continue 
+                }
 
                 // 4. Run the exact same Pre-Alarm engine here too
                 val (triggerTime, alarmType) = findNextTrigger(mainStart, currentTimeMs, configJsonStr, checkpointsStr)
                 
                 if (triggerTime < bestTriggerTime) {
+                    Log.d(TAG, "[FALLBACK_BEST] New Fallback Best: $title at $triggerTime")
                     bestTriggerTime = triggerTime
                     bestInstanceId = id
                     bestTitle = title
@@ -436,7 +463,7 @@ object AlarmScheduler {
         
         // 5. Hard execute the identified time allocation to the system!
         if (bestTriggerTime != Long.MAX_VALUE) {
-            Log.d(TAG, "[FALLBACK SELECTED] Earliest DE cache trigger -> Type: [$bestAlarmType], Target: $bestInstanceId, Execution: ${formatTimestamp(bestTriggerTime)}")
+            Log.i(TAG, "[FALLBACK SELECTED] Earliest DE cache trigger -> Type: [$bestAlarmType], Target: $bestInstanceId, Execution: ${formatTimestamp(bestTriggerTime)}")
             
             setOSAlarm(context, bestInstanceId, bestTitle, bestTriggerTime, currentTimeMs, bestAlarmType, bestMainTime, bestSoundKey, bestIsStayThroughout)
         } else {
@@ -465,6 +492,8 @@ object AlarmScheduler {
         soundKey: String,
         isStayThroughout: Boolean
     ) {
+        Log.i(TAG, "[HARDWARE INSTRUCTOR] Preparing OS registration for: $title ($instanceId) at $fireAtMs")
+        
         // Gain a bridge strictly over the Android Alarm System
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
@@ -483,6 +512,8 @@ object AlarmScheduler {
             putExtra("main_time_ms", mainTimeMs)
             putExtra("sound_key", soundKey)
         }
+
+        Log.v(TAG, "[HARDWARE INSTRUCTOR] Intent Payload Built -> Type: $alarmType, Sound: $soundKey, StayThroughout: $isStayThroughout")
 
         // The Pending Intent locks everything securely together with heavy constraints.
         // We use Request Code '99999'. Because this number NEVER changes, every time we
@@ -503,22 +534,20 @@ object AlarmScheduler {
                 if (alarmManager.canScheduleExactAlarms()) {
                     val alarmClockInfo = AlarmManager.AlarmClockInfo(fireAtMs, systemPendingIntent)
                     alarmManager.setAlarmClock(alarmClockInfo, systemPendingIntent)
-                    Log.d(TAG, "[HARDWARE INSTRUCTOR] Output -> Success. Strategy utilized: AlarmClock EXACT API Protocol.")
+                    Log.i(TAG, "[HARDWARE INSTRUCTOR] Success. Strategy: AlarmClock EXACT.")
                 } else {
                     // Extremely degraded fallback: If the user explicitly disabled exact permission
-                    // in app settings, this guarantees it STILL fires, but Android will decide when 
-                    // within a 'Doze' generalized window (usually quite close).
-                    Log.w(TAG, "[HARDWARE INSTRUCTOR] Output -> Warning. Kernel denied permission. Executing Idle Bypass routing.")
+                    Log.w(TAG, "[HARDWARE INSTRUCTOR] Warning. Kernel denied exact permission. Strategy: setAndAllowWhileIdle.")
                     alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAtMs, systemPendingIntent)
                 }
             } else {
                 // Pre-Android 12, life was simpler and standard Exact API behaves predictably
+                Log.d(TAG, "[HARDWARE INSTRUCTOR] Strategy: setExactAndAllowWhileIdle.")
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, fireAtMs, systemPendingIntent)
-                Log.d(TAG, "[HARDWARE INSTRUCTOR] Output -> Success. Strategy utilized: Pre-S EXACT API Protocol.")
             }
         } catch (securityException: SecurityException) {
             // A fatal scenario where system architectures block scheduling unconditionally
-            Log.e(TAG, "[HARDWARE EXCEPTION] Strict permission matrix rejection forcefully halted schedule integration: ${securityException.message}", securityException)
+            Log.e(TAG, "[HARDWARE EXCEPTION] Strict permission matrix rejection: ${securityException.message}", securityException)
         } catch (generalException: Exception) {
             Log.e(TAG, "Systematic routing exception resolving hardware dispatch: ${generalException.message}", generalException)
         }
@@ -529,33 +558,39 @@ object AlarmScheduler {
      * of the Expo SQLite database perfectly, irrespective of differing device manufacturer choices.
      */
     private fun getDbFile(context: Context): File? {
+        Log.v(TAG, "[FILESYSTEM] Attempting to resolve SQLite database location...")
         try {
             // Priority 1: Direct path resolving utilizing Expo's architectural layout standard
             val primaryFile = File(context.filesDir, "SQLite/commit.db")
+            Log.v(TAG, "[FILESYSTEM] Path 1 CHECK: ${primaryFile.absolutePath}")
             if (primaryFile.exists()) {
-                Log.d(TAG, "[FILESYSTEM PATHING] Identified SQLite primary partition natively in normal device space.")
+                Log.d(TAG, "[FILESYSTEM PATHING] Path 1 SUCCESS (Expo Default).")
                 return primaryFile
             }
 
             // Priority 2: Safe Android fallback standard implementation
             val secondaryFile = context.getDatabasePath("commit.db")
-            if (secondaryFile.exists()) return secondaryFile
+            Log.v(TAG, "[FILESYSTEM] Path 2 CHECK: ${secondaryFile.absolutePath}")
+            if (secondaryFile.exists()) {
+                Log.d(TAG, "[FILESYSTEM PATHING] Path 2 SUCCESS (Generic).")
+                return secondaryFile
+            }
 
             // Priority 3: FBE recovery execution. 
-            // If normal files fail, it checks if it EXISTS within the Device Encrypted context wrapper itself.
             val encryptedContext = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 context.createDeviceProtectedStorageContext()
             } else null
             
             if (encryptedContext != null) {
                 val isolatedFile = File(encryptedContext.filesDir, "SQLite/commit.db")
+                Log.v(TAG, "[FILESYSTEM] Path 3 CHECK: ${isolatedFile.absolutePath}")
                 if (isolatedFile.exists()) {
-                    Log.d(TAG, "[FILESYSTEM PATHING] Recovered encrypted file boundary from Device Encrypted FBE layer.")
+                    Log.d(TAG, "[FILESYSTEM PATHING] Path 3 SUCCESS (FBE Isolated).")
                     return isolatedFile
                 }
             }
         } catch (exception: Exception) {
-            Log.e(TAG, "[FILESYSTEM ERROR] Storage layout pathing rejected evaluation. Reason: ${exception.message}", exception)
+            Log.e(TAG, "[FILESYSTEM ERROR] Storage layout pathing rejected evaluation: ${exception.message}")
         }
         
         // Priority 4: Raw absolute string pathing as a total final measure
@@ -566,9 +601,6 @@ object AlarmScheduler {
         return null
     }
 
-    /**
-     * Subroutine dedicated to formatting purely for human-readable architectural logs.
-     */
     private fun formatTimestamp(timeMs: Long): String {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = timeMs

@@ -71,7 +71,11 @@ class AlarmActivity : Activity() {
         val isStayThroughout = intent.getBooleanExtra(EXTRA_IS_STAY_THROUGHOUT, false)
 
         val taskTypeText = alarmType.replace("_", " ")
-        Log.d(TAG, "[WAKE LOGIC] Component mapped globally -> Scope: [$taskTypeText], Title: [$taskTitle], TaskID: [$taskInstanceId], Sound: [$soundKey]")
+        Log.i(TAG, "[WAKE LOGIC] UI Parameters -> Type: [$taskTypeText], Title: [$taskTitle], ID: [$taskInstanceId], Sound: [$soundKey]")
+
+        if (taskInstanceId.isEmpty()) {
+            Log.w(TAG, "[WAKE WARNING] Activity started with NULL Instance ID. Database mutations will fail.")
+        }
 
         // Phase 3: Unleash sounds and vibrations so the phone physically demands attention
         initiateHardwareAlerts(soundKey)
@@ -89,7 +93,7 @@ class AlarmActivity : Activity() {
      * bypass native Keyguards (password screens) and forcibly toggle the display panel to ON.
      */
     private fun elevateWindowPermissions() {
-        Log.d(TAG, "[OS MANIPULATION] Modifying underlying OS Window structures attempting direct bypass of lock interfaces.")
+        Log.d(TAG, "[OS MANIPULATION] Modifying underlying OS Window structures for lock bypass...")
         
         // Android 8.1 (Oreo MR1) deprecated flags and introduced clean explicit methodologies.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -106,7 +110,7 @@ class AlarmActivity : Activity() {
         
         // KEEP_SCREEN_ON absolutely refuses to let the phone go idle immediately while this UI specifically is open
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        Log.d(TAG, "[OS MANIPULATION] Direct API manipulation finalized effectively. Screen Power parameter: ON.")
+        Log.v(TAG, "[OS MANIPULATION] Window Flags Applied. Power parameter: ALWAYS_ON.")
     }
 
     /**
@@ -122,6 +126,7 @@ class AlarmActivity : Activity() {
         alarmType: String,
         isStayThroughout: Boolean
     ) {
+        Log.v(TAG, "[UI CONSTRUCTION] Building Native visual tree...")
         // Base layout spanning full dimensions of phone screen 
         val rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -138,17 +143,17 @@ class AlarmActivity : Activity() {
                     val minutesRemaining = max(1, (mainTimeMs - System.currentTimeMillis()) / 60000)
                     val timeLabel = if (minutesRemaining == 1L) "in 1 minute" else "in $minutesRemaining minutes"
                     text = "$taskTitle\n$timeLabel"
-                    Log.d(TAG, "[UI CONSTRUCTION] Rendering dynamic countdown pre-alarm typography UI. Minutes Delta: $minutesRemaining")
+                    Log.d(TAG, "[UI CONSTRUCTION] Render -> PRE_ALARM countdown: $minutesRemaining mins")
                 }
                 "CHECKPOINT_ALARM" -> {
                     // Specific phrasing request by the user for stay_throughout check-ins!
                     text = "Check in for\n$taskTitle"
-                    Log.d(TAG, "[UI CONSTRUCTION] Rendering Check-In terminology typography UI.")
+                    Log.d(TAG, "[UI CONSTRUCTION] Render -> CHECKPOINT_ALARM")
                 }
                 else -> {
                     // MAIN_ALARM or default fallback
                     text = "Time for:\n$taskTitle"
-                    Log.d(TAG, "[UI CONSTRUCTION] Rendering definitive main-alarm terminology typography UI.")
+                    Log.d(TAG, "[UI CONSTRUCTION] Render -> MAIN_ALARM")
                 }
             }
 
@@ -176,28 +181,24 @@ class AlarmActivity : Activity() {
 
                 // Logic bifurcation separating actual data manipulation consequences 
                 if (alarmType == "MAIN_ALARM" && instanceId.isNotEmpty()) {
-                    Log.d(TAG, "[MUTATION DISPATCH] Informing parent framework that Task Main Scope evaluated strictly as finished.")
-                    // Only Main Alarms execute database closures cleanly
-                    // WAIT: for stay_throughout, MAIN_ALARM is just the start.
+                    Log.i(TAG, "[MUTATION] Triggering 'proceeded' status update for ID: $instanceId")
                     if (!isStayThroughout) {
                          AlarmScheduler.markInstanceProceeded(applicationContext, instanceId)
                     } else {
-                         Log.d(TAG, "[MUTATION DISPATCH] Main Alarm for 'stay_throughout' dismissed. Keeping state active for checkpoints!")
+                         Log.d(TAG, "[MUTATION] Skipping 'proceeded' status for 'stay_throughout' main alarm.")
                     }
                 } else if (alarmType == "CHECKPOINT_ALARM") {
-                    Log.d(TAG, "[MUTATION DISPATCH] Checkpoint alarm dismissed. Allowing structural sequence to continue.")
-                    // User check-in logic is handled dynamically by the frontend verify screen instead
+                    Log.d(TAG, "[MUTATION] Checkpoint dismissed. No local DB mutation required.")
                 } else if (alarmType == "PRE_ALARM") {
-                    Log.d(TAG, "[MUTATION DISPATCH] Pre-alarm dismissed intentionally. Original Task state remains perfectly suspended.")
-                    // Doing nothing here natively leaves the DB untouched, ensuring the subsequent alarms continue tracking
+                    Log.d(TAG, "[MUTATION] Pre-alarm dismissed.")
                 }
 
                 // Explicitly demand the routing framework completely rewrite Android AlarmManager configuration to the *next* trigger.
-                Log.d(TAG, "[CHAIN PROPAGATION] Demanding subsequent task scheduling dynamically upon task user dismissal.")
+                Log.i(TAG, "[CHAIN PROPAGATION] Propagating schedule chain upon dismissal.")
                 hasScheduledNext = true
                 AlarmScheduler.scheduleNextAlarm(applicationContext)
 
-                Log.d(TAG, "[WAKE API] Discarding active component and destroying Window View execution entirely.")
+                Log.d(TAG, "[WAKE API] Finishing activity.")
                 // Disintegrate this activity from user focus natively
                 finish()
             }
@@ -213,7 +214,7 @@ class AlarmActivity : Activity() {
      * Hooks natively directly into media controllers bypassing permissions for explicit noises.
      */
     private fun initiateHardwareAlerts(soundKey: String) {
-        Log.d(TAG, "[SYSTEM ALERTS] Routing API layer to initialize device sensory peripherals for sound: $soundKey")
+        Log.d(TAG, "[SYSTEM ALERTS] Initializing alerts for sound: $soundKey")
         try {
             var finalAlertUri: android.net.Uri? = null
             
@@ -222,9 +223,9 @@ class AlarmActivity : Activity() {
                 val resId = resources.getIdentifier(soundKey.lowercase(), "raw", packageName)
                 if (resId != 0) {
                     finalAlertUri = android.net.Uri.parse("android.resource://$packageName/$resId")
-                    Log.d(TAG, "[SYSTEM ALERTS] Custom hardware audio payload confirmed. Linking native /res/raw path.")
+                    Log.i(TAG, "[SYSTEM ALERTS] Resolved custom resource: $finalAlertUri")
                 } else {
-                    Log.w(TAG, "[SYSTEM ALERTS] Custom audio payload '$soundKey' missing from OS partition. Falling back to Kernel default.")
+                    Log.w(TAG, "[SYSTEM ALERTS] Custom sound '$soundKey' not found in /res/raw. Falling back.")
                 }
             }
 
@@ -232,17 +233,15 @@ class AlarmActivity : Activity() {
             if (finalAlertUri == null) {
                 finalAlertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 if (finalAlertUri == null) {
-                    // In massive edge conditions, ALARM is missing, so we use simpler NOTIFICATION output
-                    Log.w(TAG, "[SYSTEM ALERTS DEGRADATION] System standard audio target unaligned. Defaulting fallback channel.")
+                    Log.w(TAG, "[SYSTEM ALERTS] No Alarm URI found. Defaulting to Notification URI.")
                     finalAlertUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 }
             }
             
+            Log.v(TAG, "[SYSTEM ALERTS] Final Audio URI: $finalAlertUri")
             alertRingtone = RingtoneManager.getRingtone(applicationContext, finalAlertUri)
             
             // 🚨 CRITICAL AUDIO FIX 🚨
-            // By default, RingtoneManager uses the "Ringer" volume (which respects Silent Mode).
-            // We MUST explicitly force it to use the "Alarm" volume stream so it breaks through Silent/DND!
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 alertRingtone?.audioAttributes = android.media.AudioAttributes.Builder()
                     .setUsage(android.media.AudioAttributes.USAGE_ALARM)
@@ -253,34 +252,29 @@ class AlarmActivity : Activity() {
                 alertRingtone?.streamType = android.media.AudioManager.STREAM_ALARM
             }
             
-            // Android 9+ allows us to officially declare this needs to infinitely loop
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 alertRingtone?.isLooping = true
             }
             
+            Log.d(TAG, "[SYSTEM ALERTS] Starting Audio playback.")
             alertRingtone?.play()
 
             // Initialize hardware vibration component strictly matching array parameters
             deviceVibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            // This reads: Wait 0ms, Vibrates for 500ms, Pauses for 500ms.
             val vibrationPattern = longArrayOf(0, 500, 500)
             
+            Log.d(TAG, "[SYSTEM ALERTS] Starting Vibration pattern.")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                // Modern Execution: '0' dictates infinitely looping the array until cancelled manually.
-                
-                // Newer APIs let us assign the ALARM trait to the Vibrator too so it bypasses DND!
                 val vibrationAttributes = android.os.VibrationAttributes.Builder()
                     .setUsage(android.os.VibrationAttributes.USAGE_ALARM)
                     .build()
-                    
                 deviceVibrator?.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0), vibrationAttributes)
             } else {
                 @Suppress("DEPRECATION")
                 deviceVibrator?.vibrate(vibrationPattern, 0)
             }
-            Log.d(TAG, "[SYSTEM ALERTS] Sensory loop successfully enabled and polling continuously.")
         } catch (hardwareException: Exception) {
-            Log.e(TAG, "[CRITICAL HARDWARE FAILURE] Catastrophic rejection while instantiating alerts logic structure API: ${hardwareException.message}", hardwareException)
+            Log.e(TAG, "[CRITICAL HARDWARE FAILURE] Alert initialization failed: ${hardwareException.message}", hardwareException)
         }
     }
 
@@ -288,7 +282,7 @@ class AlarmActivity : Activity() {
      * terminateHardwareAlerts()
      */
     private fun terminateHardwareAlerts() {
-        Log.d(TAG, "[SYSTEM ALERTS] Soft terminating loops forcibly.")
+        Log.i(TAG, "[SYSTEM ALERTS] Terminating audio and vibration.")
         alertRingtone?.takeIf { it.isPlaying }?.stop()
         deviceVibrator?.cancel()
     }
@@ -303,9 +297,8 @@ class AlarmActivity : Activity() {
         terminateHardwareAlerts()
         
         // EDGE CASE FIX: If the user "swiped away" the UI without clicking Dismiss,
-        // we MUST reconnect the scheduling chain so the next pre-alarm still happens!
         if (!hasScheduledNext) {
-            Log.w(TAG, "[EDGE CASE RECOVERY] User swiped the Notification/Activity away! Re-linking the broken schedule chain.")
+            Log.w(TAG, "[RECOVERY] UI closed without dismissal. Propagating schedule chain for resilience.")
             AlarmScheduler.scheduleNextAlarm(applicationContext)
         }
     }

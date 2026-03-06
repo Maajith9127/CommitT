@@ -37,21 +37,21 @@ class SchedulerModule : Module() {
          */
         Function("scheduleNextAlarm") {
             Log.i(TAG, "==== [JS BRIDGE INVOKED] ====")
-            Log.d(TAG, "[JS BRIDGE] scheduleNextAlarm() called by React Native.")
+            Log.d(TAG, "[JS BRIDGE] scheduleNextAlarm() requested by JavaScript.")
             
             // Gain access to the Android Application Context from React Native
             val context = appContext.reactContext
             if (context == null) {
-                Log.e(TAG, "[JS BRIDGE] React context is currently unavailable. Aborting delegation.")
+                Log.e(TAG, "[JS BRIDGE] CRITICAL: React context is NULL. Cannot resolve Android Application instance.")
                 return@Function mapOf("success" to false, "error" to "React context missing.")
             }
             
-            Log.d(TAG, "[JS BRIDGE] Context located successfully. Delegating to AlarmScheduler.")
+            Log.v(TAG, "[JS BRIDGE] Context resolved: ${context.packageName}. Delegating to native engine...")
             
             // Handoff logic entirely to AlarmScheduler so this bridge file stays incredibly clean
             AlarmScheduler.scheduleNextAlarm(context)
             
-            Log.i(TAG, "==== [JS BRIDGE DELEGATION COMPLETE] ====")
+            Log.i(TAG, "==== [JS BRIDGE DELEGATION SUCCESSFUL] ====")
             
             // Return a success JSON payload back to the JavaScript promise
             mapOf("success" to true)

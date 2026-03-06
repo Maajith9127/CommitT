@@ -1,7 +1,9 @@
-feat(native): implement surgical task deletion with instance preservation
+feat(scheduler): implement surgical task deletion and advanced native observability
 
-- Implement SQLite Migration 8 -> 9 to add 'is_manual_edit' flag to task instances.
-- Refactor 'deleteTask' logic to surgically remove only unedited instances while orphaning/preserving manually edited ones (matching Convex backend behavior).
-- Use temporary foreign key bypass (PRAGMA foreign_keys = OFF) to allow parent task removal without cascading into protected instances.
-- Update local persistence repositories to synchronize 'is_manual_edit' status across bulk sync and individual update paths.
-- Enhance DB Debug Inspector UI to detect and display orphaned 'Preserved Instances' with distinct visual treatment.
+- Refactor local SQLite and Convex backend deletion logic to preserve manually edited task instances ('is_manual_edit'), ensuring scheduled events survive parent task removal.
+- Integrate production-grade ADB logging architecture across all native Android modules (AlarmScheduler, AlarmReceiver, AlarmActivity, BootReceiver, SchedulerModule).
+- Enhance 'AlarmScheduler' with granular tracing for database path resolution, trigger mathematics, and "Sticky Note" (DE Storage) synchronization.
+- Upgrade 'AlarmReceiver' with hardware drift metrics and raw intent telemetry to monitor OS-level wakeup latency and data integrity.
+- Implement sensory alert validation in 'AlarmActivity' to trace audio resource resolution and vibration pattern initialization for orphaned instances.
+- Strengthen scheduling resilience by logging chain propagation events during user dismissal, system boot restoration, and JS-to-Native bridge delegation.
+- Fix "Ghost Instance" data loss by ensuring all necessary metadata for autonomous hardware triggers is captured and logged during the scheduling lifecycle.
