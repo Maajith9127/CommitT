@@ -109,6 +109,13 @@ function generateJustShowUpCheckpoints(args: {
   }];
 }
 
+/**
+ * Arguments for creating a single task instance.
+ *
+ * `penalty` and `penalty_waiver` are IMMUTABLE SNAPSHOTS copied from the
+ * parent task at creation time. They define the contract for this specific
+ * occurrence and cannot be changed retroactively.
+ */
 export type InstanceCreateArgs = {
   task_id: Id<"tasks">;
   assignee_id: string;
@@ -119,6 +126,8 @@ export type InstanceCreateArgs = {
   recurrence: any;
   conditions: any[];
   config: Doc<"tasks">["config"];
+  penalty?: Doc<"taskInstances">["penalty"];               // Frozen snapshot from parent task
+  penalty_waiver?: Doc<"taskInstances">["penalty_waiver"]; // Frozen snapshot from parent task
   next_instance_id?: Id<"taskInstances">;
   status?: "pending" | "proceeding" | "proceeded" | "failed";
 };
@@ -173,6 +182,8 @@ async function createOne(
     conditions: processedConditions,
     checkpoints: rootCheckpoints,
     config: args.config,
+    penalty: args.penalty,                 // Immutable snapshot — never updated after creation
+    penalty_waiver: args.penalty_waiver,   // Immutable snapshot — never updated after creation
     next_instance_id: args.next_instance_id,
   });
 
@@ -242,6 +253,8 @@ async function generateSeries(
       recurrence: task.recurrence,
       conditions: task.conditions,
       config: task.config,
+      penalty: task.penalty,                 // Snapshot from master task rules at generation time
+      penalty_waiver: task.penalty_waiver,   // Snapshot from master task rules at generation time
     });
     instanceIds.push(instanceId);
   }

@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Modal, View, StyleSheet, ScrollView } from 'react-native';
+import { Modal, View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
@@ -29,6 +29,7 @@ import { LocationSection } from './EventDetailLocation';
 import { PenaltySection, WaiverSection } from './EventDetailConditions';
 import { ActionMenu, ActionMenuItem } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from './ConfirmationModal';
+import { WaiverActionModal } from './WaiverActionModal';
 import { useTaskActions } from '@/hooks/commits/useTaskActions';
 import { useRouter } from 'expo-router';
 
@@ -107,6 +108,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [waiverModalVisible, setWaiverModalVisible] = useState(false);
 
   // Derive the effective status for the header badge.
   // For checkpoint-based tasks, we calculate the status from the live subscription
@@ -355,7 +357,9 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             <PenaltySection event={currentEvent} />
 
             {/* ── Waiver / Grace Period ── */}
-            <WaiverSection event={currentEvent} />
+            <Pressable onPress={() => setWaiverModalVisible(true)}>
+              <WaiverSection event={currentEvent} />
+            </Pressable>
 
           </UScroll>
 
@@ -392,6 +396,12 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         singleButton={true}
         onConfirm={() => setFailureModal({ visible: false, title: '', message: '' })}
         onCancel={() => setFailureModal({ visible: false, title: '', message: '' })}
+      />
+
+      {/* ── Waiver Action Modal ── */}
+      <WaiverActionModal
+        visible={waiverModalVisible}
+        onClose={() => setWaiverModalVisible(false)}
       />
     </Modal>
   );

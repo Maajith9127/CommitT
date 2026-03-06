@@ -11,6 +11,8 @@ import {
   recurrenceEndsTypeEnum,
   verificationStyleEnum,
   intensityEnum,
+  penaltyTypeEnum,
+  waiverTypeEnum,
 } from "../config/enums";
 
 export default defineSchema({
@@ -26,6 +28,38 @@ export default defineSchema({
   })
     .index("by_key", ["key"])
     .index("by_name", ["name"]),
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CENTRAL ASSET REGISTRY — Metadata for every file in Convex Storage
+  // ═══════════════════════════════════════════════════════════════════════
+  // Useful for:
+  // 1. Ownership: Who uploaded this? (Security)
+  // 2. Lifecycle: When was it uploaded? (Cleanup/GC)
+  // 3. Purpose: Tagging files (e.g., 'penalty_photo') for reverse lookups.
+  //
+  // ═══════════════════════════════════════════════════════════════════════
+  // CENTRAL ASSET REGISTRY — Universal File Management
+  // ═══════════════════════════════════════════════════════════════════════
+  // A single table for all binary assets (Photos, Videos, PDFs).
+  //
+  // WHY A SINGLE TABLE?
+  // 1. Unified Security: One place to enforce ownership and ACLs.
+  // 2. Performance: One index for "User's Recent Activity" across all media types.
+  // 3. Maintenance: Simplifies garbage collection and storage usage reporting.
+  //
+  files: defineTable({
+    storageId: v.id("_storage"),
+    userId: v.string(),
+    contentType: v.optional(v.string()),  // e.g., "image/jpeg", "video/mp4"
+    size: v.optional(v.number()),         // File size in bytes (useful for quotas)
+    tag: v.optional(v.string()),          // Logic-specific tag (e.g., 'penalty_photo')
+    metadata: v.optional(v.any()),        // Type-specific: { width, height } for photos, { duration } for videos
+    created_at: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_tag", ["tag"])
+    .index("by_storageId", ["storageId"]),
+
   tasks: defineTable({
     assigner_id: v.string(),
     assignee_id: v.string(),
@@ -70,6 +104,29 @@ export default defineSchema({
         max_missed_checkins: v.number(),
       })),
     }),
+    // ═══════════════════════════════════════════════════════════════════════
+    // PENALTY & WAIVER — Master Rules (Source of Truth)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // These define the "contract" the user agreed to when creating the task.
+    // When instances are generated, these values are COPIED (snapshotted)
+    // onto each instance. This prevents retroactive rule manipulation:
+    //   e.g., User sets ₹500 penalty → fails → quickly edits to ₹10.
+    // The instance keeps the original ₹500 snapshot.
+    //
+    // `config` uses `v.any()` because each penalty/waiver type has a
+    // different shape. Type safety is enforced at the VALIDATOR layer
+    // (lib/validators.ts) and the EXECUTOR layer (core/penalty/dispatcher.ts).
+    //
+    penalty: v.optional(v.object({
+      type: penaltyTypeEnum,    // Discriminator for the penalty dispatcher
+      config: v.any(),          // Type-specific payload (photo URI, amount, etc.)
+    })),
+    penalty_waiver: v.optional(v.object({
+      type: waiverTypeEnum,     // Discriminator for the waiver verifier
+      config: v.any(),          // Type-specific settings (captcha count, word count, etc.)
+      deadline_minutes: v.number(), // How long the user has to complete the waiver after failing
+    })),
     created_at: v.number(),
     updated_at: v.number(),
   })
@@ -166,6 +223,66 @@ export default defineSchema({
         max_missed_checkins: v.number(),
       })),
     }),
+    // ═══════════════════════════════════════════════════════════════════════
+    // PENALTY & WAIVER — Immutable Snapshots from Parent Task
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // These are FROZEN copies of the parent task's penalty/waiver rules,
+    // captured at the moment this instance was created. They are NEVER
+    // updated, even if the user later edits their task settings.
+    //
+    // WHY: Ensures the "punishment contract" cannot be changed after the
+    // fact. The instance enforces the rules that were active when the
+    // user committed to the task.
+    //
+    // NOTE: Uses `v.string()` instead of the enum validators because these
+    // are snapshots — if we later remove a penalty type from the enum,
+    // existing snapshots should still be readable without schema errors.
+    //
+    penalty: v.optional(v.object({
+      type: v.string(),         // Snapshot of penaltyTypeEnum value at creation time
+      config: v.any(),          // Snapshot of type-specific config
+    })),
+    penalty_waiver: v.optional(v.object({
+      type: v.string(),         // Snapshot of waiverTypeEnum value at creation time
+      config: v.any(),          // Snapshot of type-specific config
+      deadline_minutes: v.number(), // Snapshot of waiver deadline
+    })),
+    // ═══════════════════════════════════════════════════════════════════════
+    // WAIVER LIFECYCLE STATE — Mutable Runtime Tracking
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Unlike everything above (which is immutable), this object is MUTATED
+    // at runtime as the user progresses through the waiver challenge.
+    //
+    // Only populated when status transitions to 'failed' → 'waiver_active'.
+    // Remains `undefined` for instances that succeed or have no waiver.
+    //
+    // CRITICAL FIELD: `penalty_job_id`
+    //   This is the ID of a Convex durable scheduled function that will
+    //   execute the penalty when `expires_at` is reached. It is the "bomb"
+    //   that WILL detonate unless explicitly cancelled via:
+    //     `ctx.scheduler.cancel(waiver_state.penalty_job_id)`
+    //   This cancel only happens when the waiver verifier confirms completion.
+    //
+    waiver_state: v.optional(v.object({
+      status: v.union(
+        v.literal("offered"),      // Task failed → waiver window opened
+        v.literal("in_progress"),  // User actively working on the waiver challenge
+        v.literal("completed"),    // ✅ Waiver verified → penalty cancelled
+        v.literal("expired"),      // ❌ Deadline passed → penalty executed
+        v.literal("skipped"),      // User explicitly declined the waiver
+      ),
+      opened_at: v.number(),             // Epoch ms when the waiver was first offered
+      expires_at: v.number(),            // Epoch ms deadline — penalty fires after this
+      started_at: v.optional(v.number()),    // Epoch ms when user began the challenge
+      completed_at: v.optional(v.number()),  // Epoch ms when user finished the challenge
+      progress: v.optional(v.object({        // Real-time progress tracking
+        current: v.number(),                 // e.g., 3 captchas solved
+        total: v.number(),                   // e.g., 10 captchas required
+      })),
+      penalty_job_id: v.optional(v.id("_scheduled_functions")), // The "bomb" to cancel on waiver success
+    })),
     // Time verification is implicit (every instance has start/end), validated server-side.
     scheduled_job_id: v.optional(v.id("_scheduled_functions")),
     next_instance_id: v.optional(v.id("taskInstances")),

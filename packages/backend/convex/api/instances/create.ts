@@ -43,6 +43,10 @@ export default authedMutation({
       recurrence: task.recurrence, // Inherit rules even if one-off
       conditions: task.conditions,
       config: task.config,
+      // Inherit the penalty contract from the parent task.
+      // Even manual one-off instances enforce the same accountability rules.
+      penalty: task.penalty,
+      penalty_waiver: task.penalty_waiver,
       status: "pending",
     });
 

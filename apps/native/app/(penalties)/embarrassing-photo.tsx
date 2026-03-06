@@ -1,3 +1,8 @@
+/**
+ * @file EmbarrassingPhotoScreen.tsx
+ * @description Penalty configuration screen for the "Embarrassing Photo" forfeit.
+ */
+
 import { useState } from "react";
 import { View, ScrollView, Image, Pressable, TextInput, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,6 +14,8 @@ import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { PrimaryButton } from "@/components/ui/button";
+import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
+import { usePenaltySync } from "@/hooks/commits/usePenaltySync";
 
 const UView = withUniwind(View);
 const UScrollView = withUniwind(ScrollView);
@@ -18,13 +25,17 @@ const UTextInput = withUniwind(TextInput);
 
 export default function EmbarrassingPhotoScreen() {
   const router = useRouter();
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [description, setDescription] = useState("");
-  const [selectedChannel, setSelectedChannel] = useState<string>("whatsapp");
+  
+  //  DIRECT SYNC: Reading directly from Zustand
+  const { draft, syncToDraft } = usePenaltySync();
+  const config = draft.penalty?.config || {};
+
+  // Local UI State
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
 
   const handlePickImage = async () => {
     try {
-      // 1. Request Permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (status !== 'granted') {
@@ -35,22 +46,44 @@ export default function EmbarrassingPhotoScreen() {
         return;
       }
 
-      // 2. Launch Image Picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
-        aspect: [1, 1], // Force a square for the cringe photo
+        aspect: [1, 1],
         quality: 0.8,
       });
 
       if (!result.canceled) {
-        setPhotoUri(result.assets[0].uri);
+        syncToDraft({ photoUrl: result.assets[0].uri });
         console.log("[Photo] Image selected successfully:", result.assets[0].uri);
       }
     } catch (error) {
       console.error("[Photo] Error picking image:", error);
       Alert.alert("Error", "Something went wrong while picking the photo.");
     }
+  };
+
+  const handleLockConsequence = () => {
+    // Validation
+    if (!config.photoUrl) {
+      setModalTitle("Please select a photo. A forfeit requires proof!");
+      setModalVisible(true);
+      return;
+    }
+    
+    if (!config.description || config.description.trim().length === 0) {
+      setModalTitle("Please provide a description for the self-deprecation penalty.");
+      setModalVisible(true);
+      return;
+    }
+    
+    if (config.channel === "email" && (!config.emailTo || !config.emailSubject || !config.emailBody)) {
+      setModalTitle("Please complete the 'Email Blast' setup before locking.");
+      setModalVisible(true);
+      return;
+    }
+
+    router.push("/(create-commit)/final");
   };
 
   return (
@@ -69,6 +102,15 @@ export default function EmbarrassingPhotoScreen() {
             </FooterText>
           </UView>
 
+          <ConfirmationModal
+            visible={modalVisible}
+            title={modalTitle}
+            confirmText="Got it"
+            singleButton={true}
+            onConfirm={() => setModalVisible(false)}
+            onCancel={() => setModalVisible(false)}
+          />
+
           {/* PHOTO UPLOAD AREA */}
           <UView className="mt-8">
             <UView className="flex-row items-center mb-4 gap-2">
@@ -80,8 +122,8 @@ export default function EmbarrassingPhotoScreen() {
               onPress={handlePickImage}
               className="w-full aspect-square rounded-3xl bg-[#1A1A1A] items-center justify-center border-2 border-dashed border-[#333] overflow-hidden"
             >
-              {photoUri ? (
-                <UImage source={{ uri: photoUri }} className="w-full h-full" />
+              {config.photoUrl ? (
+                <UImage source={{ uri: config.photoUrl }} className="w-full h-full" />
               ) : (
                 <UView className="items-center">
                   <MaterialCommunityIcons name="camera-plus-outline" size={48} color="#4FA0FF" />
@@ -103,9 +145,9 @@ export default function EmbarrassingPhotoScreen() {
                 placeholder="Describe why this photo is so bad..."
                 placeholderTextColor="#666"
                 multiline
-                value={description}
-                onChangeText={setDescription}
-                className="text-white text-base font-medium flex-1 text-top"
+                value={config.description || ""}
+                onChangeText={(text: string) => syncToDraft({ description: text, emailBody: text })}
+                className="text-white text-base font-medium flex-1"
                 textAlignVertical="top"
               />
             </UView>
@@ -123,8 +165,8 @@ export default function EmbarrassingPhotoScreen() {
               iconColor="#25D366"
               title="WhatsApp"
               subtitle="Send automatically to chosen contacts"
-              selected={selectedChannel === "whatsapp"}
-              onPress={() => setSelectedChannel("whatsapp")}
+              selected={config.channel === "whatsapp" || !config.channel}
+              onPress={() => syncToDraft({ channel: "whatsapp" })}
               showArrow={true}
             />
             <ConditionCard
@@ -132,8 +174,8 @@ export default function EmbarrassingPhotoScreen() {
               iconColor="#E4405F"
               title="Instagram DM"
               subtitle="Directly to your followers"
-              selected={selectedChannel === "instagram"}
-              onPress={() => setSelectedChannel("instagram")}
+              selected={config.channel === "instagram"}
+              onPress={() => syncToDraft({ channel: "instagram" })}
               showArrow={true}
             />
             <ConditionCard
@@ -141,14 +183,14 @@ export default function EmbarrassingPhotoScreen() {
               iconColor="#4FA0FF"
               title="Email Blast"
               subtitle="To your custom contact list"
-              selected={selectedChannel === "email"}
+              selected={config.channel === "email"}
               onPress={() => {
-                setSelectedChannel("email");
+                syncToDraft({ channel: "email" });
                 router.push({
                   pathname: "/(penalties)/email-setup",
                   params: { 
-                    photoUri: photoUri || "",
-                    description: description || ""
+                    photoUri: config.photoUrl || "",
+                    description: config.description || ""
                   }
                 });
               }}
@@ -159,8 +201,8 @@ export default function EmbarrassingPhotoScreen() {
               iconColor="#A855F7"
               title="Commit Direct"
               subtitle="Send to a specific Commit user"
-              selected={selectedChannel === "commit"}
-              onPress={() => setSelectedChannel("commit")}
+              selected={config.channel === "commit"}
+              onPress={() => syncToDraft({ channel: "commit" })}
               showArrow={true}
             />
           </UView>
@@ -169,8 +211,8 @@ export default function EmbarrassingPhotoScreen() {
       </UScrollView>
 
       {/* STICKY BOTTOM BUTTON */}
-      <UView className="absolute bottom-0 left-0 right-0 bg-black px-4 py-4 pb-8">
-        <PrimaryButton onPress={() => router.back()}>Lock Consequence</PrimaryButton>
+      <UView className="absolute bottom-0 left-0 right-0 bg-black px-4 py-4 pb-8 border-t border-[#111]">
+        <PrimaryButton onPress={handleLockConsequence}>Lock Consequence</PrimaryButton>
       </UView>
 
     </UView>

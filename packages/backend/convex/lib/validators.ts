@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { recurrenceTypeEnum, recurrenceEndsTypeEnum, relationEnum, targetTypeEnum, verificationStyleEnum, intensityEnum } from "../config/enums";
+import { recurrenceTypeEnum, recurrenceEndsTypeEnum, relationEnum, targetTypeEnum, verificationStyleEnum, intensityEnum, penaltyTypeEnum, waiverTypeEnum } from "../config/enums";
 
 /**
  * Convex Schema Definitions (Structural Validation)
@@ -56,3 +56,34 @@ export const ConfigSchema = v.object({
       max_missed_checkins: v.number(),
     })),
   });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PENALTY & WAIVER — Structural Validators for the Accountability Contract
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Each penalty/waiver type has a DIFFERENT config shape:
+//   • embarrassing_photo: { storageId, channel, description, emailTo, ... }
+//   • send_money:         { amount, currency, ... }
+//   • captcha:            { count, difficulty, ... }
+//
+// We use `v.any()` for config here because:
+//   1. Convex doesn't support discriminated unions natively.
+//   2. Type-specific validation happens in `core/commitments/validator.ts`.
+//   3. Type-specific execution happens in `core/penalty/dispatcher.ts`.
+//
+// The `type` field acts as the discriminator that routes to the correct
+// validator and executor at runtime.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Defines the penalty consequence for failing a task */
+export const PenaltySchema = v.object({
+  type: penaltyTypeEnum,    // Discriminator: "embarrassing_photo", "send_money", etc.
+  config: v.any(),          // Type-specific payload (validated by domain logic layer)
+});
+
+/** Defines the waiver challenge that can defuse a penalty */
+export const PenaltyWaiverSchema = v.object({
+  type: waiverTypeEnum,           // Discriminator: "captcha", "paragraph", etc.
+  config: v.any(),                // Type-specific settings (validated by domain logic layer)
+  deadline_minutes: v.number(),   // How long the user has to complete the waiver after failing
+});

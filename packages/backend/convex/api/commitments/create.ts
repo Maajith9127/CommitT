@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 
 import { visibilityEnum } from "../../config/enums";
-import { RecurrenceSchema, ConditionsSchema, ConfigSchema } from "../../lib/validators";
+import { RecurrenceSchema, ConditionsSchema, ConfigSchema, PenaltySchema, PenaltyWaiverSchema } from "../../lib/validators";
 import { createInternal } from "../../core/commitments/service";
 
 import { authedMutation } from "../../middleware";
@@ -14,6 +14,13 @@ import { authedMutation } from "../../middleware";
  * 2. Authenticating the user via middleware.
  * 3. Delegating the business logic to `createInternal` service.
  * 4. Formatting any errors into a standardized response for the client.
+ * 
+ * PENALTY & WAIVER:
+ * Both are optional. When provided, they define the accountability contract:
+ *   • penalty:        What happens when the user fails (photo blast, money loss, etc.)
+ *   • penalty_waiver: How the user can EARN forgiveness after failing (captcha, paragraph, etc.)
+ * These are stored on the task as master rules, then SNAPSHOTTED onto every
+ * generated instance to prevent retroactive manipulation.
  */
 export default authedMutation({
   args: {
@@ -24,6 +31,10 @@ export default authedMutation({
     recurrence: RecurrenceSchema,
     conditions: ConditionsSchema,
     config: ConfigSchema,
+    // ── Optional Accountability Contract ──
+    // Omitted = no penalty/waiver for this commitment.
+    penalty: v.optional(PenaltySchema),
+    penalty_waiver: v.optional(PenaltyWaiverSchema),
   },
   handler: async (ctx, args) => {
     // Identity is guaranteed by the `authedMutation` middleware.

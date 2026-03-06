@@ -518,14 +518,44 @@ export default function FinalScreen() {
         <UView className="mt-2 mb-3">
           <HeaderTitle>Penalties</HeaderTitle>
         </UView>
-        <ConditionCard
-          icon="alert-circle-outline"
-          iconColor={COLORS.danger}
-          title="Penalty"
-          subtitle="₹500 will be deducted if you miss this commitment"
-          onPress={() => router.push("/(create-commit)/penalties")}
-          className="h-28 border-[3px] border-red-500 pb-4"
-        />
+
+        {(() => {
+          const penalty = draft.penalty;
+          const config = penalty?.config;
+
+          let displayTitle = "Add Penalty";
+          let displaySubtitle = "Set a consequence for failing your commitment";
+          let displayIcon = "alert-circle-outline";
+
+          if (penalty?.type === "money") {
+            displayTitle = "Money Penalty";
+            displaySubtitle = `₹${config?.amount || 500} will be deducted if you fail`;
+            displayIcon = "currency-inr";
+          } else if (penalty?.type === "embarrassing_photo") {
+            displayTitle = "Embarrassing Photo";
+            displaySubtitle = `Will be sent via ${config?.channel || "delivery channel"} to your chosen mail id `;
+            displayIcon = "camera-enhance-outline";
+          } else if (penalty?.type === "cringe_message") {
+            displayTitle = "Cringe Message";
+            displaySubtitle = "Shameful message will be sent to contact";
+            displayIcon = "message-alert-outline";
+          } else if (penalty?.type === "block_app") {
+            displayTitle = "Block Favourite App";
+            displaySubtitle = "Access to chosen app will be restricted";
+            displayIcon = "cellphone-off";
+          }
+
+          return (
+            <ConditionCard
+              icon={displayIcon}
+              iconColor={COLORS.danger}
+              title={displayTitle}
+              subtitle={displaySubtitle}
+              onPress={() => router.push("/(create-commit)/penalties")}
+              className="h-28 border-[3px] border-red-500 pb-4"
+            />
+          );
+        })()}
 
         {/* Section: Penalty Waiver */}
         <UView className="mt-3 mb-3">

@@ -2,6 +2,15 @@
 import { MutationCtx } from "../../_generated/server";
 import { Id, Doc } from "../../_generated/dataModel";
 
+/**
+ * Arguments for creating a single task instance (legacy path).
+ *
+ * NOTE: This type DUPLICATES `InstanceCreateArgs` in `core/instances/service.ts`.
+ * Both must be kept in sync. If you add a field here, add it there too.
+ *
+ * `penalty` and `penalty_waiver` are IMMUTABLE SNAPSHOTS — they preserve
+ * the original accountability contract and cannot be changed after creation.
+ */
 export type InstanceCreateArgs = {
   task_id: Id<"tasks">;
   assignee_id: string;
@@ -12,6 +21,8 @@ export type InstanceCreateArgs = {
   recurrence: any;
   conditions: any[];
   config: Doc<"tasks">["config"];
+  penalty?: Doc<"taskInstances">["penalty"];               // Frozen snapshot from parent task
+  penalty_waiver?: Doc<"taskInstances">["penalty_waiver"]; // Frozen snapshot from parent task
   next_instance_id?: Id<"taskInstances">;
   status?: "pending" | "proceeding" | "proceeded" | "failed";
 };
@@ -121,6 +132,8 @@ export async function createInstanceInternal(
     recurrence: args.recurrence,
     conditions: processedConditions,
     config: args.config,
+    penalty: args.penalty,
+    penalty_waiver: args.penalty_waiver,
     next_instance_id: args.next_instance_id,
   });
 

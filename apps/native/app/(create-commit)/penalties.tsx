@@ -5,11 +5,15 @@ import { ScreenHeader } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { AuthTitle, HeaderTitle } from "@/components/ui/text";
 
+import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 
 export default function PenaltiesScreen() {
   const router = useRouter();
+  const setDraft = useTaskDraftStore((s) => s.setDraft);
+  const draft = useTaskDraftStore((s) => s.draft);
 
   return (
     <UView className="flex-1 bg-black">
@@ -30,7 +34,17 @@ export default function PenaltiesScreen() {
           iconColor="#FF3B30"
           title="Money Penalty"
           subtitle="Lose a fixed amount when you miss"
-          onPress={() => router.push("/(penalties)/money")}
+          selected={draft.penalty?.type === "money"}
+          selectionColor="#FF3B30"
+          onPress={() => {
+            setDraft({
+              penalty: {
+                type: "money",
+                config: draft.penalty?.type === "money" ? draft.penalty.config : { amount: 500 }
+              }
+            });
+            router.push("/(penalties)/money");
+          }}
         />
 
         {/* 2 — EMBARRASSING PHOTO */}
@@ -39,7 +53,24 @@ export default function PenaltiesScreen() {
           iconColor="#FF3B30"
           title="Embarrassing Photo"
           subtitle="Send a cringe picture to someone"
-          onPress={() => router.push("/(penalties)/embarrassing-photo")}
+          selected={draft.penalty?.type === "embarrassing_photo"}
+          selectionColor="#FF3B30"
+          onPress={() => {
+            setDraft({
+              penalty: {
+                type: "embarrassing_photo",
+                config: draft.penalty?.type === "embarrassing_photo" ? draft.penalty.config : {
+                  channel: "whatsapp",
+                  description: "",
+                  emailTo: "",
+                  emailSubject: "I failed my commitment!",
+                  emailBody: "",
+                  photoUrl: null
+                }
+              }
+            });
+            router.push("/(penalties)/embarrassing-photo");
+          }}
         />
 
         {/* 3 — CRINGE MESSAGE */}
@@ -48,7 +79,17 @@ export default function PenaltiesScreen() {
           iconColor="#FF3B30"
           title="Cringe Message"
           subtitle="A shameful message gets sent to a contact"
-          onPress={() => router.push("/(create-commit)/penalty-message")}
+          selected={draft.penalty?.type === "cringe_message"}
+          selectionColor="#FF3B30"
+          onPress={() => {
+            setDraft({
+              penalty: {
+                type: "cringe_message",
+                config: draft.penalty?.type === "cringe_message" ? draft.penalty.config : { message: "", recipient: "" }
+              }
+            });
+            router.push("/(create-commit)/penalty-message");
+          }}
         />
 
         {/* 4 — BLOCK FAVOURITE APP */}
@@ -57,7 +98,17 @@ export default function PenaltiesScreen() {
           iconColor="#FF3B30"
           title="Block Favourite App"
           subtitle="Your chosen app gets blocked temporarily"
-          onPress={() => router.push("/(create-commit)/penalty-blockapp")}
+          selected={draft.penalty?.type === "block_app"}
+          selectionColor="#FF3B30"
+          onPress={() => {
+            setDraft({
+              penalty: {
+                type: "block_app",
+                config: draft.penalty?.type === "block_app" ? draft.penalty.config : { appId: "" }
+              }
+            });
+            router.push("/(create-commit)/penalty-blockapp");
+          }}
         />
       </UScroll>
     </UView>

@@ -71,6 +71,23 @@ export type TaskDraft = {
   // Task Configuration (matches Convex schema)
   config: TaskConfig;
 
+  /**
+   * Penalty Configuration: Defines the forfeit consequence for the task.
+   * Matches Doc<"taskInstances">["penalty"] discriminator pattern.
+   * Example: { type: "embarrassing_photo", config: { photoUrl, ... } }
+   */
+  penalty?: {
+    type: "embarrassing_photo" | "send_email" | "send_money" | "commit_direct";
+    config: any;
+  } | null;
+
+  /**
+   * Penalty Waiver: Defines governance/consensus rules for waiving a penalty.
+   */
+  penalty_waiver?: {
+    type: "governance" | "consensus";
+    config: any;
+  } | null;
 
   // UI-only: camera target for map components
   cameraTarget: {
@@ -122,10 +139,6 @@ type TaskDraftStore = {
   setConfig: (updates: Partial<TaskConfig>) => void;
 };
 
-/* -----------------------------
-   Helpers
---------------------------------*/
-
 const createEmptyDraft = (): TaskDraft => ({
   id: "",
 
@@ -161,29 +174,27 @@ const createEmptyDraft = (): TaskDraft => ({
 });
 
 // Logger middleware - pretty-print state in schema format
+/**
+ * @middleware logger
+ * @description Injects console visibility into store updates.
+ * In a production environment, this is typically wrapped in early-return logic 
+ * to ensure logs only appear during debug sessions.
+ */
 const logger = (config: any) => (set: any, get: any, api: any) =>
   config(
     (...args: any[]) => {
       const actionName = args[2] ?? "anonymous";
       
-      // Execute the state update
+      // Execute state mutation
       set(...args);
       
-      // Get the new state
+      // Post-mutation visibility
       const d = get().draft;
       
       console.log(`\n[Zustand] 🔄 ${actionName}`);
       console.log("─────────────────────────────────────────────────────────");
-      console.log(`{
-  assigner_id: ${JSON.stringify(d.assigner_id)},
-  assignee_id: ${JSON.stringify(d.assignee_id)},
-  title: ${JSON.stringify(d.title)},
-  description: ${JSON.stringify(d.description)},
-  visibility: ${JSON.stringify(d.visibility)},
-  recurrence: ${JSON.stringify(d.recurrence, null, 4).split('\n').join('\n  ')},
-  conditions: ${JSON.stringify(d.conditions, null, 4).split('\n').join('\n  ')},
-  config: ${JSON.stringify(d.config, null, 4).split('\n').join('\n  ')}
-}`);
+      console.log(JSON.stringify(d, null, 2));
+      console.log("─────────────────────────────────────────────────────────\n");
       console.log("─────────────────────────────────────────────────────────\n");
     },
     get,

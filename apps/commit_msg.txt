@@ -1,10 +1,44 @@
-feat(native): refactor penalty waiver flow to page-based navigation and enhance captcha setup
+feat(penalty): architect end-to-end penalty integration with deferred upload and backend URL resolution
 
-- Replace modal-based waiver selection with a dedicated page-based flow for improved integration
-- Implement [(penaltywaiver)](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/captcha/CaptchaGenerator.tsx:4:0-4:44) route group with `slide_from_right` animations for a seamless "right-snap" feel
-- Redesign CAPTCHA setup screen with unified headers (3xl green titles) and synchronized subheadings
-- Enhance [CaptchaWaiverContent](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/waivers/CaptchaWaiverContent.tsx:16:0-127:1) with dynamic mood-based robot icons and high-impact values (6xl)
-- Optimize slider performance with debounced state synchronization and memoized callbacks
-- Solve visual inconsistencies including layout jitter and infinite height stretching in scroll views
-- Refine navigation flow by implementing a sticky primary action footer with high-contrast white text
-- Standardize instructional content hierarchy by centralizing text into the screen header
+This commit establishes the complete accountability contract pipeline, bridging the native 
+frontend draft state with Convex Storage and the backend service layer.
+
+### 🏗️ Technical Architecture & Rationale:
+
+1.  **Deferred Asset Upload Strategy**: 
+    Implemented a middleware layer in the 'useCommitTask' orchestrator. Photo assets are kept 
+    locally as 'file://' URIs during the configuration phase to save bandwidth. Uploads to 
+    Convex Storage are only triggered upon final "Commit," ensuring zero wasted storage for 
+    abandoned drafts.
+
+2.  **Stateless Frontend / Stateful Backend**:
+    Zustand now consistently tracks 'photoUrl'. On submission, the orchestrator interceptor 
+    swaps local URIs for permanent 'storageId' references. The backend then performs 
+    synchronous URL resolution, storing BOTH the 'storageId' (for DB integrity) and 
+    the 'photoUrl' (for instant UI rendering on reload).
+
+3.  **Centralized File Registry**:
+    Integrated 'api.files.record' into the upload pipeline. Every penalty asset is now 
+    registered in the 'files' table with a 'penalty_photo' tag, enabling robust ownership 
+    tracking, easier garbage collection, and user-level asset audits.
+
+### 🛠️ Detailed Changes:
+
+- **Frontend Orchestration ([useCommitTask.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:0:0-0:0))**: 
+    Developed [preparePenaltyPayload](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:126:0-174:1) middleware to handle asynchronous multi-part submission 
+    flows (Photo Upload -> File Registration -> Task Creation).
+- **Domain Validation ([core/commitments/validator.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/validator.ts:0:0-0:0))**: 
+    Implemented strict type-specific validation for 'embarrassing_photo' penalties, 
+    enforcing presence of storageId, delivery channel, and self-deprecation descriptions.
+- **Service Layer ([core/commitments/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/service.ts:0:0-0:0))**: 
+    Updated [createInternal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/service.ts:27:0-135:1) to resolve storage IDs into public HTTPS URLs at the point of 
+    creation, embedding them into the task and its 365-instance snapshots for O(1) asset access.
+- **Schema & API Alignment**: 
+    Extended [lib/validators.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/validators.ts:0:0-0:0) and [api/commitments/create.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/create.ts:0:0-0:0) with Penalty and Waiver 
+    schemas; standardized all references from 'localPhotoUri' to 'photoUrl' across 
+    Zustand stores, EmailSetup, and EmbarrassingPhoto screens.
+- **UI UX Refinement**: 
+    Simplified 'ConfirmationModal' implementation to a high-impact "Title-Only" design 
+    pattern for more aggressive error acknowledgment in penalty setup.
+
+Co-authored-by: Antigravity <antigravity@google.ai>

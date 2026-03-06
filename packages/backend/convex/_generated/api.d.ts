@@ -39,6 +39,7 @@ import type * as crons from "../crons.js";
 import type * as execution_scheduling_scheduler from "../execution/scheduling/scheduler.js";
 import type * as execution_verification_runner from "../execution/verification/runner.js";
 import type * as execution_watchdog from "../execution/watchdog.js";
+import type * as files from "../files.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
 import type * as lib_errorHandler from "../lib/errorHandler.js";
@@ -92,6 +93,7 @@ declare const fullApi: ApiFromModules<{
   "execution/scheduling/scheduler": typeof execution_scheduling_scheduler;
   "execution/verification/runner": typeof execution_verification_runner;
   "execution/watchdog": typeof execution_watchdog;
+  files: typeof files;
   healthCheck: typeof healthCheck;
   http: typeof http;
   "lib/errorHandler": typeof lib_errorHandler;

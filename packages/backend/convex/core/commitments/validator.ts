@@ -70,12 +70,107 @@ export function validateTimeXRule(
   return { valid: true };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PENALTY VALIDATION — Type-Specific Config Integrity Checks
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Each penalty type has mandatory fields in its config object.
+// The schema layer (lib/validators.ts) only checks structural shape.
+// THIS function checks domain-level requirements:
+//   • Does the embarrassing_photo penalty have a storageId?
+//   • Does the email config have a valid recipient?
+//   • Is the channel set?
+//
+// TO ADD A NEW PENALTY TYPE:
+// 1. Add a new case to the switch below.
+// 2. Validate the required config fields for that type.
+// 3. Return a clear, user-friendly error message.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const VALID_CHANNELS = ["whatsapp", "instagram", "email", "commit"] as const;
+
+export function validatePenalty(penalty: { type: string; config: any } | undefined): ValidationResult {
+  // No penalty = perfectly valid (not all commitments need penalties)
+  if (!penalty) return { valid: true };
+
+  const { type, config } = penalty;
+
+  if (!config || typeof config !== "object") {
+    return { valid: false, error: "Penalty configuration is missing", errorCode: "PENALTY_CONFIG_MISSING" };
+  }
+
+  switch (type) {
+    case "embarrassing_photo": {
+      // REQUIRED: A Convex storageId (uploaded photo reference)
+      if (!config.storageId) {
+        return {
+          valid: false,
+          error: "Penalty photo must be uploaded before creating the commitment",
+          errorCode: "PENALTY_PHOTO_MISSING",
+        };
+      }
+
+      // REQUIRED: A delivery channel (how the photo will be sent)
+      if (!config.channel || !VALID_CHANNELS.includes(config.channel)) {
+        return {
+          valid: false,
+          error: "Please select a valid delivery channel for the penalty photo",
+          errorCode: "PENALTY_CHANNEL_INVALID",
+        };
+      }
+
+      // REQUIRED: A description (the self-deprecation message)
+      if (!config.description || typeof config.description !== "string" || config.description.trim().length === 0) {
+        return {
+          valid: false,
+          error: "Please provide a description for the penalty",
+          errorCode: "PENALTY_DESCRIPTION_MISSING",
+        };
+      }
+
+      // CONDITIONAL: If email channel, validate email-specific fields
+      if (config.channel === "email") {
+        if (!config.emailTo || typeof config.emailTo !== "string" || !config.emailTo.includes("@")) {
+          return {
+            valid: false,
+            error: "Please provide a valid recipient email address for the penalty",
+            errorCode: "PENALTY_EMAIL_TO_INVALID",
+          };
+        }
+        if (!config.emailSubject || typeof config.emailSubject !== "string" || config.emailSubject.trim().length === 0) {
+          return {
+            valid: false,
+            error: "Please provide an email subject for the penalty",
+            errorCode: "PENALTY_EMAIL_SUBJECT_MISSING",
+          };
+        }
+      }
+
+      return { valid: true };
+    }
+
+    case "send_email":
+    case "send_money":
+    case "commit_direct":
+      // TODO: Add validation for other penalty types as they are implemented
+      return { valid: true };
+
+    default:
+      return {
+        valid: false,
+        error: `Unknown penalty type: ${type}`,
+        errorCode: "PENALTY_TYPE_UNKNOWN",
+      };
+  }
+}
+
 export function validateCommitment(input: {
   title: string;
   recurrence: Recurrence;
   conditions: Condition[];
   assigner_id: string;
   assignee_id: string;
+  penalty?: { type: string; config: any };
 }): ValidationResult {
   const titleRes = validateTitle(input.title);
   if (!titleRes.valid) return titleRes;
@@ -85,6 +180,10 @@ export function validateCommitment(input: {
 
   const xRes = validateTimeXRule(input.conditions, input.assignee_id, input.assigner_id);
   if (!xRes.valid) return xRes;
+
+  // Validate penalty config if provided (domain-level checks)
+  const penaltyRes = validatePenalty(input.penalty);
+  if (!penaltyRes.valid) return penaltyRes;
 
   return { valid: true };
 }

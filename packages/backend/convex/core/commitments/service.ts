@@ -5,6 +5,13 @@ import { Instances } from "../instances/service";
 import { syncTaskSchedule } from "../../execution/scheduling/scheduler";
 import { validateCommitment } from "./validator";
 
+/**
+ * Arguments for creating a new commitment (task).
+ *
+ * `penalty` and `penalty_waiver` define the accountability contract.
+ * These are stored as master rules on the task, then SNAPSHOTTED onto
+ * every generated instance to prevent retroactive manipulation.
+ */
 export type CreateArgs = {
   assignee_id: string;
   title: string;
@@ -13,7 +20,9 @@ export type CreateArgs = {
   recurrence: any;
   conditions: any[];
   config: Doc<"tasks">["config"];
-  assigner_id: string; // Passed from API layer after auth
+  penalty: Doc<"tasks">["penalty"];               // What happens if user fails + doesn't complete waiver
+  penalty_waiver: Doc<"tasks">["penalty_waiver"]; // The challenge that can defuse the penalty
+  assigner_id: string; // Injected by the API layer after auth verification
 };
 
 /**
@@ -36,6 +45,7 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     conditions: args.conditions,
     assigner_id: args.assigner_id,
     assignee_id: args.assignee_id,
+    penalty: args.penalty,
   });
 
   console.log("[Service:createInternal] Validation result:", JSON.stringify(validation, null, 2));
@@ -65,7 +75,38 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
 
   console.log("[Service:createInternal] No conflicts found. Proceeding to insert.");
 
-  // 3. INSERT INTO DB
+  // ─────────────────────────────────────────────────────────────────────
+  // 3. RESOLVE PENALTY PHOTO URL
+  // ─────────────────────────────────────────────────────────────────────
+  // If the penalty contains a storageId (uploaded photo), resolve the
+  // permanent public HTTPS URL now and embed it in the config. This way,
+  // the client can display the image directly from `photoUrl` without
+  // making an extra getUrl() query every time the task is loaded.
+  //
+  // We store BOTH:
+  //   • storageId — immutable reference for deletion/re-resolution
+  //   • photoUrl  — public HTTPS URL for direct display in the UI
+  // ─────────────────────────────────────────────────────────────────────
+  let resolvedPenalty = args.penalty;
+
+  if (args.penalty?.type === "embarrassing_photo" && args.penalty?.config?.storageId) {
+    const photoUrl = await ctx.storage.getUrl(args.penalty.config.storageId);
+
+    if (photoUrl) {
+      resolvedPenalty = {
+        ...args.penalty,
+        config: {
+          ...args.penalty.config,
+          photoUrl,  // Public HTTPS URL for direct UI rendering
+        },
+      };
+      console.log("[Service:createInternal] Penalty photo URL resolved:", photoUrl);
+    } else {
+      console.warn("[Service:createInternal] WARNING: Could not resolve URL for storageId:", args.penalty.config.storageId);
+    }
+  }
+
+  // 4. INSERT INTO DB
   const now = Date.now();
   const taskId = await ctx.db.insert("tasks", {
     assignee_id: args.assignee_id,
@@ -75,6 +116,8 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     recurrence: args.recurrence,
     conditions: args.conditions,
     config: args.config,
+    penalty: resolvedPenalty,              // Master penalty rules with resolved photoUrl
+    penalty_waiver: args.penalty_waiver,   // Master waiver rules (snapshotted to instances)
     assigner_id: args.assigner_id,
     created_at: now,
     updated_at: now,
