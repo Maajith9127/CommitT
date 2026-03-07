@@ -1,5 +1,5 @@
-ux(native/navigation): enhance penalty selection UI and transition speed
+feat(native/ui): implement premium custom toggle component
 
-- UI: Added navigation arrows (`showArrow={true}`) to all penalty selection cards in [penalties.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penalties.tsx:0:0-0:0) for visual consistency with waivers.
-- Animation: Updated `embarrassing-photo` setup to use a standard slide-from-right card transition instead of a modal fade.
-- Performance: Reduced global and stack-specific `animationDuration` to 200ms for a snappier, more responsive navigation experience.
+- Component: Created [CustomSwitch.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/buttons/CustomSwitch.tsx:0:0-0:0) using the `Animated` API for high-fidelity transitions and custom color states (inactive: #3E4553, active: #4FA0FF).
+- Integration: Replaced the standard React Native [Switch](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/buttons/CustomSwitch.tsx:14:0-65:1) with the new custom toggle in [SettingsToggleCard.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/SettingsToggleCard.tsx:0:0-0:0), updating Alarms, Waiver, and Commitment settings.
+- Cleanup: Fixed a regression by restoring missing imports for React Native and Uniwind in the settings card.

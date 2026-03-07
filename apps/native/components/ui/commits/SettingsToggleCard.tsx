@@ -1,8 +1,9 @@
 import React from "react";
-import { View, Switch, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { withUniwind } from "uniwind";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
+import { CustomSwitch } from "../buttons/CustomSwitch";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
@@ -48,11 +49,9 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
               <HeaderTitle className="text-lg text-white">
                 {item.title}
               </HeaderTitle>
-              <Switch
-                value={item.value}
-                onValueChange={item.onValueChange}
-                trackColor={{ true: "#4FA0FF", false: "#39393D" }}
-                ios_backgroundColor="#39393D"
+              <CustomSwitch
+                value={item.value || false}
+                onValueChange={item.onValueChange || (() => {})}
               />
             </UView>
           )}
