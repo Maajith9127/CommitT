@@ -1,6 +1,7 @@
-feat(waiver): implement global state synchronization for penalty waivers
+feat(create-commit): implement dynamic penalty waiver preview
 
-- Store: Added [setWaiver](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:561:4-586:7) action to [TaskDraftStore](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:106:0-141:2) for centralized management of penalty_waiver configuration.
-- Hook: Introduced [useWaiverSync](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useWaiverSync.ts:9:0-33:1) to provide clean toggle and sync methods for the accountability contract.
-- Performance: Refactored [CaptchaSetupScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penaltywaiver%29/setup.tsx:13:0-84:1) using the "Buffered Commit Pattern" (useRef + prop initialization), eliminating expensive re-renders and local state desync during slider interactions.
-- UI: Connected [PenaltyWaiversScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penaltywaivers.tsx:11:0-102:1) to the global store to automatically highlight and persist current waiver selection across the creation flow.
+- UI: Refactored the Final screen to dynamically display chosen waiver configuration instead of a static placeholder.
+- Mapping: Added specialized icon and text mapping for all waiver types (Captcha, Paragraph, Intensity, Run).
+- UX: Integrated a fallback prompt to "Choose a Penalty Waiver" if the accountability contract is incomplete.
+- Copy: Refined the Captcha subtitle to explicitly state the requirement (e.g., "Solve 20 high noise captchas to waive off the penalty").
+- Store: Ensured a perfect sync between configured draft metadata and the final confirmation UI.

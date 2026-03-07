@@ -610,14 +610,44 @@ export default function FinalScreen() {
         <UView className="mt-3 mb-3">
           <HeaderTitle>Penalty Waiver</HeaderTitle>
         </UView>
-        <ConditionCard
-          icon="check-decagram-outline"
-          iconColor={COLORS.success}
-          title="Penalty Waiver"
-          subtitle="Solve 100 CAPTCHAs to waive the penalty"
-          onPress={() => router.push("/(create-commit)/penaltywaivers")}
-          className="h-28 border-[#4CD964] border-[3px] pb-4"
-        />
+
+        {(() => {
+          const waiver = draft.penalty_waiver;
+          const config = waiver?.config;
+
+          let displayTitle = "Choose a Penalty Waiver";
+          let displaySubtitle = "Set a challenge to waive your consequence";
+          let displayIcon = "check-decagram-outline";
+
+          if (waiver?.type === "captcha") {
+            displayTitle = "Solve CAPTCHAs";
+            displaySubtitle = `Solve ${config?.count || 5} ${config?.difficulty || "medium"} noise captchas to waive off the penalty `;
+            displayIcon = "shield-check-outline";
+          } else if (waiver?.type === "paragraph") {
+            displayTitle = "Write Paragraph";
+            displaySubtitle = "Type the chosen text to earn a waiver";
+            displayIcon = "pencil-outline";
+          } else if (waiver?.type === "intense") {
+            displayTitle = "Redo With Intensity";
+            displaySubtitle = "Repeat the habit with increased difficulty";
+            displayIcon = "fire";
+          } else if (waiver?.type === "run") {
+            displayTitle = "Run 5 KM";
+            displaySubtitle = "Complete the workout to waive penalty";
+            displayIcon = "run-fast";
+          }
+
+          return (
+            <ConditionCard
+              icon={displayIcon}
+              iconColor={COLORS.success}
+              title={displayTitle}
+              subtitle={displaySubtitle}
+              onPress={() => router.push("/(create-commit)/penaltywaivers")}
+              className="h-28 border-[#4CD964] border-[3px] pb-4"
+            />
+          );
+        })()}
 
         {/* Section: Commitment Type */}
         <UView className="mt-3 mb-2">
