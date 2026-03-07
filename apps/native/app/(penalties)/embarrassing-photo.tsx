@@ -58,17 +58,15 @@ export default function EmbarrassingPhotoScreen() {
   }, [navigation, config.photoUrl]);
 
   const handleDiscardPenalty = () => {
-    // 1. Wipe the penalty and waiver from the draft store as requested
-    console.log("[Photo] Discarding only the penalty...");
+    // 1. Wipe the penalty from the draft store
+    console.log("[Photo] Discarding penalty and moving to final...");
     setDraft({
       penalty: null,
     });
 
-    // 2. Perform the blocked navigation action
+    // 2. Clear modal and jump to final summary
     setBackModalVisible(false);
-    if (pendingAction) {
-      navigation.dispatch(pendingAction);
-    }
+    router.push("/(create-commit)/final");
   };
 
   const handlePickImage = async () => {
@@ -252,6 +250,7 @@ export default function EmbarrassingPhotoScreen() {
         visible={backModalVisible}
         title="Hey, you haven't set any embarrassing photo! Discard this penalty?"
         confirmText="Yes, leave it"
+        confirmColor="#FF3B30"
         cancelText="Stay here"
         onConfirm={handleDiscardPenalty}
         onCancel={() => setBackModalVisible(false)}
