@@ -612,7 +612,7 @@ export default function FinalScreen() {
               className="h-28 pb-4"
               selected={!!penalty}
               selectionColor={COLORS.danger}
-              onClear={() => setDraft({ penalty: null })}
+              onClear={() => setDraft({ penalty: null, penalty_waiver: null })}
             />
           );
         })()}
@@ -658,7 +658,7 @@ export default function FinalScreen() {
               className="h-28 pb-4"
               selected={!!waiver}
               selectionColor={COLORS.success}
-              onClear={() => setDraft({ penalty_waiver: null })}
+              onClear={() => setDraft({ penalty_waiver: null, penalty: null })}
             />
           );
         })()}

@@ -30,7 +30,8 @@ export type ValidationResult =
 export type ValidationErrorCode =
   | "TITLE_REQUIRED"
   | "TIME_REQUIRED"
-  | "TIME_REQUIRES_X_CONDITION";
+  | "TIME_REQUIRES_X_CONDITION"
+  | "PENALTY_WAIVER_MISMATCH";
 
 /**
  * Condition metric keys that qualify as "X" in the "Time + X" rule.
@@ -159,6 +160,27 @@ export function validateTimeXRule(
   return { valid: true };
 }
 
+/**
+ * Validates the Penalty-Waiver coupling.
+ * If a penalty is set, a waiver must be set, and vice-versa.
+ */
+export function validatePenaltyWaiverCoupling(draft: TaskDraft): ValidationResult {
+  const hasPenalty = Boolean(draft.penalty);
+  const hasWaiver = Boolean(draft.penalty_waiver);
+
+  if (hasPenalty !== hasWaiver) {
+    return {
+      valid: false,
+      error: hasPenalty 
+        ? "Penalty requires a Waiver. Please choose how you want to earn it." 
+        : "Waiver requires a Penalty. Please choose a consequence.",
+      errorCode: "PENALTY_WAIVER_MISMATCH",
+    };
+  }
+
+  return { valid: true };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Validator
 // ─────────────────────────────────────────────────────────────────────────────
@@ -199,6 +221,12 @@ export function validateTaskDraft(draft: TaskDraft): ValidationResult {
   );
   if (!timeXCheck.valid) {
     return timeXCheck;
+  }
+
+  // Check 4: Penalty-Waiver Coupling
+  const couplingCheck = validatePenaltyWaiverCoupling(draft);
+  if (!couplingCheck.valid) {
+    return couplingCheck;
   }
 
   // All checks passed

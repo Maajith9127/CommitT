@@ -35,7 +35,7 @@ export default function CaptchaSetupScreen() {
     });
     
     console.log("[Waiver] Final Commit:", latestDataRef.current);
-    router.back();
+    router.push("/(create-commit)/final");
   };
 
   return (

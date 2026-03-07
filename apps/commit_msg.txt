@@ -1,15 +1,7 @@
-feat(native/ui): implement ActionScreenLayout and unify UI alignment across setup flow
+feat(native/logic): implement Penalty-Waiver Coupling and enhanced navigation
 
-- Created [ActionScreenLayout](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ActionScreenLayout.tsx:16:0-53:1) as a shared component to enforce a consistent 16px 
-  horizontal constraint for both scrollable content and fixed footers.
-- Refactored all major screens in the commitment creation flow to use this layout:
-    - [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) (Commit summary)
-    - [time-set.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/time-set.tsx:0:0-0:0) (Days/Times configuration)
-    - [penaltywaivers.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penaltywaivers.tsx:0:0-0:0) (Waiver selection)
-    - [setup.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penaltywaiver%29/setup.tsx:0:0-0:0) (Captcha configuration)
-    - [penalties.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penalties.tsx:0:0-0:0) (Penalty selection)
-    - [embarrassing-photo.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:0:0-0:0) (Photo/Forfeit setup)
-    - [email-setup.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/email-setup.tsx:0:0-0:0) (Email preview/preview)
-- Standardized card and primary button widths for visual consistency on all screen sizes.
-- Unified scroll physics by moving headers into the primary scroll area.
-- Fixed over-scrolling issue by removing default bottom padding in the scroll container.
+- Logic: Enforced strict coupling between Penalty and Waiver—both must be present, or both must be empty.
+- Validation: Added [validatePenaltyWaiverCoupling](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/validation/taskDraft.ts:162:0-181:1) to the core [validateTaskDraft](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/validation/taskDraft.ts:187:0-233:1) logic with a new `PENALTY_WAIVER_MISMATCH` error code.
+- UI: Integrated mismatch validation with the [ConfirmationModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/ConfirmationModal.tsx:22:0-99:1) on the final summary screen, using the title-only display style.
+- UX: Updated the clear (X) handlers on the summary cards to automatically wipe both Penalty and Waiver for a cleaner cleanup.
+- Navigation: Optimized the Captcha setup flow to navigate directly to `final.tsx` upon confirmation, skipping redundant back-steps.
