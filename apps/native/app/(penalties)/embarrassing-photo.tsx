@@ -59,10 +59,9 @@ export default function EmbarrassingPhotoScreen() {
 
   const handleDiscardPenalty = () => {
     // 1. Wipe the penalty and waiver from the draft store as requested
-    console.log("[Photo] Discarding penalty and waiver...");
+    console.log("[Photo] Discarding only the penalty...");
     setDraft({
       penalty: null,
-      penalty_waiver: null
     });
 
     // 2. Perform the blocked navigation action

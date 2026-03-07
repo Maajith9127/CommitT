@@ -1,7 +1,5 @@
-feat(native/logic): implement Penalty-Waiver Coupling and enhanced navigation
+refactor(native/logic): decouple Penalty and Waiver clearing behavior while maintaining validation
 
-- Logic: Enforced strict coupling between Penalty and Waiver—both must be present, or both must be empty.
-- Validation: Added [validatePenaltyWaiverCoupling](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/validation/taskDraft.ts:162:0-181:1) to the core [validateTaskDraft](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/validation/taskDraft.ts:187:0-233:1) logic with a new `PENALTY_WAIVER_MISMATCH` error code.
-- UI: Integrated mismatch validation with the [ConfirmationModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/ConfirmationModal.tsx:22:0-99:1) on the final summary screen, using the title-only display style.
-- UX: Updated the clear (X) handlers on the summary cards to automatically wipe both Penalty and Waiver for a cleaner cleanup.
-- Navigation: Optimized the Captcha setup flow to navigate directly to `final.tsx` upon confirmation, skipping redundant back-steps.
+- Logic: Updated [handleDiscardPenalty](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:59:2-71:4) in [embarrassing-photo.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:0:0-0:0) to only clear the penalty, allowing the waiver to remain in the draft.
+- UI: Modified `onClear` handlers in [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) for Penalty and Waiver cards to be independent, ensuring users can swap individual components without losing both.
+- Validation: Maintained the core validation rule in [validateTaskDraft](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/validation/taskDraft.ts:187:0-233:1) that requires both to be present (or both absent) before the final commit.
