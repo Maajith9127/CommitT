@@ -1,13 +1,9 @@
-/**
- * @file EmbarrassingPhotoScreen.tsx
- * @description Penalty configuration screen for the "Embarrassing Photo" forfeit.
- */
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, ScrollView, Image, Pressable, TextInput, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
+import { useNavigation } from "@react-navigation/native"; // Added for back interceptor
 import * as ImagePicker from "expo-image-picker";
 
 import { HeaderTitle, FooterText } from "@/components/ui/text";
@@ -16,6 +12,7 @@ import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { PrimaryButton } from "@/components/ui/button";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { usePenaltySync } from "@/hooks/commits/usePenaltySync";
+import { useTaskDraftStore } from "@/stores/useTaskDraftStore"; // Added to clear draft
 
 const UView = withUniwind(View);
 const UScrollView = withUniwind(ScrollView);
@@ -25,14 +22,59 @@ const UTextInput = withUniwind(TextInput);
 
 export default function EmbarrassingPhotoScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   
   //  DIRECT SYNC: Reading directly from Zustand
   const { draft, syncToDraft } = usePenaltySync();
+  const setDraft = useTaskDraftStore((s) => s.setDraft); // For clearing penalty
   const config = draft.penalty?.config || {};
 
   // Local UI State
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
+
+  // Back Interceptor State
+  const [backModalVisible, setBackModalVisible] = useState(false);
+  const [pendingAction, setPendingAction] = useState<any>(null);
+
+  /**
+   * INTERCEPTOR: Prevent leaving without a photo unless confirmed.
+   * If the user tries to go back (via swipe or button) and no photo is set,
+   * we stop them and ask for confirmation.
+   */
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // If we have a photo, or we're explicitly allowing the removal, proceed
+      if (config.photoUrl) {
+        return;
+      }
+
+      // Prevents the screen from closing immediately
+      e.preventDefault();
+
+      // Show the "Are you sure?" modal
+      setPendingAction(e.data.action);
+      setBackModalVisible(true);
+    });
+
+    return unsubscribe;
+  }, [navigation, config.photoUrl]);
+
+  const handleDiscardPenalty = () => {
+    // 1. Wipe the penalty and waiver from the draft store as requested
+    // "if the user says naah leave it , then u remove thepenalty waiver thkg"
+    console.log("[Photo] Discarding penalty and waiver...");
+    setDraft({
+      penalty: null,
+      penalty_waiver: null
+    });
+
+    // 2. Perform the blocked navigation action
+    setBackModalVisible(false);
+    if (pendingAction) {
+      navigation.dispatch(pendingAction);
+    }
+  };
 
   const handlePickImage = async () => {
     try {
@@ -102,6 +144,7 @@ export default function EmbarrassingPhotoScreen() {
             </FooterText>
           </UView>
 
+          {/* GLOBAL ERROR MODAL */}
           <ConfirmationModal
             visible={modalVisible}
             title={modalTitle}
@@ -109,6 +152,16 @@ export default function EmbarrassingPhotoScreen() {
             singleButton={true}
             onConfirm={() => setModalVisible(false)}
             onCancel={() => setModalVisible(false)}
+          />
+
+          {/* BACK NAVIGATION CONFIRMATION MODAL */}
+          <ConfirmationModal
+            visible={backModalVisible}
+            title="Hey, you haven't set any embarrassing photo! Discard this penalty?"
+            confirmText="Yes, leave it"
+            cancelText="Stay here"
+            onConfirm={handleDiscardPenalty}
+            onCancel={() => setBackModalVisible(false)}
           />
 
           {/* PHOTO UPLOAD AREA */}

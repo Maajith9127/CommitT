@@ -1,6 +1,6 @@
-feat(verification): implement server-authoritative 'next event' logic
+feat(penalty): implement back navigation guard for photo configuration
 
-- Backend: Added optimized 'next' query to [api/instances/read.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/read.ts:0:0-0:0) using index-based lookups for immediate task discovery.
-- Frontend: Refactored [useUpcomingVerification](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useUpcomingVerification.ts:6:0-38:1) hook to subscribe directly to the server-side pointer.
-- Performance: Removed 7-day horizon limits, local filtering logic, and the 30-second heartbeat interval.
-- Maintenance: Centralized the "Definition of Next" on the server, ensuring mobile clients remain lightweight and perfectly synced.
+- UX: Added a `beforeRemove` interceptor to detect when a user attempts to exit the Embarrassing Photo screen without a valid upload.
+- Logic: Implemented a discard flow that wipes both `penalty` and `penalty_waiver` from the task draft if the user chooses to decline the forfeit.
+- Safety: Integrated a confirmation modal to prevent accidental data loss while ensuring the accountability contract remains valid and intentional.
+- Validation: Enforced that the "Digital Forfeit" setup must be either fully completed or explicitly discarded before returning to the main creation flow.
