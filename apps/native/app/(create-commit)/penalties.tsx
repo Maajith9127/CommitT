@@ -34,12 +34,6 @@ export default function PenaltiesScreen() {
         selected={draft.penalty?.type === "money"}
         selectionColor="#FF3B30"
         onPress={() => {
-          setDraft({
-            penalty: {
-              type: "money",
-              config: draft.penalty?.type === "money" ? draft.penalty.config : { amount: 500 }
-            }
-          });
           router.push("/(penalties)/money");
         }}
       />
@@ -53,19 +47,6 @@ export default function PenaltiesScreen() {
         selected={draft.penalty?.type === "embarrassing_photo"}
         selectionColor="#FF3B30"
         onPress={() => {
-          setDraft({
-            penalty: {
-              type: "embarrassing_photo",
-              config: draft.penalty?.type === "embarrassing_photo" ? draft.penalty.config : {
-                channel: "whatsapp",
-                description: "",
-                emailTo: "",
-                emailSubject: "I failed my commitment!",
-                emailBody: "",
-                photoUrl: null
-              }
-            }
-          });
           router.push("/(penalties)/embarrassing-photo");
         }}
       />
@@ -79,12 +60,6 @@ export default function PenaltiesScreen() {
         selected={draft.penalty?.type === "cringe_message"}
         selectionColor="#FF3B30"
         onPress={() => {
-          setDraft({
-            penalty: {
-              type: "cringe_message",
-              config: draft.penalty?.type === "cringe_message" ? draft.penalty.config : { message: "", recipient: "" }
-            }
-          });
           router.push("/(create-commit)/penalty-message");
         }}
       />
@@ -98,12 +73,6 @@ export default function PenaltiesScreen() {
         selected={draft.penalty?.type === "block_app"}
         selectionColor="#FF3B30"
         onPress={() => {
-          setDraft({
-            penalty: {
-              type: "block_app",
-              config: draft.penalty?.type === "block_app" ? draft.penalty.config : { appId: "" }
-            }
-          });
           router.push("/(create-commit)/penalty-blockapp");
         }}
       />
