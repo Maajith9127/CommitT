@@ -1,24 +1,11 @@
-/**
- * Time Set Screen
- *
- * Allows user to configure:
- * - Days of the week for the task
- * - Time slots (windows when task is active)
- * - Recurrence settings (repeat on/off)
- *
- * Data is stored in Zustand (useTaskDraftStore) and validated
- * before saving using lib/validation/timeSlot.ts.
- */
-
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { Text, View, Pressable } from "react-native";
 import { withUniwind } from "uniwind";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // Components
-import { ScreenHeader } from "@/components/ui";
-import { AddButton, PrimaryButton } from "@/components/ui/button";
+import { ActionScreenLayout, AddButton, PrimaryButton } from "@/components/ui";
 import { HeaderTitle } from "@/components/ui/text";
 import { DaySelector } from "@/components/ui/time/DaySelector";
 import { TimePicker } from "@/components/ui/time/TimePicker";
@@ -32,7 +19,6 @@ import { timeToSeconds, secondsToDisplay, type TimeInput } from "@/lib/time";
 
 // Styled components
 const UView = withUniwind(View);
-const UScroll = withUniwind(ScrollView);
 const UText = withUniwind(Text);
 const UPressable = withUniwind(Pressable);
 
@@ -62,7 +48,6 @@ export default function TimeSetScreen() {
   const draft = useTaskDraftStore((s) => s.draft);
   const setRecurrence = useTaskDraftStore((s) => s.setRecurrence);
   const setTimeWindows = useTaskDraftStore((s) => s.setTimeWindows);
-  const addTimeWindow = useTaskDraftStore((s) => s.addTimeWindow);
   const removeTimeWindow = useTaskDraftStore((s) => s.removeTimeWindow);
 
   // Get time slots directly from recurrence.time_windows
@@ -94,8 +79,6 @@ export default function TimeSetScreen() {
 
     // Update time_windows in recurrence
     setTimeWindows(updatedSlots);
-
-
   }
 
   /**
@@ -142,17 +125,28 @@ export default function TimeSetScreen() {
   // ───────────────────────────────────────────────────────────────────────────
 
   return (
-    <UView className="flex-1 bg-black">
-      {/* Header */}
-      <ScreenHeader>
-        <HeaderTitle className="mt-16 text-3xl text-blue-400">Active Time</HeaderTitle>
-        <UText className="mt-1 mb-0 text-left text-base text-gray-400">
-          Choose when this commitment is active
-        </UText>
-      </ScreenHeader>
+    <>
+      <ActionScreenLayout
+        paddingHorizontal={16}
+        className="bg-black pt-20"
+        footer={
+          <PrimaryButton 
+            onPress={() => router.push("/(create-commit)/final")}
+            disabled={!canSave}
+            className={canSave ? "opacity-100" : "opacity-25"}
+          >
+            Save
+          </PrimaryButton>
+        }
+      >
+        {/* Header (Inside scroll for unified physics) */}
+        <UView className="mb-8">
+          <HeaderTitle className="text-3xl text-blue-400">Active Time</HeaderTitle>
+          <UText className="mt-1 mb-0 text-left text-base text-gray-400">
+            Choose when this commitment is active
+          </UText>
+        </UView>
 
-      {/* Main Content */}
-      <UScroll className="mt-6 flex-1 px-4">
         {/* Days Section */}
         <UView className="mb-4 flex-row items-center justify-between">
           <HeaderTitle>Days</HeaderTitle>
@@ -205,17 +199,7 @@ export default function TimeSetScreen() {
             />
           ))}
         </UView>
-      </UScroll>
-
-      {/* Save Button - disabled if no days or no time slots */}
-      <UView className={`mb-8 px-4 ${canSave ? "opacity-100" : "opacity-25"}`}>
-        <PrimaryButton 
-          onPress={() => router.push("/(create-commit)/final")}
-          disabled={!canSave}
-        >
-          Save
-        </PrimaryButton>
-      </UView>
+      </ActionScreenLayout>
 
       {/* Time Picker Modal */}
       <TimePicker
@@ -236,6 +220,6 @@ export default function TimeSetScreen() {
           setPickerVisible(true); // Re-open picker to change time
         }}
       />
-    </UView>
+    </>
   );
 }

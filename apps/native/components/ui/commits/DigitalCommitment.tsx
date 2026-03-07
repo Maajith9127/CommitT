@@ -41,7 +41,7 @@ export function CommitCard({ className = "", onPress }: Props) {
           }
         />
 
-        <UView className="h-[4px] bg-black -mx-5" />
+        <UView className="h-[2px] bg-black -mx-5" />
 
         {/* WEBSITES */}
         <DigitalCommitItem
@@ -71,7 +71,7 @@ export function CommitCard({ className = "", onPress }: Props) {
           }
         />
 
-        <UView className="h-[4px] bg-black -mx-5" />
+        <UView className="h-[2px] bg-black -mx-5" />
 
         {/* DESCRIBE TO AI */}
         <DigitalCommitItem

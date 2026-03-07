@@ -5,7 +5,7 @@ import { ScrollView, useWindowDimensions, View, Text, Switch } from "react-nativ
 import { withUniwind } from "uniwind";
 import type { Id } from "@commit/backend/convex/_generated/dataModel";
 
-import { AddButton, Input, PrimaryButton } from "@/components/ui";
+import { ActionScreenLayout, AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { MiniConditionCard } from "@/components/ui/commits/MiniConditionCard";
 import { CommitCard } from "@/components/ui/commits/DigitalCommitment";
@@ -512,9 +512,17 @@ export default function FinalScreen() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <UView className="flex-1 bg-black px-4 pt-20">
-      {/* Main Scroll Area */}
-      <UScroll showsVerticalScrollIndicator={false} className="flex-1">
+    <>
+      <ActionScreenLayout
+      paddingHorizontal={16}
+      className="pt-20"
+      footer={
+        <PrimaryButton onPress={handleCommitPress} disabled={isSubmitting}>
+          {isEditMode ? "Save" : "CommitT"}
+        </PrimaryButton>
+      }
+    >
+      {/* Header: Icon + Commitment Name */}
         {/* Header: Icon + Commitment Name */}
         <UView className="mb-7 items-center">
           <MaterialCommunityIcons
@@ -604,6 +612,7 @@ export default function FinalScreen() {
               className="h-28 pb-4"
               selected={!!penalty}
               selectionColor={COLORS.danger}
+              onClear={() => setDraft({ penalty: null })}
             />
           );
         })()}
@@ -649,6 +658,7 @@ export default function FinalScreen() {
               className="h-28 pb-4"
               selected={!!waiver}
               selectionColor={COLORS.success}
+              onClear={() => setDraft({ penalty_waiver: null })}
             />
           );
         })()}
@@ -683,14 +693,7 @@ export default function FinalScreen() {
           items={waiverSettingsItems}
         />
         
-      </UScroll>
-
-      {/* Fixed Footer: Submit Button */}
-      <UView className="mb-10">
-        <PrimaryButton onPress={handleCommitPress}>
-          {isEditMode ? "Save" : "CommitT"}
-        </PrimaryButton>
-      </UView>
+    </ActionScreenLayout>
 
       {/* Modal: Commit Confirmation */}
       <ConfirmationModal
@@ -724,6 +727,6 @@ export default function FinalScreen() {
         onSelect={picker.onSelect}
         onClose={() => setPicker((s) => ({ ...s, visible: false }))}
       />
-    </UView>
+    </>
   );
 }

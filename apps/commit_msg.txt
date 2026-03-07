@@ -1,6 +1,15 @@
-feat(create-commit): implement conditional highlighting for penalty and waiver cards
+feat(native/ui): implement ActionScreenLayout and unify UI alignment across setup flow
 
-- Logic: Refaced hardcoded border classes with dynamic `selected` props driven by the existence of store data (!!penalty and !!waiver).
-- UI: Enforced a visual "glow" state (border + color) only when a configuration is active, providing clearer visual confirmation of the accountability contract.
-- Consistency: Synced selection colors to use theme-defined `COLORS.danger` for penalties and `COLORS.success` for waivers.
-- Cleanup: Removed redundant CSS borders from `final.tsx` to align with the design system's prop-based styling.
+- Created [ActionScreenLayout](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ActionScreenLayout.tsx:16:0-53:1) as a shared component to enforce a consistent 16px 
+  horizontal constraint for both scrollable content and fixed footers.
+- Refactored all major screens in the commitment creation flow to use this layout:
+    - [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) (Commit summary)
+    - [time-set.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/time-set.tsx:0:0-0:0) (Days/Times configuration)
+    - [penaltywaivers.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penaltywaivers.tsx:0:0-0:0) (Waiver selection)
+    - [setup.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penaltywaiver%29/setup.tsx:0:0-0:0) (Captcha configuration)
+    - [penalties.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penalties.tsx:0:0-0:0) (Penalty selection)
+    - [embarrassing-photo.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:0:0-0:0) (Photo/Forfeit setup)
+    - [email-setup.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/email-setup.tsx:0:0-0:0) (Email preview/preview)
+- Standardized card and primary button widths for visual consistency on all screen sizes.
+- Unified scroll physics by moving headers into the primary scroll area.
+- Fixed over-scrolling issue by removing default bottom padding in the scroll container.

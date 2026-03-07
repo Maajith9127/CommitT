@@ -1,15 +1,9 @@
-import React, { useRef } from "react"; // Switched from useState/useCallback to useRef
-import { View, ScrollView } from "react-native";
-import { withUniwind } from "uniwind";
+import React, { useRef } from "react";
+import { View } from "react-native";
 import { useRouter } from "expo-router";
-import { HeaderTitle, AuthTitle } from "@/components/ui/text";
-import { ScreenHeader } from "@/components/ui";
-import { PrimaryButton } from "@/components/ui/button";
+import { ActionScreenLayout, HeaderTitle, AuthTitle, PrimaryButton } from "@/components/ui";
 import { CaptchaWaiverContent } from "@/components/ui/waivers/CaptchaWaiverContent";
 import { useWaiverSync } from "@/hooks/commits/useWaiverSync";
-
-const UView = withUniwind(View);
-const UScrollView = withUniwind(ScrollView);
 
 /**
  * CaptchaSetupScreen
@@ -45,33 +39,10 @@ export default function CaptchaSetupScreen() {
   };
 
   return (
-    <UView className="flex-1 bg-black">
-      <UScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* HEADER SECTION */}
-        <ScreenHeader>
-          <UView className="mt-12 mb-2">
-            <HeaderTitle className="text-3xl text-green-400">Solve Captchas</HeaderTitle>
-          </UView>
-
-          <AuthTitle className="mt-1 mb-0 text-left text-gray-400">
-            Solve these many number of captchas to waive of a penalty if occurred
-          </AuthTitle>
-        </ScreenHeader>
-
-        {/* CONTENT SECTION */}
-        <UView className="px-4 mt-6">
-          <CaptchaWaiverContent 
-            initialCount={latestDataRef.current.count}
-            initialDifficulty={latestDataRef.current.difficulty}
-            onChange={(data) => { latestDataRef.current = data; }} 
-          />
-          {/* Spacer to allow scrolling past the sticky button when content is long */}
-          <View style={{ height: 120 }} />
-        </UView>
-      </UScrollView>
-
-      {/* STICKY BOTTOM BUTTON SECTION */}
-      <UView className="absolute bottom-0 left-0 right-0 bg-black px-4 py-4 pb-8 border-t border-[#1A1A1A]">
+    <ActionScreenLayout
+      paddingHorizontal={16}
+      className="bg-black pt-20"
+      footer={
         <PrimaryButton 
           onPress={handleConfirm}
           className="bg-[#4CD964]"
@@ -79,7 +50,23 @@ export default function CaptchaSetupScreen() {
         >
           Confirm Captchas
         </PrimaryButton>
-      </UView>
-    </UView>
+      }
+    >
+      {/* HEADER SECTION (Inside scroll for unified physics) */}
+      <View className="mb-8">
+        <HeaderTitle className="text-3xl text-green-400">Solve Captchas</HeaderTitle>
+
+        <AuthTitle className="mt-1 mb-0 text-left text-gray-400">
+          Solve these many number of captchas to waive of a penalty if occurred
+        </AuthTitle>
+      </View>
+
+      {/* CONTENT SECTION */}
+      <CaptchaWaiverContent 
+        initialCount={latestDataRef.current.count}
+        initialDifficulty={latestDataRef.current.difficulty}
+        onChange={(data) => { latestDataRef.current = data; }} 
+      />
+    </ActionScreenLayout>
   );
 }
