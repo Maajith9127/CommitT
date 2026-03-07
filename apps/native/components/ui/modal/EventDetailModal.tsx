@@ -258,8 +258,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       if (status !== 'verified') {
         setFailureModal({
           visible: true,
-          title: 'Verification Failed',
-          message,
+          title: message,
+          message: '',
         });
       }
     } catch (error: any) {
@@ -283,8 +283,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
 
       setFailureModal({
         visible: true,
-        title: 'Verification Error',
-        message: errorMsg,
+        title: errorMsg,
+        message: '',
       });
     } finally {
       setVerifyingMetric(null);

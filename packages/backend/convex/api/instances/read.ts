@@ -47,3 +47,40 @@ export const byRange = authedQuery({
       .collect();
   },
 });
+/**
+ * next(): Retrieve the single most immediate upcoming task instance.
+ * 
+ * DESIGN PHILOSOPHY:
+ * 1. Server-Authoritative: Logic for what counts as "Next" lives here, not on the phone.
+ * 2. O(1) Performance: Uses the compound index `by_assignee_start`. Regardless of 
+ *    user history or future scope, the DB jumps straight to the current timestamp.
+ * 3. Lifecycle Aware: Automatically skips terminal states (proceeded/failed) and 
+ *    expires instances the moment their 'end' time passes.
+ */
+export const next = authedQuery({
+  args: {},
+  handler: async (ctx) => {
+    const { user } = ctx;
+    const now = Date.now();
+
+    // PERFORMANCE: We query using the assignee + start time index.
+    // Resulting scan is extremely fast as it starts at 'now - 1hr' (buffer).
+    return await ctx.db
+      .query("taskInstances")
+      .withIndex("by_assignee_start", (q) =>
+        q.eq("assignee_id", user._id).gte("start", now - 3600000)
+      )
+      .filter((q) =>
+        q.and(
+          // 1. Skip instances where the window is finished (expired)
+          q.gt(q.field("end"), now),
+          // 2. Skip terminal 'Success' or 'Terminal Failure' states
+          q.neq(q.field("status"), "proceeded"),
+          q.neq(q.field("status"), "failed"),
+          q.neq(q.field("status"), "penalized"),
+          q.neq(q.field("status"), "waived")
+        )
+      )
+      .first(); // Finish immediately after the first match
+  },
+});
