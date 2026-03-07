@@ -269,8 +269,8 @@ export default defineSchema({
       status: v.union(
         v.literal("offered"),      // Task failed → waiver window opened
         v.literal("in_progress"),  // User actively working on the waiver challenge
-        v.literal("completed"),    // ✅ Waiver verified → penalty cancelled
-        v.literal("expired"),      // ❌ Deadline passed → penalty executed
+        v.literal("completed"),    //  Waiver verified → penalty cancelled
+        v.literal("expired"),      //  Deadline passed → penalty executed
         v.literal("skipped"),      // User explicitly declined the waiver
       ),
       opened_at: v.number(),             // Epoch ms when the waiver was first offered

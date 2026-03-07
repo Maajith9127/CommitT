@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useRef } from "react"; // Switched from useState/useCallback to useRef
 import { View, ScrollView } from "react-native";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
@@ -6,21 +6,41 @@ import { HeaderTitle, AuthTitle } from "@/components/ui/text";
 import { ScreenHeader } from "@/components/ui";
 import { PrimaryButton } from "@/components/ui/button";
 import { CaptchaWaiverContent } from "@/components/ui/waivers/CaptchaWaiverContent";
+import { useWaiverSync } from "@/hooks/commits/useWaiverSync";
 
 const UView = withUniwind(View);
 const UScrollView = withUniwind(ScrollView);
 
+/**
+ * CaptchaSetupScreen
+ * 
+ * PATTERN: Buffered Commit
+ * We don't want every tiny slider move to hit our global Zustand store (performance lag).
+ * Instead:
+ * 1. The Child (CaptchaWaiverContent) manages local high-frequency state.
+ * 2. The Parent (this screen) uses a 'ref' to always keep a pointer to the current UI values.
+ * 3. We only 'Commit' to the Global Store when the user clicks 'Confirm'.
+ */
 export default function CaptchaSetupScreen() {
   const router = useRouter();
-  const [captchaData, setCaptchaData] = useState({ count: 5, difficulty: "medium" });
-
-  const handleWaiverChange = useCallback((data: { count: number; difficulty: string }) => {
-    setCaptchaData(data);
-  }, []);
+  const { waiver, setWaiver } = useWaiverSync();
+  
+  // A 'ref' is perfect here: It saves the latest data without triggering 
+  // any expensive re-renders on this screen while the user drags a slider.
+  const latestDataRef = useRef({
+    count: waiver?.config?.count || 5, 
+    difficulty: waiver?.config?.difficulty || "medium" 
+  });
 
   const handleConfirm = () => {
-    // Navigate back or to the next step
-    console.log("Final Captcha Config:", captchaData);
+    // Sync the final 'buffered' state to the global store
+    setWaiver({
+      type: "captcha",
+      config: latestDataRef.current,
+      deadline_minutes: 60,
+    });
+    
+    console.log("[Waiver] Final Commit:", latestDataRef.current);
     router.back();
   };
 
@@ -40,7 +60,11 @@ export default function CaptchaSetupScreen() {
 
         {/* CONTENT SECTION */}
         <UView className="px-4 mt-6">
-          <CaptchaWaiverContent onChange={handleWaiverChange} />
+          <CaptchaWaiverContent 
+            initialCount={latestDataRef.current.count}
+            initialDifficulty={latestDataRef.current.difficulty}
+            onChange={(data) => { latestDataRef.current = data; }} 
+          />
           {/* Spacer to allow scrolling past the sticky button when content is long */}
           <View style={{ height: 120 }} />
         </UView>

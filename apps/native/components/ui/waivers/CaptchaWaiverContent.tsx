@@ -11,12 +11,18 @@ const UView = withUniwind(View);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 type CaptchaWaiverContentProps = {
+  initialCount?: number;
+  initialDifficulty?: string;
   onChange: (data: { count: number; difficulty: string }) => void;
 };
 
-export function CaptchaWaiverContent({ onChange }: CaptchaWaiverContentProps) {
-  const [captchaCount, setCaptchaCount] = useState(5);
-  const [captchaDifficulty, setCaptchaDifficulty] = useState("medium");
+export function CaptchaWaiverContent({ 
+  initialCount = 5, 
+  initialDifficulty = "medium", 
+  onChange 
+}: CaptchaWaiverContentProps) {
+  const [captchaCount, setCaptchaCount] = useState(initialCount);
+  const [captchaDifficulty, setCaptchaDifficulty] = useState(initialDifficulty);
   
   // Pre-calculate an estimate to avoid the 0 -> width jump 
   // (Screen width - 32 for standard horizontal padding)

@@ -1,6 +1,6 @@
-feat(penalty): implement back navigation guard for photo configuration
+feat(waiver): implement global state synchronization for penalty waivers
 
-- UX: Added a `beforeRemove` interceptor to detect when a user attempts to exit the Embarrassing Photo screen without a valid upload.
-- Logic: Implemented a discard flow that wipes both `penalty` and `penalty_waiver` from the task draft if the user chooses to decline the forfeit.
-- Safety: Integrated a confirmation modal to prevent accidental data loss while ensuring the accountability contract remains valid and intentional.
-- Validation: Enforced that the "Digital Forfeit" setup must be either fully completed or explicitly discarded before returning to the main creation flow.
+- Store: Added [setWaiver](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:561:4-586:7) action to [TaskDraftStore](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:106:0-141:2) for centralized management of penalty_waiver configuration.
+- Hook: Introduced [useWaiverSync](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useWaiverSync.ts:9:0-33:1) to provide clean toggle and sync methods for the accountability contract.
+- Performance: Refactored [CaptchaSetupScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penaltywaiver%29/setup.tsx:13:0-84:1) using the "Buffered Commit Pattern" (useRef + prop initialization), eliminating expensive re-renders and local state desync during slider interactions.
+- UI: Connected [PenaltyWaiversScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penaltywaivers.tsx:11:0-102:1) to the global store to automatically highlight and persist current waiver selection across the creation flow.

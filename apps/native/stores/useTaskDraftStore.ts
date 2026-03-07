@@ -138,6 +138,7 @@ type TaskDraftStore = {
   resetDraft: () => void;
   setDraft: (draft: Partial<TaskDraft>) => void;
   setConfig: (updates: Partial<TaskConfig>) => void;
+  setWaiver: (updates: Partial<NonNullable<TaskDraft["penalty_waiver"]>>) => void;
 };
 
 const createEmptyDraft = (): TaskDraft => ({
@@ -556,6 +557,33 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
         }),
         false,
         "draft/setConfig"
+      ),
+
+    setWaiver: (updates: Partial<NonNullable<TaskDraft["penalty_waiver"]>>) =>
+      set(
+        (state: TaskDraftStore) => {
+          const currentWaiver = state.draft.penalty_waiver || {
+            type: "captcha",
+            config: {},
+            deadline_minutes: 60, // Default to 1 hour
+          };
+
+          return {
+            draft: {
+              ...state.draft,
+              penalty_waiver: {
+                ...currentWaiver,
+                ...updates,
+                config: {
+                  ...currentWaiver.config,
+                  ...(updates.config || {}),
+                },
+              },
+            },
+          };
+        },
+        false,
+        "draft/setWaiver"
       ),
   }))
 );
