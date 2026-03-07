@@ -1,5 +1,5 @@
-ux(native/penalties): refine discard behavior and visual feedback for photo penalty
+ux(native/navigation): enhance penalty selection UI and transition speed
 
-- UI: Updated the 'Yes, leave it' action in the discard modal to use a bold red color (#FF3B30) to clearly signal a destructive action.
-- Navigation: Modified [handleDiscardPenalty](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:59:2-69:4) to jump directly to the final summary screen ([final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0)) upon discarding, skipping the intermediate selection step.
-- Logic: Maintained the selective wipe of only the penalty data to preserve waiver settings as per the new coupling rules.
+- UI: Added navigation arrows (`showArrow={true}`) to all penalty selection cards in [penalties.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penalties.tsx:0:0-0:0) for visual consistency with waivers.
+- Animation: Updated `embarrassing-photo` setup to use a standard slide-from-right card transition instead of a modal fade.
+- Performance: Reduced global and stack-specific `animationDuration` to 200ms for a snappier, more responsive navigation experience.

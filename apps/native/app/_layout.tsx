@@ -26,12 +26,12 @@ function StackLayout() {
       screenOptions={{
         headerShown: false,
         animation: "slide_from_right",
+        animationDuration: 200,
         gestureEnabled: true,
-        animationDuration: 250,
       }}
     >
       <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
-      <Stack.Screen name="(penalties)" options={{ animation: "fade" }} />
+      <Stack.Screen name="(penalties)" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
     </Stack>
   );

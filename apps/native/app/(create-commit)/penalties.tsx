@@ -36,6 +36,7 @@ export default function PenaltiesScreen() {
         onPress={() => {
           router.push("/(penalties)/money");
         }}
+        showArrow={true}
       />
 
       {/* 2 — EMBARRASSING PHOTO */}
@@ -49,6 +50,7 @@ export default function PenaltiesScreen() {
         onPress={() => {
           router.push("/(penalties)/embarrassing-photo");
         }}
+        showArrow={true}
       />
 
       {/* 3 — CRINGE MESSAGE */}
@@ -62,6 +64,7 @@ export default function PenaltiesScreen() {
         onPress={() => {
           router.push("/(create-commit)/penalty-message");
         }}
+        showArrow={true}
       />
 
       {/* 4 — BLOCK FAVOURITE APP */}
@@ -75,6 +78,7 @@ export default function PenaltiesScreen() {
         onPress={() => {
           router.push("/(create-commit)/penalty-blockapp");
         }}
+        showArrow={true}
       />
     </ActionScreenLayout>
   );

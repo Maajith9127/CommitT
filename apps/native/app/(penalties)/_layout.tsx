@@ -7,13 +7,14 @@ export default function PenaltiesLayout() {
         headerShown: false,
         contentStyle: { backgroundColor: "black" },
         animation: "slide_from_right",
+        animationDuration: 200,
       }}
     >
       <Stack.Screen 
         name="embarrassing-photo" 
         options={{ 
-          presentation: "transparentModal",
-          animation: "fade"
+          presentation: "card",
+          animation: "slide_from_right"
         }} 
       />
       <Stack.Screen 
