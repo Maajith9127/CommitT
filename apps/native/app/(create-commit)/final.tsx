@@ -601,7 +601,9 @@ export default function FinalScreen() {
               title={displayTitle}
               subtitle={displaySubtitle}
               onPress={() => router.push("/(create-commit)/penalties")}
-              className="h-28 border-[3px] border-red-500 pb-4"
+              className="h-28 pb-4"
+              selected={!!penalty}
+              selectionColor={COLORS.danger}
             />
           );
         })()}
@@ -644,7 +646,9 @@ export default function FinalScreen() {
               title={displayTitle}
               subtitle={displaySubtitle}
               onPress={() => router.push("/(create-commit)/penaltywaivers")}
-              className="h-28 border-[#4CD964] border-[3px] pb-4"
+              className="h-28 pb-4"
+              selected={!!waiver}
+              selectionColor={COLORS.success}
             />
           );
         })()}

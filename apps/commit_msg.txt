@@ -1,7 +1,6 @@
-feat(create-commit): implement dynamic penalty waiver preview
+feat(create-commit): implement conditional highlighting for penalty and waiver cards
 
-- UI: Refactored the Final screen to dynamically display chosen waiver configuration instead of a static placeholder.
-- Mapping: Added specialized icon and text mapping for all waiver types (Captcha, Paragraph, Intensity, Run).
-- UX: Integrated a fallback prompt to "Choose a Penalty Waiver" if the accountability contract is incomplete.
-- Copy: Refined the Captcha subtitle to explicitly state the requirement (e.g., "Solve 20 high noise captchas to waive off the penalty").
-- Store: Ensured a perfect sync between configured draft metadata and the final confirmation UI.
+- Logic: Refaced hardcoded border classes with dynamic `selected` props driven by the existence of store data (!!penalty and !!waiver).
+- UI: Enforced a visual "glow" state (border + color) only when a configuration is active, providing clearer visual confirmation of the accountability contract.
+- Consistency: Synced selection colors to use theme-defined `COLORS.danger` for penalties and `COLORS.success` for waivers.
+- Cleanup: Removed redundant CSS borders from `final.tsx` to align with the design system's prop-based styling.
