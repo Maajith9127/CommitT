@@ -164,6 +164,39 @@ export function validatePenalty(penalty: { type: string; config: any } | undefin
   }
 }
 
+/** 
+ * WAIVER VALIDATION 
+ * Checks that the forgiveness challenge config makes sense.
+ */
+export function validateWaiver(waiver: { type: string; config: any; deadline_minutes: number } | undefined): ValidationResult {
+  if (!waiver) return { valid: true };
+  const { type, config, deadline_minutes } = waiver;
+  
+  // 1. Structural Checks
+  if (deadline_minutes <= 0) {
+    return { valid: false, error: "Waiver deadline must be greater than zero", errorCode: "WAIVER_DEADLINE_INVALID" };
+  }
+
+  if (!config || typeof config !== "object") {
+    return { valid: false, error: "Waiver configuration is missing", errorCode: "WAIVER_CONFIG_MISSING" };
+  }
+
+  // 2. Type-Specific Config Checks
+  switch (type) {
+    case "captcha":
+      if (!config.count || config.count <= 0) {
+        return { valid: false, error: "Captcha count must be at least 1", errorCode: "WAIVER_CAPTCHA_COUNT_INVALID" };
+      }
+      return { valid: true };
+    
+    case "paragraph":
+      return { valid: true };
+
+    default:
+       return { valid: false, error: `Unknown waiver type: ${type}`, errorCode: "WAIVER_TYPE_UNKNOWN" };
+  }
+}
+
 export function validateCommitment(input: {
   title: string;
   recurrence: Recurrence;
@@ -189,7 +222,7 @@ export function validateCommitment(input: {
   if (hasPenalty !== hasWaiver) {
     return {
       valid: false,
-      error: "Either both penalty and waiver must be present, or both must be absent.",
+      error: "Either both penalty and waiver must be present, or both must be absent. Accountability is a two-way street!",
       errorCode: "PENALTY_WAIVER_MISMATCH",
     };
   }
@@ -197,6 +230,10 @@ export function validateCommitment(input: {
   // Validate penalty config if provided (domain-level checks)
   const penaltyRes = validatePenalty(input.penalty);
   if (!penaltyRes.valid) return penaltyRes;
+
+  // Validate waiver config if provided (domain-level checks)
+  const waiverRes = validateWaiver(input.penalty_waiver);
+  if (!waiverRes.valid) return waiverRes;
 
   return { valid: true };
 }

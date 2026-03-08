@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, TextInput, Pressable, Animated, KeyboardAvoidingView, Platform, Keyboard, Dimensions, ActivityIndicator } from 'react-native';
+import { View, TextInput, Pressable, Animated, KeyboardAvoidingView, Platform, Keyboard, Dimensions, ActivityIndicator, LayoutChangeEvent, KeyboardEvent } from 'react-native';
 import Svg, { Text as SvgText, TSpan, Line, Circle, Defs, LinearGradient, Stop, Path } from 'react-native-svg';
 import AnimatedReanimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { withUniwind } from 'uniwind';
@@ -138,9 +138,6 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
   const waiverState = event?.waiver_state;
   const challenges = waiverState?.challenges || [];
   
-  // -------------------------------------------------------------------------
-  // CHALLENGE SELECTION & PROGRESS
-  // -------------------------------------------------------------------------
   // Pick the most recent pending challenge
   const pendingChallenges = challenges
     .filter((c: any) => c.status === 'pending')
@@ -229,7 +226,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (e) => {
+      (e: KeyboardEvent) => {
         keyboardHeight.value = withTiming(e.endCoordinates.height, { duration: 250 });
       }
     );

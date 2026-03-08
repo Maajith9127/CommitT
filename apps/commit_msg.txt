@@ -1,9 +1,10 @@
-fix(waivers): resolve schema validation error and restore missing session mutation
+feat(accountability): fix persistence and validation of penalty/waiver contracts
 
-- Added `completed_at` field to `waiver_state.challenges` schema to permit tracking challenge completion timestamps.
-- Restored `startSession` mutation in [api/instances/waivers.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/waivers.ts:0:0-0:0) to allow manual initiation of the redemption arc.
-- Fixed missing `Doc` and [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:6:0-65:1) imports in the waivers API module.
-- Ensured atomic consistency between frontend puzzle solving and backend state updates.
+- Update Convex API and core service to support updating accountability contracts (penalty/waiver).
+- Implement domain-level validation for waivers, including CAPTCHA count and deadline checks.
+- Fix "packing" bug in useCommitTask hook where penalty/waiver data was omitted during task updates.
+- Refine CAPTCHA setup UI to preserve existing deadlines and add "1 hour" option to settings.
+- Ensure atomic synchronization of modified accountability rules across cloud and local cache.
 
 
 wsl.exe --shutdown

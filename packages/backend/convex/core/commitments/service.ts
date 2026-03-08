@@ -177,7 +177,13 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
   }
 
   // 3. Validate
-  if (updates.title !== undefined || updates.recurrence || updates.conditions) {
+  if (
+    updates.title !== undefined || 
+    updates.recurrence !== undefined || 
+    updates.conditions !== undefined ||
+    updates.penalty !== undefined ||
+    updates.penalty_waiver !== undefined
+  ) {
     const validation = validateCommitment({
       title: updates.title ?? existingTask.title,
       recurrence: updates.recurrence ?? existingTask.recurrence,

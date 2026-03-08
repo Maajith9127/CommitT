@@ -127,6 +127,7 @@ const SETTINGS_OPTIONS = {
     { label: "Warning", value: "Warning" },
   ],
   waiverDeadline: [
+    { label: "1 hour", value: 60 },
     { label: "5 hours", value: 300 },
     { label: "10 hours", value: 600 },
     { label: "24 hours", value: 1440 },

@@ -218,6 +218,8 @@ export function useCommitTask() {
           recurrence: draft.recurrence,
           conditions: cleanedConditions,
           config: draft.config,
+          penalty: cleanedPenalty,
+          penalty_waiver: draft.penalty_waiver,
         });
 
         if (result.success) {

@@ -31,7 +31,7 @@ export default function CaptchaSetupScreen() {
     setWaiver({
       type: "captcha",
       config: latestDataRef.current,
-      deadline_minutes: 60,
+      deadline_minutes: waiver?.deadline_minutes || 60,
     });
     
     console.log("[Waiver] Final Commit:", latestDataRef.current);
