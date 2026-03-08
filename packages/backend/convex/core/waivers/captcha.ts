@@ -9,22 +9,68 @@
 
 /**
  * initializeChallenges(): 
- * Generates the full queue of challenges at the start of the session.
+ * Generates the first challenge in the "On-the-Fly" sequence.
  */
 export async function initializeCaptchaChallenges(config: { count: number; difficulty: string }) {
-  const tasks = [];
+  return [{
+    type: "captcha",
+    status: "pending" as const,
+    created_at: Date.now(),
+    vault: {
+      secret: generateRandomSecret(config.difficulty),
+    }
+  }];
+}
+
+/**
+ * verifyCaptchaChallenge(): THE ATOMIC SOLVER
+ * 
+ * DESCRIPTION (PRODUCTION GRADE):
+ * This is where the verification logic is encapsulated. It performs three 
+ * critical operations in one call:
+ * 1. TRUTHY VERIFICATION: Ensures the solution is valid (case-insensitive).
+ * 2. PROGRESS FLIP: Marks the specific current challenge as 'completed'.
+ * 3. LAZY DEQUEUE: If the session quota isn't hit, it deals the NEXT challenge 
+ *    immediately, ensuring there is always an active puzzle until completion.
+ */
+export async function verifyCaptchaChallenge(
+  challenges: any[], 
+  solution: string, 
+  config: { count: number; difficulty: string }
+) {
+  // 1. Identify the active (most recent pending) challenge
+  const activeIdx = challenges.findIndex(c => c.status === "pending");
+  if (activeIdx === -1) return { success: false, quotaReached: true, challenges };
+
+  const currentChallenge = challenges[activeIdx];
   
-  for (let i = 0; i < config.count; i++) {
-    tasks.push({
+  // 2. CRYPTOGRAPHIC MATCH (Case Insensitive for UX)
+  const isMatch = currentChallenge.vault.secret.toUpperCase() === solution.trim().toUpperCase();
+  
+  if (!isMatch) {
+    return { success: false, quotaReached: false, challenges };
+  }
+
+  // 3. APPLY VERIFICATION
+  challenges[activeIdx].status = "completed";
+  challenges[activeIdx].completed_at = Date.now();
+
+  const completedCount = challenges.filter(c => c.status === "completed").length;
+  const quotaReached = completedCount >= config.count;
+
+  // 4. GENERATE NEXT (The Flip)
+  if (!quotaReached) {
+    challenges.push({
       type: "captcha",
       status: "pending" as const,
+      created_at: Date.now(),
       vault: {
         secret: generateRandomSecret(config.difficulty),
       }
     });
   }
 
-  return tasks;
+  return { success: true, quotaReached, challenges };
 }
 
 /**

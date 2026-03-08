@@ -62,7 +62,7 @@ export async function armAccountabilityContract(
     }
   });
 
-  console.log(`[armAccountabilityContract] Accountability Armed for ${instance._id}. ${challenges.length} challenges generated. Expires: ${new Date(expiresAt).toISOString()}`);
+  console.log(`[armAccountabilityContract] Accountability Armed for ${instance._id}. On-the-Fly challenge initialized. Expires: ${new Date(expiresAt).toISOString()}`);
 }
 
 /**

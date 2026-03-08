@@ -1,4 +1,4 @@
-import { initializeCaptchaChallenges } from "./captcha";
+import { initializeCaptchaChallenges, verifyCaptchaChallenge } from "./captcha";
 
 /**
  * WAIVER DISPATCHER: The Central Hub
@@ -29,5 +29,39 @@ export async function initializeWaiverChallenges(ctx: any, instance: any) {
     default:
       console.log(`[WaiverDispatcher] Unsupported waiver type: ${waiverConfig.type}`);
       return [];
+  }
+}
+
+/**
+ * verifyWaiverChallenge(): THE WORKFLOW ROUTER (SOLVE PHASE)
+ * 
+ * DESIGN RATIONALE:
+ * This is the counterpart to initializeWaiverChallenges. It routes the 
+ * user's solution attempt to the correct specialized handler.
+ */
+export async function verifyWaiverChallenge(
+  ctx: any, 
+  instance: any, 
+  solution: string
+) {
+  const waiverConfig = instance.penalty_waiver;
+  const waiverState = instance.waiver_state;
+  
+  if (!waiverConfig || !waiverState) {
+    return { success: false, quotaReached: false, challenges: [] };
+  }
+
+  // 1. ROUTE TO THE CORRECT VERIFIER
+  switch (waiverConfig.type) {
+    case "captcha":
+      return await verifyCaptchaChallenge(
+        waiverState.challenges || [], 
+        solution, 
+        waiverConfig.config
+      );
+
+    default:
+      console.log(`[WaiverDispatcher] Unsupported verify type: ${waiverConfig.type}`);
+      return { success: false, quotaReached: false, challenges: waiverState.challenges || [] };
   }
 }

@@ -281,11 +281,13 @@ export default defineSchema({
        * challenges: THE WORKFLOW QUEUE
        * Each entry is a single "unit of proof" needed to waive the penalty.
        */
-      challenges: v.optional(v.array(v.object({
-        type: v.string(),                    // Discriminant (e.g., "captcha")
-        status: v.union(v.literal("pending"), v.literal("completed")),
-        vault: v.any(),                      // The secret / solution data 
-      }))),
+        challenges: v.optional(v.array(v.object({
+          type: v.string(),                    // Discriminant (e.g., "captcha")
+          status: v.union(v.literal("pending"), v.literal("completed")),
+          created_at: v.number(),              // Epoch ms when this specific puzzle was dealt
+          completed_at: v.optional(v.number()), // Epoch ms when successfully solved
+          vault: v.any(),                      // The secret / solution data 
+        }))),
     })),
     // ═══════════════════════════════════════════════════════════════════════
     // DURABLE SCHEDULING — Background Side Effects
