@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Modal, View, TextInput, Pressable, Image, FlatList } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Modal, View, TextInput, Pressable, Image, FlatList, Animated, KeyboardAvoidingView, Platform } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText, HeaderTitle } from '@/components/ui/text';
@@ -8,42 +8,53 @@ const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
 const UTextInput = withUniwind(TextInput);
 
-interface ContactSuggestion {
-  id: string;
-  email: string;
-  initial: string;
-  color: string;
-  image?: string;
-}
-
-const SUGGESTIONS: ContactSuggestion[] = [
-  { id: '1', email: 'care@cashefree.com', initial: 'C', color: '#D35400' },
-  { id: '2', email: 'abdulaleemsaleem@gmail.com', initial: 'A', color: '#8E44AD' },
-  { id: '3', email: 'arulkumar.v@vit.ac.in', initial: 'A', color: '#2C3E50', image: 'https://via.placeholder.com/150' },
-  { id: '4', email: 'askus@tazapay.com', initial: 'A', color: '#2980B9' },
-  { id: '5', email: 'care@cashfree.com', initial: 'C', color: '#AE27AE' },
-];
-
-export function WaiverActionModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function WaiverActionModal({ visible, event, onClose }: { visible: boolean; event: any; onClose: () => void }) {
   const [search, setSearch] = useState('');
+  const [timeLeft, setTimeLeft] = useState('');
+  const [isUrgent, setIsUrgent] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  const renderItem = ({ item }: { item: ContactSuggestion }) => (
-    <UPressable className="flex-row items-center px-4 py-3" onPress={() => {}}>
-      <UView
-        className="w-12 h-12 rounded-full justify-center items-center mr-4 overflow-hidden"
-        style={{ backgroundColor: item.color }}
-      >
-        {item.image ? (
-          <Image source={{ uri: item.image }} style={{ width: 48, height: 48 }} />
-        ) : (
-          <BodyText className="text-white text-lg font-bold">{item.initial}</BodyText>
-        )}
-      </UView>
-      <UView className="flex-1">
-        <BodyText className="text-white text-base">{item.email}</BodyText>
-      </UView>
-    </UPressable>
-  );
+  const progress = event?.waiver_state?.progress || { current: 0, total: 10 };
+  const percentage = Math.min((progress.current / progress.total) * 100, 100);
+  const expiresAt = event?.waiver_state?.expires_at;
+
+  useEffect(() => {
+    if (!expiresAt) return;
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = expiresAt - now;
+
+      if (diff <= 0) {
+        setTimeLeft('Expired');
+        setIsUrgent(true);
+        return;
+      }
+
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      const secondsStr = seconds < 10 ? `0${seconds}` : `${seconds}`;
+      setTimeLeft(`${minutes}:${secondsStr}`);
+      setIsUrgent(minutes < 5);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  useEffect(() => {
+    if (isUrgent) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.2, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isUrgent]);
 
   return (
     <Modal visible={visible} animationType="fade" transparent={false} onRequestClose={onClose}>
@@ -53,17 +64,17 @@ export function WaiverActionModal({ visible, onClose }: { visible: boolean; onCl
           <UPressable onPress={onClose} className="mr-6">
             <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
           </UPressable>
-          <HeaderTitle className="text-xl text-white">Add people</HeaderTitle>
+          <HeaderTitle className="text-xl text-white">Solve captcha</HeaderTitle>
         </UView>
 
-        {/* Search Bar */}
-        <UView className="px-4 mb-6">
+        {/* Challenge Input */}
+        <UView className="px-4 mb-2">
           <UView className="flex-row items-center bg-[#2A2A2A] rounded-full px-4 py-2">
-            <MaterialCommunityIcons name="magnify" size={24} color="#A0A0A0" />
+            <MaterialCommunityIcons name="robot-outline" size={20} color="#666" />
             <UTextInput
               className="flex-1 ml-2 text-white text-base"
-              placeholder="Add people or groups"
-              placeholderTextColor="#A0A0A0"
+              placeholder="Type the solution"
+              placeholderTextColor="#666"
               value={search}
               onChangeText={setSearch}
               autoFocus
@@ -71,16 +82,33 @@ export function WaiverActionModal({ visible, onClose }: { visible: boolean; onCl
           </UView>
         </UView>
 
-        {/* Suggestions */}
-        <UView className="flex-1">
-          <BodyText className="px-4 text-gray-400 text-sm mb-2">Suggestions</BodyText>
-          <FlatList
-            data={SUGGESTIONS}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 20 }}
-          />
+        {/* Progress Tracker */}
+        <UView className="px-6 mt-1">
+          <UView className="flex-row justify-between items-center mb-3">
+            <BodyText className="text-gray-400 text-xs font-bold">
+              {progress.current}/{progress.total} SOLVED
+            </BodyText>
+
+            {timeLeft ? (
+              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                <BodyText 
+                  className="font-bold text-xs" 
+                  style={{ color: isUrgent ? '#FF3B30' : '#888' }}
+                >
+                  {timeLeft} REMAINING
+                </BodyText>
+              </Animated.View>
+            ) : null}
+          </UView>
+          
+          <UView className="w-full h-2.5 bg-[#2A2A2A] rounded-full overflow-hidden">
+            <UView 
+                className="h-full bg-green-500 rounded-full" 
+                style={{ width: `${percentage}%` }}
+              />
+          </UView>
         </UView>
+
       </UView>
     </Modal>
   );

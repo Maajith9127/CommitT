@@ -1,34 +1,12 @@
-feat: integrate high-urgency redemption timer and progress into verification status UI
+feat(native): implement real-time progress and urgency timer in WaiverActionModal
 
-OVERVIEW:
-This update centralizes the waiver redemption experience by consolidating the 
-progress ratio and countdown timer into a single, high-density visual hub 
-within the Verification Status Circle.
+- Refactored [WaiverActionModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/WaiverActionModal.tsx:10:0-114:1) to replace contact suggestions with a dedicated CAPTCHA solving UI.
+- Added a real-time "X/Total" solve counter and a dynamic "Time Remaining" countdown.
+- Implemented pulsulating color-coded urgency states for the timer (turns red and pulses when < 5 mins).
+- Streamlined navigation in `EventDetailModal` to directly open the action modal for active waiver sessions.
+- Simplified [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:70:0-230:1) and updated status logic to show 'pointer' icon for active challenges.
+- Standardized UI components using `robot-outline` iconography for better challenge representation.
 
-BACKEND:
-- PRE-EMPTIVE ARMING: Refactored [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:5:0-61:1) to support manual 
-  redemption triggers with server-authoritative `expires_at` timestamps.
-- RESOURCE API: Implemented `api.instances.waivers.startSession` to initiate 
-  manual waiver challenges before official task failure.
-
-UI/UX (STUDIO GRADE):
-- INTEGRATED TIMER: Moved the waiver countdown from the list text into the 
-  [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:138:0-304:1). Created an [InternalTimer](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:79:0-134:2) with 1s ticking logic.
-- URGENCY HEARTBEAT: Implemented a Reanimated pulsing effect and color shift 
-  (Blue -> Red) for the timer and SVG ring when <5 minutes remain.
-- DUAL-DATA STACK: Designed a vertical layout within the 48x48 circle that stacks 
-  the challenge ratio (e.g., 3/7) above the live timer (MM:SS).
-- SVG PROGRESS RING: Enhanced the circular stroke to dynamically reflect the 
-  solve progress of CAPTCHAs/Paragraphs.
-- MINIMALIST REFINEMENT: Removed the percentage icon and increased timer 
-  legibility (11px bold) for a cleaner, data-focused "cockpit" look.
-
-Files:
-- [packages/backend/convex/execution/verification/runner.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:0:0-0:0)
-- [packages/backend/convex/api/instances/waivers.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/waivers.ts:0:0-0:0)
-- [apps/native/components/ui/commits/VerificationStatusCircle.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:0:0-0:0)
-- [apps/native/components/ui/modal/EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0)
-- `apps/native/components/ui/modal/EventDetailModal.tsx`
 
 
 wsl.exe --shutdown

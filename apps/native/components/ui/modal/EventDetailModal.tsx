@@ -363,7 +363,13 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             {/* ── Waiver / Grace Period ── */}
             <WaiverSection 
               event={currentEvent} 
-              onPress={() => setWaiverConfirmVisible(true)}
+              onPress={() => {
+                if (currentEvent.status === 'waiver_active') {
+                   setWaiverModalVisible(true);
+                } else {
+                   setWaiverConfirmVisible(true);
+                }
+              }}
             />
 
           </UScroll>
@@ -406,6 +412,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       {/* ── Waiver Action Modal ── */}
       <WaiverActionModal
         visible={waiverModalVisible}
+        event={currentEvent}
         onClose={() => setWaiverModalVisible(false)}
       />
 
