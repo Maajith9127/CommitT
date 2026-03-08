@@ -277,10 +277,6 @@ export default defineSchema({
       expires_at: v.number(),            // Epoch ms deadline — penalty fires after this
       started_at: v.optional(v.number()),    // Epoch ms when user began the challenge
       completed_at: v.optional(v.number()),  // Epoch ms when user finished the challenge
-      progress: v.optional(v.object({        // Real-time progress tracking
-        current: v.number(),                 // e.g., 3 captchas solved
-        total: v.number(),                   // e.g., 10 captchas required
-      })),
     })),
     // ═══════════════════════════════════════════════════════════════════════
     // DURABLE SCHEDULING — Background Side Effects

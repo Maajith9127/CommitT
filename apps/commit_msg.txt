@@ -1,11 +1,9 @@
-feat(native): implement real-time progress and urgency timer in WaiverActionModal
+refactor(ui): modularize waiver system and extract CaptchaWaiverView
 
-- Refactored [WaiverActionModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/WaiverActionModal.tsx:10:0-114:1) to replace contact suggestions with a dedicated CAPTCHA solving UI.
-- Added a real-time "X/Total" solve counter and a dynamic "Time Remaining" countdown.
-- Implemented pulsulating color-coded urgency states for the timer (turns red and pulses when < 5 mins).
-- Streamlined navigation in `EventDetailModal` to directly open the action modal for active waiver sessions.
-- Simplified [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:70:0-230:1) and updated status logic to show 'pointer' icon for active challenges.
-- Standardized UI components using `robot-outline` iconography for better challenge representation.
+- Decoupled CAPTCHA-specific logic, state, and animations from WaiverActionModal.
+- Created CaptchaWaiverView to encapsulate the solver UI and challenge logic.
+- Simplified WaiverActionModal to act as a generic container for future waiver types.
+- Reverted backend waiver_state schema to a stable baseline for future iteration.
 
 
 
