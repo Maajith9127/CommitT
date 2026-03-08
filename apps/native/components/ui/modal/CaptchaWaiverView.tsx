@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, TextInput, Pressable, Animated, KeyboardAvoidingView, Platform, Keyboard, Dimensions, ActivityIndicator, LayoutChangeEvent, KeyboardEvent } from 'react-native';
+import { View, TextInput, Pressable, Animated, KeyboardAvoidingView, Platform, Keyboard, Dimensions, ActivityIndicator, LayoutChangeEvent, KeyboardEvent, ScrollView } from 'react-native';
 import Svg, { Text as SvgText, TSpan, Line, Circle, Defs, LinearGradient, Stop, Path } from 'react-native-svg';
 import AnimatedReanimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { withUniwind } from 'uniwind';
@@ -15,10 +15,7 @@ const UTextInput = withUniwind(TextInput);
 // -------------------------------------------------------------------------
 // LiveCaptcha: THE SECURE SVG RENDERER
 // -------------------------------------------------------------------------
-function LiveCaptcha({ text }: { text: string }) {
-  const width = 280;
-  const height = 120;
-  
+function LiveCaptcha({ text, width, height }: { text: string; width: number; height: number }) {
   // Seed-based random for consistency within a single challenge
   const seed = useMemo(() => 
     text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0), 
@@ -32,7 +29,7 @@ function LiveCaptcha({ text }: { text: string }) {
   const characters = text.split('');
 
   return (
-    <UView className="bg-[#fdfdfd] rounded-3xl overflow-hidden shadow-2xl border-4 border-white" style={{ width, height }}>
+    <UView className="overflow-hidden" style={{ width, height }}>
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         <Defs>
           <LinearGradient id="textGrad" x1="0" y1="0" x2="1" y2="1">
@@ -132,6 +129,11 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const keyboardHeight = useSharedValue(0);
+  const inputRef = useRef<TextInput>(null);
+
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [containerDims, setContainerDims] = useState({ width: 0, height: 0 });
 
   const submitChallenge = useMutation(api.api.instances.waivers.submitChallenge);
 
@@ -167,13 +169,17 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
           onClose(); // Penalty waived, close session
         }
       } else {
-        alert(result.message);
+        setErrorTitle(result.message || "Incorrect solution");
+        setErrorVisible(true);
       }
     } catch (e) {
       console.error("[CaptchaWaiver] Submit error:", e);
-      alert("Verification failed. Please check your connection.");
+      setErrorTitle("Verification failed. Please check your connection.");
+      setErrorVisible(true);
     } finally {
       setIsSubmitting(false);
+      // Keep focus on the input after submission completes
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
@@ -231,7 +237,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
       }
     );
     const hideSubscription = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardWillHide',
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
         keyboardHeight.value = withTiming(0, { duration: 250 });
       }
@@ -248,7 +254,13 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
   }));
 
   return (
-    <UView className="flex-1 bg-[#121212]">
+    <ScrollView 
+      contentContainerStyle={{ flex: 1 }} 
+      keyboardShouldPersistTaps="always" 
+      scrollEnabled={false}
+      className="bg-[#121212]"
+    >
+      <UView className="flex-1">
       {/* Header */}
       <UView className="flex-row items-center px-4 pt-12 pb-4">
         <UPressable onPress={onClose} className="mr-6">
@@ -284,17 +296,24 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
         </UView>
       </UView>
 
-      {/* Challenge Area (Fixed Size Gap) */}
+      {/* Challenge Area (Measureable Gap) */}
       <UView style={{ height: gapHeight }} className="justify-center items-center mt-4 px-6">
-        <UView className="w-full h-full bg-[#1A1A1A] rounded-3xl overflow-hidden justify-center items-center shadow-2xl border border-[#2A2A2A]">
-            {currentChallenge ? (
-              <>
-                <LiveCaptcha text={currentChallenge.vault.secret} />
-                <BodyText className="text-gray-500 mt-6 font-medium text-xs tracking-widest uppercase opacity-60">Solve to authenticate</BodyText>
-              </>
-            ) : (
+        <UView 
+          onLayout={(e) => {
+            const { width, height } = e.nativeEvent.layout;
+            setContainerDims({ width, height });
+          }}
+          className="w-full h-full bg-[#fdfdfd] rounded-3xl overflow-hidden justify-center items-center shadow-2xl border border-[#2A2A2A]"
+        >
+            {currentChallenge && containerDims.width > 0 ? (
+              <LiveCaptcha 
+                text={currentChallenge.vault.secret} 
+                width={containerDims.width}
+                height={containerDims.height}
+              />
+            ) : !currentChallenge ? (
              <BodyText className="text-gray-600">No pending challenges</BodyText>
-           )}
+           ) : null}
         </UView>
       </UView>
 
@@ -307,6 +326,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
           <UView className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-4 py-3">
             <MaterialCommunityIcons name="robot-outline" size={20} color="#888" />
             <UTextInput
+              ref={inputRef}
               className="flex-1 ml-2 text-white text-lg"
               placeholder="Type the solution"
               placeholderTextColor="#666"
@@ -316,7 +336,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
               returnKeyType="send"
               autoCapitalize="none"
               onSubmitEditing={handleSubmit}
-              editable={!isSubmitting}
+              blurOnSubmit={false}
             />
             {solution.length > 0 && (
               <UPressable 
@@ -334,6 +354,41 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
           </UView>
         </UView>
       </AnimatedReanimated.View>
+
+      {/* In-Page Error Overlay (Fixes Keyboard Dismissal on Failure) */}
+      {errorVisible && (
+        <UView 
+          style={{ 
+            position: 'absolute', 
+            top: 0, left: 0, right: 0, bottom: 0, 
+            backgroundColor: 'rgba(0,0,0,0.6)', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            paddingHorizontal: 30,
+            zIndex: 1000 
+          }}
+        >
+          <UView className="w-full rounded-3xl bg-[#252525] p-6 shadow-2xl">
+            <HeaderTitle className="text-center text-lg font-bold text-white mb-6">
+              {errorTitle}
+            </HeaderTitle>
+            
+            <UPressable 
+              onPress={() => {
+                setErrorVisible(false);
+                // Refs aren't lost, so focus is lightning fast
+                inputRef.current?.focus();
+              }}
+              className="mt-2"
+            >
+              <BodyText className="text-center text-[#4FA0FF] font-black text-base uppercase tracking-widest">
+                Try again
+              </BodyText>
+            </UPressable>
+          </UView>
+        </UView>
+      )}
     </UView>
+    </ScrollView>
   );
 }

@@ -1,10 +1,12 @@
-feat(accountability): fix persistence and validation of penalty/waiver contracts
+feat(native): overhaul CAPTCHA waiver flow for a high-performance UX
 
-- Update Convex API and core service to support updating accountability contracts (penalty/waiver).
-- Implement domain-level validation for waivers, including CAPTCHA count and deadline checks.
-- Fix "packing" bug in useCommitTask hook where penalty/waiver data was omitted during task updates.
-- Refine CAPTCHA setup UI to preserve existing deadlines and add "1 hour" option to settings.
-- Ensure atomic synchronization of modified accountability rules across cloud and local cache.
+- Refined [CaptchaWaiverView](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/CaptchaWaiverView.tsx:123:0-393:1) with a fully responsive SVG renderer that dynamically scales to fit its container using `onLayout` measurements.
+- Implemented a persistent keyboard strategy: converted the main view to a `ScrollView` with `keyboardShouldPersistTaps="always"` and disabled `blurOnSubmit` to ensure the keyboard stays active during rapid-fire solutions.
+- Replaced native [Modal](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:59:0-62:1) error dialogs with an in-page absolute overlay to prevent the OS from force-dismissing the keyboard on verification failures.
+- Streamlined the UI by removing redundant instruction text and centering the challenge area for better focus.
+- Synchronized the `updateTask` mutation with the backend to correctly persist accountability contracts (`penalty` and `penalty_waiver`) during task edits.
+- Fixed a layout bug on Android where the input field remained offset after keyboard dismissal by correcting the `keyboardDidHide` listener.
+- Improved [useCommitTask](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:177:0-289:1) hook to handle deferred photo uploads for embarrassing penalties before triggering the final task creation/update.
 
 
 wsl.exe --shutdown
