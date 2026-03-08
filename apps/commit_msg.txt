@@ -1,14 +1,9 @@
-feat(waivers): implement "on-the-fly" captcha verification and state machine
+fix(waivers): resolve schema validation error and restore missing session mutation
 
-- Replaced bulk challenge generation with a "Lazy Dequeue" pattern for CAPTCHA waivers, dealing challenges one-at-a-time.
-- Implemented [verifyCaptchaChallenge](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/waivers/captcha.ts:24:0-73:1) handler for atomic progress tracking and sequential puzzle dealing.
-- Developed the `submitChallenge` Convex mutation to securely bridge verification and task state transitions.
-- Integrated [LiveCaptcha](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/CaptchaWaiverView.tsx:14:0-124:1) custom SVG renderer in the native UI with real-time reactive state synchronization.
-- Updated database schema to include `created_at` and `completed_at` timestamps for fine-grained challenge auditing.
-- Refined the waiver dispatcher to route verification attempts through decoupled, specialized handlers.
-- Automated penalty cancellation (fallback job cleanup) upon successful completion of the waiver quota.
-
-This architecture minimizes secret leakage, prevents race conditions, and provides a premium, "Submit & Flip" user experience.
+- Added `completed_at` field to `waiver_state.challenges` schema to permit tracking challenge completion timestamps.
+- Restored `startSession` mutation in [api/instances/waivers.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/waivers.ts:0:0-0:0) to allow manual initiation of the redemption arc.
+- Fixed missing `Doc` and [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:6:0-65:1) imports in the waivers API module.
+- Ensured atomic consistency between frontend puzzle solving and backend state updates.
 
 
 wsl.exe --shutdown
