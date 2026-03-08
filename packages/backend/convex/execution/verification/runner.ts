@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalMutation } from "../../_generated/server";
 import { internal } from "../../_generated/api";
 import { syncTaskSchedule } from "../scheduling/scheduler";
+import { initializeWaiverChallenges } from "../../core/waivers/dispatcher";
 
 /**
  * armAccountabilityContract(): The "Redemption Arc" Initiator.
@@ -47,7 +48,9 @@ export async function armAccountabilityContract(
     }
   );
 
-  // 4. TRANSITION TO WAIVER STATE
+  // 4. TRANSITION TO WAIVER STATE & INITIALIZE CHALLENGE VAULT
+  const challenges = await initializeWaiverChallenges(ctx, instance);
+
   await ctx.db.patch(instance._id, {
     status: "waiver_active",
     enforcement_job_id: enforcementJobId,
@@ -55,10 +58,11 @@ export async function armAccountabilityContract(
       status: waiverStatus,
       opened_at: Date.now(),
       expires_at: expiresAt,
+      challenges, // The pre-generated queue of tasks
     }
   });
 
-  console.log(`[armAccountabilityContract] Accountability Armed for ${instance._id}. Expires: ${new Date(expiresAt).toISOString()}`);
+  console.log(`[armAccountabilityContract] Accountability Armed for ${instance._id}. ${challenges.length} challenges generated. Expires: ${new Date(expiresAt).toISOString()}`);
 }
 
 /**

@@ -1,9 +1,10 @@
-refactor(ui): modularize waiver system and extract CaptchaWaiverView
+feat(backend): implement polymorphic waiver challenge initialization
 
-- Decoupled CAPTCHA-specific logic, state, and animations from WaiverActionModal.
-- Created CaptchaWaiverView to encapsulate the solver UI and challenge logic.
-- Simplified WaiverActionModal to act as a generic container for future waiver types.
-- Reverted backend waiver_state schema to a stable baseline for future iteration.
+- Refactored `waiver_state` schema to use a `challenges` array for queue-based workflows.
+- Implemented `WaiverDispatcher` using the Strategy pattern to route challenge generation.
+- Created `CaptchaHandler` to generate secure, difficulty-aware challenge secrets in a "Vault".
+- Integrated challenge initialization into [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:6:0-65:1) for atomic session setup.
+- Fixed Convex runtime compatibility by standardizing static imports in the execution runner.
 
 
 

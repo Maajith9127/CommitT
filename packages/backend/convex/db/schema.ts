@@ -277,6 +277,15 @@ export default defineSchema({
       expires_at: v.number(),            // Epoch ms deadline — penalty fires after this
       started_at: v.optional(v.number()),    // Epoch ms when user began the challenge
       completed_at: v.optional(v.number()),  // Epoch ms when user finished the challenge
+      /**
+       * challenges: THE WORKFLOW QUEUE
+       * Each entry is a single "unit of proof" needed to waive the penalty.
+       */
+      challenges: v.optional(v.array(v.object({
+        type: v.string(),                    // Discriminant (e.g., "captcha")
+        status: v.union(v.literal("pending"), v.literal("completed")),
+        vault: v.any(),                      // The secret / solution data 
+      }))),
     })),
     // ═══════════════════════════════════════════════════════════════════════
     // DURABLE SCHEDULING — Background Side Effects
