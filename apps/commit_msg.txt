@@ -1,37 +1,34 @@
-feat: implement pre-emptive waiver sessions and high-fidelity redemption UI
+feat: integrate high-urgency redemption timer and progress into verification status UI
 
 OVERVIEW:
-This update introduces a production-grade "Redemption Arc" system, allowing users 
-to manually initiate penalty waivers before a task officially fails. The implementation 
-focuses on sovereign instance execution, authoritative server-side timing, and 
-a high-urgency visual experience.
+This update centralizes the waiver redemption experience by consolidating the 
+progress ratio and countdown timer into a single, high-density visual hub 
+within the Verification Status Circle.
 
-BACKEND ARCHITECTURE:
-- REUSABLE ACCOUNTABILITY: Extracted [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:5:0-61:1) in [runner.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:0:0-0:0) 
-  to support both automatic (failure-based) and pre-emptive (manual) triggers.
-- SOVEREIGN EXECUTION: Task instances are now treated as independent contracts; 
-  grading and waivers proceed even if the parent habit series is deleted.
-- RESOURCE-CENTRIC API: Implemented `api/instances/waivers.startSession` mutation 
-  to deterministically lock in the redemption window based on `Date.now()`.
-- SCHEMA ALIGNMENT: Synchronized waiver state transitions (`offered` vs `in_progress`) 
-  to ensure strict database integrity and prevent validation rejections.
+BACKEND:
+- PRE-EMPTIVE ARMING: Refactored [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:5:0-61:1) to support manual 
+  redemption triggers with server-authoritative `expires_at` timestamps.
+- RESOURCE API: Implemented `api.instances.waivers.startSession` to initiate 
+  manual waiver challenges before official task failure.
 
-FRONTEND & UI/UX:
-- SVG PROGRESS MODES: Enhanced [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:70:0-230:1) with a high-fidelity 
-  SVG stroke ring and numerical ratio display (e.g., 3/7) for live progress tracking.
-- PULSING COUNTDOWN: Introduced [CountdownPill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:75:0-144:2) in `EventDetailConditions` with 
-  real-time ticking logic.
-- URGENCY CUES: Implemented a red "Heartbeat Pulse" animation via Reanimated when 
-  a waiver session has <5 minutes remaining, increasing psychological stakes.
-- TRANSACTIONAL FLOW: Integrated confirmation modals and loading states in 
-  `EventDetailModal` to ensure atomic state transitions between the app and Convex.
+UI/UX (STUDIO GRADE):
+- INTEGRATED TIMER: Moved the waiver countdown from the list text into the 
+  [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:138:0-304:1). Created an [InternalTimer](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:79:0-134:2) with 1s ticking logic.
+- URGENCY HEARTBEAT: Implemented a Reanimated pulsing effect and color shift 
+  (Blue -> Red) for the timer and SVG ring when <5 minutes remain.
+- DUAL-DATA STACK: Designed a vertical layout within the 48x48 circle that stacks 
+  the challenge ratio (e.g., 3/7) above the live timer (MM:SS).
+- SVG PROGRESS RING: Enhanced the circular stroke to dynamically reflect the 
+  solve progress of CAPTCHAs/Paragraphs.
+- MINIMALIST REFINEMENT: Removed the percentage icon and increased timer 
+  legibility (11px bold) for a cleaner, data-focused "cockpit" look.
 
 Files:
 - [packages/backend/convex/execution/verification/runner.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:0:0-0:0)
 - [packages/backend/convex/api/instances/waivers.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/waivers.ts:0:0-0:0)
-- [apps/native/components/ui/modal/EventDetailModal.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:0:0-0:0)
+- [apps/native/components/ui/commits/VerificationStatusCircle.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:0:0-0:0)
 - [apps/native/components/ui/modal/EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0)
-- `apps/native/components/ui/commits/VerificationStatusCircle.tsx`
+- `apps/native/components/ui/modal/EventDetailModal.tsx`
 
 
 wsl.exe --shutdown

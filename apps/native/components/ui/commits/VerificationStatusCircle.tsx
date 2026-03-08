@@ -35,12 +35,19 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Pressable, ActivityIndicator, Image } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText } from '@/components/ui/text';
 import Svg, { Circle } from 'react-native-svg';
+import Animated, { 
+  useAnimatedStyle, 
+  withRepeat, 
+  withSequence, 
+  withTiming, 
+  useSharedValue 
+} from 'react-native-reanimated';
 
 // ── Uniwind-wrapped primitives ──────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -58,6 +65,8 @@ export interface VerificationCircleProps {
   percentage?: number;
   /** Numeric ratio (e.g., 3/7 for captchas) */
   ratio?: { current: number; total: number };
+  /** Expiration timestamp for active waiver sessions */
+  expiresAt?: number;
   /** Tap handler — makes 'neutral' and 'failed' states interactive */
   onPress?: () => void;
   /** When true, shows a spinner instead of the status icon */
@@ -66,12 +75,72 @@ export interface VerificationCircleProps {
   thumbnailUrl?: string;
 }
 
+// ── Internal Helpers ────────────────────────────────────────────────────────
+
+/**
+ * A miniature timer that ticks and pulses when urgent.
+ * Designed to fit inside the 48x48 circle badge.
+ */
+const InternalTimer = ({ expiresAt }: { expiresAt: number }) => {
+  const [timeLeft, setTimeLeft] = useState(expiresAt - Date.now());
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nextTime = expiresAt - Date.now();
+      setTimeLeft(nextTime);
+      if (nextTime <= 0) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  useEffect(() => {
+    // Pulse faster if less than 5 minutes remain
+    if (timeLeft < 300000 && timeLeft > 0) {
+      opacity.value = withRepeat(
+        withSequence(withTiming(0.4, { duration: 500 }), withTiming(1, { duration: 500 })),
+        -1,
+        true
+      );
+    } else {
+      opacity.value = 1;
+    }
+  }, [timeLeft]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  if (timeLeft <= 0) return null;
+
+  const mins = Math.floor(timeLeft / 60000);
+  const secs = Math.floor((timeLeft % 60000) / 1000);
+  const timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  const isUrgent = timeLeft < 300000;
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <BodyText 
+        className="font-bold" 
+        style={{ 
+          fontSize: 11, 
+          color: isUrgent ? '#FF3B30' : '#4FA0FF',
+          marginTop: -1
+        }}
+      >
+        {timeStr}
+      </BodyText>
+    </Animated.View>
+  );
+};
+
 // ── Component ───────────────────────────────────────────────────────────────
 
 export function VerificationStatusCircle({
   status = 'neutral',
   percentage = 0,
   ratio,
+  expiresAt,
   onPress,
   isLoading = false,
   thumbnailUrl,
@@ -153,14 +222,17 @@ export function VerificationStatusCircle({
     );
   }
 
-  // ── Ratio Display: Premium "3/10" look
+  // ── Ratio Display: Premium "3/10" look (with timer if active)
   if (ratio) {
     const content = (
       <View className="items-center justify-center">
         {renderRing()}
-        <View className="flex-row items-baseline">
-          <BodyText className="text-white font-bold" style={{ fontSize: 13 }}>{ratio.current}</BodyText>
-          <BodyText className="text-gray-400" style={{ fontSize: 9 }}>/{ratio.total}</BodyText>
+        <View className="items-center justify-center">
+          <View className="flex-row items-baseline">
+            <BodyText className="text-white font-bold" style={{ fontSize: 13 }}>{ratio.current}</BodyText>
+            <BodyText className="text-gray-400" style={{ fontSize: 9 }}>/{ratio.total}</BodyText>
+          </View>
+          {expiresAt && <InternalTimer expiresAt={expiresAt} />}
         </View>
       </View>
     );
@@ -217,7 +289,9 @@ export function VerificationStatusCircle({
     return (
       <UView className={baseOuterClass}>
         {renderRing()}
-        <MaterialCommunityIcons name="percent" size={16} color={iconColor} />
+        <View className="items-center justify-center">
+          {expiresAt && <InternalTimer expiresAt={expiresAt} />}
+        </View>
       </UView>
     );
   }
