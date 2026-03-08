@@ -36,7 +36,7 @@
  */
 
 import React from 'react';
-import { View, Pressable, ActivityIndicator } from 'react-native';
+import { View, Pressable, ActivityIndicator, Image } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText } from '@/components/ui/text';
@@ -59,6 +59,8 @@ export interface VerificationCircleProps {
   onPress?: () => void;
   /** When true, shows a spinner instead of the status icon */
   isLoading?: boolean;
+  /** Optional image URL to display as a thumbnail within the circle */
+  thumbnailUrl?: string;
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -68,11 +70,33 @@ export function VerificationStatusCircle({
   percentage = 0,
   onPress,
   isLoading = false,
+  thumbnailUrl,
 }: VerificationCircleProps) {
 
   // Shared styling for the outer circle container
-  const baseOuterClass = "w-12 h-12 rounded-full border border-white/40 justify-center items-center bg-white/5";
+  const baseOuterClass = "w-12 h-12 rounded-full border border-white/40 justify-center items-center bg-white/5 overflow-hidden";
   const iconColor = "#D1D5DB"; // Tailwind gray-300
+
+  // ── 🖼️ Thumbnail Profile: If an image exists, it takes precedence (premium look)
+  if (thumbnailUrl && !isLoading) {
+    const content = (
+      <Image 
+        source={{ uri: thumbnailUrl }} 
+        className="w-full h-full"
+        style={{ width: '100%', height: '100%' }}
+        resizeMode="cover"
+      />
+    );
+
+    if (onPress) {
+      return (
+        <UPressable className={baseOuterClass} onPress={onPress}>
+          {content}
+        </UPressable>
+      );
+    }
+    return <UView className={baseOuterClass}>{content}</UView>;
+  }
 
   // ── Loading: Show spinner while the backend is processing ─────────────
   if (isLoading) {

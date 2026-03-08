@@ -75,14 +75,16 @@ export const InfoSection = ({
   title, 
   subtitle, 
   status = 'neutral', 
-  percentage 
+  percentage,
+  thumbnailUrl
 }: { 
   icon: any; 
   color: string; 
   title: string; 
   subtitle: string; 
   status?: any; 
-  percentage?: number 
+  percentage?: number;
+  thumbnailUrl?: string;
 }) => (
   <UView className="border-b border-white/20 flex-row p-6 items-center">
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
@@ -90,7 +92,7 @@ export const InfoSection = ({
       <BodyText className="text-white text-base">{title}</BodyText>
       <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
     </UView>
-    <VerificationStatusCircle status={status} percentage={percentage} />
+    <VerificationStatusCircle status={status} percentage={percentage} thumbnailUrl={thumbnailUrl} />
   </UView>
 );
 
@@ -142,6 +144,7 @@ export const PenaltySection = ({ event }: { event: any }) => {
       title={info.title} 
       subtitle={dynamicSubtitle} 
       status={status}
+      thumbnailUrl={penalty.type === 'embarrassing_photo' ? penalty.config?.photoUrl : undefined}
     />
   );
 };

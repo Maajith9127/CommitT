@@ -1,30 +1,39 @@
-feat(ui): implement dynamic penalty and waiver details in event modal
+feat(accountability): implement sovereign enforcement and high-fidelity deterrents
 
-This commit enhances the event detail view by replacing static placeholders 
-with live, configuration-driven details for both penalties and waivers.
+This commit hardens the core accountability engine by ensuring backend 
+execution resilience and implementing high-fidelity deterrents in the UI.
 
-### 🎯 Dynamic Accountability UI
-- **Live Waiver Details:** Refactored [WaiverSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:148:0-185:2) to extract real-time 
-  config from the live Convex subscription. It now displays exact 
-  requirements (e.g., "Solve 5 CAPTCHAs") instead of generic descriptions.
-- **Specific Penalty Routing:** Enhanced [PenaltySection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:96:0-146:2) to reveal the 
-  exact destination of a penalty. If an "Embarrassing Photo" is set to 
-  be sent via email, the UI explicitly shows the target recipient's 
-  address (e.g., "Photo will be sent to [email]").
-- **Visual Consistency:** Standardized all penalty cards to use the 
-  Commit "Failure Red" (#FF3B30) regardless of type, providing a clear 
-  punitive visual cue.
+### ⛓️ Sovereign Enforcement & Dispatching
+- **Decoupled Worker:** Refactored `firePenalty` worker to operate 
+  independently of parent task records, relying entirely on the frozen 
+  `instance.penalty` snapshot to ensure accountability for manual edits.
+- **Scalable Dispatcher:** Created a centralized [dispatcher.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/dispatcher.ts:0:0-0:0) and 
+  modular executors (e.g., [send_email.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/executors/send_email.ts:0:0-0:0)) to route various penalty 
+  types (Email, Photo, Money) with a standardized [PenaltyResult](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/dispatcher.ts:12:0-15:2) flow.
+- **Proactive Defusal:** Updated the server-side janitor ([service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0)) 
+  to proactively cancel scheduled penalty jobs during task deletion or 
+  updates, targeting all "In-Flight" states (`pending`, `proceeding`, `waiver_active`).
 
-### 🔧 Technical Improvements
-- **Data Directness:** Migrated UI logic to pull from the top-level 
-  `penalty` and `penalty_waiver` objects instead of iterating through 
-  generic condition arrays.
-- **Responsive Status Mapping:** Integrated event status into the 
-  condition rows, showing "Applied" for active waivers, "Waived" for 
-  successful challenges, and "Failed" for fired penalties.
+### 📸 High-Fidelity Accountability (UI)
+- **Threat Previews:** Enhanced [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:67:0-180:1) to support 
+  thumbnails. Penalties using "Embarrassing Photo" now display a circular 
+  preview of the actually uploaded stake, serving as a powerful visual reminder.
+- **Dynamic Content Routing:** Refactored `EventDetailConditions` to display 
+  specific destination details (e.g., "Photo will be sent to [email]") and 
+  dynamic waiver counts (e.g., "Solve 5 CAPTCHAs") via a live subscription.
+- **Visual Urgency:** Standardized all penalty cards to use Commit 
+  "Failure Red" (#FF3B30) for consistent psychological impact.
+- **Reactive Status Mapping:** Integrated real-time instance status into 
+  the condition rows, providing immediate feedback for active waivers, 
+  successful bypasses, and fired penalties.
 
 Files:
-- `apps/native/components/ui/modal/EventDetailConditions.tsx`
+- [packages/backend/convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0)
+- [packages/backend/convex/execution/penalties/worker.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/penalties/worker.ts:0:0-0:0)
+- [packages/backend/convex/core/penalties/dispatcher.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/dispatcher.ts:0:0-0:0)
+- [packages/backend/convex/core/penalties/executors/send_email.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/executors/send_email.ts:0:0-0:0)
+- [apps/native/components/ui/modal/EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0)
+- `apps/native/components/ui/commits/VerificationStatusCircle.tsx`
 
 
 wsl.exe --shutdown
