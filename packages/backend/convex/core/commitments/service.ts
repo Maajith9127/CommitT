@@ -46,6 +46,7 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     assigner_id: args.assigner_id,
     assignee_id: args.assignee_id,
     penalty: args.penalty,
+    penalty_waiver: args.penalty_waiver,
   });
 
   console.log("[Service:createInternal] Validation result:", JSON.stringify(validation, null, 2));
@@ -142,6 +143,9 @@ export type UpdateArgs = {
   visibility?: Doc<"tasks">["visibility"];
   recurrence?: any;
   conditions?: any[];
+  penalty?: Doc<"tasks">["penalty"];
+  penalty_waiver?: Doc<"tasks">["penalty_waiver"];
+  config?: Doc<"tasks">["config"];
   user_id: string; // For authorization check inside logic if needed, or API handles it.
 };
 
@@ -180,6 +184,8 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
       conditions: updates.conditions ?? existingTask.conditions,
       assigner_id: existingTask.assigner_id,
       assignee_id: existingTask.assignee_id,
+      penalty: updates.penalty ?? (updates.penalty === null ? undefined : existingTask.penalty),
+      penalty_waiver: updates.penalty_waiver ?? (updates.penalty_waiver === null ? undefined : existingTask.penalty_waiver),
     });
     if (!validation.valid) throw new Error(`[${validation.errorCode}] ${validation.error}`);
   }

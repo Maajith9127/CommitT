@@ -36,6 +36,7 @@ import type * as core_verification_picture from "../core/verification/picture.js
 import type * as core_verification_time from "../core/verification/time.js";
 import type * as core_verification_video from "../core/verification/video.js";
 import type * as crons from "../crons.js";
+import type * as execution_penalties_worker from "../execution/penalties/worker.js";
 import type * as execution_scheduling_scheduler from "../execution/scheduling/scheduler.js";
 import type * as execution_verification_runner from "../execution/verification/runner.js";
 import type * as execution_watchdog from "../execution/watchdog.js";
@@ -90,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   "core/verification/time": typeof core_verification_time;
   "core/verification/video": typeof core_verification_video;
   crons: typeof crons;
+  "execution/penalties/worker": typeof execution_penalties_worker;
   "execution/scheduling/scheduler": typeof execution_scheduling_scheduler;
   "execution/verification/runner": typeof execution_verification_runner;
   "execution/watchdog": typeof execution_watchdog;

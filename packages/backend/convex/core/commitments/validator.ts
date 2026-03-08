@@ -171,6 +171,7 @@ export function validateCommitment(input: {
   assigner_id: string;
   assignee_id: string;
   penalty?: { type: string; config: any };
+  penalty_waiver?: { type: string; config: any; deadline_minutes: number };
 }): ValidationResult {
   const titleRes = validateTitle(input.title);
   if (!titleRes.valid) return titleRes;
@@ -180,6 +181,18 @@ export function validateCommitment(input: {
 
   const xRes = validateTimeXRule(input.conditions, input.assignee_id, input.assigner_id);
   if (!xRes.valid) return xRes;
+
+  // Validate Coupled Accountability: Both must be present OR both absent
+  const hasPenalty = Boolean(input.penalty);
+  const hasWaiver = Boolean(input.penalty_waiver);
+
+  if (hasPenalty !== hasWaiver) {
+    return {
+      valid: false,
+      error: "Either both penalty and waiver must be present, or both must be absent.",
+      errorCode: "PENALTY_WAIVER_MISMATCH",
+    };
+  }
 
   // Validate penalty config if provided (domain-level checks)
   const penaltyRes = validatePenalty(input.penalty);

@@ -1,5 +1,43 @@
-feat(native/ui): implement premium custom toggle component
+feat(backend): implement proactive penalty defusal and decoupled enforcement
 
-- Component: Created [CustomSwitch.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/buttons/CustomSwitch.tsx:0:0-0:0) using the `Animated` API for high-fidelity transitions and custom color states (inactive: #3E4553, active: #4FA0FF).
-- Integration: Replaced the standard React Native [Switch](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/buttons/CustomSwitch.tsx:14:0-65:1) with the new custom toggle in [SettingsToggleCard.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/SettingsToggleCard.tsx:0:0-0:0), updating Alarms, Waiver, and Commitment settings.
-- Cleanup: Fixed a regression by restoring missing imports for React Native and Uniwind in the settings card.
+This commit hardens the accountability engine by ensuring that scheduled 
+penalty jobs ("bombs") are correctly defused during lifecycle events and 
+that the enforcement worker can operate independently of the parent task.
+
+### 🛡️ Proactive Penalty Defusal (The "Janitor" logic)
+- **Service Layer Cleanup:** Updated `Instances.delete` and [cleanupFuture](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:271:0-306:1) 
+  in [core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0) to proactively cancel `enforcement_job_id` 
+  (the penalty bomb) in addition to verification heartbeats.
+- **In-Flight Status Filtering:** Refactored the cleanup condition to target 
+  all "In-Flight" states (`pending`, `proceeding`, `waiver_active`) instead 
+  of relying on a strict time-based `start >= now` check. 
+- **The Result:** Deleting a task now successfully sweeps away active failing 
+  instances and defuses their ticking penalty jobs, preventing "Ghost Penalties" 
+  from firing on deleted data.
+
+### ⛓️ Decoupled Enforcement (Sovereign Worker)
+- **Parent-Task Independence:** Decoupled the `firePenalty` worker in 
+  [execution/penalties/worker.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/penalties/worker.ts:0:0-0:0) from the `tasks` table. The worker now 
+  relies entirely on the immutable `instance.penalty` snapshot frozen 
+  on the instance at creation time.
+- **Terminal State Guarantee:** Enforced a status transition to `penalized` 
+  even if the parent task is missing. This prevents orphaned "Manual Edits" 
+  from getting stuck in a perpetual `waiver_active` state on the user's 
+  dashboard if they ignore a failed window.
+- **Resilient Execution:** Accountability is preserved for manual user 
+  exceptions—the penalty will still fire based on the frozen contract even 
+  if the master habit is deleted, unless the user specifically deletes 
+  the manual occurrence itself.
+
+### 🧩 Architectural Integrity
+- **History Protection:** Ensured that terminal states (`proceeded`, `waived`, 
+  `penalized`) are protected from automated cleanups to maintain user stats.
+- **Manual Edit Sovereignty:** Maintained the "Manual Exception" protection 
+  during series updates (syncs) while allowing the system to be aggressive 
+  during a true parent task deletion.
+
+Files: 
+- [packages/backend/convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0)
+- `packages/backend/convex/execution/penalties/worker.ts`
+
+wsl.exe --shutdown

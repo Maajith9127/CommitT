@@ -285,12 +285,22 @@ async function cleanupFuture(ctx: MutationCtx, taskId: Id<"tasks">) {
     .collect();
 
   for (const instance of allInstances) {
-    // CRITICAL PROD LOGIC: Protect manual edits from being nuked during series updates.
-    // We only clean up automated/pending instances that the user hasn't specifically customized.
-    if ((instance.start >= now || instance.status === "pending") && !instance.is_manual_edit) {
+    // 1. Terminal State Check: We only clean up "In-Flight" instances (pending, proceeding, waiver_active).
+    // Finished history (proceeded, penalized, waived) is always preserved.
+    const isFinished = instance.status === "proceeded" || instance.status === "penalized" || instance.status === "waived";
+
+    // 2. Cleanup Logic: Delete if it's not finished AND it's not a manual user exception.
+    if (!isFinished && !instance.is_manual_edit) {
+      // 1. Defuse verification heartbeats
       if (instance.scheduled_job_id) {
         await ctx.scheduler.cancel(instance.scheduled_job_id);
       }
+      
+      // 2. Defuse penalty enforcement jobs (The Bomb)
+      if (instance.enforcement_job_id) {
+        await ctx.scheduler.cancel(instance.enforcement_job_id);
+      }
+
       await ctx.db.delete(instance._id);
     }
   }
@@ -384,8 +394,14 @@ async function deleteInstance(ctx: MutationCtx, id: Id<"taskInstances">) {
   const instance = await ctx.db.get(id);
   if (!instance) return;
 
+  // 1. Defuse verification heartbeats
   if (instance.scheduled_job_id) {
     await ctx.scheduler.cancel(instance.scheduled_job_id);
+  }
+
+  // 2. Defuse penalty enforcement jobs (The Bomb)
+  if (instance.enforcement_job_id) {
+    await ctx.scheduler.cancel(instance.enforcement_job_id);
   }
 
   await ctx.db.delete(id);

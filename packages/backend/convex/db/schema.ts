@@ -281,10 +281,18 @@ export default defineSchema({
         current: v.number(),                 // e.g., 3 captchas solved
         total: v.number(),                   // e.g., 10 captchas required
       })),
-      penalty_job_id: v.optional(v.id("_scheduled_functions")), // The "bomb" to cancel on waiver success
     })),
-    // Time verification is implicit (every instance has start/end), validated server-side.
+    // ═══════════════════════════════════════════════════════════════════════
+    // DURABLE SCHEDULING — Background Side Effects
+    // ═══════════════════════════════════════════════════════════════════════
+    // These track active background jobs (alarms/penalties) for this instance.
+    // Stored at the root for fast lookup and atomic cleanup on deletion.
+    //
+    // 1. verification: "Did you show up?" (Heartbeat)
     scheduled_job_id: v.optional(v.id("_scheduled_functions")),
+    // 2. enforcement:  "Waiver deadline expired, fire penalty!" (Gatekeeper)
+    enforcement_job_id: v.optional(v.id("_scheduled_functions")),
+
     next_instance_id: v.optional(v.id("taskInstances")),
   })
     .index("by_task", ["task_id"])
