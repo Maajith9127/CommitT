@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { internalMutation, internalAction } from "../../_generated/server";
 import { internal } from "../../_generated/api";
+import { Doc } from "../../_generated/dataModel";
+import { dispatch } from "../../core/penalties/dispatcher";
 
 /**
  * firePenalty: The Gatekeeper Worker.
@@ -55,8 +57,16 @@ export const firePenalty = internalMutation({
     // We rely on the `instance.penalty` snapshot which was frozen at creation time.
     // This allows the penalty to fire even if the parent task was deleted.
     if (instance.penalty) {
-      console.log(`[firePenalty] Penalty '${instance.penalty.type}' fired successfully using instance snapshot.`);
-      // TODO: Hand off to the actual penalty dispatcher (Email, Photo, etc.)
+      console.log(`[firePenalty] Penalty '${instance.penalty.type}' triggered for instance ${args.instanceId}. Dispatching...`);
+      
+      // Dispatching to the dedicated executor for that penalty type
+      const result = await dispatch(instance as Doc<"taskInstances">);
+      
+      if (result?.success) {
+        console.log(`[firePenalty] Execution phase: OK for penalty '${instance.penalty.type}'.`);
+      } else {
+        console.warn(`[firePenalty] Execution phase: FAILED for penalty '${instance.penalty.type}':`, result?.error);
+      }
     } else {
       console.warn(`[firePenalty] WARNING: No penalty snapshot found on instance ${args.instanceId}.`);
     }

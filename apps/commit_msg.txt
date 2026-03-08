@@ -1,43 +1,30 @@
-feat(backend): implement proactive penalty defusal and decoupled enforcement
+feat(ui): implement dynamic penalty and waiver details in event modal
 
-This commit hardens the accountability engine by ensuring that scheduled 
-penalty jobs ("bombs") are correctly defused during lifecycle events and 
-that the enforcement worker can operate independently of the parent task.
+This commit enhances the event detail view by replacing static placeholders 
+with live, configuration-driven details for both penalties and waivers.
 
-### 🛡️ Proactive Penalty Defusal (The "Janitor" logic)
-- **Service Layer Cleanup:** Updated `Instances.delete` and [cleanupFuture](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:271:0-306:1) 
-  in [core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0) to proactively cancel `enforcement_job_id` 
-  (the penalty bomb) in addition to verification heartbeats.
-- **In-Flight Status Filtering:** Refactored the cleanup condition to target 
-  all "In-Flight" states (`pending`, `proceeding`, `waiver_active`) instead 
-  of relying on a strict time-based `start >= now` check. 
-- **The Result:** Deleting a task now successfully sweeps away active failing 
-  instances and defuses their ticking penalty jobs, preventing "Ghost Penalties" 
-  from firing on deleted data.
+### 🎯 Dynamic Accountability UI
+- **Live Waiver Details:** Refactored [WaiverSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:148:0-185:2) to extract real-time 
+  config from the live Convex subscription. It now displays exact 
+  requirements (e.g., "Solve 5 CAPTCHAs") instead of generic descriptions.
+- **Specific Penalty Routing:** Enhanced [PenaltySection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:96:0-146:2) to reveal the 
+  exact destination of a penalty. If an "Embarrassing Photo" is set to 
+  be sent via email, the UI explicitly shows the target recipient's 
+  address (e.g., "Photo will be sent to [email]").
+- **Visual Consistency:** Standardized all penalty cards to use the 
+  Commit "Failure Red" (#FF3B30) regardless of type, providing a clear 
+  punitive visual cue.
 
-### ⛓️ Decoupled Enforcement (Sovereign Worker)
-- **Parent-Task Independence:** Decoupled the `firePenalty` worker in 
-  [execution/penalties/worker.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/penalties/worker.ts:0:0-0:0) from the `tasks` table. The worker now 
-  relies entirely on the immutable `instance.penalty` snapshot frozen 
-  on the instance at creation time.
-- **Terminal State Guarantee:** Enforced a status transition to `penalized` 
-  even if the parent task is missing. This prevents orphaned "Manual Edits" 
-  from getting stuck in a perpetual `waiver_active` state on the user's 
-  dashboard if they ignore a failed window.
-- **Resilient Execution:** Accountability is preserved for manual user 
-  exceptions—the penalty will still fire based on the frozen contract even 
-  if the master habit is deleted, unless the user specifically deletes 
-  the manual occurrence itself.
+### 🔧 Technical Improvements
+- **Data Directness:** Migrated UI logic to pull from the top-level 
+  `penalty` and `penalty_waiver` objects instead of iterating through 
+  generic condition arrays.
+- **Responsive Status Mapping:** Integrated event status into the 
+  condition rows, showing "Applied" for active waivers, "Waived" for 
+  successful challenges, and "Failed" for fired penalties.
 
-### 🧩 Architectural Integrity
-- **History Protection:** Ensured that terminal states (`proceeded`, `waived`, 
-  `penalized`) are protected from automated cleanups to maintain user stats.
-- **Manual Edit Sovereignty:** Maintained the "Manual Exception" protection 
-  during series updates (syncs) while allowing the system to be aggressive 
-  during a true parent task deletion.
+Files:
+- `apps/native/components/ui/modal/EventDetailConditions.tsx`
 
-Files: 
-- [packages/backend/convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0)
-- `packages/backend/convex/execution/penalties/worker.ts`
 
 wsl.exe --shutdown

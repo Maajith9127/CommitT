@@ -14,22 +14,52 @@ const UView = withUniwind(View);
  * Maps penalty keys from the backend database to their respective UI representations.
  * Used to dynamically render the correct icon, title, and description.
  */
-export const PENALTY_MAP: Record<string, { icon: any; title: string; subtitle: string }> = {
-  money: { icon: 'currency-inr', title: 'Money Penalty', subtitle: 'Lose a fixed amount when you miss' },
-  photo: { icon: 'camera-enhance-outline', title: 'Embarrassing Photo', subtitle: 'Send a cringe picture to someone' },
-  message: { icon: 'message-alert-outline', title: 'Cringe Message', subtitle: 'A shameful message gets sent to a contact' },
-  blockapp: { icon: 'cellphone-off', title: 'Block Favourite App', subtitle: 'Your chosen app gets blocked temporarily' },
+/**
+ * Maps penalty types from the backend to their respective UI representations.
+ */
+export const PENALTY_MAP: Record<string, { icon: any; title: string; subtitle: string; color: string }> = {
+  send_money: { 
+    icon: 'currency-inr', 
+    title: 'Money Penalty', 
+    subtitle: 'Lose a fixed amount when you miss',
+    color: '#FF3B30'
+  },
+  embarrassing_photo: { 
+    icon: 'camera-enhance-outline', 
+    title: 'Embarrassing Photo', 
+    subtitle: 'Send a cringe picture to a channel',
+    color: '#FF9500'
+  },
+  send_email: { 
+    icon: 'email-outline', 
+    title: 'Shame Email', 
+    subtitle: 'Send an automated shame email to recipients',
+    color: '#FF3B30'
+  },
+  commit_direct: { 
+    icon: 'account-alert-outline', 
+    title: 'Direct Shame', 
+    subtitle: 'Send penalty content to another Commit user',
+    color: '#AF52DE'
+  },
 };
 
 /**
- * Maps waiver keys from the backend database to their respective UI representations.
- * Waivers are tasks the user can perform to bypass a penalty if they failed their main commitment.
+ * Maps waiver types from the backend database to their respective UI representations.
  */
-export const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: string }> = {
-  captcha: { icon: 'shield-check-outline', title: 'Solve CAPTCHAs', subtitle: 'Solve a set number of CAPTCHAs to waive off penalty' },
-  paragraph: { icon: 'pencil-outline', title: 'Write a Long Paragraph', subtitle: 'Type a 3000-word paragraph to avoid penalty' },
-  intense: { icon: 'fire', title: 'Redo With More Intensity', subtitle: 'Repeat tomorrow with a harder version to avoid penalty' },
-  run: { icon: 'run-fast', title: 'Run 5 KM', subtitle: 'Choose a location and complete the run to avoid penalty' },
+export const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: string; color: string }> = {
+  captcha: { 
+    icon: 'shield-check-outline', 
+    title: 'Solve CAPTCHAs', 
+    subtitle: 'Solve a set number of CAPTCHAs to waive off penalty',
+    color: '#4CD964'
+  },
+  paragraph: { 
+    icon: 'pencil-outline', 
+    title: 'Type Paragraph', 
+    subtitle: 'Accurately type a long paragraph to avoid penalty',
+    color: '#4CD964'
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,7 +81,7 @@ export const InfoSection = ({
   color: string; 
   title: string; 
   subtitle: string; 
-  status?: 'neutral' | 'verified' | 'failed' | 'applied' | 'waived' | 'percentage'; 
+  status?: any; 
   percentage?: number 
 }) => (
   <UView className="border-b border-white/20 flex-row p-6 items-center">
@@ -60,34 +90,97 @@ export const InfoSection = ({
       <BodyText className="text-white text-base">{title}</BodyText>
       <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
     </UView>
-    <VerificationStatusCircle status={status as any} percentage={percentage} />
+    <VerificationStatusCircle status={status} percentage={percentage} />
   </UView>
 );
 
 /**
- * Parses the event's `conditions` array to find a penalty, mapping it to the UI.
- * Failsafe: Defaults to 'money' if no specific penalty is defined but a penalty rule exists.
+ * Renders the penalty information if configured.
  */
 export const PenaltySection = ({ event }: { event: any }) => {
-  const penaltyCondition = event?.conditions?.find((c: any) => PENALTY_MAP[c.metric_key] || c.type === 'penalty');
-  
-  const key = penaltyCondition?.metric_key || 'money';
-  const info = PENALTY_MAP[key] || PENALTY_MAP['money'];
+  const penalty = event?.penalty;
+  if (!penalty) return null;
 
-  // FOR DEMO: Let's show this one as a percentage to demonstrate it
-  return <InfoSection icon={info.icon} color="#FF3B30" title={info.title} subtitle={info.subtitle} status="p" percentage={85} />;
+  const info = PENALTY_MAP[penalty.type] || {
+    icon: 'alert-circle-outline',
+    title: 'Penalty Configured',
+    subtitle: 'Penalty rules applied to this task',
+    color: '#FF3B30'
+  };
+
+  //  DYNAMIC SUBTITLE LOGIC:
+  // We extract specific details from the config to make the penalty "scary" and clear.
+  let dynamicSubtitle = info.subtitle;
+  
+  if (penalty.config) {
+    const { channel, emailTo, recipients } = penalty.config;
+    const channelName = channel ? channel.charAt(0).toUpperCase() + channel.slice(1) : '';
+
+    if (penalty.type === 'embarrassing_photo') {
+      if (channel === 'email' && emailTo) {
+        dynamicSubtitle = `Photo will be sent to ${emailTo}`;
+      } else if (channel) {
+        dynamicSubtitle = `Photo will be sent via ${channelName}`;
+      }
+    } else if (penalty.type === 'send_email') {
+      const target = Array.isArray(recipients) ? recipients[0] : recipients;
+      if (target) dynamicSubtitle = `Shame email will be sent to ${target}`;
+    } else if (channel) {
+      dynamicSubtitle = `${info.subtitle} via ${channelName}`;
+    }
+  }
+
+  // Determine the status icon based on the overall event status
+  let status: any = 'neutral';
+  if (event.status === 'penalized') status = 'failed';
+  if (event.status === 'waived') status = 'waived';
+
+  return (
+    <InfoSection 
+      icon={info.icon} 
+      color="#FF3B30" // Forced Red for all Penalties
+      title={info.title} 
+      subtitle={dynamicSubtitle} 
+      status={status}
+    />
+  );
 };
 
 /**
- * Parses the event's `conditions` array to find a waiver, mapping it to the UI.
- * Failsafe: Defaults to 'captcha' if no specific waiver is defined.
+ * Renders the waiver information if configured.
  */
 export const WaiverSection = ({ event }: { event: any }) => {
-  const waiverCondition = event?.conditions?.find((c: any) => WAIVER_MAP[c.metric_key] || c.type === 'waiver');
+  const waiver = event?.penalty_waiver;
+  if (!waiver) return null;
 
-  const key = waiverCondition?.metric_key || 'captcha';
-  const info = WAIVER_MAP[key] || WAIVER_MAP['captcha'];
+  const info = WAIVER_MAP[waiver.type] || {
+    icon: 'shield-outline',
+    title: 'Waiver Active',
+    subtitle: 'Waiver rules available for this task',
+    color: '#4CD964'
+  };
 
-  // FOR DEMO: Let's show this one as a 'waived' status to demonstrate it
-  return <InfoSection icon={info.icon} color="#4CD964" title={info.title} subtitle={info.subtitle} status="neutral" />;
+  //  DYNAMIC SUBTITLE LOGIC:
+  // We use the live configuration to tell the user exactly what to do.
+  let dynamicSubtitle = info.subtitle;
+  if (waiver.type === 'captcha' && waiver.config?.count) {
+    dynamicSubtitle = `Solve ${waiver.config.count} CAPTCHAs to waive off penalty`;
+  } else if (waiver.type === 'paragraph' && waiver.config?.wordCount) {
+    dynamicSubtitle = `Type a ${waiver.config.wordCount} word paragraph to avoid penalty`;
+  }
+
+  // Determine status based on waiver outcome
+  let status: any = 'neutral';
+  if (event.status === 'waived') status = 'verified';
+  if (event.status === 'waiver_active') status = 'applied'; // Highlight it as active
+
+  return (
+    <InfoSection 
+      icon={info.icon} 
+      color={info.color} 
+      title={info.title} 
+      subtitle={dynamicSubtitle} 
+      status={status}
+    />
+  );
 };

@@ -29,6 +29,8 @@ import type * as core_commitments_service from "../core/commitments/service.js";
 import type * as core_commitments_validator from "../core/commitments/validator.js";
 import type * as core_instances_generator from "../core/instances/generator.js";
 import type * as core_instances_service from "../core/instances/service.js";
+import type * as core_penalties_dispatcher from "../core/penalties/dispatcher.js";
+import type * as core_penalties_executors_send_email from "../core/penalties/executors/send_email.js";
 import type * as core_verification_evidenceValidators from "../core/verification/evidenceValidators.js";
 import type * as core_verification_location from "../core/verification/location.js";
 import type * as core_verification_partner from "../core/verification/partner.js";
@@ -84,6 +86,8 @@ declare const fullApi: ApiFromModules<{
   "core/commitments/validator": typeof core_commitments_validator;
   "core/instances/generator": typeof core_instances_generator;
   "core/instances/service": typeof core_instances_service;
+  "core/penalties/dispatcher": typeof core_penalties_dispatcher;
+  "core/penalties/executors/send_email": typeof core_penalties_executors_send_email;
   "core/verification/evidenceValidators": typeof core_verification_evidenceValidators;
   "core/verification/location": typeof core_verification_location;
   "core/verification/partner": typeof core_verification_partner;
