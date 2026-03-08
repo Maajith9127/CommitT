@@ -76,7 +76,8 @@ export const InfoSection = ({
   subtitle, 
   status = 'neutral', 
   percentage,
-  thumbnailUrl
+  thumbnailUrl,
+  onPress
 }: { 
   icon: any; 
   color: string; 
@@ -85,6 +86,7 @@ export const InfoSection = ({
   status?: any; 
   percentage?: number;
   thumbnailUrl?: string;
+  onPress?: () => void;
 }) => (
   <UView className="border-b border-white/20 flex-row p-6 items-center">
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
@@ -92,7 +94,7 @@ export const InfoSection = ({
       <BodyText className="text-white text-base">{title}</BodyText>
       <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
     </UView>
-    <VerificationStatusCircle status={status} percentage={percentage} thumbnailUrl={thumbnailUrl} />
+    <VerificationStatusCircle status={status} percentage={percentage} thumbnailUrl={thumbnailUrl} onPress={onPress} />
   </UView>
 );
 
@@ -152,7 +154,7 @@ export const PenaltySection = ({ event }: { event: any }) => {
 /**
  * Renders the waiver information if configured.
  */
-export const WaiverSection = ({ event }: { event: any }) => {
+export const WaiverSection = ({ event, onPress }: { event: any; onPress?: () => void }) => {
   const waiver = event?.penalty_waiver;
   if (!waiver) return null;
 
@@ -184,6 +186,7 @@ export const WaiverSection = ({ event }: { event: any }) => {
       title={info.title} 
       subtitle={dynamicSubtitle} 
       status={status}
+      onPress={onPress}
     />
   );
 };

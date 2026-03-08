@@ -109,6 +109,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [waiverModalVisible, setWaiverModalVisible] = useState(false);
+  const [waiverConfirmVisible, setWaiverConfirmVisible] = useState(false);
 
   // Derive the effective status for the header badge.
   // For checkpoint-based tasks, we calculate the status from the live subscription
@@ -357,9 +358,10 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             <PenaltySection event={currentEvent} />
 
             {/* ── Waiver / Grace Period ── */}
-            <Pressable onPress={() => setWaiverModalVisible(true)}>
-              <WaiverSection event={currentEvent} />
-            </Pressable>
+            <WaiverSection 
+              event={currentEvent} 
+              onPress={() => setWaiverConfirmVisible(true)}
+            />
 
           </UScroll>
 
@@ -402,6 +404,21 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       <WaiverActionModal
         visible={waiverModalVisible}
         onClose={() => setWaiverModalVisible(false)}
+      />
+
+      {/* ── Waiver Start Confirmation Modal ── */}
+      <ConfirmationModal
+        visible={waiverConfirmVisible}
+        title={`Hey Do u want to start a Waive off session for this task?\n\n(if started you will have to finish within the delay, also don't worry if waiver session is enabled you can still verify the task)`}
+        confirmText="Start"
+        cancelText="Cancel"
+        confirmColor="#4FA0FF"
+        cancelColor="#FF3B30"
+        onConfirm={() => {
+          setWaiverConfirmVisible(false);
+          setWaiverModalVisible(true);
+        }}
+        onCancel={() => setWaiverConfirmVisible(false)}
       />
     </Modal>
   );
