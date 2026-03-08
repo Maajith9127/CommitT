@@ -14,20 +14,21 @@ import { syncTaskSchedule } from "../scheduling/scheduler";
  * @param ctx - The mutation context
  * @param instance - The task instance document
  * @param baseTime - The reference point for the deadline (e.g., instance.end or Date.now())
+ * @param waiverStatus - The status to set for the waiver session (offered | in_progress)
  */
-export async function armAccountabilityContract(ctx: any, instance: any, baseTime: number) {
+export async function armAccountabilityContract(
+  ctx: any, 
+  instance: any, 
+  baseTime: number,
+  waiverStatus: "offered" | "in_progress" = "offered"
+) {
   if (!instance.penalty || !instance.penalty_waiver) return;
 
   // 1. DEXTEROUS TIMING CALCULATION
-  // We use the provided 'baseTime' instead of a hardcoded 'instance.end'.
-  // This allows the system to support a "Challenge Timer" that starts 
-  // exactly when the user clicks 'Start' in the UI.
   const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
   const expiresAt = baseTime + deadlineMs;
 
   // 2. IDEMPOTENCY CHECK (Safety Guard)
-  // If an enforcement job already exists (e.g., duplicate trigger), 
-  // we cancel it to avoid "Ghost Penalties".
   if (instance.enforcement_job_id) {
     try {
       await ctx.scheduler.cancel(instance.enforcement_job_id);
@@ -37,7 +38,6 @@ export async function armAccountabilityContract(ctx: any, instance: any, baseTim
   }
 
   // 3. ARM THE GATEKEEPER (The Penalty "Bomb")
-  // The worker is scheduled to fire exactly at the waiver expiration.
   const enforcementJobId = await ctx.scheduler.runAt(
     expiresAt,
     internal.execution.penalties.worker.firePenalty,
@@ -48,13 +48,11 @@ export async function armAccountabilityContract(ctx: any, instance: any, baseTim
   );
 
   // 4. TRANSITION TO WAIVER STATE
-  // We update the instance to 'waiver_active' which serves as the 
-  // "Lock-In" for the redemption arc.
   await ctx.db.patch(instance._id, {
     status: "waiver_active",
     enforcement_job_id: enforcementJobId,
     waiver_state: {
-      status: "opened", // Officially "In Pursuit" of waiver
+      status: waiverStatus,
       opened_at: Date.now(),
       expires_at: expiresAt,
     }

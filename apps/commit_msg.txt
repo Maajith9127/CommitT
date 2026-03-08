@@ -1,38 +1,37 @@
-feat(backend): implement sovereign instance execution and reusable accountability arming
+feat: implement pre-emptive waiver sessions and high-fidelity redemption UI
 
-This commit refactors the verification runner to ensure that every task 
-instance — especially manual edits — is treated as a sovereign contract 
-that must reach a terminal state, even if the parent task is deleted. 
+OVERVIEW:
+This update introduces a production-grade "Redemption Arc" system, allowing users 
+to manually initiate penalty waivers before a task officially fails. The implementation 
+focuses on sovereign instance execution, authoritative server-side timing, and 
+a high-urgency visual experience.
 
-### 🏗️ Sovereign Instance Execution
-- **Decoupled Grading:** Removed early returns in `runVerification` tied 
-  to parent task existence. The system now grades an instance based on 
-  its own state (Phase 1), ensuring that manual exceptions are processed 
-  regardless of the master habit's lifecycle.
-- **Heartbeat Protection:** Guarded the `syncTaskSchedule` (Phase 2) 
-  with a task existence check. This prevents the heartbeat from reviving 
-  deleted habit series while still allowing current in-flight instances 
-  to finish their lifecycle.
-- **Resolved Chaining Issues:** Fixed a critical edge case where Monday's 
-  cleanup would "break the chain" for Wednesday's manual edit. Each 
-  instance now executes its contract independently.
+BACKEND ARCHITECTURE:
+- REUSABLE ACCOUNTABILITY: Extracted [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:5:0-61:1) in [runner.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:0:0-0:0) 
+  to support both automatic (failure-based) and pre-emptive (manual) triggers.
+- SOVEREIGN EXECUTION: Task instances are now treated as independent contracts; 
+  grading and waivers proceed even if the parent habit series is deleted.
+- RESOURCE-CENTRIC API: Implemented `api/instances/waivers.startSession` mutation 
+  to deterministically lock in the redemption window based on `Date.now()`.
+- SCHEMA ALIGNMENT: Synchronized waiver state transitions (`offered` vs `in_progress`) 
+  to ensure strict database integrity and prevent validation rejections.
 
-### 🛡️ Reusable Accountability Arming
-- **Extracted [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:5:0-63:1):** Isolated the penalty/waiver 
-  arming logic into a reusable helper.
-- **Support for Pre-emptive Waivers:** Added a `baseTime` parameter. 
-  While auto-failures use the window end, this now supports manually 
-  starting a waiver session (e.g., via the UI) by passing `Date.now()`.
-- **Idempotency & Safety:** Implemented `enforcement_job_id` cancellation 
-  within the arming logic to prevent "Double-Firing" during race 
-  conditions or overlapping manual triggers.
-
-### 📝 Production Standards
-- Added comprehensive documentation and rationale for "Sovereign Execution" 
-  to prevent future regressions in habit lifecycle management.
+FRONTEND & UI/UX:
+- SVG PROGRESS MODES: Enhanced [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:70:0-230:1) with a high-fidelity 
+  SVG stroke ring and numerical ratio display (e.g., 3/7) for live progress tracking.
+- PULSING COUNTDOWN: Introduced [CountdownPill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:75:0-144:2) in `EventDetailConditions` with 
+  real-time ticking logic.
+- URGENCY CUES: Implemented a red "Heartbeat Pulse" animation via Reanimated when 
+  a waiver session has <5 minutes remaining, increasing psychological stakes.
+- TRANSACTIONAL FLOW: Integrated confirmation modals and loading states in 
+  `EventDetailModal` to ensure atomic state transitions between the app and Convex.
 
 Files:
-- `packages/backend/convex/execution/verification/runner.ts`
+- [packages/backend/convex/execution/verification/runner.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:0:0-0:0)
+- [packages/backend/convex/api/instances/waivers.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/waivers.ts:0:0-0:0)
+- [apps/native/components/ui/modal/EventDetailModal.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:0:0-0:0)
+- [apps/native/components/ui/modal/EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0)
+- `apps/native/components/ui/commits/VerificationStatusCircle.tsx`
 
 
 wsl.exe --shutdown

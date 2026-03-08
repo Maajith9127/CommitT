@@ -40,6 +40,7 @@ import { View, Pressable, ActivityIndicator, Image } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText } from '@/components/ui/text';
+import Svg, { Circle } from 'react-native-svg';
 
 // ── Uniwind-wrapped primitives ──────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -53,8 +54,10 @@ type StatusType = 'neutral' | 'verified' | 'failed' | 'applied' | 'waived' | 'pe
 export interface VerificationCircleProps {
   /** Current verification status of this condition */
   status?: StatusType;
-  /** Progress percentage (0–100), only used when status is 'percentage' */
+  /** Progress percentage (0–100) */
   percentage?: number;
+  /** Numeric ratio (e.g., 3/7 for captchas) */
+  ratio?: { current: number; total: number };
   /** Tap handler — makes 'neutral' and 'failed' states interactive */
   onPress?: () => void;
   /** When true, shows a spinner instead of the status icon */
@@ -68,24 +71,67 @@ export interface VerificationCircleProps {
 export function VerificationStatusCircle({
   status = 'neutral',
   percentage = 0,
+  ratio,
   onPress,
   isLoading = false,
   thumbnailUrl,
 }: VerificationCircleProps) {
 
   // Shared styling for the outer circle container
-  const baseOuterClass = "w-12 h-12 rounded-full border border-white/40 justify-center items-center bg-white/5 overflow-hidden";
+  const baseOuterClass = "w-12 h-12 rounded-full border border-white/20 justify-center items-center bg-white/5 overflow-hidden";
   const iconColor = "#D1D5DB"; // Tailwind gray-300
 
-  // ── 🖼️ Thumbnail Profile: If an image exists, it takes precedence (premium look)
+  // ── 📊 Progress Ring logic: If we have a ratio or percentage, we draw the SVG ring
+  const effectivePercentage = ratio ? (ratio.current / ratio.total) * 100 : percentage;
+  const showRing = ratio || (status === 'percentage' && percentage > 0);
+
+  // SVG Constants
+  const size = 48;
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (effectivePercentage / 100) * circumference;
+
+  const renderRing = () => (
+    <View style={{ position: 'absolute' }}>
+      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+        {/* Background track */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255,255,255,0.1)"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        {/* Active progress */}
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={ratio ? "#4FA0FF" : iconColor}
+          strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="transparent"
+        />
+      </Svg>
+    </View>
+  );
+
+  // ── 🖼️ Thumbnail Profile: If an image exists, it takes precedence
   if (thumbnailUrl && !isLoading) {
     const content = (
-      <Image 
-        source={{ uri: thumbnailUrl }} 
-        className="w-full h-full"
-        style={{ width: '100%', height: '100%' }}
-        resizeMode="cover"
-      />
+      <>
+        <Image 
+          source={{ uri: thumbnailUrl }} 
+          className="w-full h-full"
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="cover"
+        />
+        {showRing && renderRing()}
+      </>
     );
 
     if (onPress) {
@@ -98,7 +144,7 @@ export function VerificationStatusCircle({
     return <UView className={baseOuterClass}>{content}</UView>;
   }
 
-  // ── Loading: Show spinner while the backend is processing ─────────────
+  // ── Loading state
   if (isLoading) {
     return (
       <UView className={baseOuterClass}>
@@ -107,8 +153,24 @@ export function VerificationStatusCircle({
     );
   }
 
-  // ── Verified: Green check mark (final — never tappable) ────────────────
-  // Uses app success color: #4CD964
+  // ── Ratio Display: Premium "3/10" look
+  if (ratio) {
+    const content = (
+      <View className="items-center justify-center">
+        {renderRing()}
+        <View className="flex-row items-baseline">
+          <BodyText className="text-white font-bold" style={{ fontSize: 13 }}>{ratio.current}</BodyText>
+          <BodyText className="text-gray-400" style={{ fontSize: 9 }}>/{ratio.total}</BodyText>
+        </View>
+      </View>
+    );
+    if (onPress) {
+      return <UPressable className={baseOuterClass} onPress={onPress}>{content}</UPressable>;
+    }
+    return <UView className={baseOuterClass}>{content}</UView>;
+  }
+
+  // ── Verified state
   if (status === 'verified') {
     return (
       <UView className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: '#4CD964', backgroundColor: 'rgba(76, 217, 100, 0.1)' }}>
@@ -117,18 +179,15 @@ export function VerificationStatusCircle({
     );
   }
 
-  // ── Failed: Red retry/close icon ──────────────────────────────────────
-  // Uses app danger color: #FF3B30
+  // ── Failed state
   if (status === 'failed') {
     if (onPress) {
-      // Show red refresh icon — tapping retries the verification
       return (
         <UPressable className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: '#FF3B30', backgroundColor: 'rgba(255, 59, 48, 0.1)' }} onPress={onPress}>
           <MaterialCommunityIcons name="refresh" size={24} color="#FF3B30" />
         </UPressable>
       );
     }
-    // No handler — display-only failure
     return (
       <UView className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: '#FF3B30', backgroundColor: 'rgba(255, 59, 48, 0.1)' }}>
         <MaterialCommunityIcons name="close" size={24} color="#FF3B30" />
@@ -136,7 +195,7 @@ export function VerificationStatusCircle({
     );
   }
 
-  // ── Applied: System auto-verified this condition ─────────────────────
+  // ── Applied / Waived states
   if (status === 'applied') {
     return (
       <UView className={baseOuterClass}>
@@ -145,7 +204,6 @@ export function VerificationStatusCircle({
     );
   }
 
-  // ── Waived: User bypassed via a waiver task ──────────────────────────
   if (status === 'waived') {
     return (
       <UView className={baseOuterClass}>
@@ -154,28 +212,20 @@ export function VerificationStatusCircle({
     );
   }
 
-  // ── Percentage: Partial progress indicator ───────────────────────────
+  // ── Percentage state
   if (status === 'percentage') {
     return (
       <UView className={baseOuterClass}>
-        <MaterialCommunityIcons name="percent" size={24} color={iconColor} />
+        {renderRing()}
+        <MaterialCommunityIcons name="percent" size={16} color={iconColor} />
       </UView>
     );
   }
 
-  // ── Neutral (default): Tappable pointer if onPress provided ──────────
+  // ── Neutral state
+  const neutralIcon = <MaterialCommunityIcons name="cursor-pointer" size={24} color={iconColor} />;
   if (onPress) {
-    return (
-      <UPressable className={baseOuterClass} onPress={onPress}>
-        <MaterialCommunityIcons name="cursor-pointer" size={24} color={iconColor} />
-      </UPressable>
-    );
+    return <UPressable className={baseOuterClass} onPress={onPress}>{neutralIcon}</UPressable>;
   }
-
-  // Neutral without handler — static display
-  return (
-    <UView className={baseOuterClass}>
-      <MaterialCommunityIcons name="cursor-pointer" size={24} color={iconColor} />
-    </UView>
-  );
+  return <UView className={baseOuterClass}>{neutralIcon}</UView>;
 }

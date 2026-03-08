@@ -1,8 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText } from '@/components/ui/text';
+import Animated, { 
+  useAnimatedStyle, 
+  withRepeat, 
+  withSequence, 
+  withTiming, 
+  useSharedValue 
+} from 'react-native-reanimated';
 
 const UView = withUniwind(View);
 
@@ -67,6 +74,77 @@ export const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: st
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 
 /**
+ * A small pulsing badge that shows time remaining for a waiver.
+ */
+const CountdownPill = ({ expiresAt }: { expiresAt: number }) => {
+  const [timeLeft, setTimeLeft] = useState(expiresAt - Date.now());
+  const opacity = useSharedValue(1);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nextTime = expiresAt - Date.now();
+      setTimeLeft(nextTime);
+      if (nextTime <= 0) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  useEffect(() => {
+    // Pulse faster if less than 5 minutes remain
+    if (timeLeft < 300000 && timeLeft > 0) {
+      opacity.value = withRepeat(
+        withSequence(withTiming(0.4, { duration: 400 }), withTiming(1, { duration: 400 })),
+        -1,
+        true
+      );
+    } else {
+      opacity.value = 1;
+    }
+  }, [timeLeft]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  if (timeLeft <= 0) return null;
+
+  const mins = Math.floor(timeLeft / 60000);
+  const secs = Math.floor((timeLeft % 60000) / 1000);
+  const timeStr = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+  const isUrgent = timeLeft < 300000;
+
+  return (
+    <Animated.View 
+      style={[
+        animatedStyle, 
+        { 
+          backgroundColor: isUrgent ? 'rgba(255, 59, 48, 0.2)' : 'rgba(79, 160, 255, 0.2)',
+          borderWidth: 1,
+          borderColor: isUrgent ? '#FF3B30' : '#4FA0FF',
+          paddingHorizontal: 8,
+          paddingVertical: 2,
+          borderRadius: 8,
+          marginLeft: 8,
+          flexDirection: 'row',
+          alignItems: 'center'
+        }
+      ]}
+    >
+      <MaterialCommunityIcons 
+        name="clock-outline" 
+        size={10} 
+        color={isUrgent ? '#FF3B30' : '#4FA0FF'} 
+        style={{ marginRight: 4 }} 
+      />
+      <BodyText style={{ color: isUrgent ? '#FF3B30' : '#4FA0FF', fontSize: 10, fontWeight: 'bold' }}>
+        {timeStr}
+      </BodyText>
+    </Animated.View>
+  );
+};
+
+/**
  * Generic blueprint for rendering a condition row (used by Penalty and Waiver sections)
  */
 export const InfoSection = ({ 
@@ -76,7 +154,9 @@ export const InfoSection = ({
   subtitle, 
   status = 'neutral', 
   percentage,
+  ratio,
   thumbnailUrl,
+  expiresAt,
   onPress
 }: { 
   icon: any; 
@@ -85,16 +165,27 @@ export const InfoSection = ({
   subtitle: string; 
   status?: any; 
   percentage?: number;
+  ratio?: { current: number; total: number };
   thumbnailUrl?: string;
+  expiresAt?: number;
   onPress?: () => void;
 }) => (
   <UView className="border-b border-white/20 flex-row p-6 items-center">
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
     <UView className="flex-1 mr-4 overflow-hidden">
-      <BodyText className="text-white text-base">{title}</BodyText>
+      <View className="flex-row items-center">
+        <BodyText className="text-white text-base">{title}</BodyText>
+        {expiresAt && <CountdownPill expiresAt={expiresAt} />}
+      </View>
       <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
     </UView>
-    <VerificationStatusCircle status={status} percentage={percentage} thumbnailUrl={thumbnailUrl} onPress={onPress} />
+    <VerificationStatusCircle 
+      status={status} 
+      percentage={percentage} 
+      ratio={ratio}
+      thumbnailUrl={thumbnailUrl} 
+      onPress={onPress} 
+    />
   </UView>
 );
 
@@ -177,7 +268,11 @@ export const WaiverSection = ({ event, onPress }: { event: any; onPress?: () => 
   // Determine status based on waiver outcome
   let status: any = 'neutral';
   if (event.status === 'waived') status = 'verified';
-  if (event.status === 'waiver_active') status = 'applied'; // Highlight it as active
+  if (event.status === 'waiver_active') status = 'percentage'; 
+
+  // Pull live progress from waiver_state if active
+  const ratio = event.waiver_state?.progress;
+  const expiresAt = event.waiver_state?.expires_at;
 
   return (
     <InfoSection 
@@ -186,6 +281,8 @@ export const WaiverSection = ({ event, onPress }: { event: any; onPress?: () => 
       title={info.title} 
       subtitle={dynamicSubtitle} 
       status={status}
+      ratio={ratio}
+      expiresAt={expiresAt}
       onPress={onPress}
     />
   );

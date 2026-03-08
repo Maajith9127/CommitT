@@ -19,6 +19,7 @@ import type * as api_instances_create from "../api/instances/create.js";
 import type * as api_instances_delete from "../api/instances/delete.js";
 import type * as api_instances_read from "../api/instances/read.js";
 import type * as api_instances_update from "../api/instances/update.js";
+import type * as api_instances_waivers from "../api/instances/waivers.js";
 import type * as config_constants from "../config/constants.js";
 import type * as config_enums from "../config/enums.js";
 import type * as core_commitments_conflictDetection from "../core/commitments/conflictDetection.js";
@@ -76,6 +77,7 @@ declare const fullApi: ApiFromModules<{
   "api/instances/delete": typeof api_instances_delete;
   "api/instances/read": typeof api_instances_read;
   "api/instances/update": typeof api_instances_update;
+  "api/instances/waivers": typeof api_instances_waivers;
   "config/constants": typeof config_constants;
   "config/enums": typeof config_enums;
   "core/commitments/conflictDetection": typeof core_commitments_conflictDetection;

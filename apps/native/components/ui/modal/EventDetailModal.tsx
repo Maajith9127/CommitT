@@ -110,6 +110,9 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [waiverModalVisible, setWaiverModalVisible] = useState(false);
   const [waiverConfirmVisible, setWaiverConfirmVisible] = useState(false);
+  const [isStartingWaiver, setIsStartingWaiver] = useState(false);
+
+  const startWaiver = useMutation(api.api.instances.waivers.startSession);
 
   // Derive the effective status for the header badge.
   // For checkpoint-based tasks, we calculate the status from the live subscription
@@ -414,9 +417,19 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         cancelText="Cancel"
         confirmColor="#4FA0FF"
         cancelColor="#FF3B30"
-        onConfirm={() => {
-          setWaiverConfirmVisible(false);
-          setWaiverModalVisible(true);
+        isLoading={isStartingWaiver}
+        onConfirm={async () => {
+          if (!currentEvent?._id) return;
+          setIsStartingWaiver(true);
+          try {
+            await startWaiver({ instanceId: currentEvent._id });
+            setWaiverConfirmVisible(false);
+            setWaiverModalVisible(true);
+          } catch (e) {
+            console.error("Failed to start waiver session", e);
+          } finally {
+            setIsStartingWaiver(false);
+          }
         }}
         onCancel={() => setWaiverConfirmVisible(false)}
       />
