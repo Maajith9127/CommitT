@@ -131,6 +131,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const keyboardHeight = useSharedValue(0);
   const inputRef = useRef<TextInput>(null);
+  const isClosing = useRef(false);
 
   const [errorVisible, setErrorVisible] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
@@ -179,9 +180,17 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
       setErrorVisible(true);
     } finally {
       setIsSubmitting(false);
-      // Keep focus on the input after submission completes
-      setTimeout(() => inputRef.current?.focus(), 100);
+      // Aggressive re-focus
+      if (!isClosing.current) {
+        setTimeout(() => inputRef.current?.focus(), 16);
+      }
     }
+  };
+
+  const handleClose = () => {
+    isClosing.current = true;
+    Keyboard.dismiss();
+    onClose();
   };
 
   // -------------------------------------------------------------------------
@@ -231,15 +240,22 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
     const showSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (e: KeyboardEvent) => {
-        keyboardHeight.value = withTiming(e.endCoordinates.height, { duration: 250 });
+        keyboardHeight.value = withTiming(e.endCoordinates.height + 12, { duration: 250 });
       }
     );
     const hideSubscription = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => {
         keyboardHeight.value = withTiming(0, { duration: 250 });
+        // Force back up if not explicitly closing
+        if (!isClosing.current) {
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }
       }
     );
+
+    // Ensure keyboard is up on mount
+    setTimeout(() => inputRef.current?.focus(), 100);
 
     return () => {
       showSubscription.remove();
@@ -248,9 +264,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
   }, []);
 
   const animatedInputBarStyle = useAnimatedStyle(() => ({
-    transform: [{ 
-      translateY: withTiming(-keyboardHeight.value - (keyboardHeight.value > 0 ? 12 : 0), { duration: 100 }) 
-    }],
+    transform: [{ translateY: -keyboardHeight.value }],
   }));
 
   return (
@@ -263,7 +277,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
       <UView className="flex-1">
       {/* Header */}
       <UView className="flex-row items-center px-4 pt-12 pb-4">
-        <UPressable onPress={onClose} className="mr-6">
+        <UPressable onPress={handleClose} className="mr-6">
           <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
         </UPressable>
         <HeaderTitle className="text-xl text-white">Solve captcha</HeaderTitle>
@@ -311,9 +325,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
                 width={containerDims.width}
                 height={containerDims.height}
               />
-            ) : !currentChallenge ? (
-             <BodyText className="text-gray-600">No pending challenges</BodyText>
-           ) : null}
+            ) : null}
         </UView>
       </UView>
 
@@ -326,31 +338,28 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
           <UView className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-4 h-14">
             <MaterialCommunityIcons name="robot-outline" size={20} color="#888" />
             <Input
-              ref={inputRef}
+              innerRef={inputRef}
               className="flex-1 ml-2 text-white text-lg bg-transparent p-0"
               placeholder="Type the solution"
               placeholderTextColor="#666"
               value={solution}
               onChangeText={setSolution}
-              autoFocus
               returnKeyType="send"
               autoCapitalize="none"
               onSubmitEditing={handleSubmit}
               blurOnSubmit={false}
             />
-            {solution.length > 0 && (
-              <UPressable 
-                onPress={handleSubmit} 
-                disabled={isSubmitting}
-                className="ml-2"
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color="#3B82F6" />
-                ) : (
-                  <MaterialCommunityIcons name="arrow-up-circle" size={32} color="#3B82F6" />
-                )}
-              </UPressable>
-            )}
+            <UPressable 
+              onPress={handleSubmit} 
+              disabled={isSubmitting || solution.length === 0}
+              className={`ml-2 ${(!isSubmitting && solution.length > 0) ? 'opacity-100' : 'opacity-30'}`}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color="#3B82F6" />
+              ) : (
+                <MaterialCommunityIcons name="arrow-up-circle" size={32} color="#3B82F6" />
+              )}
+            </UPressable>
           </UView>
         </UView>
       </AnimatedReanimated.View>

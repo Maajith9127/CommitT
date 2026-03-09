@@ -1,9 +1,10 @@
-refactor(native): standardize inputs and enhance timer precision
+refactor(native): optimize keyboard ergonomics and input stability
 
-- Integrated the shared [Input](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/time.ts:14:0-18:2) component into [CaptchaWaiverView](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/CaptchaWaiverView.tsx:124:0-393:1), refactoring the base component to support `forwardRef` for better focus management.
-- Implemented [formatRelativeDuration](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/time.ts:89:0-124:1) utility to provide intelligent, magnitude-based time remaining (days/hrs, hrs/mins, mins/secs).
-- Stabilized the CAPTCHA input bar with a fixed height (`h-14`) to prevent layout jumps/flickering while typing.
-- Improved keyboard ergonomics by adding a 12px vertical offset to the input bar's translateY animation, creating a better visual gap above the software keyboard.
-- Cleaned up redundant local styles and standardized the interaction bar layout across the waiver flow.
+- Resolved "Component is not a function" error by reverting the shared [Input](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/input.tsx:6:0-15:1) component to a standard function with an `innerRef` prop for focus management.
+- Implemented a "Focus Lock" strategy: the keyboard now remains active throughout the challenge session and automatically re-activates if dismissed, except when explicitly exiting the screen.
+- Streamlined the submission UI by making the send arrow persistent; it now stays visible at all times but remains disabled and at 30% opacity when the input is empty.
+- Perfected the interaction bar animation by unifying the 12px vertical gap logic into a single 250ms keyboard transition for a fluid, lag-free feel.
+- Cleaned up the CAPTCHA container by removing the transient skeleton loader in favor of a distraction-free loading state.
+- Fixed several missing UI component imports in `CaptchaWaiverView` to ensure full build stability.
 
 wsl.exe --shutdown
