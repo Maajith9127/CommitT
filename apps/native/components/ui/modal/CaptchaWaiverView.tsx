@@ -5,12 +5,13 @@ import AnimatedReanimated, { useAnimatedStyle, useSharedValue, withTiming } from
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText, HeaderTitle } from '@/components/ui/text';
+import { Input } from '@/components/ui/input';
 import { useMutation } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
+import { formatRelativeDuration } from '@/lib/time';
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
-const UTextInput = withUniwind(TextInput);
 
 // -------------------------------------------------------------------------
 // LiveCaptcha: THE SECURE SVG RENDERER
@@ -204,11 +205,8 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
         return;
       }
 
-      const minutes = Math.floor(diff / 60000);
-      const seconds = Math.floor((diff % 60000) / 1000);
-      const secondsStr = seconds < 10 ? `0${seconds}` : `${seconds}`;
-      setTimeLeft(`${minutes}:${secondsStr}`);
-      setIsUrgent(minutes < 5);
+      setTimeLeft(formatRelativeDuration(diff));
+      setIsUrgent(diff < 5 * 60000); // Less than 5 mins
     };
 
     updateTimer();
@@ -250,7 +248,9 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
   }, []);
 
   const animatedInputBarStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -keyboardHeight.value }],
+    transform: [{ 
+      translateY: withTiming(-keyboardHeight.value - (keyboardHeight.value > 0 ? 12 : 0), { duration: 100 }) 
+    }],
   }));
 
   return (
@@ -322,12 +322,12 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
 
       {/* Interaction Bar */}
       <AnimatedReanimated.View style={animatedInputBarStyle}>
-        <UView className="px-4 py-3 border-t border-[#1F1F1F] bg-[#121212]">
-          <UView className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-4 py-3">
+        <UView className="px-4 py-3 bg-[#121212]">
+          <UView className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-4 h-14">
             <MaterialCommunityIcons name="robot-outline" size={20} color="#888" />
-            <UTextInput
+            <Input
               ref={inputRef}
-              className="flex-1 ml-2 text-white text-lg"
+              className="flex-1 ml-2 text-white text-lg bg-transparent p-0"
               placeholder="Type the solution"
               placeholderTextColor="#666"
               value={solution}

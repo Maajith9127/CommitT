@@ -86,3 +86,40 @@ export function secondsToTimeInput(totalSeconds: number): TimeInput {
 export function formatTimeRange(startSeconds: number, endSeconds: number): string {
   return `${secondsToDisplay(startSeconds)} - ${secondsToDisplay(endSeconds)}`;
 }
+
+/**
+ * Formats a millisecond duration into a human-readable "relative" string.
+ * Switches precision based on the magnitude of the duration.
+ * 
+ * Logic:
+ * - > 24h: show "Xd Yh"
+ * - 1h - 24h: show "Xh Ym"
+ * - < 1h: show "Xm Ys"
+ * 
+ * @param ms - Duration in milliseconds
+ * @returns Formatted string (e.g., "2d 5h", "1h 30m", "45m 12s")
+ */
+export function formatRelativeDuration(ms: number): string {
+  if (ms <= 0) return "0s";
+
+  const SEC = 1000;
+  const MIN = 60 * SEC;
+  const HOUR = 60 * MIN;
+  const DAY = 24 * HOUR;
+
+  if (ms >= DAY) {
+    const d = Math.floor(ms / DAY);
+    const h = Math.floor((ms % DAY) / HOUR);
+    return `${d}d ${h}h`;
+  }
+
+  if (ms >= HOUR) {
+    const h = Math.floor(ms / HOUR);
+    const m = Math.floor((ms % HOUR) / MIN);
+    return `${h}h ${m}m`;
+  }
+
+  const m = Math.floor(ms / MIN);
+  const s = Math.floor((ms % MIN) / SEC);
+  return `${m}m ${s}s`;
+}

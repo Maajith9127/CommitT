@@ -1,12 +1,9 @@
-feat(native): overhaul CAPTCHA waiver flow for a high-performance UX
+refactor(native): standardize inputs and enhance timer precision
 
-- Refined [CaptchaWaiverView](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/CaptchaWaiverView.tsx:123:0-393:1) with a fully responsive SVG renderer that dynamically scales to fit its container using `onLayout` measurements.
-- Implemented a persistent keyboard strategy: converted the main view to a `ScrollView` with `keyboardShouldPersistTaps="always"` and disabled `blurOnSubmit` to ensure the keyboard stays active during rapid-fire solutions.
-- Replaced native [Modal](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:59:0-62:1) error dialogs with an in-page absolute overlay to prevent the OS from force-dismissing the keyboard on verification failures.
-- Streamlined the UI by removing redundant instruction text and centering the challenge area for better focus.
-- Synchronized the `updateTask` mutation with the backend to correctly persist accountability contracts (`penalty` and `penalty_waiver`) during task edits.
-- Fixed a layout bug on Android where the input field remained offset after keyboard dismissal by correcting the `keyboardDidHide` listener.
-- Improved [useCommitTask](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:177:0-289:1) hook to handle deferred photo uploads for embarrassing penalties before triggering the final task creation/update.
-
+- Integrated the shared [Input](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/time.ts:14:0-18:2) component into [CaptchaWaiverView](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/CaptchaWaiverView.tsx:124:0-393:1), refactoring the base component to support `forwardRef` for better focus management.
+- Implemented [formatRelativeDuration](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/time.ts:89:0-124:1) utility to provide intelligent, magnitude-based time remaining (days/hrs, hrs/mins, mins/secs).
+- Stabilized the CAPTCHA input bar with a fixed height (`h-14`) to prevent layout jumps/flickering while typing.
+- Improved keyboard ergonomics by adding a 12px vertical offset to the input bar's translateY animation, creating a better visual gap above the software keyboard.
+- Cleaned up redundant local styles and standardized the interaction bar layout across the waiver flow.
 
 wsl.exe --shutdown
