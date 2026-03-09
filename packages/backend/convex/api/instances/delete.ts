@@ -25,6 +25,18 @@ export default authedMutation({
       throw new Error("[UNAUTHORIZED] You can only delete your own instances");
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // THE STEEL GATE — Strict Mode Enforcement
+    // ─────────────────────────────────────────────────────────────────────────────
+    if (instance.strict_until && Date.now() < instance.strict_until) {
+      console.warn(`[CONVEX_DELETE] REJECTED: Instance ${args.id} is locked.`);
+      return { 
+        success: false, 
+        error: "STRICT_LOCK_ACTIVE", 
+        message: "This instance is locked and cannot be deleted." 
+      };
+    }
+
     const taskId = instance.task_id;
     await Instances.delete(ctx, args.id);
 

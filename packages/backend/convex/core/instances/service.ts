@@ -289,8 +289,11 @@ async function cleanupFuture(ctx: MutationCtx, taskId: Id<"tasks">) {
     // Finished history (proceeded, penalized, waived) is always preserved.
     const isFinished = instance.status === "proceeded" || instance.status === "penalized" || instance.status === "waived";
 
-    // 2. Cleanup Logic: Delete if it's not finished AND it's not a manual user exception.
-    if (!isFinished && !instance.is_manual_edit) {
+    // 2. Cleanup Logic: Delete if it's not finished AND it's not a manual user exception 
+    // AND it's not locked in the Steel Vault.
+    const isLocked = instance.strict_until && now < instance.strict_until;
+
+    if (!isFinished && !instance.is_manual_edit && !isLocked) {
       // 1. Defuse verification heartbeats
       if (instance.scheduled_job_id) {
         await ctx.scheduler.cancel(instance.scheduled_job_id);
@@ -339,10 +342,14 @@ async function update(
 ) {
   const patch: any = { ...updates };
   
-  // If the user manually changed the time slot (e.g. via drag-and-drop in schedules.tsx),
-  // we mark it as a "Manual Exception" to protect it from series regeneration.
-  if (updates.start !== undefined || updates.end !== undefined) {
-    patch.is_manual_edit = true;
+  const existing = await ctx.db.get(id);
+  if (!existing) return;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // THE STEEL VAULT — Service Layer Enforcement
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (existing.strict_until && Date.now() < existing.strict_until) {
+    throw new Error("[STRICT_LOCK_ACTIVE] This instance is locked and cannot be modified.");
   }
 
   // Normalize UI status to Backend state machine
@@ -351,7 +358,7 @@ async function update(
 
   // Temporal Sync: Ensure verification logic follows the new time slot
   if (updates.start !== undefined || updates.end !== undefined) {
-    const existing = await ctx.db.get(id);
+    // Note: 'existing' is already fetched above for the lock check
     
     if (existing) {
       const newStart = updates.start ?? existing.start;
@@ -393,6 +400,13 @@ async function update(
 async function deleteInstance(ctx: MutationCtx, id: Id<"taskInstances">) {
   const instance = await ctx.db.get(id);
   if (!instance) return;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // THE STEEL VAULT — Service Layer Enforcement (Delete)
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (instance.strict_until && Date.now() < instance.strict_until) {
+    throw new Error("[STRICT_LOCK_ACTIVE] This instance is locked and cannot be deleted.");
+  }
 
   // 1. Defuse verification heartbeats
   if (instance.scheduled_job_id) {

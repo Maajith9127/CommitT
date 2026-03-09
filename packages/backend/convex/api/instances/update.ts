@@ -15,6 +15,8 @@ export const update = authedMutation({
     status: v.optional(v.union(v.literal("pending"), v.literal("completed"), v.literal("failed"), v.literal("skipped"), v.literal("proceeding"), v.literal("proceeded"))),
     start: v.optional(v.number()),
     end: v.optional(v.number()),
+    strict_until: v.optional(v.number()),
+    is_manual_edit: v.optional(v.boolean()),
     // Add other updateable fields here as needed
   },
   handler: async (ctx, args) => {
@@ -24,6 +26,18 @@ export const update = authedMutation({
     const instance = (await ctx.db.get(id)) as Doc<"taskInstances"> | null;
     if (!instance) {
       throw new Error("[INSTANCE_NOT_FOUND] Instance not found");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // THE STEEL GATE — Strict Mode Enforcement
+    // ─────────────────────────────────────────────────────────────────────────────
+    if (instance.strict_until && Date.now() < instance.strict_until) {
+      console.warn(`[CONVEX_UPDATE] REJECTED: Instance ${id} is locked until ${new Date(instance.strict_until).toISOString()}`);
+      return { 
+        success: false, 
+        error: "STRICT_LOCK_ACTIVE", 
+        message: "This instance is locked and cannot be modified." 
+      };
     }
 
     if (instance.assignee_id !== user._id) {

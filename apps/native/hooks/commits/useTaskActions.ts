@@ -110,7 +110,12 @@ export function useTaskActions() {
   // Delete Individual Instance
   const deleteInstance = useCallback(async (instanceConvexId: string) => {
     // 1. Authoritative Cloud Delete
-    await removeInstanceMutation({ id: instanceConvexId as any });
+    const result = (await removeInstanceMutation({ id: instanceConvexId as any })) as any;
+
+    if (result && result.success === false) {
+      console.warn('[useTaskActions] Cloud delete rejected:', result.error);
+      return result;
+    }
 
     // 2. Local Cache Cleanup
     try {
@@ -127,6 +132,8 @@ export function useTaskActions() {
     } catch (e) {
       console.error('[useTaskActions] Native alarm refresh failed:', e);
     }
+
+    return result ?? { success: true };
   }, [removeInstanceMutation, db]);
 
   return {

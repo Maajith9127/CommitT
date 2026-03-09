@@ -144,6 +144,15 @@ export default defineSchema({
     // Metadata for exception handling (manual moves/removals)
     is_manual_edit: v.optional(v.boolean()),
     is_deleted_exception: v.optional(v.boolean()),
+    // ═══════════════════════════════════════════════════════════════════════
+    // THE STEEL VAULT — Strict Mode Enforcement
+    // ═══════════════════════════════════════════════════════════════════════
+    // If set, this timestamp (epoch ms) defines a "Strict Lock Zone". 
+    // The backend WILL REJECT any mutation or deletion of this instance 
+    // as long as `Date.now() < strict_until`. This is the core mechanism 
+    // for self-binding commitments.
+    // ═══════════════════════════════════════════════════════════════════════
+    strict_until: v.optional(v.number()),
     // Snapshot of rules at creation time
     title: v.string(),
     description: v.string(),

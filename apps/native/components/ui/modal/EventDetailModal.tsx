@@ -111,8 +111,11 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const [waiverModalVisible, setWaiverModalVisible] = useState(false);
   const [waiverConfirmVisible, setWaiverConfirmVisible] = useState(false);
   const [isStartingWaiver, setIsStartingWaiver] = useState(false);
+  const [strictConfirmVisible, setStrictConfirmVisible] = useState(false);
+  const [isLocking, setIsLocking] = useState(false);
 
   const startWaiver = useMutation(api.api.instances.waivers.startSession);
+  const updateInstance = useMutation(api.api.instances.update.update);
 
   // Derive the effective status for the header badge.
   // For checkpoint-based tasks, we calculate the status from the live subscription
@@ -181,6 +184,20 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const router = useRouter();
   const { deleteTask, deleteInstance, setDraft, resetDraft } = useTaskActions();
 
+  // Robust error parsing for Convex server exceptions
+  const parseError = (error: any) => {
+    let errorMsg = 'Something went wrong. Please try again.';
+    if (error?.message) {
+      const match = error.message.match(/Uncaught Error:\s*(?:[A-Z_]+:\s*)?(.*?)(?:\n|$)/);
+      if (match && match[1]) {
+        errorMsg = match[1].trim();
+      } else {
+        errorMsg = error.message.split('\n')[0].replace(/^[A-Z_]+:\s*/, '').trim();
+      }
+    }
+    return errorMsg;
+  };
+
   const handleClose = useCallback(() => {
     setSelectedEventId(null);
     setMenuVisible(false);
@@ -203,7 +220,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       label: "Lock (Strict Mode)",
       onPress: () => {
         setMenuVisible(false);
-        console.log("[STRICT_MODE] Lock triggered for instance.");
+        setStrictConfirmVisible(true);
       },
     },
     {
@@ -237,9 +254,25 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
     if (selectedTaskId) {
       setIsDeleting(true);
       try {
-        await deleteInstance(selectedTaskId);
+        const result = (await deleteInstance(selectedTaskId)) as any;
+        if (result && result.success === false) {
+           setDeleteConfirmVisible(false);
+           setFailureModal({
+             visible: true,
+             title: result.message || "Action failed.",
+             message: '',
+           });
+           return;
+        }
         setDeleteConfirmVisible(false);
         handleClose();
+      } catch (error) {
+        setDeleteConfirmVisible(false);
+        setFailureModal({
+          visible: true,
+          title: parseError(error),
+          message: '',
+        });
       } finally {
         setIsDeleting(false);
       }
@@ -280,22 +313,9 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         [metricKey]: 'failed',
       }));
 
-      // Extract a readable message from the error
-      let errorMsg = 'Something went wrong. Please try again.';
-      if (error?.message) {
-        // Match "Uncaught Error: [OPTIONAL_CODE:] Clean message\n"
-        const match = error.message.match(/Uncaught Error:\s*(?:[A-Z_]+:\s*)?(.*?)(?:\n|$)/);
-        if (match && match[1]) {
-          errorMsg = match[1].trim();
-        } else {
-          // Fallback: take the first line and strip any uppercase prefix codes
-          errorMsg = error.message.split('\n')[0].replace(/^[A-Z_]+:\s*/, '').trim();
-        }
-      }
-
       setFailureModal({
         visible: true,
-        title: errorMsg,
+        title: parseError(error),
         message: '',
       });
     } finally {
@@ -447,6 +467,52 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
           }
         }}
         onCancel={() => setWaiverConfirmVisible(false)}
+      />
+
+      {/* ── Strict Mode Confirmation Modal ── */}
+      <ConfirmationModal
+        visible={strictConfirmVisible}
+        title={`Activate Strict Mode?\n(You won't be able to edit or delete this task until it ends)`}
+        confirmText="Activate"
+        cancelText="Cancel"
+        confirmColor="#4FA0FF"
+        cancelColor="#FF3B30"
+        isLoading={isLocking}
+        onConfirm={async () => {
+          if (!currentEvent?._id) return;
+          setIsLocking(true);
+          try {
+            const result = (await updateInstance({
+              id: currentEvent._id as any,
+              strict_until: currentEvent.end,
+              is_manual_edit: true,
+            })) as any;
+
+            if (result && result.success === false) {
+              setStrictConfirmVisible(false);
+              setFailureModal({
+                visible: true,
+                title: result.message || "Lock activation failed.",
+                message: '',
+              });
+              return;
+            }
+
+            console.log("[STRICT_MODE] Instance successfully locked in the vault.");
+            setStrictConfirmVisible(false);
+          } catch (e) {
+            setStrictConfirmVisible(false);
+            setFailureModal({
+              visible: true,
+              title: parseError(e),
+              message: '',
+            });
+            console.error("[STRICT_MODE] Failed to activate lock:", e);
+          } finally {
+            setIsLocking(false);
+          }
+        }}
+        onCancel={() => setStrictConfirmVisible(false)}
       />
     </Modal>
   );

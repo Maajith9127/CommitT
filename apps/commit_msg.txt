@@ -1,7 +1,9 @@
-feat(ui): add Lock (Strict Mode) option to event action menu
+feat(strict-mode): implement end-to-end Strict Mode enforcement
 
-- Integrated a new "Lock (Strict Mode)" item into the EventDetailModal action menu.
-- Positioned the lock option alongside existing management actions for better visibility.
-
+- Schema: Added 'strict_until' field to task instances for immutable locking.
+- Backend: Implemented "The Steel Vault" enforcement in mutations and core services (update/delete/cleanup).
+- API: Switched to structured error responses for strict mode violations to prevent noisy console errors.
+- UI: Added lock activation flow with confirmation modal and robust error parsing in EventDetailModal.
+- Logic: Fixed 'pop-down' glitch by ensuring local SQLite sync respects backend lock rejection in useTaskActions.
 
 wsl.exe --shutdown
