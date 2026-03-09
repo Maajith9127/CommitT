@@ -1,8 +1,7 @@
-feat(penalty): fix photoUrl resolution and local sync for commitment updates
+feat(ui): add Lock (Strict Mode) option to event action menu
 
-- Re-implemented public photoUrl resolution in the backend 'updateInternal' service to ensure snapshotted instances receive valid image links after a task edit.
-- Updated local SQLite repository to support penalty overrides, ensuring processed storage references are cached instead of ephemeral local URIs.
-- Fixed a syntax error and logic gap in the 'useCommitTask' orchestrator during the Triple-Write sync flow.
+- Integrated a new "Lock (Strict Mode)" item into the EventDetailModal action menu.
+- Positioned the lock option alongside existing management actions for better visibility.
 
 
 wsl.exe --shutdown

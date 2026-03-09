@@ -199,6 +199,14 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       onPress: () => setDeleteConfirmVisible(true),
     },
     {
+      icon: "lock-outline",
+      label: "Lock (Strict Mode)",
+      onPress: () => {
+        setMenuVisible(false);
+        console.log("[STRICT_MODE] Lock triggered for instance.");
+      },
+    },
+    {
       icon: "content-copy",
       label: "Duplicate",
       onPress: () => {
