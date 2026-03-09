@@ -213,6 +213,24 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
     if (conflictResult.hasConflict) throw new Error(`[SCHEDULE_CONFLICT] ${formatConflictMessage(conflictResult.details)}`);
   }
 
+  // 4. RESOLVE PENALTY PHOTO URL (IF UPDATED)
+  // If the penalty is being updated and includes a storageId, we must resolve
+  // the permanent HTTPS public URL now so that all future instances (snapshotted)
+  // have a direct URL to display in the UI.
+  if (updates.penalty?.type === "embarrassing_photo" && updates.penalty?.config?.storageId) {
+    const photoUrl = await ctx.storage.getUrl(updates.penalty.config.storageId);
+    if (photoUrl) {
+      updates.penalty = {
+        ...updates.penalty,
+        config: {
+          ...updates.penalty.config,
+          photoUrl,
+        },
+      };
+      console.log("[Service:updateInternal] Penalty photo URL resolved for update:", photoUrl);
+    }
+  }
+
   // 5. Update DB
   await ctx.db.patch(id, { ...updates, updated_at: Date.now() });
 

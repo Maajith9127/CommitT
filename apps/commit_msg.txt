@@ -1,6 +1,8 @@
-feat(native): enhance visual feedback for waived task instances
+feat(penalty): fix photoUrl resolution and local sync for commitment updates
 
-- Updated [EventDetailHeader](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailHeader.tsx:43:0-103:1) status badge to display "WAIVED OFF" in a positive green theme (#4CD964) when an instance is successfully bypassed.
-- Standardized the conditional styling logic in the header to handle both 'proceeded' and 'waived' as success states.
+- Re-implemented public photoUrl resolution in the backend 'updateInternal' service to ensure snapshotted instances receive valid image links after a task edit.
+- Updated local SQLite repository to support penalty overrides, ensuring processed storage references are cached instead of ephemeral local URIs.
+- Fixed a syntax error and logic gap in the 'useCommitTask' orchestrator during the Triple-Write sync flow.
+
 
 wsl.exe --shutdown

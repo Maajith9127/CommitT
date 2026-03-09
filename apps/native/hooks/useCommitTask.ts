@@ -225,7 +225,7 @@ export function useCommitTask() {
         if (result.success) {
           try {
             // --- B. MUTATE SQLITE CACHE SECONDS LATER ---
-            await updateTaskInLocalDb(db, draft, draft.id as string, now, cleanedConditions, result.instances || []);
+            await updateTaskInLocalDb(db, draft, draft.id as string, now, cleanedConditions, result.instances || [], cleanedPenalty);
           } catch (localError) {
              console.error('[executeCommit] Local Update failed (UI sync gap):', localError);
           }
@@ -253,11 +253,11 @@ export function useCommitTask() {
           penalty_waiver: draft.penalty_waiver,
         });
 
-        if (result.success && result.taskId) {
-           try {
-             // --- B. MUTATE SQLITE CACHE SECONDS LATER ---
-             await insertTaskToLocalDb(db, draft, result.taskId, now, cleanedConditions, result.instances || []);
-           } catch (localError) {
+         if (result.success && result.taskId) {
+            try {
+              // --- B. MUTATE SQLITE CACHE SECONDS LATER ---
+              await insertTaskToLocalDb(db, draft, result.taskId, now, cleanedConditions, result.instances || [], cleanedPenalty);
+            } catch (localError) {
              console.error('[executeCommit] Local DB Cache Creation execution suspended (non-critical):', localError);
            }
         } else {

@@ -23,7 +23,8 @@ export async function insertTaskToLocalDb(
   remoteId: string,
   now: number,
   cleanedConditions: Omit<StoreCondition, "id">[],
-  backendInstances: any[]
+  backendInstances: any[],
+  penaltyOverride?: TaskDraft["penalty"]
 ) {
   // ── 1. Create a highly robust local identification hash ──
   const localId = `local_${now}_${Math.random().toString(36).slice(2, 9)}`;
@@ -47,7 +48,7 @@ export async function insertTaskToLocalDb(
       JSON.stringify(draft.recurrence),
       JSON.stringify(cleanedConditions),
       JSON.stringify(draft.config),
-      draft.penalty ? JSON.stringify(draft.penalty) : null,
+      penaltyOverride ? JSON.stringify(penaltyOverride) : (draft.penalty ? JSON.stringify(draft.penalty) : null),
       now,
       now,
       now,
@@ -65,7 +66,8 @@ export async function updateTaskInLocalDb(
   remoteId: string,
   now: number,
   cleanedConditions: Omit<StoreCondition, "id">[],
-  backendInstances: any[]
+  backendInstances: any[],
+  penaltyOverride?: TaskDraft["penalty"]
 ) {
   // ── 1. Overwrite the Master Task Entity completely ──
   await db.runAsync(
@@ -82,7 +84,7 @@ export async function updateTaskInLocalDb(
       JSON.stringify(draft.recurrence),
       JSON.stringify(cleanedConditions),
       JSON.stringify(draft.config),
-      draft.penalty ? JSON.stringify(draft.penalty) : null,
+      penaltyOverride ? JSON.stringify(penaltyOverride) : (draft.penalty ? JSON.stringify(draft.penalty) : null),
       now,
       now,
       remoteId,
