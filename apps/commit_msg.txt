@@ -1,10 +1,6 @@
-refactor(native): optimize keyboard ergonomics and input stability
+feat(native): enhance visual feedback for waived task instances
 
-- Resolved "Component is not a function" error by reverting the shared [Input](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/input.tsx:6:0-15:1) component to a standard function with an `innerRef` prop for focus management.
-- Implemented a "Focus Lock" strategy: the keyboard now remains active throughout the challenge session and automatically re-activates if dismissed, except when explicitly exiting the screen.
-- Streamlined the submission UI by making the send arrow persistent; it now stays visible at all times but remains disabled and at 30% opacity when the input is empty.
-- Perfected the interaction bar animation by unifying the 12px vertical gap logic into a single 250ms keyboard transition for a fluid, lag-free feel.
-- Cleaned up the CAPTCHA container by removing the transient skeleton loader in favor of a distraction-free loading state.
-- Fixed several missing UI component imports in `CaptchaWaiverView` to ensure full build stability.
+- Updated [EventDetailHeader](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailHeader.tsx:43:0-103:1) status badge to display "WAIVED OFF" in a positive green theme (#4CD964) when an instance is successfully bypassed.
+- Standardized the conditional styling logic in the header to handle both 'proceeded' and 'waived' as success states.
 
 wsl.exe --shutdown
