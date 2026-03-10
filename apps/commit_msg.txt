@@ -1,17 +1,11 @@
-feat: implement dedicated strict mode configuration flow and premium UI
+feat: refine strict mode duration selection with direct shortcuts and custom picker
 
-Dedicated Navigation: Created the 
+Direct Duration Access: Updated the setup screen to show "1 Day" and "2 Days" as top-level selectable options for faster configuration.
+Custom Duration Picker: Integrated a 
 
-(strict-mode)
- group with optimized fade transitions to ensure a seamless, glitch-free user experience.
-Immersive Setup Screen: Implemented 
-
-StrictModeSetupScreen
- using the 
-
-ActionScreenLayout
- pattern, featuring a consistent header/footer structure and primary blue branding.
-Menu Integration: Updated the commits action menu to trigger the new dedicated setup route, passing task-specific context (ID and Title).
-UX Refinement: Synchronized animation timing and presentation styles with the core commitment creation flow for a professional, snappy feel.
-
+SelectionSheet
+ triggered via the "Custom" option, enabling granular control for longer lock periods.
+UI Hierarchy: Renamed the settings section to "Lock Duration" and standardized the header component to match the core commitment creation patterns.
+Dynamic Labels: Implemented smart row feedback that displays the selected custom value or a checkmark for standard durations.
+Design Polish: Maintained the primary blue branding across all interactive elements, including icons, buttons, and selection indicators.
 wsl.exe --shutdown
