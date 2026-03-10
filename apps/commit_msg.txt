@@ -1,9 +1,9 @@
-feat(strict-mode): implement end-to-end Strict Mode enforcement
+feat(strict-mode): modularize lock UI and restore core collision logic
 
-- Schema: Added 'strict_until' field to task instances for immutable locking.
-- Backend: Implemented "The Steel Vault" enforcement in mutations and core services (update/delete/cleanup).
-- API: Switched to structured error responses for strict mode violations to prevent noisy console errors.
-- UI: Added lock activation flow with confirmation modal and robust error parsing in EventDetailModal.
-- Logic: Fixed 'pop-down' glitch by ensuring local SQLite sync respects backend lock rejection in useTaskActions.
+- UI: Extracted Strict Mode banner into a reusable component built on ConditionCard.
+- UI: Themed the lock banner to primary blue (#4FA0FF) for design consistency.
+- Logic: Restored Manual Exception Tracking to ensure user edits/locks survive series regeneration.
+- Backend: Enhanced generateSeries to perform global collision checks against all existing instances.
+- Refactor: Fixed 'pop-down' visual glitch by validating backend success before local SQLite updates.
 
 wsl.exe --shutdown

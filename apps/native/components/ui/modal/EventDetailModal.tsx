@@ -30,6 +30,7 @@ import { PenaltySection, WaiverSection } from './EventDetailConditions';
 import { ActionMenu, ActionMenuItem } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from './ConfirmationModal';
 import { WaiverActionModal } from './WaiverActionModal';
+import { StrictModeBanner } from './StrictModeBanner';
 import { useTaskActions } from '@/hooks/commits/useTaskActions';
 import { useRouter } from 'expo-router';
 
@@ -366,6 +367,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             nestedScrollEnabled={true}
             scrollEnabled={scrollEnabled}
           >
+
+            <StrictModeBanner strictUntil={currentEvent.strict_until} />
 
             {/* ── Time Window (Live Timer) ── */}
             <EventDetailTime

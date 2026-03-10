@@ -217,29 +217,28 @@ async function generateSeries(
 
   if (slots.length === 0) return null;
 
-  // 2. BULK FETCH EXCEPTIONS
-  // We fetch all "Manually Edited" instances for this user across the generation horizon.
-  // This allows us to respect specific user changes (e.g. "Gym moved to 5 PM") 
-  // without creating clashing series occurrences.
-  const editedExceptions = await ctx.db
+  // 2. BULK FETCH EXISTING INSTANCES
+  // We fetch all existing instances for this user across the generation horizon.
+  // This allows us to avoid overlapping with default instances of other tasks,
+  // manual exceptions, and strict mode locks.
+  const existingInstances = await ctx.db
     .query("taskInstances")
     .withIndex("by_assignee_start", (q) => q.eq("assignee_id", task.assignee_id).gte("start", fromTime))
-    .filter((q) => q.eq(q.field("is_manual_edit"), true))
     .collect();
 
-  console.log(`[Service:generateSeries] Fetched ${editedExceptions.length} manual exceptions to check against.`);
+  console.log(`[Service:generateSeries] Fetched ${existingInstances.length} existing instances for collision check.`);
 
   // 3. Map slots to Database Records — with Collision Avoidance
   const instanceIds: Id<"taskInstances">[] = [];
   for (const slot of slots) {
     // High-performance overlap check against pre-fetched local cache
-    const overlappingManualEvent = editedExceptions.find(ex => 
+    const overlappingEvent = existingInstances.find(ex => 
       slot.startTime < ex.end && ex.start < slot.endTime
     );
 
-    if (overlappingManualEvent) {
-      console.log(`[Service:generateSeries] SLAPPING COLLISION: Skipping slot ${new Date(slot.startTime).toISOString()} because it overlaps with manual edit: "${overlappingManualEvent.title}"`);
-      continue; // Respect the manual edit; do not spawn a series default
+    if (overlappingEvent) {
+      console.log(`[Service:generateSeries] COLLISION DETECTED: Skipping slot ${new Date(slot.startTime).toISOString()} because it overlaps with existing instance: "${overlappingEvent.title}"`);
+      continue; // Prevent overlapping instances; priority goes to existing ones.
     }
 
     const instanceId = await createOne(ctx, {
@@ -350,6 +349,20 @@ async function update(
   // ─────────────────────────────────────────────────────────────────────────────
   if (existing.strict_until && Date.now() < existing.strict_until) {
     throw new Error("[STRICT_LOCK_ACTIVE] This instance is locked and cannot be modified.");
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // MANUAL EXCEPTION TRACKING
+  // If the user manually changed the time slot or metadata (title/desc),
+  // we mark it as a "Manual Exception" to protect it from series regeneration.
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (
+    updates.start !== undefined || 
+    updates.end !== undefined || 
+    updates.title !== undefined || 
+    updates.description !== undefined
+  ) {
+    patch.is_manual_edit = true;
   }
 
   // Normalize UI status to Backend state machine
