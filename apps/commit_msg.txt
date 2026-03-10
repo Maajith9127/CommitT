@@ -1,8 +1,8 @@
-feat(sync): implement Optivault Zustand Sync for instant Task access
+style(modal): harmonize Event Detail aesthetics with creation flow
 
-- Added `useTaskStore` to globally manage live task data.
-- Enhanced [useTasks](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTasks.ts:9:0-52:1) hook to automatically hydrate Zustand from Convex subscriptions.
-- Refactored [StrictModeSetup](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28strict-mode%29/setup.tsx:39:0-268:1) to read from the store instead of re-querying the server.
-- Eliminated navigation latency and skeleton flickering when entering task setup.
+- Unified Penalty and Waiver sections to use the shared [ConditionCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/ConditionCard.tsx:25:0-104:1) component.
+- Enhanced [ConditionCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/ConditionCard.tsx:25:0-104:1) to support custom children with auto-padding to prevent layout overlap.
+- Updated Strict Mode banners to the "VAULT ACTIVE" design with a plain lock icon.
+- Aligned detailed modal aesthetics with the primary "Steel Vault" design system.
 
 wsl.exe --shutdown

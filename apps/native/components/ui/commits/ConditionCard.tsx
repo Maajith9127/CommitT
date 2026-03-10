@@ -1,3 +1,4 @@
+import React from "react";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TouchableOpacity, View, GestureResponderEvent } from "react-native";
 import { withUniwind } from "uniwind";
@@ -19,6 +20,7 @@ export type ConditionCardProps = {
   selectionColor?: string;
   showArrow?: boolean;
   onClear?: () => void;
+  children?: React.ReactNode;
 };
 
 export function ConditionCard({
@@ -34,6 +36,7 @@ export function ConditionCard({
   selectionColor = "#4FA0FF",
   showArrow = false,
   onClear,
+  children,
 }: ConditionCardProps) {
   return (
     <UButton
@@ -77,7 +80,7 @@ export function ConditionCard({
         />
 
         {/* TITLE + SUBTITLE */}
-        <UView className="flex-1">
+        <UView className={`flex-1 ${children ? "pr-14" : ""}`}>
           <HeaderTitle className="text-lg" style={{ color: titleColor }}>
             {title}
           </HeaderTitle>
@@ -94,6 +97,9 @@ export function ConditionCard({
           />
         )}
       </UView>
+
+      {/* RENDER CUSTOM OVERLAYS / CHILDREN */}
+      {children}
     </UButton>
   );
 }

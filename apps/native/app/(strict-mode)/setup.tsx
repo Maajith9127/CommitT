@@ -204,7 +204,7 @@ export default function StrictModeSetupScreen() {
           ) : isCurrentlyLocked ? (
             <Animated.View entering={FadeIn} exiting={FadeOut} className="mt-8">
               <ConditionCard 
-                icon="shield-lock"
+                icon="lock"
                 title="VAULT ACTIVE"
                 subtitle={`Locked until ${currentExpiryDate}`}
                 selected={true}

@@ -25,13 +25,15 @@ export function StrictModeBanner({ strictUntil }: StrictModeBannerProps) {
   if (!isLocked) return null;
 
   return (
-    <UView className="mx-6 mt-6">
+    <UView className="px-6 mt-6">
       <ConditionCard
-        icon="lock-outline"
-        title="Strict Mode Active"
-        subtitle={`Locked until ${dayjs(strictUntil).format('h:mm a, MMM D')}`}
+        icon="lock"
+        title="VAULT ACTIVE"
+        subtitle={`Locked until ${dayjs(strictUntil).format('MMMM D, YYYY')}`}
         iconColor="#4FA0FF"
-        className="mb-0 bg-[#232323] rounded-2xl"
+        selected={true}
+        selectionColor="#4FA0FF"
+        className="mb-0 bg-[#232323]"
       />
     </UView>
   );
