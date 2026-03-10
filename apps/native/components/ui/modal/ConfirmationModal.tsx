@@ -1,3 +1,4 @@
+import React from "react";
 import { Modal, Pressable, View, Text, ActivityIndicator } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText, HeaderTitle } from "@/components/ui/text";
@@ -18,6 +19,7 @@ export type ConfirmationModalProps = {
   isLoading?: boolean;    // If true, shows a spinner in the confirm button
   onConfirm: () => void;
   onCancel: () => void;
+  children?: React.ReactNode;
 };
 
 export function ConfirmationModal({
@@ -32,6 +34,7 @@ export function ConfirmationModal({
   isLoading = false,
   onConfirm,
   onCancel,
+  children,
 }: ConfirmationModalProps) {
   if (!visible) return null;
 
@@ -65,6 +68,14 @@ export function ConfirmationModal({
               {message}
             </FooterText>
           )}
+
+          {/* Optional custom children */}
+          {children && (
+            <UView className="mb-4">
+              {children}
+            </UView>
+          )}
+
           {/* Buttons Row - RIGHT ALIGNED (or centered if single button) */}
           <UView className={`flex-row ${singleButton ? "justify-center" : "justify-end"} space-x-6 gap-8`}>
             {/* 2. Cancel Button - only show if not single button mode */}

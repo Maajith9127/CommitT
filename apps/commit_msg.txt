@@ -1,9 +1,17 @@
-feat(strict-mode): modularize lock UI and restore core collision logic
+feat: implement dedicated strict mode configuration flow and premium UI
 
-- UI: Extracted Strict Mode banner into a reusable component built on ConditionCard.
-- UI: Themed the lock banner to primary blue (#4FA0FF) for design consistency.
-- Logic: Restored Manual Exception Tracking to ensure user edits/locks survive series regeneration.
-- Backend: Enhanced generateSeries to perform global collision checks against all existing instances.
-- Refactor: Fixed 'pop-down' visual glitch by validating backend success before local SQLite updates.
+Dedicated Navigation: Created the 
+
+(strict-mode)
+ group with optimized fade transitions to ensure a seamless, glitch-free user experience.
+Immersive Setup Screen: Implemented 
+
+StrictModeSetupScreen
+ using the 
+
+ActionScreenLayout
+ pattern, featuring a consistent header/footer structure and primary blue branding.
+Menu Integration: Updated the commits action menu to trigger the new dedicated setup route, passing task-specific context (ID and Title).
+UX Refinement: Synchronized animation timing and presentation styles with the core commitment creation flow for a professional, snappy feel.
 
 wsl.exe --shutdown

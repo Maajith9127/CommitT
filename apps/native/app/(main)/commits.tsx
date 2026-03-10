@@ -103,6 +103,7 @@ export default function CommitsScreen() {
   } = useTaskSelection();
 
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLocking, setIsLocking] = useState(false);
 
   // 4. Visual Layer (Skeleton logic moved to list render)
 
@@ -142,7 +143,7 @@ export default function CommitsScreen() {
     }
 
     return items;
-  }, [hasTasks, sortedTasks]);
+  }, [isLoading, hasTasks, sortedTasks]);
 
   /**
    * Indices for sticky section headers.
@@ -161,9 +162,23 @@ export default function CommitsScreen() {
   const actionMenuItems: ActionMenuItem[] = useMemo(
     () => [
       {
-        icon: "pause-circle-outline",
-        label: "Pause",
-        onPress: () => console.log("Pause not implemented"),
+        icon: "delete-outline",
+        label: "Delete",
+        color: COLORS.danger,
+        onPress: requestDelete,
+      },
+      {
+        icon: "lock-outline",
+        label: "Lock (Strict Mode)",
+        onPress: () => {
+          if (selectedTask) {
+             router.push({
+               pathname: "/(strict-mode)/setup",
+               params: { taskId: selectedTask._id, title: selectedTask.title }
+             });
+          }
+          closeMenu();
+        },
       },
       {
         icon: "content-copy",
@@ -171,13 +186,17 @@ export default function CommitsScreen() {
         onPress: () => console.log("Duplicate not implemented"),
       },
       {
-        icon: "delete-outline",
-        label: "Delete",
-        color: COLORS.danger,
-        onPress: requestDelete,
+        icon: "content-copy",
+        label: "Copy to...",
+        onPress: () => console.log("Copy to not implemented"),
+      },
+      {
+        icon: "help-circle-outline",
+        label: "Help & feedback",
+        onPress: () => console.log("Help not implemented"),
       },
     ],
-    [requestDelete]
+    [requestDelete, selectedTask, router]
   );
 
   const confirmDelete = useCallback(async () => {
@@ -298,6 +317,7 @@ export default function CommitsScreen() {
         onCancel={cancelDelete}
         isLoading={isDeleting}
       />
+
     </UView>
   );
 }
