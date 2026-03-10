@@ -1,9 +1,8 @@
-fix(native): resolve navigation loops and optimize commitment setup history
+feat(sync): implement Optivault Zustand Sync for instant Task access
 
-- Switched penalty and waiver setup confirmations from `router.push` to `router.back()` to prevent redundant summary screen instances.
-- Restored standard stack navigation for selection lists to enable granular, one-page-at-a-time backtracking.
-- Updated back-gesture interceptors to correctly handle "Leave it" actions via navigation dispatch, ensuring clean stack pops.
-- Improved UX by ensuring setup screens are removed from history upon completion rather than bloating the navigation stack.
-
+- Added `useTaskStore` to globally manage live task data.
+- Enhanced [useTasks](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTasks.ts:9:0-52:1) hook to automatically hydrate Zustand from Convex subscriptions.
+- Refactored [StrictModeSetup](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28strict-mode%29/setup.tsx:39:0-268:1) to read from the store instead of re-querying the server.
+- Eliminated navigation latency and skeleton flickering when entering task setup.
 
 wsl.exe --shutdown

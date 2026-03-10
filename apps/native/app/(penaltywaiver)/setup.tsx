@@ -1,9 +1,13 @@
-import React, { useRef } from "react";
-import { View } from "react-native";
+import React, { useRef, useState } from "react";
+import { View, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { ActionScreenLayout, HeaderTitle, AuthTitle, PrimaryButton } from "@/components/ui";
+import { ActionScreenLayout, HeaderTitle, AuthTitle } from "@/components/ui";
 import { CaptchaWaiverContent } from "@/components/ui/waivers/CaptchaWaiverContent";
 import { useWaiverSync } from "@/hooks/commits/useWaiverSync";
+import { withUniwind } from "uniwind";
+
+const UPressable = withUniwind(Pressable);
+const UText = withUniwind(Text);
 
 /**
  * CaptchaSetupScreen
@@ -18,7 +22,8 @@ import { useWaiverSync } from "@/hooks/commits/useWaiverSync";
 export default function CaptchaSetupScreen() {
   const router = useRouter();
   const { waiver, setWaiver } = useWaiverSync();
-  
+  const [isPressed, setIsPressed] = useState(false);
+
   // A 'ref' is perfect here: It saves the latest data without triggering 
   // any expensive re-renders on this screen while the user drags a slider.
   const latestDataRef = useRef({
@@ -43,13 +48,17 @@ export default function CaptchaSetupScreen() {
       paddingHorizontal={16}
       className="bg-black pt-20"
       footer={
-        <PrimaryButton 
+        <UPressable 
           onPress={handleConfirm}
-          className="bg-[#4CD964]"
-          textClassName="text-white font-bold"
+          onPressIn={() => setIsPressed(true)}
+          onPressOut={() => setIsPressed(false)}
+          className="w-full h-14 items-center justify-center rounded-full"
+          style={{ backgroundColor: isPressed ? "#5EE676" : "#4CD964" }}
         >
-          Confirm Captchas
-        </PrimaryButton>
+          <UText className="text-white font-bold text-lg">
+            Confirm Captchas
+          </UText>
+        </UPressable>
       }
     >
       {/* HEADER SECTION (Inside scroll for unified physics) */}

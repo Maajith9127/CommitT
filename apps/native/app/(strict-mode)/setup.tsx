@@ -19,6 +19,7 @@ import { SelectionSheet } from "@/components/ui/modal/SelectionSheet";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { ConditionCardSkeleton } from "@/components/ui/skeletons/ConditionCardSkeleton";
+import { useTaskStore } from "@/stores/useTaskStore";
 
 const UView = withUniwind(View);
 
@@ -58,8 +59,9 @@ export default function StrictModeSetupScreen() {
   const { taskId, title } = useLocalSearchParams<{ taskId: string; title: string }>();
   const id = taskId as Id<"tasks">;
   
-  // Real-time task state allows us to see if a lock is already active
-  const task = useQuery(api.api.commitments.read.get, { id });
+  // OPTIVAC SYNC: Pull straight from Zustand store (already populated by useTasks on the previous screen)
+  // This eliminates the Convex loading state and makes the UI toggle feel instant.
+  const task = useTaskStore((state: any) => state.tasks.find((t: any) => t._id === id));
   const activateStrictMode = useMutation(api.api.commitments.strict_mode.default);
 
   const [isActivating, setIsActivating] = useState(false);

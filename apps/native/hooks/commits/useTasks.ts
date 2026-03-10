@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import type { Doc } from '@commit/backend/convex/_generated/dataModel';
 import { authClient } from '@/lib/auth-client';
+import { useTaskStore } from '@/stores/useTaskStore';
 
 export type Task = Doc<'tasks'>;
 
@@ -11,15 +12,24 @@ export type Task = Doc<'tasks'>;
  * 
  * Fetches all tasks assigned to the current user.
  * Returns sorted tasks (most recent first) and loading state.
+ * Also synchronizes the data globally via useTaskStore.
  */
 export function useTasks() {
   const { data: session } = authClient.useSession();
+  const setTasks = useTaskStore((state) => state.setTasks);
   
   // Fetch tasks
   const tasks = useQuery(
     api.api.commitments.read.byAssignee, 
     session?.user?.id ? { assignee_id: session.user.id } : "skip"
   );
+
+  // Synchronize with global Zustand store for snappier cross-screen access
+  useEffect(() => {
+    if (tasks) {
+      setTasks(tasks);
+    }
+  }, [tasks, setTasks]);
 
   const isLoading = tasks === undefined;
   const hasTasks = Boolean(tasks && tasks.length > 0);
