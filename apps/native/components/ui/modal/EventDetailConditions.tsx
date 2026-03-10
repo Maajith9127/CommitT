@@ -72,7 +72,6 @@ export const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: st
 // ─────────────────────────────────────────────────────────────────────────────
 // MODULAR SUB-COMPONENTS
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
-import { ConditionCard } from '@/components/ui/commits/ConditionCard';
 
 /**
  * A small pulsing badge that shows time remaining for a waiver.
@@ -147,7 +146,6 @@ const CountdownPill = ({ expiresAt }: { expiresAt: number }) => {
 
 /**
  * Generic blueprint for rendering a condition row (used by Penalty and Waiver sections)
- * REFACTORED: Now uses ConditionCard to match the "final.tsx" look.
  */
 export const InfoSection = ({ 
   icon, 
@@ -172,38 +170,22 @@ export const InfoSection = ({
   expiresAt?: number;
   onPress?: () => void;
 }) => (
-  <UView className="px-6 py-2">
-    <ConditionCard
-      icon={icon}
-      iconColor={color}
-      title={title}
-      subtitle={subtitle}
-      onPress={onPress}
-      selected={true}
-      selectionColor={color}
-      className="mb-0 bg-[#232323] overflow-hidden"
-    >
-       {/* 
-          OVERLAY: We need to inject the VerificationStatusCircle into the ConditionCard 
-          without breaking the standard layout. 
-       */}
-       <UView className="absolute right-4 top-0 bottom-0 justify-center">
-          <VerificationStatusCircle 
-            status={status} 
-            percentage={percentage} 
-            ratio={ratio}
-            thumbnailUrl={thumbnailUrl} 
-            onPress={onPress} 
-          />
-       </UView>
-
-       {/* INJECT: Countdown Pill if applicable */}
-       {expiresAt && (
-         <View className="absolute right-14 top-4">
-            <CountdownPill expiresAt={expiresAt} />
-         </View>
-       )}
-    </ConditionCard>
+  <UView className="border-b border-white/20 flex-row p-6 items-center">
+    <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
+    <UView className="flex-1 mr-4 overflow-hidden">
+      <View className="flex-row items-center">
+        <BodyText className="text-white text-base">{title}</BodyText>
+        {expiresAt && <CountdownPill expiresAt={expiresAt} />}
+      </View>
+      <BodyText className="text-gray-400 text-sm mt-1">{subtitle}</BodyText>
+    </UView>
+    <VerificationStatusCircle 
+      status={status} 
+      percentage={percentage} 
+      ratio={ratio}
+      thumbnailUrl={thumbnailUrl} 
+      onPress={onPress} 
+    />
   </UView>
 );
 
