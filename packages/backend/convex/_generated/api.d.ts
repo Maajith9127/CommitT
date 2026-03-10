@@ -13,6 +13,7 @@ import type * as ai_taskGeneration_generate from "../ai/taskGeneration/generate.
 import type * as api_commitments_create from "../api/commitments/create.js";
 import type * as api_commitments_delete from "../api/commitments/delete.js";
 import type * as api_commitments_read from "../api/commitments/read.js";
+import type * as api_commitments_strict_mode from "../api/commitments/strict_mode.js";
 import type * as api_commitments_update from "../api/commitments/update.js";
 import type * as api_commitments_verify from "../api/commitments/verify.js";
 import type * as api_instances_create from "../api/instances/create.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   "api/commitments/create": typeof api_commitments_create;
   "api/commitments/delete": typeof api_commitments_delete;
   "api/commitments/read": typeof api_commitments_read;
+  "api/commitments/strict_mode": typeof api_commitments_strict_mode;
   "api/commitments/update": typeof api_commitments_update;
   "api/commitments/verify": typeof api_commitments_verify;
   "api/instances/create": typeof api_instances_create;

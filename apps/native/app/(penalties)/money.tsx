@@ -40,7 +40,7 @@ export default function MoneyPenaltyScreen() {
         }
       }
     });
-    router.push("/(create-commit)/final");
+    router.back();
   };
 
   return (

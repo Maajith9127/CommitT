@@ -127,6 +127,8 @@ export default defineSchema({
       config: v.any(),          // Type-specific settings (captcha count, word count, etc.)
       deadline_minutes: v.number(), // How long the user has to complete the waiver after failing
     })),
+    strict_until: v.optional(v.number()),
+    strict_duration_days: v.optional(v.number()),
     created_at: v.number(),
     updated_at: v.number(),
   })

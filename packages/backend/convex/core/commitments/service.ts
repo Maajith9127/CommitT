@@ -265,3 +265,86 @@ export async function removeInternal(ctx: MutationCtx, args: { id: Id<"tasks">, 
   await ctx.db.delete(args.id);
 }
 
+/**
+ * THE STEEL VAULT — Activation Engine
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Transitions a task and its future occurrences into a "Strict Mode" state.
+ * 
+ * DESIGN PHILOSOPHY:
+ * Strict Mode is a "one-way trust" mechanism. Once activated, the user
+ * voluntarily surrenders their ability to edit or delete the commitment
+ * for a specific duration.
+ * 
+ * ENFORCEMENT STRATEGY:
+ * 1. Master Rule: The `tasks` table stores the global `strict_until` timestamp.
+ *    Any future generation cycles (Expansion) will respect this.
+ * 2. Instance Locking: Every existing future instance within the timeframe is 
+ *    individually patched with `strict_until = instance.end`. This creates 
+ *    the "Vault Effect" — as long as the temporal slot hasn't passed, 
+ *    the data is immutable.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+export async function activateStrictModeInternal(
+  ctx: MutationCtx, 
+  args: { 
+    id: Id<"tasks">; 
+    user_id: string; 
+    durationDays: number;
+  }
+) {
+  const { id, user_id, durationDays } = args;
+
+  // 1. Ownership Verification (Secure by Default)
+  const task = await ctx.db.get(id);
+  if (!task) throw new Error("[TASK_NOT_FOUND] Cannot lock a non-existent task.");
+  if (task.assigner_id !== user_id) throw new Error("[UNAUTHORIZED] Only the assigner can activate Strict Mode.");
+
+  // Idempotency Check: Prevent re-activation if already active
+  if (task.strict_until && task.strict_until > Date.now()) {
+    console.log(`[STRICT_MODE] Activation skipped: Task ${id} is already locked.`);
+    return { 
+      success: false, 
+      error: "ALREADY_LOCKED", 
+      message: "This task is already sealed in the Steel Vault." 
+    };
+  }
+
+  // 2. Calculate Temporal Boundary
+  // We calculate the absolute epoch ms based on the provided day count.
+  const now = Date.now();
+  const strictUntil = now + (durationDays * 24 * 60 * 60 * 1000);
+
+  // 3. Mark Master Rule
+  // This ensures series regeneration (automatic or manual) inherits the lock.
+  await ctx.db.patch(id, {
+    strict_until: strictUntil,
+    strict_duration_days: durationDays,
+    updated_at: now,
+  });
+
+  console.log(`[STRICT_MODE] Master task ${id} locked until ${new Date(strictUntil).toISOString()}`);
+
+  // 4. Retroactive Instance Enforcement
+  // We fetch all "In-Flight" and "Future" occurrences to apply the vault seal.
+  const instances = await ctx.db
+    .query("taskInstances")
+    .withIndex("by_task", (q) => q.eq("task_id", id))
+    .collect();
+
+  let lockedCount = 0;
+  for (const inst of instances) {
+    // We only lock instances that BEGIN before the strict window expires.
+    // If a task starts on Day 6 and Strict Mode is for 7 days, it gets locked.
+    if (inst.start < strictUntil && inst.status === "pending") {
+      await ctx.db.patch(inst._id, {
+        strict_until: inst.end, // Lock until the specific slot is completed
+      });
+      lockedCount++;
+    }
+  }
+
+  console.log(`[STRICT_MODE] Successfully sealed ${lockedCount} instances in the Steel Vault.`);
+  
+  return { success: true, strictUntil, lockedCount };
+}
+

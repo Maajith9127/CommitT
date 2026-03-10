@@ -64,9 +64,13 @@ export default function EmbarrassingPhotoScreen() {
       penalty: null,
     });
 
-    // 2. Clear modal and jump to final summary
+    // 2. Clear modal and pop back
     setBackModalVisible(false);
-    router.push("/(create-commit)/final");
+    if (pendingAction) {
+      navigation.dispatch(pendingAction);
+    } else {
+      router.back();
+    }
   };
 
   const handlePickImage = async () => {
@@ -118,7 +122,7 @@ export default function EmbarrassingPhotoScreen() {
       return;
     }
 
-    router.push("/(create-commit)/final");
+    router.back();
   };
 
   return (

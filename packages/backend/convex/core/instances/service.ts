@@ -128,6 +128,7 @@ export type InstanceCreateArgs = {
   config: Doc<"tasks">["config"];
   penalty?: Doc<"taskInstances">["penalty"];               // Frozen snapshot from parent task
   penalty_waiver?: Doc<"taskInstances">["penalty_waiver"]; // Frozen snapshot from parent task
+  task_strict_until?: number;                           // Inherited from master task rules
   next_instance_id?: Id<"taskInstances">;
   status?: "pending" | "proceeding" | "proceeded" | "failed";
 };
@@ -169,6 +170,18 @@ async function createOne(
     });
   }
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // THE STEEL VAULT — Strict Mode Inheritance
+  // ─────────────────────────────────────────────────────────────────────────────
+  // If the master task is currently in "Strict Mode", we lock this instance
+  // until its own completion time. This prevents the user from "editing out"
+  // of a commitment that has already begun its lock-in phase.
+  // ─────────────────────────────────────────────────────────────────────────────
+  let instanceStrictUntil: number | undefined = undefined;
+  if (args.task_strict_until && args.start < args.task_strict_until) {
+    instanceStrictUntil = args.end;
+  }
+
   // Persist to Convex
   const instanceId = await ctx.db.insert("taskInstances", {
     task_id: args.task_id,
@@ -176,6 +189,7 @@ async function createOne(
     status: args.status ?? "pending",
     start: args.start,
     end: args.end,
+    strict_until: instanceStrictUntil,
     title: args.title,
     description: args.description,
     recurrence: args.recurrence,
@@ -254,6 +268,7 @@ async function generateSeries(
       config: task.config,
       penalty: task.penalty,                 // Snapshot from master task rules at generation time
       penalty_waiver: task.penalty_waiver,   // Snapshot from master task rules at generation time
+      task_strict_until: task.strict_until,
     });
     instanceIds.push(instanceId);
   }
