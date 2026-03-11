@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ScrollView, useWindowDimensions, View, Text, Switch } from "react-native";
+import { ScrollView, useWindowDimensions, View, Text, Switch, Image } from "react-native";
 import { withUniwind } from "uniwind";
 import type { Id } from "@commit/backend/convex/_generated/dataModel";
+import { useFreshPhotoUrl } from "@/hooks/useFreshPhotoUrl";
 
 import { ActionScreenLayout, AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";

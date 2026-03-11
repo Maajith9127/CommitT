@@ -12,6 +12,8 @@ import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { usePenaltySync } from "@/hooks/commits/usePenaltySync";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 
+import { useFreshPhotoUrl } from "@/hooks/useFreshPhotoUrl";
+
 const UView = withUniwind(View);
 const UImage = withUniwind(Image);
 const UPressable = withUniwind(Pressable);
@@ -25,6 +27,9 @@ export default function EmbarrassingPhotoScreen() {
   const { draft, syncToDraft } = usePenaltySync();
   const setDraft = useTaskDraftStore((s) => s.setDraft); // For clearing penalty
   const config = draft.penalty?.config || {};
+
+  // RECOVERY LOGIC: Silently refresh expired signed URLs
+  const freshUrl = useFreshPhotoUrl(config.storageId, config.photoUrl);
 
   // Local UI State
   const [modalVisible, setModalVisible] = useState(false);
@@ -41,8 +46,8 @@ export default function EmbarrassingPhotoScreen() {
    */
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      // If we have a photo, or we're explicitly allowing the removal, proceed
-      if (config.photoUrl) {
+      // If we have a photo (fresh or local), proceed
+      if (freshUrl) {
         return;
       }
 
@@ -153,8 +158,8 @@ export default function EmbarrassingPhotoScreen() {
             onPress={handlePickImage}
             className="w-full aspect-square rounded-3xl bg-[#1A1A1A] items-center justify-center border-2 border-dashed border-[#333] overflow-hidden"
           >
-            {config.photoUrl ? (
-              <UImage source={{ uri: config.photoUrl }} className="w-full h-full" />
+            {freshUrl ? (
+              <UImage source={{ uri: freshUrl }} className="w-full h-full" />
             ) : (
               <UView className="items-center">
                 <MaterialCommunityIcons name="camera-plus-outline" size={48} color="#4FA0FF" />

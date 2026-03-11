@@ -17,6 +17,7 @@ import { CommitCardSkeleton } from '@/components/ui/skeletons/CommitCardSkeleton
 import { useTasks, Task } from "@/hooks/commits/useTasks";
 import { useTaskActions } from "@/hooks/commits/useTaskActions";
 import { useTaskSelection, AnchorPosition } from "@/hooks/commits/useTaskSelection";
+import { useAccountabilityPrefill } from "@/hooks/useAccountabilityPrefill";
 import { DEFAULT_TASKS } from "@/data/defaults";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -101,6 +102,11 @@ export default function CommitsScreen() {
     cancelDelete,
     clearSelection,
   } = useTaskSelection();
+
+  // 4. Persistence & Pre-fill Layer
+  // BACKGROUND: Silently loads the "Accountability Identity" into the draft 
+  // so that clicking 'Add Task' is instantaneous.
+  useAccountabilityPrefill();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLocking, setIsLocking] = useState(false);

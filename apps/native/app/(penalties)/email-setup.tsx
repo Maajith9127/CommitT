@@ -8,6 +8,8 @@ import { ActionScreenLayout, HeaderTitle, BodyText } from "@/components/ui";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { usePenaltySync } from "@/hooks/commits/usePenaltySync";
 
+import { useFreshPhotoUrl } from "@/hooks/useFreshPhotoUrl";
+
 // Styled Components
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
@@ -22,6 +24,9 @@ export default function EmailSetupScreen() {
   // DIRECT SYNC: Continuous connection to Zustand store
   const { draft, syncToDraft } = usePenaltySync();
   const config = draft.penalty?.config || {};
+
+  // RECOVERY LOGIC: Silently refresh expired signed URLs
+  const freshUrl = useFreshPhotoUrl(config.storageId, config.photoUrl);
 
   // Local UI State
   const [modalVisible, setModalVisible] = useState(false);
@@ -130,9 +135,9 @@ export default function EmailSetupScreen() {
 
           <UView className="py-6">
             {/* INLINE IMAGE PREVIEW (X/Post Style) */}
-            {config.photoUrl && (
+            {freshUrl && (
               <UView className="relative w-full aspect-square rounded-2xl overflow-hidden border border-[#333] bg-[#1A1A1A]">
-                <UImage source={{ uri: config.photoUrl }} className="w-full h-full" resizeMode="cover" />
+                <UImage source={{ uri: freshUrl }} className="w-full h-full" resizeMode="cover" />
                 
                 {/* Close Button Overlay */}
                 <UPressable 

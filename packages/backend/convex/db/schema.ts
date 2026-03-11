@@ -321,4 +321,38 @@ export default defineSchema({
     .index("by_assignee_status", ["assignee_id", "status"])
     .index("by_start", ["start"])
     .index("by_end", ["end"]),
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ACCOUNTABILITY PRESET LIBRARY — The "Contract Templates"
+  // ═══════════════════════════════════════════════════════════════════════
+  // This table functions as a persistent "memory" of a user's commitment style.
+  //
+  // DESIGN RATIONALE:
+  // Decoupling penalty configurations from specific tasks allows for:
+  // 1. User Persistence: Settings survive even if individual tasks are deleted.
+  // 2. Zero-Friction Setup: New tasks can be "pre-armed" with the user's usual
+  //    contract (e.g., ₹500 penalty + 10 CAPTCHAs) without manual entry.
+  // 3. Templating: User can eventually name and manage "Profiles".
+  // ═══════════════════════════════════════════════════════════════════════
+  accountabilityPresets: defineTable({
+    userId: v.string(),             // The owner of the template
+    name: v.optional(v.string()),    // Human-readable identifier (e.g., "Deep Work Vault")
+    
+    // Contract Snapshots
+    penalty: v.object({
+      type: penaltyTypeEnum,
+      config: v.any(),
+    }),
+    penalty_waiver: v.optional(v.object({
+      type: waiverTypeEnum,
+      config: v.any(),
+      deadline_minutes: v.number(),
+    })),
+    
+    // Metadata for "Smart Pre-fill" Sorting
+    last_used_at: v.number(),        // Recency score for "Suggest Latest"
+    usage_count: v.number(),         // Popularity score for "Suggest Most Frequent"
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_recency", ["userId", "last_used_at"]),
 });

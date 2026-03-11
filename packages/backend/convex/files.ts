@@ -107,3 +107,19 @@ export const getUrl = query({
     return await ctx.storage.getUrl(args.storageId);
   },
 });
+/**
+ * RECOVERY FLOW: Refreshes a temporary URL for a photo that has expired.
+ * 
+ * If the `photoUrl` stored on a task, instance, or preset has expired (default 1hr),
+ * the client calls this with the `storageId` to get a fresh, working link.
+ * 
+ * DESIGN RATIONALE: This prevents the "Vanishing Photo" bug where evidence 
+ * becomes unreadable after one hour. The frontend detects expiration and 
+ * calls this to "refill" its temporary access pass.
+ */
+export const getTempUrl = query({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
+  },
+});

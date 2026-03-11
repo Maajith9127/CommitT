@@ -1,10 +1,12 @@
-feat: implementation of strict mode extensions, persistent penalty waivers, and sovereign instance execution
 
-- Implemented backend and UI support for extending active "Steel Vault" durations.
-- Synchronized local SQLite schema (Migration 10) to include `strict_until`, `strict_duration_days`, and `penalty_waiver_json` for offline enforcement.
-- Integrated local-first sync repositories to immediately reflect vault locks and verification results in the Android hardware scheduler.
-- Introduced "Sovereign Orphanhood" in the verification runner to ensure surviving manual exceptions/locked instances are processed after parent task deletion.
-- Fortified the local DB migration engine with atomic versioning and hardware corruption diagnostics for safer storage resets.
-- Ensured locked instances inherit `is_manual_edit` status to protect the accountability chain from generic rescheduling purges.
+feat(accountability): implement single accountability identity & reactive photo recovery
+
+- Enforce a "Single Accountability Identity" (Penalty + Waiver) per user in Convex.
+- Enable auto-learning of this identity during task creation and updates.
+- Implement background pre-filling of task drafts from the latest identity for zero-friction setup.
+- Added `getTempUrl` Convex query for on-demand signed URL recovery.
+- Created [useFreshPhotoUrl](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useFreshPhotoUrl.ts:22:0-36:1) hook for reactive, self-healing image previews across the app.
+- Strictly prioritize server-refreshed URLs over stale local state for committed photos.
+- Cleaned up temporary thumbnail previews and refined penalty configuration screens.
 
 wsl.exe --shutdown

@@ -133,6 +133,44 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
   // FIRST relevant upcoming instance based on the new data state.
   await syncTaskSchedule(ctx, taskId);
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // 5. ATOMIC PRESET REFRESH — Maintain "Latest Accountability Identity"
+  // ═══════════════════════════════════════════════════════════════════════
+  /**
+   * PRODUCTION RATIONALE: "The Last Known Good"
+   * The user wants the app to always remember their *most recent* penalty style.
+   * To keep the DB clean and the UI simple, we enforce a 'Single Preset' rule:
+   * 1. Wipe all old presets for this user.
+   * 2. Insert the current configuration as the new source of truth.
+   */
+  if (args.penalty) {
+    try {
+      // 1. Fetch all existing presets for this user
+      const oldPresets = await ctx.db
+        .query("accountabilityPresets")
+        .withIndex("by_userId", (q) => q.eq("userId", args.assignee_id))
+        .collect();
+
+      // 2. Clear the slate (Atomic Cleanup)
+      for (const preset of oldPresets) {
+        await ctx.db.delete(preset._id);
+      }
+
+      // 3. Register the new "Accountability Identity"
+      await ctx.db.insert("accountabilityPresets", {
+        userId: args.assignee_id,
+        penalty: args.penalty, // CLEAN template (storageId, no transient URLs)
+        penalty_waiver: args.penalty_waiver,
+        last_used_at: now,
+        usage_count: (oldPresets[0]?.usage_count || 0) + 1, // Carry over momentum
+      });
+      
+      console.log(`[Service:createInternal] Accountability Identity refreshed for user ${args.assignee_id}`);
+    } catch (presetError) {
+      console.error("[Service:createInternal] Non-critical identity refresh failed:", presetError);
+    }
+  }
+
   return { taskId };
 }
 
@@ -240,6 +278,47 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
 
   // Triggers the centralized brain to find the next valid temporal slot
   await syncTaskSchedule(ctx, id);
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // 7. ATOMIC PRESET REFRESH — Update "Latest Accountability Identity"
+  // ═══════════════════════════════════════════════════════════════════════
+  /**
+   * REASONING: An update to a task is an update to the user's commitment style.
+   * We wipe the old preset and store the latest one.
+   */
+  const cleanPenalty = args.penalty;
+  const cleanWaiver = args.penalty_waiver;
+
+  if (cleanPenalty) {
+    try {
+      const now = Date.now();
+      const userId = existingTask.assignee_id;
+
+      // 1. Fetch all existing presets for this user
+      const oldPresets = await ctx.db
+        .query("accountabilityPresets")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .collect();
+
+      // 2. Clear the slate
+      for (const preset of oldPresets) {
+        await ctx.db.delete(preset._id);
+      }
+
+      // 3. Register the new identity
+      await ctx.db.insert("accountabilityPresets", {
+        userId,
+        penalty: cleanPenalty,
+        penalty_waiver: cleanWaiver,
+        last_used_at: now,
+        usage_count: (oldPresets[0]?.usage_count || 0) + 1,
+      });
+
+      console.log(`[Service:updateInternal] Accountability Identity refreshed on task update for ${userId}`);
+    } catch (presetError) {
+      console.error("[Service:updateInternal] Failed to refresh preset during update:", presetError);
+    }
+  }
 }
 
 /**
