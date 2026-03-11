@@ -1,10 +1,10 @@
-refactor: implement Zustand task sync and refine Event Detail UI
+feat: implementation of strict mode extensions, persistent penalty waivers, and sovereign instance execution
 
-- Created `useTaskStore` to globally cache live task data for instant cross-screen access.
-- Updated [useTasks](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTasks.ts:9:0-52:1) hook to automatically hydrate the store from Convex subscriptions.
-- Switched [StrictModeSetup](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28strict-mode%29/setup.tsx:39:0-268:1) to read from the store, eliminating skeleton flickers.
-- Updated [StrictModeBanner](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/StrictModeBanner.tsx:15:0-39:1) to the "VAULT ACTIVE" aesthetic with a plain lock icon and blue vault border.
-- Reverted Penalty and Waiver detail rows to the original InfoSection layout as requested.
-- Enhanced `ConditionCard` to support custom overlays via children and dynamic padding.
+- Implemented backend and UI support for extending active "Steel Vault" durations.
+- Synchronized local SQLite schema (Migration 10) to include `strict_until`, `strict_duration_days`, and `penalty_waiver_json` for offline enforcement.
+- Integrated local-first sync repositories to immediately reflect vault locks and verification results in the Android hardware scheduler.
+- Introduced "Sovereign Orphanhood" in the verification runner to ensure surviving manual exceptions/locked instances are processed after parent task deletion.
+- Fortified the local DB migration engine with atomic versioning and hardware corruption diagnostics for safer storage resets.
+- Ensured locked instances inherit `is_manual_edit` status to protect the accountability chain from generic rescheduling purges.
 
 wsl.exe --shutdown

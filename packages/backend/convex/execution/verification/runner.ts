@@ -118,15 +118,28 @@ export const runVerification = internalMutation({
     }
 
     // -------------------------------------------------------------------------
-    // [PHASE 2] THE HEARTBEAT (SELF-HEALING)
+    // [PHASE 2] THE TEMPORAL RECURSION (SELF-HEALING HEARTBEAT)
     // -------------------------------------------------------------------------
-    // We only attempt to sync the future schedule if the parent task still exists.
-    // This prevents the system from trying to revive a deleted habit series.
-    if (task) {
-      await syncTaskSchedule(ctx, instance.task_id);
-      console.log(`[runVerification] Heartbeat sync complete for task ${instance.task_id}.`);
+    /** 
+     * PRODUCTION RATIONALE: "Sovereign Orphanhood"
+     * Even if the parent Task definition is deleted, we MUST continue the verification 
+     * chain for any surviving "Orphaned" instances.
+     * 
+     * Scenarios where Orphans persist:
+     * 1. MANUAL EXCEPTIONS: User edited a specific slot before deleting the task.
+     * 2. STEEL VAULT: Instance was locked and survived the cleanup purge.
+     * 
+     * If we stop the heartbeat here (if !task), future orphans in the series (e.g., 
+     * an edited Wednesday after a deleted series) would never be enacted, creating 
+     * a system bypass. We trigger syncTaskSchedule to ensure the next valid 
+     * orphan is promoted to the active scheduling slot.
+     */
+    await syncTaskSchedule(ctx, instance.task_id);
+
+    if (!task) {
+      console.log(`[runVerification] Orphaned Instance Processed (Task: ${instance.task_id}). Heartbeat synchronized for remaining manual exceptions.`);
     } else {
-      console.log(`[runVerification] Parent task deleted. Skipping heartbeat.`);
+      console.log(`[runVerification] Heartbeat sync complete for task ${instance.task_id}.`);
     }
   },
 });

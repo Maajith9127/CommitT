@@ -176,10 +176,15 @@ async function createOne(
   // If the master task is currently in "Strict Mode", we lock this instance
   // until its own completion time. This prevents the user from "editing out"
   // of a commitment that has already begun its lock-in phase.
+  //
+  // CRITICAL: We also set is_manual_edit=true to ensure these locked instances
+  // are protected from being purged during generic task updates.
   // ─────────────────────────────────────────────────────────────────────────────
   let instanceStrictUntil: number | undefined = undefined;
+  let isManualEdit = false;
   if (args.task_strict_until && args.start < args.task_strict_until) {
     instanceStrictUntil = args.end;
+    isManualEdit = true;
   }
 
   // Persist to Convex
@@ -190,6 +195,7 @@ async function createOne(
     start: args.start,
     end: args.end,
     strict_until: instanceStrictUntil,
+    is_manual_edit: isManualEdit,
     title: args.title,
     description: args.description,
     recurrence: args.recurrence,

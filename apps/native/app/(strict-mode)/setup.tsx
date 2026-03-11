@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { View, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "convex/react";
+import { useSQLiteContext } from "expo-sqlite";
 import { withUniwind } from "uniwind";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
@@ -20,16 +21,17 @@ import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { ConditionCardSkeleton } from "@/components/ui/skeletons/ConditionCardSkeleton";
 import { useTaskStore } from "@/stores/useTaskStore";
+import { updateStrictModeInLocalDb } from "@/lib/local-db-commits";
+import { scheduleNextAlarm } from "@/modules/scheduler-module";
 
 const UView = withUniwind(View);
 
 /**
  * [STEEL VAULT] Duration Presets 
- * 
- * We offer a range of commitment durations. Standardizing these ensures 
- * predictable backend enforcement and a clean selection UI.
  */
 const DURATION_OPTIONS = [
+  { label: "1 Day", value: "1" },
+  { label: "2 Days", value: "2" },
   { label: "3 Days", value: "3" },
   { label: "5 Days", value: "5" },
   { label: "7 Days", value: "7" },
@@ -54,6 +56,7 @@ const DURATION_OPTIONS = [
  */
 export default function StrictModeSetupScreen() {
   const router = useRouter();
+  const db = useSQLiteContext();
   
   // 1. DATA ACQUISITION & MUTATION
   const { taskId, title } = useLocalSearchParams<{ taskId: string; title: string }>();
@@ -98,6 +101,22 @@ export default function StrictModeSetupScreen() {
 
       if (result.success) {
         console.log("[STRICT_MODE:UI] Vault sealed successfully:", result);
+        
+        // ── SYNC LOCAL CACHE ──
+        // This is critical for the hardware scheduler to know about the lock immediately
+        try {
+          await updateStrictModeInLocalDb(
+            db, 
+            taskId, 
+            result.strictUntil, 
+            Number(duration), 
+            result.instances || []
+          );
+          scheduleNextAlarm(); // Trigger hardware re-check
+        } catch (localError) {
+          console.error("[STRICT_MODE:UI] Local Sync failed:", localError);
+        }
+
         setSuccessVisible(true);
       } else if (result.error === "ALREADY_LOCKED") {
         console.log("[STRICT_MODE:UI] Task already locked, showing specific modal.");
@@ -120,38 +139,39 @@ export default function StrictModeSetupScreen() {
     router.replace("/(create-commit)/final");
   };
 
+  // Derived state for existing locks
+  const isCurrentlyLocked = task?.strict_until && Date.now() < task.strict_until;
+
   /**
    * Represents the dynamic form schema for the lock options.
-   * Leverages the unified SettingsToggleCard pattern for UX consistency.
+   * In Extension Mode (isCurrentlyLocked), we show relative increments (+1, +2).
    */
   const durationItems = useMemo(() => [
     {
       id: "1day",
-      title: "1 Day",
+      title: isCurrentlyLocked ? "+1 Day" : "1 Day",
       type: "select" as const,
       selectValue: duration === "1" ? "✓" : "",
       onPress: () => setDuration("1"),
     },
     {
       id: "2days",
-      title: "2 Days",
+      title: isCurrentlyLocked ? "+2 Days" : "2 Days",
       type: "select" as const,
       selectValue: duration === "2" ? "✓" : "",
       onPress: () => setDuration("2"),
     },
     {
       id: "custom",
-      title: "Custom",
+      title: isCurrentlyLocked ? "Add More" : "Custom",
       type: "select" as const,
       selectValue: (duration !== "1" && duration !== "2") 
         ? (DURATION_OPTIONS.find(o => o.value === duration)?.label || "Select")
         : "Select",
       onPress: () => setPickerVisible(true),
     }
-  ], [duration]);
+  ], [duration, isCurrentlyLocked]);
 
-  // Derived state for existing locks
-  const isCurrentlyLocked = task?.strict_until && Date.now() < task.strict_until;
   const currentExpiryDate = task?.strict_until ? new Date(task.strict_until).toLocaleDateString(undefined, {
     weekday: 'long',
     year: 'numeric',
@@ -160,7 +180,9 @@ export default function StrictModeSetupScreen() {
   }) : null;
   
   // Calculate target expiry date for the confirmation message
-  const targetExpiryTimestamp = Date.now() + (Number(duration) * 24 * 60 * 60 * 1000);
+  // If already locked, we extend from the existing expiry.
+  const baseTimestamp = isCurrentlyLocked ? task.strict_until : Date.now();
+  const targetExpiryTimestamp = baseTimestamp + (Number(duration) * 24 * 60 * 60 * 1000);
   const targetExpiryString = new Date(targetExpiryTimestamp).toLocaleDateString(undefined, {
     weekday: 'long',
     year: 'numeric',
@@ -179,7 +201,10 @@ export default function StrictModeSetupScreen() {
               onPress={handleActivatePress}
               disabled={isActivating}
             >
-              {isActivating ? "Sealing Vault..." : "Activate Strict Mode"}
+              {isActivating 
+                ? (isCurrentlyLocked ? "Extending Vault..." : "Sealing Vault...") 
+                : (isCurrentlyLocked ? "Extend Vault Duration" : "Activate Strict Mode")
+              }
             </PrimaryButton>
           </UView>
         }
@@ -224,7 +249,7 @@ export default function StrictModeSetupScreen() {
       {/* 3. SELECTION PICKER: For custom durations */}
       <SelectionSheet 
         visible={pickerVisible}
-        title="Custom Duration"
+        title={isCurrentlyLocked ? "Extend By" : "Custom Duration"}
         options={DURATION_OPTIONS}
         selectedValue={duration}
         onSelect={setDuration}
@@ -234,8 +259,8 @@ export default function StrictModeSetupScreen() {
       {/* 4. CONFIRMATION MODAL: The last line of defense */}
       <ConfirmationModal
         visible={confirmVisible}
-        title={`Lock until ${targetExpiryString}?`}
-        confirmText="Seal Vault"
+        title={isCurrentlyLocked ? `Extend Lock until ${targetExpiryString}?` : `Lock until ${targetExpiryString}?`}
+        confirmText={isCurrentlyLocked ? "Extend Lock" : "Seal Vault"}
         cancelText="Cancel"
         cancelColor="#FF3B30"
         onConfirm={executeLock}
@@ -246,7 +271,7 @@ export default function StrictModeSetupScreen() {
       {/* 5. SUCCESS MODAL */}
       <ConfirmationModal
         visible={successVisible}
-        title="Vault Sealed Successfully"
+        title={isCurrentlyLocked ? "Vault Extension Successful" : "Vault Sealed Successfully"}
         confirmText="Done"
         onConfirm={() => {
           setSuccessVisible(false);

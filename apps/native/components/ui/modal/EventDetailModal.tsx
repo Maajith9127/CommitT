@@ -18,6 +18,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Modal, View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { useMutation, useQuery } from 'convex/react';
+import { useSQLiteContext } from 'expo-sqlite';
 import { api } from '@commit/backend/convex/_generated/api';
 
 import { useCalendarStore } from '@/stores/useCalendarStore';
@@ -33,6 +34,8 @@ import { WaiverActionModal } from './WaiverActionModal';
 import { StrictModeBanner } from './StrictModeBanner';
 import { useTaskActions } from '@/hooks/commits/useTaskActions';
 import { useRouter } from 'expo-router';
+import { updateInstanceInLocalDb } from '@/lib/local-db-commits';
+import { scheduleNextAlarm } from '@/modules/scheduler-module';
 
 // ── Uniwind-wrapped primitives ──────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -49,6 +52,7 @@ const UScroll = withUniwind(ScrollView);
 let isInstanceMounted = false;
 
 export const EventDetailModal = React.memo(function EventDetailModal() {
+  const db = useSQLiteContext();
 
   // 1. Singleton ownership management
   const [isOwner, setIsOwner] = useState(false);
@@ -300,6 +304,24 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         [metricKey]: status,
       }));
 
+      // ── SYNC LOCAL CACHE ──
+      if (status === 'verified') {
+        try {
+          // Calculate the full conditions array with the newly verified condition
+          const updatedConditions = currentEvent.conditions.map((c: any) => 
+            c.metric_key === metricKey ? { ...c, status: 'verified' } : c
+          );
+          
+          await updateInstanceInLocalDb(db, currentEvent._id, {
+            status: (result as any).instanceStatus, // Backend returns the overall instance status (e.g., 'completed')
+            conditions: updatedConditions,
+          });
+          scheduleNextAlarm();
+        } catch (localError) {
+          console.error("[EventDetailModal] Local Sync failed:", localError);
+        }
+      }
+
       // If the result is NOT verified → show failure modal with the backend's reason
       if (status !== 'verified') {
         setFailureModal({
@@ -460,7 +482,17 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
           if (!currentEvent?._id) return;
           setIsStartingWaiver(true);
           try {
-            await startWaiver({ instanceId: currentEvent._id });
+            const result = await startWaiver({ instanceId: currentEvent._id });
+            
+            // ── SYNC LOCAL CACHE ──
+            if (result && (result as any).success !== false) {
+              await updateInstanceInLocalDb(db, currentEvent._id, {
+                status: 'waiver_active',
+                penalty_waiver: currentEvent.penalty_waiver, // Snapshot current waiver
+              });
+              scheduleNextAlarm();
+            }
+
             setWaiverConfirmVisible(false);
             setWaiverModalVisible(true);
           } catch (e) {
@@ -502,6 +534,18 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             }
 
             console.log("[STRICT_MODE] Instance successfully locked in the vault.");
+            
+            // ── SYNC LOCAL CACHE ──
+            try {
+              await updateInstanceInLocalDb(db, currentEvent._id, {
+                strict_until: currentEvent.end,
+                is_manual_edit: true
+              });
+              scheduleNextAlarm();
+            } catch (localError) {
+              console.error("[STRICT_MODE] Local Sync failed:", localError);
+            }
+
             setStrictConfirmVisible(false);
           } catch (e) {
             setStrictConfirmVisible(false);

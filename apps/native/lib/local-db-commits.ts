@@ -34,9 +34,10 @@ export async function insertTaskToLocalDb(
     `INSERT INTO local_tasks
       (id, convex_id, assigner_id, assignee_id, title, description,
        visibility, recurrence_json, conditions_json, config_json,
-       penalty_json,
+       penalty_json, penalty_waiver_json,
+       strict_until, strict_duration_days,
        created_at, updated_at, synced_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       localId,
       remoteId,
@@ -49,6 +50,9 @@ export async function insertTaskToLocalDb(
       JSON.stringify(cleanedConditions),
       JSON.stringify(draft.config),
       penaltyOverride ? JSON.stringify(penaltyOverride) : (draft.penalty ? JSON.stringify(draft.penalty) : null),
+      draft.penalty_waiver ? JSON.stringify(draft.penalty_waiver) : null,
+      null, // Initial creation usually doesn't have strict mode set in draft
+      null,
       now,
       now,
       now,
@@ -74,7 +78,7 @@ export async function updateTaskInLocalDb(
     `UPDATE local_tasks SET
       title = ?, description = ?, visibility = ?,
       recurrence_json = ?, conditions_json = ?, config_json = ?,
-      penalty_json = ?,
+      penalty_json = ?, penalty_waiver_json = ?,
       updated_at = ?, synced_at = ?
     WHERE convex_id = ?`,
     [
@@ -85,6 +89,7 @@ export async function updateTaskInLocalDb(
       JSON.stringify(cleanedConditions),
       JSON.stringify(draft.config),
       penaltyOverride ? JSON.stringify(penaltyOverride) : (draft.penalty ? JSON.stringify(draft.penalty) : null),
+      draft.penalty_waiver ? JSON.stringify(draft.penalty_waiver) : null,
       now,
       now,
       remoteId,
@@ -110,6 +115,88 @@ export async function updateTaskInLocalDb(
 }
 
 /**
+ * Updates STRICT MODE status for a task and its instances in the local database.
+ * Used when the user activates/extends a vault lock.
+ */
+export async function updateStrictModeInLocalDb(
+  db: SQLiteDatabase,
+  taskId: string,
+  strictUntil: number,
+  durationDays: number,
+  backendInstances: any[]
+) {
+  const now = Date.now();
+
+  // 1. Update the parent task document
+  await db.runAsync(
+    `UPDATE local_tasks SET
+      strict_until = ?,
+      strict_duration_days = ?,
+      updated_at = ?
+    WHERE convex_id = ?`,
+    [strictUntil, durationDays, now, taskId]
+  );
+
+  // 2. Fetch the local task ID
+  const taskRow = await db.getFirstAsync<{ id: string }>(
+    "SELECT id FROM local_tasks WHERE convex_id = ?",
+    [taskId]
+  );
+
+  // 3. Update all upcoming instances to reflect the new strict_until date
+  if (taskRow) {
+    // For simplicity and correctness, we re-sync all instances returned by the mutation
+    // because strict_mode activation retroactively locks existing instances too.
+    await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [taskRow.id]);
+    await syncInstancesToLocalDb(db, taskRow.id, backendInstances, now);
+  }
+  
+  console.log(`[TaskRepository] Strict Mode Local Sync Complete for task: ${taskId}`);
+}
+
+/**
+ * Updates a SINGLE instance in the local database.
+ * Used for real-time status updates, verification results, and instance-specific locks.
+ */
+export async function updateInstanceInLocalDb(
+  db: SQLiteDatabase,
+  instanceId: string,
+  updates: {
+    status?: string;
+    conditions?: any[];
+    checkpoints?: any[];
+    strict_until?: number;
+    penalty_waiver?: any;
+    is_manual_edit?: boolean;
+    start?: number;
+    end?: number;
+  }
+) {
+  const fields: string[] = [];
+  const values: any[] = [];
+
+  if (updates.status) { fields.push("status = ?"); values.push(updates.status); }
+  if (updates.conditions) { fields.push("conditions_json = ?"); values.push(JSON.stringify(updates.conditions)); }
+  if (updates.checkpoints) { fields.push("checkpoints = ?"); values.push(JSON.stringify(updates.checkpoints)); }
+  if (updates.strict_until !== undefined) { fields.push("strict_until = ?"); values.push(updates.strict_until); }
+  if (updates.penalty_waiver) { fields.push("penalty_waiver_json = ?"); values.push(JSON.stringify(updates.penalty_waiver)); }
+  if (updates.is_manual_edit !== undefined) { fields.push("is_manual_edit = ?"); values.push(updates.is_manual_edit ? 1 : 0); }
+  if (updates.start) { fields.push("start_time = ?"); values.push(updates.start); }
+  if (updates.end) { fields.push("end_time = ?"); values.push(updates.end); }
+
+  if (fields.length === 0) return;
+
+  values.push(instanceId);
+
+  await db.runAsync(
+    `UPDATE task_instances SET ${fields.join(", ")} WHERE convex_id = ?`,
+    values
+  );
+  
+  console.log(`[TaskRepository] Instance Local Sync OK: ${instanceId}`);
+}
+
+/**
  * High-performance batched bulk-insert loop for Task Instances.
  */
 async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, backendInstances: any[], now: number) {
@@ -118,9 +205,9 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
   const statement = await db.prepareAsync(
     `INSERT INTO task_instances 
       (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, status, title,
-       config_json, checkpoints, conditions_json, penalty_json,
-       is_manual_edit, created_at) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       config_json, checkpoints, conditions_json, penalty_json, penalty_waiver_json,
+       strict_until, is_manual_edit, created_at) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
   try {
@@ -141,6 +228,8 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
         JSON.stringify(instance.checkpoints || []),
         instance.conditions ? JSON.stringify(instance.conditions) : null,
         instance.penalty ? JSON.stringify(instance.penalty) : null,
+        instance.penalty_waiver ? JSON.stringify(instance.penalty_waiver) : null,
+        instance.strict_until || null,
         instance.is_manual_edit ? 1 : 0,
         now,
       ]);

@@ -299,20 +299,16 @@ export async function activateStrictModeInternal(
   if (!task) throw new Error("[TASK_NOT_FOUND] Cannot lock a non-existent task.");
   if (task.assigner_id !== user_id) throw new Error("[UNAUTHORIZED] Only the assigner can activate Strict Mode.");
 
-  // Idempotency Check: Prevent re-activation if already active
-  if (task.strict_until && task.strict_until > Date.now()) {
-    console.log(`[STRICT_MODE] Activation skipped: Task ${id} is already locked.`);
-    return { 
-      success: false, 
-      error: "ALREADY_LOCKED", 
-      message: "This task is already sealed in the Steel Vault." 
-    };
-  }
-
   // 2. Calculate Temporal Boundary
-  // We calculate the absolute epoch ms based on the provided day count.
+  // If already locked, we EXTEND from the current lock end.
+  // Otherwise, we ACTIVATE from this very moment.
   const now = Date.now();
-  const strictUntil = now + (durationDays * 24 * 60 * 60 * 1000);
+  const baseTime = (task.strict_until && task.strict_until > now) 
+    ? task.strict_until 
+    : now;
+
+  const strictUntil = baseTime + (durationDays * 24 * 60 * 60 * 1000);
+  const totalDays = Math.ceil((strictUntil - now) / (24 * 60 * 60 * 1000));
 
   // 3. Mark Master Rule
   // This ensures series regeneration (automatic or manual) inherits the lock.
@@ -338,13 +334,24 @@ export async function activateStrictModeInternal(
     if (inst.start < strictUntil && inst.status === "pending") {
       await ctx.db.patch(inst._id, {
         strict_until: inst.end, // Lock until the specific slot is completed
+        is_manual_edit: true,   // Protect from generic rescheduling purges
       });
       lockedCount++;
     }
   }
+  // 5. Fetch Final State for Sync
+  const updatedInstances = await ctx.db
+    .query("taskInstances")
+    .withIndex("by_task", (q) => q.eq("task_id", id))
+    .collect();
 
   console.log(`[STRICT_MODE] Successfully sealed ${lockedCount} instances in the Steel Vault.`);
   
-  return { success: true, strictUntil, lockedCount };
+  return { 
+    success: true, 
+    strictUntil, 
+    lockedCount,
+    instances: updatedInstances 
+  };
 }
 

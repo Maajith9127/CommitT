@@ -12,16 +12,23 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 9;
+const DATABASE_VERSION = 10;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
  * Uses PRAGMA user_version to track the current schema version.
  */
 export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
-  const result = await db.getFirstAsync<{ user_version: number }>(
-    "PRAGMA user_version"
-  );
+  let result;
+  try {
+    result = await db.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
+  } catch (e: any) {
+    console.error("[LocalDB] FATAL: Initialization failed.", e);
+    if (String(e).includes("malformed")) {
+      console.error("🚨 CRITICAL: Database disk image is malformed. Please wipe app data/cache and restart.");
+    }
+    throw e;
+  }
   let currentVersion = result?.user_version ?? 0;
 
   if (currentVersion >= DATABASE_VERSION) {
@@ -235,7 +242,37 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     currentVersion = 9;
   }
 
-  await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
+  // ── Migration 9 → 10 (add Strict Mode + Penalty Waiver columns) ──
+  if (currentVersion === 9) {
+    console.log('[Migration] Migrating from 9 to 10 (Strict Mode Update)...');
+
+    // Column expansion helper with precision error handling
+    const addColumn = async (table: string, column: string, type: string) => {
+      try {
+        await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column} ${type};`);
+      } catch (e: any) {
+        // Silently tolerate "duplicate column" errors (common in dev/hot-reload)
+        // while allowing structural or corruption errors to bubble up and stall migration.
+        const message = String(e);
+        if (message.includes("duplicate column") || message.includes("already exists")) {
+          return;
+        }
+        throw e;
+      }
+    };
+
+    // local_tasks expansion
+    await addColumn('local_tasks', 'strict_until', 'INTEGER DEFAULT NULL');
+    await addColumn('local_tasks', 'strict_duration_days', 'INTEGER DEFAULT NULL');
+    await addColumn('local_tasks', 'penalty_waiver_json', 'TEXT DEFAULT NULL');
+
+    // task_instances expansion
+    await addColumn('task_instances', 'strict_until', 'INTEGER DEFAULT NULL');
+    await addColumn('task_instances', 'penalty_waiver_json', 'TEXT DEFAULT NULL');
+
+    await db.execAsync(`PRAGMA user_version = 10`);
+    console.log('[Migration] 9 → 10 Successful.');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
