@@ -98,6 +98,7 @@ export type TaskDraft = {
     tilt?: number;
     bearing?: number;
   } | null;
+  isAccountabilityPrefilled: boolean;
 };
 
 /* -----------------------------
@@ -173,6 +174,7 @@ const createEmptyDraft = (): TaskDraft => ({
     },
   },
   cameraTarget: null,
+  isAccountabilityPrefilled: false,
 });
 
 // Logger middleware - pretty-print state in schema format

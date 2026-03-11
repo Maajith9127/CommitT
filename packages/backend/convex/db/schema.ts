@@ -118,15 +118,21 @@ export default defineSchema({
     // different shape. Type safety is enforced at the VALIDATOR layer
     // (lib/validators.ts) and the EXECUTOR layer (core/penalty/dispatcher.ts).
     //
-    penalty: v.optional(v.object({
-      type: penaltyTypeEnum,    // Discriminator for the penalty dispatcher
-      config: v.any(),          // Type-specific payload (photo URI, amount, etc.)
-    })),
-    penalty_waiver: v.optional(v.object({
-      type: waiverTypeEnum,     // Discriminator for the waiver verifier
-      config: v.any(),          // Type-specific settings (captcha count, word count, etc.)
-      deadline_minutes: v.number(), // How long the user has to complete the waiver after failing
-    })),
+    penalty: v.optional(v.union(
+      v.object({
+        type: penaltyTypeEnum,    // Discriminator for the penalty dispatcher
+        config: v.any(),          // Type-specific payload (photo URI, amount, etc.)
+      }),
+      v.null()
+    )),
+    penalty_waiver: v.optional(v.union(
+      v.object({
+        type: waiverTypeEnum,     // Discriminator for the waiver verifier
+        config: v.any(),          // Type-specific settings (captcha count, word count, etc.)
+        deadline_minutes: v.number(), // How long the user has to complete the waiver after failing
+      }),
+      v.null()
+    )),
     strict_until: v.optional(v.number()),
     strict_duration_days: v.optional(v.number()),
     created_at: v.number(),
@@ -250,15 +256,21 @@ export default defineSchema({
     // are snapshots — if we later remove a penalty type from the enum,
     // existing snapshots should still be readable without schema errors.
     //
-    penalty: v.optional(v.object({
-      type: v.string(),         // Snapshot of penaltyTypeEnum value at creation time
-      config: v.any(),          // Snapshot of type-specific config
-    })),
-    penalty_waiver: v.optional(v.object({
-      type: v.string(),         // Snapshot of waiverTypeEnum value at creation time
-      config: v.any(),          // Snapshot of type-specific config
-      deadline_minutes: v.number(), // Snapshot of waiver deadline
-    })),
+    penalty: v.optional(v.union(
+      v.object({
+        type: v.string(),         // Snapshot of penaltyTypeEnum value at creation time
+        config: v.any(),          // Snapshot of type-specific config
+      }),
+      v.null()
+    )),
+    penalty_waiver: v.optional(v.union(
+      v.object({
+        type: v.string(),         // Snapshot of waiverTypeEnum value at creation time
+        config: v.any(),          // Snapshot of type-specific config
+        deadline_minutes: v.number(), // Snapshot of waiver deadline
+      }),
+      v.null()
+    )),
     // ═══════════════════════════════════════════════════════════════════════
     // WAIVER LIFECYCLE STATE — Mutable Runtime Tracking
     // ═══════════════════════════════════════════════════════════════════════
@@ -339,15 +351,21 @@ export default defineSchema({
     name: v.optional(v.string()),    // Human-readable identifier (e.g., "Deep Work Vault")
     
     // Contract Snapshots
-    penalty: v.object({
-      type: penaltyTypeEnum,
-      config: v.any(),
-    }),
-    penalty_waiver: v.optional(v.object({
-      type: waiverTypeEnum,
-      config: v.any(),
-      deadline_minutes: v.number(),
-    })),
+    penalty: v.union(
+      v.object({
+        type: penaltyTypeEnum,
+        config: v.any(),
+      }),
+      v.null()
+    ),
+    penalty_waiver: v.optional(v.union(
+      v.object({
+        type: waiverTypeEnum,
+        config: v.any(),
+        deadline_minutes: v.number(),
+      }),
+      v.null()
+    )),
     
     // Metadata for "Smart Pre-fill" Sorting
     last_used_at: v.number(),        // Recency score for "Suggest Latest"

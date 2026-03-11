@@ -144,8 +144,8 @@ async function preparePenaltyPayload(
   generateUploadUrl: () => Promise<string>,
   recordFile: (args: { storageId: any; contentType: string; size: number; tag: string }) => Promise<any>,
 ): Promise<TaskDraft["penalty"] | undefined> {
-  // No penalty configured — nothing to do
-  if (!penalty) return undefined;
+  // No penalty configured or explicitly cleared — return as-is (null or undefined)
+  if (!penalty) return penalty;
 
   // Only "embarrassing_photo" has a photo to upload
   if (penalty.type === "embarrassing_photo" && isLocalFileUri(penalty.config?.photoUrl)) {

@@ -76,14 +76,20 @@ export const ConfigSchema = v.object({
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Defines the penalty consequence for failing a task */
-export const PenaltySchema = v.object({
-  type: penaltyTypeEnum,    // Discriminator: "embarrassing_photo", "send_money", etc.
-  config: v.any(),          // Type-specific payload (validated by domain logic layer)
-});
+export const PenaltySchema = v.union(
+  v.object({
+    type: penaltyTypeEnum,    // Discriminator: "embarrassing_photo", "send_money", etc.
+    config: v.any(),          // Type-specific payload (validated by domain logic layer)
+  }),
+  v.null()
+);
 
 /** Defines the waiver challenge that can defuse a penalty */
-export const PenaltyWaiverSchema = v.object({
-  type: waiverTypeEnum,           // Discriminator: "captcha", "paragraph", etc.
-  config: v.any(),                // Type-specific settings (validated by domain logic layer)
-  deadline_minutes: v.number(),   // How long the user has to complete the waiver after failing
-});
+export const PenaltyWaiverSchema = v.union(
+  v.object({
+    type: waiverTypeEnum,           // Discriminator: "captcha", "paragraph", etc.
+    config: v.any(),                // Type-specific settings (validated by domain logic layer)
+    deadline_minutes: v.number(),   // How long the user has to complete the waiver after failing
+  }),
+  v.null()
+);

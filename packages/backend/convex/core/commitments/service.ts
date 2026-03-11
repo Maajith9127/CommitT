@@ -228,8 +228,8 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
       conditions: updates.conditions ?? existingTask.conditions,
       assigner_id: existingTask.assigner_id,
       assignee_id: existingTask.assignee_id,
-      penalty: updates.penalty ?? (updates.penalty === null ? undefined : existingTask.penalty),
-      penalty_waiver: updates.penalty_waiver ?? (updates.penalty_waiver === null ? undefined : existingTask.penalty_waiver),
+      penalty: updates.penalty !== undefined ? updates.penalty : existingTask.penalty,
+      penalty_waiver: updates.penalty_waiver !== undefined ? updates.penalty_waiver : existingTask.penalty_waiver,
     });
     if (!validation.valid) throw new Error(`[${validation.errorCode}] ${validation.error}`);
   }

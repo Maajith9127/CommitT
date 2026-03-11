@@ -89,7 +89,7 @@ export function validateTimeXRule(
 
 const VALID_CHANNELS = ["whatsapp", "instagram", "email", "commit"] as const;
 
-export function validatePenalty(penalty: { type: string; config: any } | undefined): ValidationResult {
+export function validatePenalty(penalty: { type: string; config: any } | null | undefined): ValidationResult {
   // No penalty = perfectly valid (not all commitments need penalties)
   if (!penalty) return { valid: true };
 
@@ -168,7 +168,7 @@ export function validatePenalty(penalty: { type: string; config: any } | undefin
  * WAIVER VALIDATION 
  * Checks that the forgiveness challenge config makes sense.
  */
-export function validateWaiver(waiver: { type: string; config: any; deadline_minutes: number } | undefined): ValidationResult {
+export function validateWaiver(waiver: { type: string; config: any; deadline_minutes: number } | null | undefined): ValidationResult {
   if (!waiver) return { valid: true };
   const { type, config, deadline_minutes } = waiver;
   
@@ -203,8 +203,8 @@ export function validateCommitment(input: {
   conditions: Condition[];
   assigner_id: string;
   assignee_id: string;
-  penalty?: { type: string; config: any };
-  penalty_waiver?: { type: string; config: any; deadline_minutes: number };
+  penalty?: { type: string; config: any } | null;
+  penalty_waiver?: { type: string; config: any; deadline_minutes: number } | null;
 }): ValidationResult {
   const titleRes = validateTitle(input.title);
   if (!titleRes.valid) return titleRes;
