@@ -35,48 +35,7 @@ export default function EmbarrassingPhotoScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
 
-  // Back Interceptor State
-  const [backModalVisible, setBackModalVisible] = useState(false);
-  const [pendingAction, setPendingAction] = useState<any>(null);
 
-  /**
-   * INTERCEPTOR: Prevent leaving without a photo unless confirmed.
-   * If the user tries to go back (via swipe or button) and no photo is set,
-   * we stop them and ask for confirmation.
-   */
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      // If we have a photo (fresh or local), proceed
-      if (freshUrl) {
-        return;
-      }
-
-      // Prevents the screen from closing immediately
-      e.preventDefault();
-
-      // Show the "Are you sure?" modal
-      setPendingAction(e.data.action);
-      setBackModalVisible(true);
-    });
-
-    return unsubscribe;
-  }, [navigation, config.photoUrl]);
-
-  const handleDiscardPenalty = () => {
-    // 1. Wipe the penalty from the draft store
-    console.log("[Photo] Discarding penalty and moving to final...");
-    setDraft({
-      penalty: null,
-    });
-
-    // 2. Clear modal and pop back
-    setBackModalVisible(false);
-    if (pendingAction) {
-      navigation.dispatch(pendingAction);
-    } else {
-      router.back();
-    }
-  };
 
   const handlePickImage = async () => {
     try {
@@ -254,16 +213,6 @@ export default function EmbarrassingPhotoScreen() {
         onCancel={() => setModalVisible(false)}
       />
 
-      {/* BACK NAVIGATION CONFIRMATION MODAL */}
-      <ConfirmationModal
-        visible={backModalVisible}
-        title="Hey, you haven't set any embarrassing photo! Discard this penalty?"
-        confirmText="Yes, leave it"
-        confirmColor="#FF3B30"
-        cancelText="Stay here"
-        onConfirm={handleDiscardPenalty}
-        onCancel={() => setBackModalVisible(false)}
-      />
     </>
   );
 }

@@ -1,12 +1,9 @@
+fix(ux): streamline penalty navigation and solve pre-fill "Loop of Doom"
 
-feat(accountability): implement single accountability identity & reactive photo recovery
+- Removed navigation interceptor and confirmation modal from Embarrassing Photo screen to reduce dialog fatigue.
+- Refined [useAccountabilityPrefill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useAccountabilityPrefill.ts:5:0-42:1) logic to strictly check for `undefined` state, allowing users to explicitly clear penalties without triggered background re-fills.
+- Enforced "Manual Override" intent: set draft penalty to `null` on clear to distinguish from "Untouched" creation state.
+- Improved UX flow on Task Creation: "Lock Consequence" remains the primary validator while "Back" now acts as a seamless cancel.
 
-- Enforce a "Single Accountability Identity" (Penalty + Waiver) per user in Convex.
-- Enable auto-learning of this identity during task creation and updates.
-- Implement background pre-filling of task drafts from the latest identity for zero-friction setup.
-- Added `getTempUrl` Convex query for on-demand signed URL recovery.
-- Created [useFreshPhotoUrl](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useFreshPhotoUrl.ts:22:0-36:1) hook for reactive, self-healing image previews across the app.
-- Strictly prioritize server-refreshed URLs over stale local state for committed photos.
-- Cleaned up temporary thumbnail previews and refined penalty configuration screens.
 
 wsl.exe --shutdown
