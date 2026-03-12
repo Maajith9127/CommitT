@@ -1,6 +1,16 @@
-
 import { v } from "convex/values";
+import { internalQuery } from "../../_generated/server";
 import { authedQuery } from "../../middleware";
+
+/**
+ * Retrieves a single task instance (Internal use only).
+ */
+export const getInstance = internalQuery({
+  args: { instanceId: v.id("taskInstances") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.instanceId);
+  },
+});
 
 /**
  * Retrieves a single task instance by its ID.

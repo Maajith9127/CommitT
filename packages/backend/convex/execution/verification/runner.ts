@@ -26,7 +26,8 @@ export async function armAccountabilityContract(
   if (!instance.penalty || !instance.penalty_waiver) return;
 
   // 1. DEXTEROUS TIMING CALCULATION
-  const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
+  // const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
+  const deadlineMs = 1 * 60 * 1000; // TESTING: Force 1 minute for rapid verification
   const expiresAt = baseTime + deadlineMs;
 
   // 2. IDEMPOTENCY CHECK (Safety Guard)

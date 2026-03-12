@@ -1,20 +1,11 @@
-feat: enforce coupled accountability and fix penalty clearing logic
+feat(penalty): refine shaming email and refactor penalty execution
 
-Full-stack synchronization for the "Two-way Street" accountability rule.
+- Refined 'embarrassing_photo' email template with better deliverability (Anti-Spam) and premium styling.
+- Refactored penalty worker logic into Mutation/Action pair to support 'fetch' for Brevo API integration.
+- Added 'getInstance' internal query to allow background tasks to access commitment data.
+- Optimized AlarmActivity logging to diagnose 'Zombie Dismissals' (confirmed alarms fire correctly but are being dismissed in <6s).
+- Fixed minor 'vimport' typo in worker.ts and updated waivers testing overrides.
 
-Backend:
-- Modified Penalty and Waiver schemas/validators to explicitly allow `null` values.
-- Implemented "Coupled Accountability" validation: ensuring penalties and waivers 
-  are either both present or both absent.
-- Updated [updateInternal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/service.ts:189:0-321:1) service to correctly merge `null` clear signals.
-
-Frontend:
-- Fixed [useCommitTask](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:177:0-289:1) orchestrator to prevent "signal loss" where `null` clears 
-  were accidentally converted to `undefined` (do-nothing) actions.
-- Added `isAccountabilityPrefilled` session flag to [TaskDraftStore](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:107:0-142:2) to track state.
-- Refactored [useAccountabilityPrefill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useAccountabilityPrefill.ts:5:0-42:1) hook to use a one-shot fetch and the new 
-  session flag, resolving the "Bounce Back" bug where cleared penalties 
-  would immediately reappear.
 
 
 wsl.exe --shutdown

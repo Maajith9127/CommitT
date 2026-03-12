@@ -11,40 +11,26 @@ import { dispatch } from "../../core/penalties/dispatcher";
  * It implements three layers of "Silent Abort" safety guards to ensure
  * zero accidental penalties for deleted or waived tasks.
  */
+/**
+ * firePenalty: The Gatekeeper (Mutation).
+ * ─────────────────────────────────────────────────────────────────────────────
+ * This mutation handles the state transition. It marks the instance as 
+ * "penalized" to lock the database state before triggering the external side-effect.
+ */
 export const firePenalty = internalMutation({
   args: { 
     taskId: v.id("tasks"),
     instanceId: v.id("taskInstances") 
   },
   handler: async (ctx, args) => {
-    // 1. Fetch the Instance (The "Accountability Contract" is snapshotted here)
     const instance = await ctx.db.get(args.instanceId);
 
-    console.log(`[firePenalty] Gatekeeper wakeup for instance ${args.instanceId}.`);
-
-    // ── GUARD LAYER 1: INSTANCE EXISTENCE ──
-    // If this specific failure occurrence was deleted, do not proceed.
-    // This is our primary defusing mechanism for manual deletions.
-    if (!instance) {
-      console.log(`[firePenalty] Instance ${args.instanceId} was deleted. SILENT ABORT.`);
+    if (!instance || instance.status !== "waiver_active") {
+      console.log(`[firePenalty] Gatekeeper: Instance inactive or deleted. Aborting.`);
       return;
     }
 
-    // ── GUARD LAYER 2: STATUS CHECK ──
-    // If the user already waived the penalty or it was already fired, do not proceed.
-    // A status of anything except 'waiver_active' means the gate is closed.
-    if (instance.status !== "waiver_active") {
-      console.log(`[firePenalty] Instance status is '${instance.status}'. Closing gate without firing.`);
-      return;
-    }
-
-    // -------------------------------------------------------------------------
-    // [PHASE 3] EXECUTION: THE BOMB DETONATES
-    // -------------------------------------------------------------------------
-    console.log(`[firePenalty] CRITICAL: Executing penalty for instance ${args.instanceId}.`);
-
-    // 1. Update status to 'penalized' IMMEDIATELY to prevent replay attacks
-    // We update the waiver_state to 'expired' for history/logs.
+    // 1. LOCK STATE: Update status to 'penalized' IMMEDIATELY
     await ctx.db.patch(args.instanceId, { 
       status: "penalized",
       waiver_state: {
@@ -53,22 +39,47 @@ export const firePenalty = internalMutation({
       }
     });
 
-    // 2. Execute the Penalty Penalty Dispatcher
-    // We rely on the `instance.penalty` snapshot which was frozen at creation time.
-    // This allows the penalty to fire even if the parent task was deleted.
-    if (instance.penalty) {
-      console.log(`[firePenalty] Penalty '${instance.penalty.type}' triggered for instance ${args.instanceId}. Dispatching...`);
-      
-      // Dispatching to the dedicated executor for that penalty type
-      const result = await dispatch(instance as Doc<"taskInstances">);
-      
-      if (result?.success) {
-        console.log(`[firePenalty] Execution phase: OK for penalty '${instance.penalty.type}'.`);
-      } else {
-        console.warn(`[firePenalty] Execution phase: FAILED for penalty '${instance.penalty.type}':`, result?.error);
-      }
+    // 2. TRIGGER EFFECT: Schedule the Action to handle the fetch() call
+    // We use a scheduler with 0 delay to move into the Action sandbox immediately
+    await ctx.scheduler.runAfter(0, internal.execution.penalties.worker.firePenaltyAction, {
+      instanceId: args.instanceId
+    });
+
+    console.log(`[firePenalty] State locked. Action scheduled for instance ${args.instanceId}.`);
+  },
+});
+
+/**
+ * firePenaltyAction: The Executor (Action).
+ * ─────────────────────────────────────────────────────────────────────────────
+ * This is the only place where side-effects like fetch() are allowed.
+ */
+export const firePenaltyAction = internalAction({
+  args: { 
+    instanceId: v.id("taskInstances") 
+  },
+  handler: async (ctx, args) => {
+    console.log(`[firePenaltyAction] Effector wakeup for instance ${args.instanceId}.`);
+
+    // 1. Fetch the snapshotted data (using runQuery because Actions can't use ctx.db)
+    const instance = await ctx.runQuery(internal.api.instances.read.getInstance, {
+      instanceId: args.instanceId
+    });
+
+    if (!instance || !instance.penalty) {
+      console.warn(`[firePenaltyAction] No valid instance or penalty found for ${args.instanceId}.`);
+      return;
+    }
+
+    // 2. DETONATE: Call the dispatcher
+    // Since we are in an Action, we pass the 'ctx' which allows the dispatcher
+    // to perform Action-only feats (like fetch).
+    const result = await dispatch(ctx, instance as Doc<"taskInstances">);
+
+    if (result?.success) {
+      console.log(`[firePenaltyAction] SUCCESS: Penalty executed for ${args.instanceId}.`);
     } else {
-      console.warn(`[firePenalty] WARNING: No penalty snapshot found on instance ${args.instanceId}.`);
+      console.error(`[firePenaltyAction] FAILURE:`, result?.error);
     }
   },
 });

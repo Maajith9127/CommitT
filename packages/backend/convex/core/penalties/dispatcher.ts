@@ -1,5 +1,6 @@
 import { Doc } from "../../_generated/dataModel";
 import * as sendEmail from "./executors/send_email";
+import * as embarrassingPhoto from "./executors/embarrassing_photo";
 
 /**
  * dispatcher.ts
@@ -15,7 +16,7 @@ export type PenaltyResult = {
   error?: string;
 };
 
-export async function dispatch(instance: Doc<"taskInstances">): Promise<PenaltyResult> {
+export async function dispatch(ctx: any, instance: Doc<"taskInstances">): Promise<PenaltyResult> {
   const { penalty } = instance;
 
   if (!penalty) {
@@ -27,12 +28,10 @@ export async function dispatch(instance: Doc<"taskInstances">): Promise<PenaltyR
 
   switch (penalty.type) {
     case "send_email":
-      return await sendEmail.execute(instance);
+      return await sendEmail.execute(ctx, instance);
 
     case "embarrassing_photo":
-      // TODO: Implement executors/embarrassing_photo.ts
-      console.log(`[DISPATCHER] Penalty '${penalty.type}' not yet implemented. Logging only.`);
-      return { success: false, error: "NOT_IMPLEMENTED" };
+      return await embarrassingPhoto.execute(ctx, instance);
 
     case "send_money":
       // TODO: Implement executors/send_money.ts

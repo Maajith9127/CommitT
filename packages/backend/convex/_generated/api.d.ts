@@ -33,6 +33,7 @@ import type * as core_commitments_validator from "../core/commitments/validator.
 import type * as core_instances_generator from "../core/instances/generator.js";
 import type * as core_instances_service from "../core/instances/service.js";
 import type * as core_penalties_dispatcher from "../core/penalties/dispatcher.js";
+import type * as core_penalties_executors_embarrassing_photo from "../core/penalties/executors/embarrassing_photo.js";
 import type * as core_penalties_executors_send_email from "../core/penalties/executors/send_email.js";
 import type * as core_verification_evidenceValidators from "../core/verification/evidenceValidators.js";
 import type * as core_verification_location from "../core/verification/location.js";
@@ -95,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   "core/instances/generator": typeof core_instances_generator;
   "core/instances/service": typeof core_instances_service;
   "core/penalties/dispatcher": typeof core_penalties_dispatcher;
+  "core/penalties/executors/embarrassing_photo": typeof core_penalties_executors_embarrassing_photo;
   "core/penalties/executors/send_email": typeof core_penalties_executors_send_email;
   "core/verification/evidenceValidators": typeof core_verification_evidenceValidators;
   "core/verification/location": typeof core_verification_location;
