@@ -1,107 +1,19 @@
-🧠 CommitT Scheduling: The Evolution from "Fragile" to "Surgical"
-This document provides a side-by-side comparison of the scheduling architecture as it existed in commit 3a96ce7 versus the robust implementation we have today.
+feat: implement sovereign grading engine and style-aware verification
 
-1. Discovery Indexing: Creation vs. Timeline
-The Problem: Using an index that prioritizes data entry over actual time.
+### The Problem
+The verification runner was performing a naive binary check on the root instance status. It failed to account for complex habit styles like "Stay Throughout" (which requires ongoing presence) or "Just Show Up" (which requires a single check-in within a window), relying instead on external processes to update the status before the window closed.
 
-🔴 BEFORE (3a96ce7)
-typescript
-// scheduler.ts
-const allInstances = await ctx.db
-  .query("taskInstances")
-  .withIndex("by_task", (q) => q.eq("task_id", taskId))
-  .collect();
-Why it failed: The by_task index sorts by _creationTime. If Friday's task was manually created after Monday's, but then moved to earlier in the week, the scheduler would still see Monday first. This meant the "Heartbeat" would often jump past instances or get stuck processed in the wrong order.
+### The Fix
+This commit introduces a "Sovereign Grading Engine" that performs deep telemetry analysis of checkpoints to determine fulfillment independent of external state updates:
 
-🟢 AFTER (Current)
-typescript
-// scheduler.ts
-const allApplicable = await ctx.db
-  .query("taskInstances")
-  .withIndex("by_task_end", (q) => q.eq("task_id", taskId).gt("end", now))
-  .filter((q) => q.or(q.eq(q.field("status"), "pending"), q.eq(q.field("status"), "proceeding")))
-  .collect();
-Why it works: By using by_task_end (indexing on ["task_id", "end"]), we force the database to return instances in strict chronological order. The addition of gt("end", now) creates a Temporal Firewall, ensuring we only ever look at the future and never at the slot we are currently processing.
+- **Modular Grading Logic**: Extracted verification rules into `evaluateGradingVerdict()`, separating the "Judgment" (logic) from the "Enforcement" (mutations).
+- **Style-Aware Telemetry**: 
+    - **Stay Throughout**: Now analyzes checkpoint arrays and counts 'missed' windows. It enforces a threshold based on `max_missed_checkins`, allowing for defined tolerance in habit adherence.
+    - **Just Show Up**: Evaluates checkpoints for a terminal 'verified' state across at least one window, ensuring point-in-time commitments are honored.
+- **Production-Grade Observability**: Standardized log formats and added extensive JSDoc documentation to detail the "Heart-First Handoff" and "Redemption Arc" architectures.
+- **Emoji-Free Formalism**: Cleaned up the log output and code comments to match high-reliability production standards.
 
-2. Timing the Handoff: The "Heart-First" Shift
-The Problem: Placing the most critical logic (scheduling the future) behind potentially slow/failing tasks (grading the present).
-
-🔴 BEFORE (3a96ce7)
-typescript
-// runner.ts
-export const runVerification = internalMutation({
-  handler: async (ctx, args) => {
-    // 1. Grade the task (Success/Failure)
-    // 2. Start Penalty/Waiver Logic (Heavy/Slow)
-    await armAccountabilityContract(ctx, instance, instance.end);
-    
-    // 3. Sync the next heartbeat (AT THE BOTTOM)
-    await syncTaskSchedule(ctx, instance.task_id);
-  }
-});
-Why it failed: 
-armAccountabilityContract
- involves generating challenges, scheduling penalties, and database patches. If this logic had any delay, or if Instance A transitioned to waiver_active right as the scheduler tried to find it at the bottom, the chain would stall.
-
-🟢 AFTER (Current)
-typescript
-// runner.ts
-export const runVerification = internalMutation({
-  handler: async (ctx, args) => {
-    // 1. SECURE THE FUTURE (AT THE VERY TOP)
-    await syncTaskSchedule(ctx, instance.task_id, true);
-    
-    // 2. Grade/Penalty Logic
-    if (isFailed) { await armAccountabilityContract(ctx, instance, instance.end); }
-  }
-});
-Why it works: The "Heart-First" pattern ensures that Instance B is scheduled in the database before we even touch Instance A's outcome. If the penalty logic retries or lags, the habit tracker has already "beaten" the clock for the next slot.
-
-3. Reactivity: Overcoming the "Stale Pointer" Trap
-The Problem: Trusting old job IDs when an event's time has changed.
-
-🔴 BEFORE (3a96ce7)
-typescript
-// scheduler.ts
-if (nextInstance.scheduled_job_id) {
-  // Logic: "If an ID exists, it must be correct."
-  return; 
-}
-Why it failed: When dragging an instance from 10:00 AM to 11:00 AM, the database still has the scheduled_job_id from the 10:00 AM alarm. The old code would see that ID and skip the update. The alarm would fire an hour early, grading the user at the wrong time.
-
-🟢 AFTER (Current)
-typescript
-// scheduler.ts
-if (nextInstance.scheduled_job_id && !force) {
-  console.log(`[syncTaskSchedule] IDEMPOTENT: Heartbeat healthy...`);
-  return;
-}
-// In api/instances/update.ts
-await syncTaskSchedule(ctx, id, true); // ALWAYS FORCE ON EDITS
-Why it works: By introducing the force flag and setting it to true by default on all API updates, we guarantee that any time-shift kills the old "Stale" alarm and replaces it with one matching the new authoritative end time.
-
-4. Cleanup: From "Nuclear Wiping" to "Surgical Sub-Query"
-The Problem: Accidental "Self-Cancellation" causing flicker.
-
-🔴 BEFORE (3a96ce7)
-typescript
-// scheduler.ts
-for (const inst of allInstances) {
-  if (inst.scheduled_job_id) {
-    // Cancel EVERYTHING for the task series
-    await ctx.scheduler.cancel(inst.scheduled_job_id);
-  }
-}
-Why it failed: The runner for 10:35 would wake up, call the sync, and the sync would see the 10:35 job ID and cancel it while it was still running. This created a "race-to-the-bottom" in the Convex scheduler that would often wipe out the 10:40 heartbeat in the process.
-
-🟢 AFTER (Current)
-typescript
-// scheduler.ts
-const othersToClean = await ctx.db
-  .query("taskInstances")
-  .withIndex("by_task_end", (q) => q.eq("task_id", taskId).gt("end", nextInstance.end))
-  .collect();
-Why it works: The cleanup is now strictly "Future-Stray Only." It never touches the current execution window. It only wipes alarms that are beyond our immediate target, keeping the dashboard stable and ensuring the active heartbeat is never interrupted by its own cleanup.
-
-🏛️ Final Architectural Summary
-The core shift was moving from Narrow State Matching (looking for "pending") to Temporal Window Strictness (looking for "> now"). The system no longer tries to "manage" the current task; it focuses entirely on securing the next link in the chain before the present one even finishes. 🦾🚀
+### Technical Changes
+- **runner.ts**: Implemented `evaluateGradingVerdict()`; unified Phase 2 grading to use style-specific rules; refined Phase 3 enforcement logs.
+- **scheduler.ts**: Enhanced JSDoc to document the 'Temporal Firewall' and 'Surgical Cleanup' patterns.
+- **update.ts**: Updated JSDoc to reflect the 'Reactive Reconciliation' requirement for UI sync.

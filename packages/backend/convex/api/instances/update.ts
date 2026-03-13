@@ -8,6 +8,9 @@ import { syncTaskSchedule } from "../../execution/scheduling/scheduler";
 /**
  * Update an existing task instance.
  * Allows updating status (e.g. "completed", "skipped") or other mutable fields.
+ * 
+ * DESIGN RATIONALE: We use the 'force: true' sync here to ensure that manual
+ * time edits (drag-and-drop) immediately update the backend alarm time.
  */
 export const update = authedMutation({
   args: {
@@ -17,7 +20,6 @@ export const update = authedMutation({
     end: v.optional(v.number()),
     strict_until: v.optional(v.number()),
     is_manual_edit: v.optional(v.boolean()),
-    // Add other updateable fields here as needed
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -47,7 +49,7 @@ export const update = authedMutation({
     console.log(`[CONVEX_UPDATE] Updating Instance: ${id}`);
     
     // ─────────────────────────────────────────────────────────────────────────────
-    // FEATURE: Collision Detection (Schedule Overlap Validation)
+    // FEATURE: Collision Detection
     // ─────────────────────────────────────────────────────────────────────────────
     const proposedStart = updates.start ?? instance.start;
     const proposedEnd = updates.end ?? instance.end;
@@ -63,9 +65,7 @@ export const update = authedMutation({
       if (overlap) {
         const timeRange = formatTimeRange(overlap.start, overlap.end);
         const dateStr = formatDate(overlap.start);
-        
         console.warn(`[CONVEX_UPDATE] COLLISION_DETECTED: Overlaps with "${overlap.title}" on ${dateStr} (${timeRange})`);
-        
         return { 
           success: false, 
           error: "OVERLAP_DETECTED", 
@@ -78,11 +78,9 @@ export const update = authedMutation({
 
     await Instances.update(ctx, id, updates);
 
-    // CRITICAL: Synchronize the schedule brain
-    // We use force: true to ensure time-shifts are immediately applied.
+    // CRITICAL: Synchronize the schedule brain with 'force: true' to honor time shifts.
     await syncTaskSchedule(ctx, instance.task_id, true);
 
-    // Fetch the final hydrated state to return to the client for local sync
     const updatedInstance = await ctx.db.get(id);
 
     console.log(`[CONVEX_UPDATE] TRANSACTION_COMPLETE: Returning authoritative state for ${id}`);
