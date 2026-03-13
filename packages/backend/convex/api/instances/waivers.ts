@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { verifyWaiverChallenge } from "../../core/waivers/dispatcher";
 import { Doc } from "../../_generated/dataModel";
-import { armAccountabilityContract } from "../../execution/verification/runner";
+import { armAccountabilityContract, evaluateGradingVerdict } from "../../execution/verification/runner";
 
 /**
  * submitChallenge(): THE WAIVER STATE MACHINE BRIDGE
@@ -75,6 +75,14 @@ export const submitChallenge = authedMutation({
 
 /**
  * startSession(): Manual trigger to start a waiver/redemption session.
+ * 
+ * This endpoint allows users to pre-emptively start a redemption window 
+ * (to solve challenges) while the habit window is still open, or after 
+ * a failure but before the final penalty fires.
+ * 
+ * GUARD: Blocks activation for 'proceeded', 'waived', or 'penalized' states
+ * to ensure that a successful or already-resolved habit cannot be 
+ * retroactively "failed" or re-waived.
  */
 export const startSession = authedMutation({
   args: {
@@ -88,7 +96,18 @@ export const startSession = authedMutation({
     if (instance.assignee_id !== user._id) throw new Error("Unauthorized.");
 
     const isFinished = ["proceeded", "penalized", "waived"].includes(instance.status);
-    if (isFinished) throw new Error("Cannot start a waiver for a completed task.");
+    if (isFinished) {
+      return { success: false, message: "Cannot start a waiver for a completed task." };
+    }
+
+    // DEEP INTEGRITY GUARD: Sovereign Telemetry Check
+    // Even if the root status is 'pending', we analyze the checkpoints to see if 
+    // the user has already satisfied the habit's fulfillment criteria. This 
+    // prevents "Waiver Sniping" on successful but un-finalized tasks.
+    const isFailedTelemetry = evaluateGradingVerdict(instance);
+    if (!isFailedTelemetry) {
+      return { success: false, message: "Cannot start a waiver for a task already fulfilled via telemetry." };
+    }
 
     if (instance.status === "waiver_active") {
       return { success: true, message: "Waiver session is already active." };

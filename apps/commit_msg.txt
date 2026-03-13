@@ -1,19 +1,19 @@
-feat: implement sovereign grading engine and style-aware verification
+feat: implement sovereign grading engine and telemetry-aware waiver guards
 
 ### The Problem
-The verification runner was performing a naive binary check on the root instance status. It failed to account for complex habit styles like "Stay Throughout" (which requires ongoing presence) or "Just Show Up" (which requires a single check-in within a window), relying instead on external processes to update the status before the window closed.
+The verification and waiver subsystems relied on root-level 'status' fields which could become stale or misaligned with actual telemetry data. This created scenarios where users could attempt redemption (waivers) for tasks practically fulfilled via telemetry, or where grading logic was duplicated across the heartbeat and API layers.
 
 ### The Fix
-This commit introduces a "Sovereign Grading Engine" that performs deep telemetry analysis of checkpoints to determine fulfillment independent of external state updates:
+This commit establishes a **Unified Sovereign Grading Engine** and migrates the accountability system to a **Telemetry-First Integrity** model:
 
-- **Modular Grading Logic**: Extracted verification rules into `evaluateGradingVerdict()`, separating the "Judgment" (logic) from the "Enforcement" (mutations).
-- **Style-Aware Telemetry**: 
-    - **Stay Throughout**: Now analyzes checkpoint arrays and counts 'missed' windows. It enforces a threshold based on `max_missed_checkins`, allowing for defined tolerance in habit adherence.
-    - **Just Show Up**: Evaluates checkpoints for a terminal 'verified' state across at least one window, ensuring point-in-time commitments are honored.
-- **Production-Grade Observability**: Standardized log formats and added extensive JSDoc documentation to detail the "Heart-First Handoff" and "Redemption Arc" architectures.
-- **Emoji-Free Formalism**: Cleaned up the log output and code comments to match high-reliability production standards.
+- **Sovereign Grading Engine**: Extracted habit fulfillment logic into a centralized `evaluateGradingVerdict()` function. It performs deep analysis of style-specific checkpoints (Stay Throughout vs. Just Show Up) to determine the mathematical pass/fail state independent of the master status field.
+- **Deep Waiver Integrity**: Integrated the grading engine into the `waivers:startSession` API. The system now performs a real-time telemetry check before allowing a redemption window to open, blocking "Waiver Sniping" on successful but un-finalized tasks.
+- **Graceful Error Handling**: Refactored the waivers state machine to return structured failure responses (`{ success: false }`) instead of throwing server-side exceptions. This ensures a clean production log and professional user feedback.
+- **Reactive UI Feedback**: Updated the mobile `EventDetailModal` to handle API-level rejections gracefully, presenting specific fulfillment reasons to the user via the failure modal.
+- **Production-Grade Standard**: Standardized internal documentation (JSDoc) across the execution pipeline and normalized log formats for high-reliability monitoring.
 
 ### Technical Changes
-- **runner.ts**: Implemented `evaluateGradingVerdict()`; unified Phase 2 grading to use style-specific rules; refined Phase 3 enforcement logs.
-- **scheduler.ts**: Enhanced JSDoc to document the 'Temporal Firewall' and 'Surgical Cleanup' patterns.
-- **update.ts**: Updated JSDoc to reflect the 'Reactive Reconciliation' requirement for UI sync.
+- **runner.ts**: Implemented and exported the core `evaluateGradingVerdict` engine.
+- **waivers.ts**: Implemented telemetry-based fulfillment guards in `startSession` with graceful response patterns.
+- **EventDetailModal.tsx**: Enhanced the waiver activation conduit with robust result parsing and failure modal integration.
+- **verify.ts / update.ts**: Refined internal documentation to reflect the shift toward telemetry-authoritative grading.

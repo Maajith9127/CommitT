@@ -482,8 +482,18 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
           if (!currentEvent?._id) return;
           setIsStartingWaiver(true);
           try {
-            const result = await startWaiver({ instanceId: currentEvent._id });
+            const result = (await startWaiver({ instanceId: currentEvent._id })) as any;
             
+            if (result && result.success === false) {
+              setWaiverConfirmVisible(false);
+              setFailureModal({
+                visible: true,
+                title: result.message || "Cannot start waiver.",
+                message: '',
+              });
+              return;
+            }
+
             // ── SYNC LOCAL CACHE ──
             if (result && (result as any).success !== false) {
               await updateInstanceInLocalDb(db, currentEvent._id, {
@@ -495,8 +505,14 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
 
             setWaiverConfirmVisible(false);
             setWaiverModalVisible(true);
-          } catch (e) {
+          } catch (e: any) {
             console.error("Failed to start waiver session", e);
+            setWaiverConfirmVisible(false);
+            setFailureModal({
+              visible: true,
+              title: parseError(e),
+              message: '',
+            });
           } finally {
             setIsStartingWaiver(false);
           }

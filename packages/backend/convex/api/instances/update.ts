@@ -4,6 +4,7 @@ import { Id, Doc } from "../../_generated/dataModel";
 import { Instances } from "../../core/instances/service";
 import { formatDate, formatTimeRange } from "../../lib/formatters";
 import { syncTaskSchedule } from "../../execution/scheduling/scheduler";
+import { evaluateGradingVerdict } from "../../execution/verification/runner";
 
 /**
  * Update an existing task instance.

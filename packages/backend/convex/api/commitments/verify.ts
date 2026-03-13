@@ -37,6 +37,7 @@ import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { validateEvidence } from "../../core/verification/evidenceValidators";
 import { Doc } from "../../_generated/dataModel";
+import { evaluateGradingVerdict } from "../../execution/verification/runner";
 
 export default authedMutation({
   args: {

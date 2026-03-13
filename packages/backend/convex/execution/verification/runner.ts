@@ -15,7 +15,7 @@ import { initializeWaiverChallenges } from "../../core/waivers/dispatcher";
  * @param instance - The hydrated task instance document.
  * @returns boolean - Returns true if the criteria for FAILURE are met.
  */
-function evaluateGradingVerdict(instance: any): boolean {
+export function evaluateGradingVerdict(instance: any): boolean {
   const style = instance.config.verification_style;
   const checkpoints = instance.checkpoints || [];
 
