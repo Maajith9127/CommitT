@@ -9,26 +9,44 @@ export type TimeSlotCardProps = {
   startTime: string;
   endTime: string;
   onRemove?: () => void;
+  onPress?: () => void;
 };
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
 
-export function TimeSlotCard({ startTime, endTime, onRemove }: TimeSlotCardProps) {
+/**
+ * TimeSlotCard Component
+ * -----------------------------------------------------------------------------
+ * Precise UI representation of a scheduled time window.
+ * Supports removal logic and interactive selection for surgery-level edits.
+ */
+export function TimeSlotCard({ startTime, endTime, onRemove, onPress }: TimeSlotCardProps) {
   return (
-    <UView className="mb-3 w-full flex-row items-center rounded-3xl bg-[#1A1A1A] px-4 py-3">
-      {/* Left clock icon */}
+    <UPressable 
+      onPress={onPress}
+      activeOpacity={0.7}
+      className="mb-3 w-full flex-row items-center rounded-3xl bg-[#1A1A1A] px-4 py-3"
+    >
+      {/* ── HARDWARE ICON ── */}
       <UView className="mr-3 h-8 w-8 items-center justify-center rounded-full bg-[#4FA0FF]">
         <MaterialCommunityIcons name="clock-outline" size={18} color="black" />
       </UView>
 
-      {/* Time text (left aligned) */}
+      {/* ── DURATION MANIFEST ── */}
       <AuthTitle className="mb-0 flex-1 text-left font-medium text-base text-white">
         {startTime} – {endTime}
       </AuthTitle>
 
-      {/* Remove button */}
-      <UPressable onPress={onRemove} className="ml-2">
+      {/* ── REMOVAL CONDUIT ── */}
+      <UPressable 
+        onPress={(e) => {
+          e.stopPropagation(); // Prevent card selection when removing
+          onRemove?.();
+        }} 
+        className="ml-2"
+        hitSlop={12}
+      >
         {({ pressed }: { pressed: boolean }) => (
           <Svg 
             width={20} 
@@ -41,6 +59,6 @@ export function TimeSlotCard({ startTime, endTime, onRemove }: TimeSlotCardProps
           </Svg>
         )}
       </UPressable>
-    </UView>
+    </UPressable>
   );
 }

@@ -15,7 +15,7 @@ import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 // State & Utilities
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTimeSlot } from "@/lib/validation/timeSlot";
-import { timeToSeconds, secondsToDisplay, type TimeInput } from "@/lib/time";
+import { timeToSeconds, secondsToDisplay, secondsToTimeInput, type TimeInput } from "@/lib/time";
 
 // Styled components
 const UView = withUniwind(View);
@@ -38,6 +38,19 @@ type TimeSlot = {
 export default function TimeSetScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
   
+  /**
+   * editingSlotIndex: Pointer to the slot being surgically modified.
+   * If null, the picker operates in 'Addition Mode'.
+   */
+  const [editingSlotIndex, setEditingSlotIndex] = useState<number | null>(null);
+
+  /**
+   * pendingTimes: Cache for inputs that failed validation.
+   * Prevents the picker from resetting to default values (6-8 AM) when 
+   * the user is asked to fix an error.
+   */
+  const [pendingTimes, setPendingTimes] = useState<{ from: TimeInput; to: TimeInput } | null>(null);
+
   // Error modal state for validation failures
   const [errorModal, setErrorModal] = useState<{ visible: boolean; message: string }>({
     visible: false,
@@ -58,27 +71,72 @@ export default function TimeSetScreen() {
   // ───────────────────────────────────────────────────────────────────────────
 
   /**
-   * Handle saving a new time slot from the picker.
-   * Validates before updating Zustand state.
+   * Handle saving a time slot from the picker.
+   * Supports both 'Addition' and 'Surgery' (Update) modes.
    */
   function handleSaveTimeSlot(from: TimeInput, to: TimeInput) {
     const start = timeToSeconds(from.hour, from.minute, from.period);
     const end = timeToSeconds(to.hour, to.minute, to.period);
 
+    // Filter out the slot we are editing for validation (to allow 'in-place' edits)
+    const otherSlots = editingSlotIndex !== null 
+      ? timeSlots.filter((_, i) => i !== editingSlotIndex)
+      : timeSlots;
+
     // Validate before updating state
-    const validation = validateTimeSlot(start, end, timeSlots);
+    const validation = validateTimeSlot(start, end, otherSlots);
     if (!validation.valid) {
+      console.warn(`[TimeSet] Validation fault: ${validation.error}. Stashing pending manifest.`);
+      setPendingTimes({ from, to }); // Cache the invalid values for correction
       setErrorModal({ visible: true, message: validation.error });
       return;
     }
 
-    // Add new slot and sort by start time
-    const updatedSlots = [...timeSlots, { start, end }].sort(
-      (a, b) => a.start - b.start
-    );
+    let updatedSlots = [...timeSlots];
+
+    if (editingSlotIndex !== null) {
+      // SURGERY MODE: Update specific index
+      console.log(`[TimeSet] Executing surgical update on slot ${editingSlotIndex}`);
+      updatedSlots[editingSlotIndex] = { start, end };
+    } else {
+      // ADDITION MODE: Append new window
+      console.log("[TimeSet] Appending new time window manifest");
+      updatedSlots.push({ start, end });
+    }
+
+    // Sort by start time for deterministic schedule execution
+    updatedSlots.sort((a, b) => a.start - b.start);
 
     // Update time_windows in recurrence
     setTimeWindows(updatedSlots);
+    setPickerVisible(false);
+    setEditingSlotIndex(null);
+    setPendingTimes(null); // Clear pending state on success
+  }
+
+  /**
+   * Triggers the TimePicker in 'Edit Mode' for an existing slot.
+   */
+  function handleEditSlot(index: number) {
+    console.log(`[TimeSet] Opening Surgery Manifest for slot ${index}`);
+    setEditingSlotIndex(index);
+    setPickerVisible(true);
+  }
+
+  /**
+   * Cleans up state when picker/modal is dismissed.
+   * Protects editing context if an error modal is active.
+   */
+  function handleClosePicker() {
+    setPickerVisible(false);
+    
+    // CRITICAL: If an error modal is visible, we DO NOT purge the editingSlotIndex 
+    // or pendingTimes. This allows the 'Change' button to restore the context.
+    if (!errorModal.visible) {
+      console.log("[TimeSet] Cleaning up interactive manifest states");
+      setEditingSlotIndex(null);
+      setPendingTimes(null);
+    }
   }
 
   /**
@@ -119,6 +177,14 @@ export default function TimeSetScreen() {
   const hasTimeSlots = timeSlots.length > 0;
   const canSave = hasDaysSelected && hasTimeSlots;
   const isRepeatEnabled = draft.recurrence.ends?.type === "never";
+
+  // PREP INITIAL MANIFEST:
+  // Priority order: 
+  // 1. Pending (Failed) inputs 
+  // 2. Existing slot data (if editing)
+  // 3. undefined (defaults to 6-8 AM)
+  const initialFrom = pendingTimes?.from ?? (editingSlotIndex !== null ? secondsToTimeInput(timeSlots[editingSlotIndex].start) : undefined);
+  const initialTo = pendingTimes?.to ?? (editingSlotIndex !== null ? secondsToTimeInput(timeSlots[editingSlotIndex].end) : undefined);
 
   // ───────────────────────────────────────────────────────────────────────────
   // Render
@@ -196,6 +262,7 @@ export default function TimeSetScreen() {
               startTime={secondsToDisplay(slot.start)}
               endTime={secondsToDisplay(slot.end)}
               onRemove={() => handleRemoveSlot(index)}
+              onPress={() => handleEditSlot(index)}
             />
           ))}
         </UView>
@@ -204,8 +271,10 @@ export default function TimeSetScreen() {
       {/* Time Picker Modal */}
       <TimePicker
         visible={pickerVisible}
-        onClose={() => setPickerVisible(false)}
+        onClose={handleClosePicker}
         onSave={handleSaveTimeSlot}
+        initialFrom={initialFrom}
+        initialTo={initialTo}
       />
 
       {/* Validation Error Modal */}

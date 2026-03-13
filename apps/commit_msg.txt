@@ -1,8 +1,8 @@
-feat: implement surgical permissions dashboard and identity rotation conduit
+feat: implement surgical time slot editing and validation recovery
 
-- Created usePermissions hook to programmatically probe OS/hardware authorization status (GPS, Camera, Notifications).
-- Transformed Profile screen into a high-fidelity "System Manifest" dashboard with real-time color-coded health metrics.
-- Integrated handleSignOut conduit on Profile and Welcome screens to purge both app sessions and Google SSO hardware tokens, enabling seamless Gmail identity rotation.
-- Migrated GoogleSignin configuration to root _layout.tsx to resolve critical "apiClient is null" race conditions during session persistence.
-- Revitalized onboarding entry logic with premium cinematic animations and high-contrast typography.
-- Standardized hardware permission subtitles for clear user guidance ("Permission active" vs "Needed for gates").
+- Upgraded TimeSlotCard with interactive hit-testing and surgical selection support.
+- Enhanced TimePicker with state hydration via initialFrom/initialTo manifests and reactive reset logic.
+- Implemented editingSlotIndex in time-set.tsx to enable direct-manipulation updates of existing time windows.
+- Added pendingTimes validation cache to prevent UI resets during error correction, preserving user intent across modal transitions.
+- Refactored state cleanup logic to protect editing context during validation fault loops.
+- Resolved structural syntax inconsistencies and missing utility imports in the time configuration conduit.

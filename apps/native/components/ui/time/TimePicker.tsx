@@ -72,6 +72,10 @@ type Props = {
   onClose: () => void;
   /** Callback when user saves the time range */
   onSave: (from: TimeValue, to: TimeValue) => void;
+  /** Optional: Initial 'FROM' state for surgical edits */
+  initialFrom?: TimeValue;
+  /** Optional: Initial 'TO' state for surgical edits */
+  initialTo?: TimeValue;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -145,7 +149,7 @@ function TabButton({ label, isActive, onPress }: TabButtonProps) {
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function TimePicker({ visible, onClose, onSave }: Props) {
+export function TimePicker({ visible, onClose, onSave, initialFrom, initialTo }: Props) {
   // ─────────────────────────────────────────────────────────────────────────
   // State
   // ─────────────────────────────────────────────────────────────────────────
@@ -153,17 +157,27 @@ export function TimePicker({ visible, onClose, onSave }: Props) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("FROM");
   
   // Using objects for cleaner state management
-  const [fromTime, setFromTime] = useState<TimeValue>({
+  const [fromTime, setFromTime] = useState<TimeValue>(initialFrom || {
     hour: 6,
     minute: 0,
     period: "AM",
   });
   
-  const [toTime, setToTime] = useState<TimeValue>({
+  const [toTime, setToTime] = useState<TimeValue>(initialTo || {
     hour: 8,
     minute: 0,
     period: "AM",
   });
+
+  // REACTIVE STATE HYDRATION: Synchronize internal state when modal opens
+  // with new initial manifests (crucial for swapping between edit vs add).
+  React.useEffect(() => {
+    if (visible) {
+      setFromTime(initialFrom || { hour: 6, minute: 0, period: "AM" });
+      setToTime(initialTo || { hour: 8, minute: 0, period: "AM" });
+      setActiveTab("FROM");
+    }
+  }, [visible, initialFrom, initialTo]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Derived State
