@@ -26,8 +26,8 @@ export async function armAccountabilityContract(
   if (!instance.penalty || !instance.penalty_waiver) return;
 
   // 1. DEXTEROUS TIMING CALCULATION
-  // const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
-  const deadlineMs = 1 * 60 * 1000; // TESTING: Force 1 minute for rapid verification
+  // Restore real deadline (using provided user setting)
+  const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
   const expiresAt = baseTime + deadlineMs;
 
   // 2. IDEMPOTENCY CHECK (Safety Guard)
@@ -63,15 +63,12 @@ export async function armAccountabilityContract(
     }
   });
 
-  console.log(`[armAccountabilityContract] Accountability Armed for ${instance._id}. On-the-Fly challenge initialized. Expires: ${new Date(expiresAt).toISOString()}`);
+  console.log(`[armAccountabilityContract] Accountability Armed for ${instance._id}. Expires: ${new Date(expiresAt).toISOString()}`);
 }
 
 /**
  * runVerification(): The heartbeat of the system.
  * This function runs automatically at the end of every time slot.
- * 
- * Instead of recalculating the next slot, it follows the linked-list chain
- * via next_instance_id to find and schedule the next instance.
  */
 export const runVerification = internalMutation({
   args: { 
@@ -86,11 +83,6 @@ export const runVerification = internalMutation({
       return;
     }
 
-    // 2. Sovereign Instance Execution
-    // DESIGN RATIONALE: We do NOT return early if the task is deleted.
-    // If an instance exists (especially a 'Manual Edit'), it is a sovereign 
-    // contract that must be honored. Even if the parent habit is gone, 
-    // this specific occurrence must reach a terminal state (proceeded/failed/waived).
     const task = await ctx.db.get(instance.task_id);
 
     console.log("═══════════════════════════════════════════════════════════════");
@@ -99,48 +91,32 @@ export const runVerification = internalMutation({
     console.log("═══════════════════════════════════════════════════════════════");
 
     // -------------------------------------------------------------------------
-    // [PHASE 1] VERIFICATION & GRADING
+    // [PHASE 1] THE TEMPORAL RECURSION (SELF-HEALING HEARTBEAT)
     // -------------------------------------------------------------------------
-    // Sovereign Grading: We process the outcome based on the instance's own state.
+    // CRITICAL: We sync the schedule FIRST. 
+    // We use 'force: true' to ensure any stale job IDs are purged and replaced.
+    await syncTaskSchedule(ctx, instance.task_id, true);
+    console.log(`[runVerification] Heartbeat synchronized for task ${instance.task_id}.`);
+
+    // -------------------------------------------------------------------------
+    // [PHASE 2] VERIFICATION & GRADING
+    // -------------------------------------------------------------------------
     const isFailed = instance.status === "pending"; 
 
     if (isFailed) {
-      // ── TRIGGER REDEMPTION ARC ──
-      // If a contract exists, we arm it using 'instance.end' as the base time.
+      console.log(`[runVerification] FAILURE DETECTED: Arming accountability for ${instance._id}`);
       if (instance.penalty && instance.penalty_waiver) {
         await armAccountabilityContract(ctx, instance, instance.end);
       } else {
-        // No contract exists. Hard failure.
         await ctx.db.patch(args.instanceId, { status: "failed" });
       }
     } else if (instance.status === "proceeding") {
-      // Transition to terminal success
+      console.log(`[runVerification] SUCCESS: Marking ${instance._id} as proceeded.`);
       await ctx.db.patch(args.instanceId, { status: "proceeded" });
     }
 
-    // -------------------------------------------------------------------------
-    // [PHASE 2] THE TEMPORAL RECURSION (SELF-HEALING HEARTBEAT)
-    // -------------------------------------------------------------------------
-    /** 
-     * PRODUCTION RATIONALE: "Sovereign Orphanhood"
-     * Even if the parent Task definition is deleted, we MUST continue the verification 
-     * chain for any surviving "Orphaned" instances.
-     * 
-     * Scenarios where Orphans persist:
-     * 1. MANUAL EXCEPTIONS: User edited a specific slot before deleting the task.
-     * 2. STEEL VAULT: Instance was locked and survived the cleanup purge.
-     * 
-     * If we stop the heartbeat here (if !task), future orphans in the series (e.g., 
-     * an edited Wednesday after a deleted series) would never be enacted, creating 
-     * a system bypass. We trigger syncTaskSchedule to ensure the next valid 
-     * orphan is promoted to the active scheduling slot.
-     */
-    await syncTaskSchedule(ctx, instance.task_id);
-
     if (!task) {
-      console.log(`[runVerification] Orphaned Instance Processed (Task: ${instance.task_id}). Heartbeat synchronized for remaining manual exceptions.`);
-    } else {
-      console.log(`[runVerification] Heartbeat sync complete for task ${instance.task_id}.`);
+      console.log(`[runVerification] Orphaned Instance Processed (Task: ${instance.task_id}).`);
     }
   },
 });

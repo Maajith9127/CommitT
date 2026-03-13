@@ -1,11 +1,20 @@
-feat(penalty): refine shaming email and refactor penalty execution
+fix: implement surgical heartbeat and heart-first scheduling
 
-- Refined 'embarrassing_photo' email template with better deliverability (Anti-Spam) and premium styling.
-- Refactored penalty worker logic into Mutation/Action pair to support 'fetch' for Brevo API integration.
-- Added 'getInstance' internal query to allow background tasks to access commitment data.
-- Optimized AlarmActivity logging to diagnose 'Zombie Dismissals' (confirmed alarms fire correctly but are being dismissed in <6s).
-- Fixed minor 'vimport' typo in worker.ts and updated waivers testing overrides.
+### The Problem
+The scheduling chain was "stalling" during task failures. While successful tasks promoted the heartbeat correctly, failing tasks often failed to schedule the "Instance B" verification job, leaving the user with a penalty but no future habit tracking. This was caused by:
+1. **Self-Cancellation Race**: The scheduler's cleanup loop was trying to cancel the job of the *currently executing* instance, creating a race condition that sometimes swallowed the next job in the chain.
+2. **Post-Grading Sync**: The next slot was being scheduled *after* the complex waiver/penalty arming logic. Any micro-delay in waiver initialization would block or defer the heartbeat sync.
+3. **Stale Pointer Idempotency**: The scheduler was incorrectly trusting "dead" scheduled_job_ids left over from previous `convex dev` runs or re-deployments.
 
+### The Fix
+This commit implements a "Heart-First" architectural pattern to ensure 100% chain continuity:
 
+- **Inverse Verification Handoff**: Refactored `runVerification` to trigger `syncTaskSchedule` as the **first** operation. The next slot is now secured in the DB before grading or penalty logic begins.
+- **Surgical Future-Strict Discovery**: The scheduler now uses `gt("end", now)` to look strictly PAST the current slot. This makes the heartbeat immune to the transitional states (like `waiver_active`) of the currently failing slot.
+- **Atomic Pointer Purging**: Added a `force` flag to `syncTaskSchedule`. When called from the runner, it now bypasses idempotency checks to explicitly purge potentially stale/dead job IDs and replace them with fresh, authoritative ones.
+- **Past-Immune Cleanup**: Restricted the "Nuclear Cleanup" to only touch stray jobs that end *after* the next targeted slot. This prevents the runner from accidentally canceling its own active session.
 
-wsl.exe --shutdown
+### Technical Changes
+- **scheduler.ts**: Added `force` parameter; switched to future-strict surgical cleanup logic.
+- **runner.ts**: Re-ordered phases to prioritize Temporal Recursion; enabled `force` sync; restored official waiver deadlines.
+- **watchdog.ts**: Synced with new chronological discovery rules.
