@@ -79,9 +79,8 @@ export const update = authedMutation({
     await Instances.update(ctx, id, updates);
 
     // CRITICAL: Synchronize the schedule brain
-    // This ensures if we move an instance, the system automatically 
-    // re-evaluates which alarm should be set next.
-    await syncTaskSchedule(ctx, instance.task_id);
+    // We use force: true to ensure time-shifts are immediately applied.
+    await syncTaskSchedule(ctx, instance.task_id, true);
 
     // Fetch the final hydrated state to return to the client for local sync
     const updatedInstance = await ctx.db.get(id);

@@ -11,11 +11,13 @@ import { Id } from "../../_generated/dataModel";
 export async function syncTaskSchedule(
   ctx: MutationCtx,
   taskId: Id<"tasks">,
-  force: boolean = false
+  force: boolean = true // Default to TRUE for maximum reliability on updates
 ) {
   const now = Date.now();
 
   // 1. DISCOVERY: Find the chromologically EARLIEST unresolved instance in the FUTURE.
+  // We strictly use gt("end", now) so that the runner (currently executing at instance.end)
+  // never self-cancels or gets stuck on the slot it's currently judging.
   const allApplicable = await ctx.db
     .query("taskInstances")
     .withIndex("by_task_end", (q) => q.eq("task_id", taskId).gt("end", now))
@@ -59,6 +61,8 @@ export async function syncTaskSchedule(
   }
 
   // 3. SCHEDULING: Locked Heartbeat
+  // If not forced, we trust the existing ID.
+  // In the runner/API, we default to force: true to ensure time-shifts are honored.
   if (nextInstance.scheduled_job_id && !force) {
     console.log(`[syncTaskSchedule] IDEMPOTENT: Heartbeat healthy for ${nextInstance._id}`);
     return;
@@ -75,7 +79,7 @@ export async function syncTaskSchedule(
     { instanceId: nextInstance._id, taskTitle: nextInstance.title },
   );
 
-  console.log(`[syncTaskSchedule] SUCCESS: Heartbeat ${scheduledJobId} locked to ${nextInstance._id} at ${new Date(nextInstance.end).toLocaleTimeString()}`);
+  console.log(`[syncTaskSchedule] SUCCESS: Heartbeat ${scheduledJobId} locked to ${nextInstance._id} (Forced: ${force})`);
 
   // 4. PERSIST
   await ctx.db.patch(nextInstance._id, { scheduled_job_id: scheduledJobId });
