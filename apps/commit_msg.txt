@@ -1,8 +1,5 @@
-feat: implement surgical time slot editing and validation recovery
+build: lock application orientation to portrait mode
 
-- Upgraded TimeSlotCard with interactive hit-testing and surgical selection support.
-- Enhanced TimePicker with state hydration via initialFrom/initialTo manifests and reactive reset logic.
-- Implemented editingSlotIndex in time-set.tsx to enable direct-manipulation updates of existing time windows.
-- Added pendingTimes validation cache to prevent UI resets during error correction, preserving user intent across modal transitions.
-- Refactored state cleanup logic to protect editing context during validation fault loops.
-- Resolved structural syntax inconsistencies and missing utility imports in the time configuration conduit.
+- Updated app.config.js to set orientation to 'portrait'.
+- Disabled horizontal tilt to ensure a consistent vertical user experience across all screens.
+- Requires native rebuild (prebuild + run:android) to apply manifest changes.

@@ -4,7 +4,7 @@ const config = {
   expo: {
     scheme: "commit",
     userInterfaceStyle: "automatic",
-    orientation: "default",
+    orientation: "portrait",
     web: {
       bundler: "metro",
     },
