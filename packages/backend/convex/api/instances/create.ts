@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { Id, Doc } from "../../_generated/dataModel";
 import { Instances } from "../../core/instances/service";
+import { syncTaskSchedule } from "../../execution/scheduling/scheduler";
 
 /**
  * Manually create a single task instance.
@@ -24,10 +25,8 @@ export default authedMutation({
       throw new Error("[TASK_NOT_FOUND] Task not found");
     }
 
-    if (task.assignee_id !== user.id) {
-       // Only assignee can add extra sessions? Or assigner? 
-       // For now, let's say the assignee can manage their own schedule.
-       if (task.assigner_id !== user.id) {
+    if (task.assignee_id !== user._id) {
+       if (task.assigner_id !== user._id) {
          throw new Error("[UNAUTHORIZED] Permission denied");
        }
     }
@@ -40,15 +39,16 @@ export default authedMutation({
       end: args.end,
       title: args.title ?? task.title,
       description: args.description ?? task.description,
-      recurrence: task.recurrence, // Inherit rules even if one-off
+      recurrence: task.recurrence,
       conditions: task.conditions,
       config: task.config,
-      // Inherit the penalty contract from the parent task.
-      // Even manual one-off instances enforce the same accountability rules.
       penalty: task.penalty,
       penalty_waiver: task.penalty_waiver,
       status: "pending",
     });
+
+    // 3. THE HEARTBEAT: Ensure the scheduler sees this new manual session
+    await syncTaskSchedule(ctx, args.task_id);
 
     return { instanceId };
   },

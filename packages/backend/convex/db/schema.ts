@@ -326,6 +326,7 @@ export default defineSchema({
     next_instance_id: v.optional(v.id("taskInstances")),
   })
     .index("by_task", ["task_id"])
+    .index("by_task_end", ["task_id", "end"])
     .index("by_assignee", ["assignee_id"])
     .index("by_assignee_start", ["assignee_id", "start"])
     .index("by_status", ["status"])

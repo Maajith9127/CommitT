@@ -1,5 +1,4 @@
-import { internalMutation, internalQuery } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { internalMutation } from "../_generated/server";
 import { syncTaskSchedule } from "./scheduling/scheduler";
 
 /**
@@ -16,17 +15,18 @@ export const watchdogSync = internalMutation({
     let healedCount = 0;
 
     for (const task of allTasks) {
-      // Find the next pending instance
+      // Discovery: Find the earliest unresolved heartbeat target.
+      // We use 'by_task_end' to match the scheduler's discovery logic.
       const nextPending = await ctx.db
         .query("taskInstances")
-        .withIndex("by_task", (q) => q.eq("task_id", task._id))
-        .filter((q) => q.and(
+        .withIndex("by_task_end", (q) => q.eq("task_id", task._id))
+        .filter((q) => q.or(
           q.eq(q.field("status"), "pending"),
-          q.gt(q.field("end"), Date.now())
+          q.eq(q.field("status"), "proceeding"),
         ))
         .first();
 
-      // If we have a pending instance but no job is linked, sync it!
+      // If we have an unresolved instance but no job is linked, sync it!
       if (nextPending && !nextPending.scheduled_job_id) {
         console.log(`[Watchdog] Healing orphaned task: ${task.title} (ID: ${task._id})`);
         await syncTaskSchedule(ctx, task._id);
