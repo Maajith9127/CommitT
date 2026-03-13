@@ -14,6 +14,8 @@ import { authClient } from "@/lib/auth-client";
 import { LOCAL_DB_NAME, migrateDbIfNeeded } from "@/lib/local-db";
 import { env } from "@commit/env/native";
 import { showTasksToast } from "@/modules/alarm-module";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { useEffect } from "react";
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 const convex = new ConvexReactClient(convexUrl, {
@@ -296,6 +298,15 @@ function AlarmFab() {
 }
 
 export default function Layout() {
+  useEffect(() => {
+    // ── SYSTEM INITIALIZATION ──
+    // Configure hardware authentication at the root so it's available 
+    // even if a user bypasses the (auth) group via session persistence.
+    GoogleSignin.configure({
+      webClientId: env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    });
+  }, []);
+
   return (
     <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
       <ConvexBetterAuthProvider client={convex} authClient={authClient}>

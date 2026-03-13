@@ -1,19 +1,8 @@
-feat: implement sovereign grading engine and telemetry-aware waiver guards
+feat: implement surgical permissions dashboard and identity rotation conduit
 
-### The Problem
-The verification and waiver subsystems relied on root-level 'status' fields which could become stale or misaligned with actual telemetry data. This created scenarios where users could attempt redemption (waivers) for tasks practically fulfilled via telemetry, or where grading logic was duplicated across the heartbeat and API layers.
-
-### The Fix
-This commit establishes a **Unified Sovereign Grading Engine** and migrates the accountability system to a **Telemetry-First Integrity** model:
-
-- **Sovereign Grading Engine**: Extracted habit fulfillment logic into a centralized `evaluateGradingVerdict()` function. It performs deep analysis of style-specific checkpoints (Stay Throughout vs. Just Show Up) to determine the mathematical pass/fail state independent of the master status field.
-- **Deep Waiver Integrity**: Integrated the grading engine into the `waivers:startSession` API. The system now performs a real-time telemetry check before allowing a redemption window to open, blocking "Waiver Sniping" on successful but un-finalized tasks.
-- **Graceful Error Handling**: Refactored the waivers state machine to return structured failure responses (`{ success: false }`) instead of throwing server-side exceptions. This ensures a clean production log and professional user feedback.
-- **Reactive UI Feedback**: Updated the mobile `EventDetailModal` to handle API-level rejections gracefully, presenting specific fulfillment reasons to the user via the failure modal.
-- **Production-Grade Standard**: Standardized internal documentation (JSDoc) across the execution pipeline and normalized log formats for high-reliability monitoring.
-
-### Technical Changes
-- **runner.ts**: Implemented and exported the core `evaluateGradingVerdict` engine.
-- **waivers.ts**: Implemented telemetry-based fulfillment guards in `startSession` with graceful response patterns.
-- **EventDetailModal.tsx**: Enhanced the waiver activation conduit with robust result parsing and failure modal integration.
-- **verify.ts / update.ts**: Refined internal documentation to reflect the shift toward telemetry-authoritative grading.
+- Created usePermissions hook to programmatically probe OS/hardware authorization status (GPS, Camera, Notifications).
+- Transformed Profile screen into a high-fidelity "System Manifest" dashboard with real-time color-coded health metrics.
+- Integrated handleSignOut conduit on Profile and Welcome screens to purge both app sessions and Google SSO hardware tokens, enabling seamless Gmail identity rotation.
+- Migrated GoogleSignin configuration to root _layout.tsx to resolve critical "apiClient is null" race conditions during session persistence.
+- Revitalized onboarding entry logic with premium cinematic animations and high-contrast typography.
+- Standardized hardware permission subtitles for clear user guidance ("Permission active" vs "Needed for gates").

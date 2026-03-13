@@ -1,9 +1,20 @@
 import { useRootNavigationState, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Image, ImageBackground, Text, View } from "react-native";
+import Animated, { FadeInDown, FadeInUp, ZoomIn } from "react-native-reanimated";
+import { withUniwind } from "uniwind";
 import { AuthHeading, AuthTitle, PrimaryButton, ScreenContainer } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 
+const UView = withUniwind(View);
+const UText = withUniwind(Text);
+
+/**
+ * OnboardingIndex: The Atmospheric Entrance
+ * -----------------------------------------------------------------------------
+ * This is the cold-start entry point. It uses heavy brand imagery and 
+ * high-contrast messaging to define the app's 'Strict Mode' personality.
+ */
 export default function Index() {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
@@ -26,12 +37,12 @@ export default function Index() {
       <ImageBackground
         source={require("../assets/images/onboarding.png")}
         resizeMode="cover"
-        style={{ flex: 1 }}
+        className="flex-1"
       >
-        <ScreenContainer className="">
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-white text-lg">Loading...</Text>
-          </View>
+        <ScreenContainer>
+          <UView className="flex-1 items-center justify-center">
+            <UText className="text-white text-lg font-bold opacity-50">Calibrating Loops...</UText>
+          </UView>
         </ScreenContainer>
       </ImageBackground>
     );
@@ -41,31 +52,49 @@ export default function Index() {
     <ImageBackground
       source={require("../assets/images/onboarding.png")}
       resizeMode="cover"
-      style={{ flex: 1 }}
+      className="flex-1"
     >
-      <ScreenContainer className="">
-        <View className="mt-9 items-center px-3">
-          <AuthTitle>Welcome to CommitT</AuthTitle>
-          <AuthHeading>Regain control over your habit loops</AuthHeading>
-        </View>
+      <ScreenContainer>
+        {/* ── MANIFESTO BLOCK ── */}
+        <Animated.View 
+          entering={FadeInDown.duration(800).delay(200)}
+          className="mt-12 items-center px-6"
+        >
+          <AuthTitle className="text-5xl tracking-tighter">CommitT</AuthTitle>
+          <AuthHeading className="text-center mt-2 opacity-80">
+            Regain absolute control{"\n"}over your habit loops.
+          </AuthHeading>
+        </Animated.View>
 
-        <View className="mb-1 items-center">
+        {/* ── LOGO ENTITY ── */}
+        <Animated.View 
+          entering={ZoomIn.duration(1000).delay(400)}
+          className="items-center justify-center flex-1"
+        >
           <Image
             source={require("../assets/images/logo.png")}
-            style={{
-              width: 370,
-              height: 370,
-              marginVertical: 10,
-            }}
+            style={{ width: 400, height: 400 }}
             resizeMode="contain"
           />
-        </View>
+        </Animated.View>
 
         <View className="flex-1" />
 
-        <View className="mb-6">
-          <PrimaryButton onPress={() => router.push("/(auth)/signin")}>Let's Go!!</PrimaryButton>
-        </View>
+        {/* ── ENGAGEMENT CONDUIT ── */}
+        <Animated.View 
+          entering={FadeInUp.duration(800).delay(600)}
+          className="px-6 pb-12"
+        >
+          <PrimaryButton 
+            className="shadow-2xl shadow-[#4FA0FF]/30"
+            onPress={() => router.push("/(auth)/signin")}
+          >
+            INITIALIZE SESSION
+          </PrimaryButton>
+          <UText className="mt-6 text-center text-gray-500 text-xs font-bold uppercase tracking-widest">
+            Identity verification required
+          </UText>
+        </Animated.View>
       </ScreenContainer>
     </ImageBackground>
   );
