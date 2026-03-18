@@ -184,7 +184,9 @@ export default function MainLayout() {
            <UView className="flex-row items-center gap-4">
               {rightAction && <View>{rightAction}</View>}
               {!rightAction && (
-                <MaterialCommunityIcons name="bell-outline" size={24} color="#333" />
+                <UPressable onPress={() => router.push("/(notifications)")}>
+                  <MaterialCommunityIcons name="bell-outline" size={24} color="#333" />
+                </UPressable>
               )}
            </UView>
         </UView>

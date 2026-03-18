@@ -1,5 +1,5 @@
-build: lock application orientation to portrait mode
+feat(native): add notifications screen and fix navigation UI tearing
 
-- Updated app.config.js to set orientation to 'portrait'.
-- Disabled horizontal tilt to ensure a consistent vertical user experience across all screens.
-- Requires native rebuild (prebuild + run:android) to apply manifest changes.
+- Created a new [(notifications)](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/_layout.tsx:301:0-328:1) route group with a dedicated index screen.
+- Made the header bell icon in the main layout interactive, routing to `/(notifications)`.
+- Applied global `contentStyle: { backgroundColor: "black" }` to the root React Navigation stack. This eliminates the default white canvas peek-through (ghosting/flashing) during fast slide transitions, ensuring seamless dark-mode navigation.
