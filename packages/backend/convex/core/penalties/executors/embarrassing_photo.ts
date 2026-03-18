@@ -62,38 +62,45 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
         to: Array.isArray(emailTo) 
           ? emailTo.map((email: string) => ({ email })) 
           : [{ email: emailTo }],
-        subject: emailSubject || `⚠️ ACCOUNTABILITY REPORT: Commitment Breach by Maajith`,
+        subject: emailSubject || `Accountability Report: Task Update for Maajith`,
         htmlContent: `
-          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; color: #333; line-height: 1.6;">
-            <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #FF3B30; padding-bottom: 10px;">
-              <h1 style="color: #FF3B30; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px;">Accountability Breach</h1>
-              <p style="color: #666; font-size: 14px; margin-top: 5px;">Case ID: ${instance._id.substring(0, 8)} | Terminal Consequence</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333333; line-height: 1.5;">
+            <div style="padding: 20px 0; border-bottom: 1px solid #eeeeee; margin-bottom: 20px;">
+              <h2 style="margin: 0; color: #2C3E50; font-size: 20px; font-weight: 600;">Accountability Report</h2>
+              <p style="margin: 4px 0 0 0; color: #7F8C8D; font-size: 14px;">Reference ID: ${instance._id.substring(0, 8)}</p>
             </div>
             
-            <p style="font-size: 16px;">This notice is to inform you that a commitment has been failed. Per the pre-arranged accountability contract, the following consequence has been automatically triggered.</p>
+            <p style="font-size: 16px; margin-bottom: 20px;">
+              Hello,<br><br>
+              This automated notice is to inform you that a pre-scheduled commitment was not completed successfully. As part of a predefined accountability protocol, you were designated as the recipient for this notification.
+            </p>
             
-            <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border-left: 4px solid #FF3B30; margin: 25px 0;">
-              <p style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase; font-weight: bold;">Commitment Header:</p>
-              <h3 style="margin: 5px 0 15px 0; font-size: 20px;">${instance.title}</h3>
+            <div style="background-color: #F8F9FA; padding: 20px; border-radius: 6px; margin-bottom: 24px;">
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #7F8C8D; text-transform: uppercase; font-weight: 600;">Task Overview</p>
+              <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #2C3E50; font-weight: 500;">${instance.title}</h3>
               
-              <p style="margin: 0; font-size: 14px; color: #666; text-transform: uppercase; font-weight: bold;">Shame Message:</p>
-              <p style="margin: 5px 0; font-size: 18px; color: #333; font-style: italic; background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #eee;">
-                "${emailBody || "I failed to keep my word and accept this consequence."}"
+              <p style="margin: 0 0 4px 0; font-size: 12px; color: #7F8C8D; text-transform: uppercase; font-weight: 600;">Participant Message</p>
+              <p style="margin: 0; font-size: 16px; color: #34495E; font-style: italic; background-color: #FFFFFF; padding: 12px; border-radius: 4px; border: 1px solid #EAECEE;">
+                "${emailBody || "I was unable to complete this task as committed."}"
               </p>
             </div>
 
-            <p style="font-weight: bold; margin-bottom: 15px;">Evidence Attachment:</p>
-            <div style="text-align: center; background: #000; padding: 10px; border-radius: 8px;">
-              ${photoUrl ? `
-                <img src="${photoUrl}" alt="Evidence" style="max-width: 100%; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);" />
-              ` : `
-                <p style="color: #fff; font-style: italic;">No photo evidence was attached to this contract.</p>
-              `}
+            <div style="margin-bottom: 30px;">
+              <p style="margin: 0 0 10px 0; font-size: 14px; color: #2C3E50; font-weight: 600;">Attached Document:</p>
+              <div style="background-color: #F8F9FA; padding: 16px; border-radius: 6px; text-align: center;">
+                ${photoUrl ? `
+                  <img src="${photoUrl}" alt="Attachment" style="max-width: 100%; height: auto; border-radius: 4px; display: block; margin: 0 auto; border: 1px solid #EAECEE;" />
+                ` : `
+                  <p style="margin: 0; color: #7F8C8D; font-size: 14px; font-style: italic;">No file was attached to this report.</p>
+                `}
+              </div>
             </div>
 
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #999; text-align: center;">
-              <p>This email was automatically generated and sent by the CommitT Accountability Protocol.</p>
-              <p>The participant agreed to these terms prior to the execution window. No manual intervention possible.</p>
+            <div style="border-top: 1px solid #EEEEEE; padding-top: 20px; text-align: center;">
+              <p style="margin: 0; font-size: 12px; color: #95A5A6;">
+                This is an automated operational email generated by the CommitT Accountability System.<br>
+                The participant explicitly authorized this transmission prior to the task window.
+              </p>
             </div>
           </div>
         `

@@ -1,7 +1,6 @@
-refactor(notifications): refine feed UX and document dogfooding debt
+refactor(ui/backend): refine strict mode UX, calendar status colors, and enterprise email templates
 
-- Pushed the WebSocket `ActivityIndicator` loader down below the structural `TabsBar` layer to ensure instant navigation paints without full-screen layout flashing.
-- Rewrote the `Upcoming` tab row templates to parse the user's custom task `description` inline, stripping redundant generic scheduling text.
-- Added explicit `Ends At:` chronological markers onto the feed UI mapping natively against the `_live_schedule_time` backend queue bomb.
-- Stripped informal conversational comments and replaced them with rigorous JSDoc `@remarks` parameters.
-- Formally delineated temporary `Dogfooding Implementation` complexities (system table scraping) vs explicitly scoped `Production Migration Path` roadmapping.
+- Migrated `Strict Mode` indicators off the overarching modal banner into continuous grid alignment deeply nested in [EventDetailTime](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailTime.tsx:40:0-240:1), providing a unified visual aesthetic identical to the standard timezone blocks.
+- Wired native color resolution in [useCalendarEvents](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useCalendarEvents.ts:7:0-76:1) to natively paint penalized dates strictly in Red (`#FF3B30`) and active waivers in Warning Orange (`#FF9F0A`).
+- Formalized [EventDetailHeader](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailHeader.tsx:43:0-121:1) status badge mapping logic to instantly parse and style `penalized` and `waiver_active` edge states.
+- Overhauled the `embarrassing_photo` Brevo HTML email execution core. Completely stripped emoji payloads, loud CSS red-flag triggers, and juvenile copywriting to prevent catastrophic automated spam filtering flags, pivoting the aesthetic to an enterprise-grade automated operations report.

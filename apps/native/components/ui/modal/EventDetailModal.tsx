@@ -31,7 +31,6 @@ import { PenaltySection, WaiverSection } from './EventDetailConditions';
 import { ActionMenu, ActionMenuItem } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from './ConfirmationModal';
 import { WaiverActionModal } from './WaiverActionModal';
-import { StrictModeBanner } from './StrictModeBanner';
 import { useTaskActions } from '@/hooks/commits/useTaskActions';
 import { useRouter } from 'expo-router';
 import { updateInstanceInLocalDb } from '@/lib/local-db-commits';
@@ -390,14 +389,13 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             scrollEnabled={scrollEnabled}
           >
 
-            <StrictModeBanner strictUntil={currentEvent.strict_until} />
-
             {/* ── Time Window (Live Timer) ── */}
             <EventDetailTime
               start={currentEvent.start}
               end={currentEvent.end}
               config={currentEvent.config}
               checkpoints={(currentEvent as any).checkpoints}
+              strictUntil={currentEvent.strict_until}
             />
 
             {/* ── GPS Location (embedded Google Map) ── */}

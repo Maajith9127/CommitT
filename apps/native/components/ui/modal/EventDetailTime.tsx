@@ -32,6 +32,8 @@ export interface EventDetailTimeProps {
   config?: any;
   /** Active checkpoints for "stay_throughout" tasks */
   checkpoints?: any[];
+  /** Timestamp until which the task cannot be modified */
+  strictUntil?: number;
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -41,6 +43,7 @@ export function EventDetailTime({
   end,
   config,
   checkpoints,
+  strictUntil,
 }: EventDetailTimeProps) {
   console.log('[EventDetailTime] Rendering with config:', JSON.stringify(config, null, 2));
   const [now, setNow] = useState(Date.now());
@@ -215,6 +218,23 @@ export function EventDetailTime({
         />
         <BodyText className="text-gray-300 text-base">India Standard Time</BodyText>
       </UView>
+
+      {/* Strict Mode Lock State */}
+      {strictUntil && strictUntil > Date.now() && (
+        <UView className="flex-row items-center mt-6">
+          <MaterialCommunityIcons
+            name="lock-outline"
+            size={24}
+            color="#9CA3AF"
+            style={{ marginRight: 16 }}
+          />
+          <Animated.View style={{ opacity: opacityAnim }}>
+            <BodyText className="text-gray-300 text-base">
+              Till {dayjs(strictUntil).format('D MMM YYYY, h:mm a')}
+            </BodyText>
+          </Animated.View>
+        </UView>
+      )}
 
     </UView>
   );

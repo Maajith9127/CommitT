@@ -48,6 +48,26 @@ export function EventDetailHeader({
   onClose,
   onMoreOptions,
 }: EventDetailHeaderProps) {
+  let borderColor: string | undefined = undefined;
+  let bgColor: string | undefined = undefined;
+  let textColor = 'white';
+  let displayString = status?.replace('_', ' ');
+
+  if (status === 'proceeded' || status === 'waived') {
+    borderColor = 'rgba(76, 217, 100, 0.4)';
+    bgColor = 'rgba(76, 217, 100, 0.1)';
+    textColor = '#4CD964';
+    if (status === 'waived') displayString = 'waived off';
+  } else if (status === 'failed' || status === 'penalized') {
+    borderColor = 'rgba(255, 59, 48, 0.4)';
+    bgColor = 'rgba(255, 59, 48, 0.1)';
+    textColor = '#FF3B30';
+  } else if (status === 'waiver_active') {
+    borderColor = 'rgba(255, 159, 10, 0.4)';
+    bgColor = 'rgba(255, 159, 10, 0.1)';
+    textColor = '#FF9F0A';
+  }
+
   return (
     <>
       {/* ── Top Row Actions (Close & More) ── */}
@@ -84,17 +104,15 @@ export function EventDetailHeader({
           <UView 
             className="px-3 py-1 rounded-full border border-white/20 bg-white/5"
             style={{
-              borderColor: (status === 'proceeded' || status === 'waived') ? 'rgba(76, 217, 100, 0.4)' : status === 'failed' ? 'rgba(255, 59, 48, 0.4)' : undefined,
-              backgroundColor: (status === 'proceeded' || status === 'waived') ? 'rgba(76, 217, 100, 0.1)' : status === 'failed' ? 'rgba(255, 59, 48, 0.1)' : undefined,
+              borderColor: borderColor,
+              backgroundColor: bgColor,
             }}
           >
             <BodyText 
               className="text-xs font-bold uppercase"
-              style={{
-                color: (status === 'proceeded' || status === 'waived') ? '#4CD964' : status === 'failed' ? '#FF3B30' : 'white',
-              }}
+              style={{ color: textColor }}
             >
-              {status === 'waived' ? 'waived off' : status}
+              {displayString}
             </BodyText>
           </UView>
         )}

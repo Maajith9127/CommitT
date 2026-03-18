@@ -49,8 +49,10 @@ export function useCalendarEvents() {
       let eventColor = taskColorMap.get(inst.task_id) || TASK_COLORS[0];
       if (effectiveStatus === "proceeded") {
         eventColor = "#4CD964"; // success green
-      } else if (effectiveStatus === "failed") {
+      } else if (effectiveStatus === "failed" || effectiveStatus === "penalized") {
         eventColor = "#FF3B30"; // danger red
+      } else if (effectiveStatus === "waiver_active") {
+        eventColor = "#FF9F0A"; // warning orange
       }
 
       return {
