@@ -20,10 +20,15 @@ const TABS = [
   { key: "verified", label: "Verified" },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────
-// PROD DATA STRUCTURES
-// ─────────────────────────────────────────────────────────────────────────
-
+/**
+ * TaskInstance representation for the notifications feed.
+ * 
+ * @remarks
+ * `_live_schedule_time` is a temporary dogfooding metric injected directly 
+ * from the Convex systems table. In production, expiry parameters will be 
+ * derived from `end` and `penalty_waiver.deadline_minutes` persisted to
+ * the instance natively.
+ */
 export interface TaskInstance {
   _id: string;
   _creationTime: number;
@@ -38,19 +43,26 @@ export interface TaskInstance {
   penalty_waiver: any;
   recurrence: any;
   task_id: string;
-  _live_schedule_time?: number; // Directly injected exact Cron queue bomb timestamp
+  _live_schedule_time?: number;
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// UI COMPONENTS
-// ─────────────────────────────────────────────────────────────────────────
-
+/**
+ * Reusable layout row for presenting structured context metrics visually.
+ * Applies conditional mapping for formatting active expiration windows.
+ * 
+ * @remarks
+ * Temporary Dogfooding Implementation:
+ * Displays the exact cron execution timestamp as the penalty expiration deadline.
+ * This is extracted directly from the system queue by the backend.
+ * 
+ * Production Migration Path:
+ * Compute this from `instance.end + deadline_minutes` instead of relying 
+ * on the injected `_live_schedule_time` field.
+ */
 function NotificationListItem({ instance, tabType }: { instance: TaskInstance, tabType: Tab }) {
-  // Swapped to a perfectly crisp clock icon for upcoming events
   const iconName = tabType === "upcoming" ? "clock-outline" : tabType === "action_required" ? "alert-decagram-outline" : "check-decagram-outline";
   const formattedTime = dayjs(instance.start).format("MMM D, h:mm A");
   
-  // Extract condition location gracefully
   const locationCondition = instance.conditions?.find((c: any) => c.metric_key === "location");
   const locName = locationCondition?.target?.value?.address?.split(",")[0];
   
@@ -58,17 +70,24 @@ function NotificationListItem({ instance, tabType }: { instance: TaskInstance, t
     <UPress className="active:opacity-70">
       <UView className="flex-row items-start py-4 border-b border-[#2A2A2A] px-4">
         
-        {/* Fixed Width Top-Aligned Icon Container */}
         <UView className="w-[44px] items-end mr-3">
           <MaterialCommunityIcons name={iconName} size={32} color="white" />
         </UView>
 
-        {/* Flex Block mimicking X Notification Contexting */}
         <UView className="flex-1">
           {tabType === "upcoming" ? (
-            <BodyText className="text-gray-300 text-[15px] leading-5">
-              <BodyText className="font-bold text-white">{instance.title}</BodyText> is scheduled for {formattedTime}{locName ? ` at ${locName}` : ""}.
-            </BodyText>
+            <UView className="flex-col">
+              <BodyText className="text-gray-300 text-[15px] leading-5">
+                <BodyText className="font-bold text-white">{instance.title}</BodyText> {instance.description ? `— ${instance.description}` : ""}
+                {locName ? ` at ${locName}` : ""}
+              </BodyText>
+              
+              {instance._live_schedule_time && (
+                <BodyText className="text-[#4FA0FF] font-bold mt-1 text-[13px]">
+                  Ends At: {dayjs(instance._live_schedule_time).format("MMM D, h:mm A")}
+                </BodyText>
+              )}
+            </UView>
           ) : tabType === "action_required" ? (
             <UView className="flex-col">
               <BodyText className="text-gray-300 text-[15px] leading-5">
@@ -79,7 +98,6 @@ function NotificationListItem({ instance, tabType }: { instance: TaskInstance, t
                 {String(instance.penalty?.type || "penalty").replace('_', ' ')} consequence.
               </BodyText>
 
-              {/* Added explicit expiry countdown text explicitly ordered */}
               {instance._live_schedule_time && (
                 <BodyText className="text-[#FF4A4A] font-bold mt-1 text-[13px]">
                   Expires At: {dayjs(instance._live_schedule_time).format("MMM D, h:mm A")}
@@ -98,67 +116,66 @@ function NotificationListItem({ instance, tabType }: { instance: TaskInstance, t
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// MAIN SCREEN
-// ─────────────────────────────────────────────────────────────────────────
-
+/**
+ * Primary root boundary for the notifications navigation path.
+ * Retains continuous layout state via React hooks and Convex WebSockets.
+ * 
+ * @remarks
+ * Subscribes to `api.notifications.read.getGroups` which currently scrapes 
+ * Convex's internal `_scheduled_functions` queue. The subscription is reactive,
+ * auto-executing whenever background systems change. The frontend requires 
+ * zero changes during the production migration phase.
+ */
 export default function NotificationsScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
 
-  // Fetch real data from Convex using our Prod-level backend route
   const data = useQuery(api.api.notifications.read.getGroups, { limit: 50 });
 
-  // Safety fallback if Convex is still establishing websocket link
-  if (data === undefined) {
-    return (
-      <UView className="flex-1 bg-black pt-2 items-center justify-center">
-        <ActivityIndicator size="small" color="#4FA0FF" />
-      </UView>
-    );
-  }
-
-  const upcomingList = (data.upcoming || []) as any[];
-  const waiversList = (data.action_required || []) as any[];
-  const verifiedList = (data.verified || []) as any[];
+  // Safe fallback bindings to prevent mapping crashes during initial load
+  const upcomingList = (data?.upcoming || []) as any[];
+  const waiversList = (data?.action_required || []) as any[];
+  const verifiedList = (data?.verified || []) as any[];
 
   return (
     <UView className="flex-1 bg-black pt-2">
-      {/* ── REUSED TABS COMPONENT ── */}
       <UView className="px-4">
         <TabsBar tabs={TABS} activeTab={activeTab} onChange={(key) => setActiveTab(key as Tab)} />
       </UView>
 
-      {/* ── LIST CONTENT ── */}
-      <UScroll className="flex-1 mt-2" showsVerticalScrollIndicator={false}>
-        
-        {/* UPCOMING */}
-        {activeTab === "upcoming" && upcomingList.map((instance) => (
-          <NotificationListItem
-            key={`up-${instance._id}`}
-            instance={instance}
-            tabType="upcoming"
-          />
-        ))}
-
-        {/* PENALTY WAIVERS (Action Required) */}
-        {activeTab === "action_required" && waiversList.map((instance) => (
-          <NotificationListItem
-            key={`act-${instance._id}`}
-            instance={instance}
-            tabType="action_required"
-          />
-        ))}
-
-        {/* VERIFIED */}
-        {activeTab === "verified" && verifiedList.map((instance) => (
-          <NotificationListItem
-            key={`ver-${instance._id}`}
-            instance={instance}
-            tabType="verified"
-          />
-        ))}
+      {/* Suspend the list feed during WebSocket connection initialization */}
+      {data === undefined ? (
+        <UView className="flex-1 items-center justify-center mt-2">
+          <ActivityIndicator size="small" color="#4FA0FF" />
+        </UView>
+      ) : (
+        <UScroll className="flex-1 mt-2" showsVerticalScrollIndicator={false}>
           
-      </UScroll>
+          {activeTab === "upcoming" && upcomingList.map((instance) => (
+            <NotificationListItem
+              key={`up-${instance._id}`}
+              instance={instance}
+              tabType="upcoming"
+            />
+          ))}
+
+          {activeTab === "action_required" && waiversList.map((instance) => (
+            <NotificationListItem
+              key={`act-${instance._id}`}
+              instance={instance}
+              tabType="action_required"
+            />
+          ))}
+
+          {activeTab === "verified" && verifiedList.map((instance) => (
+            <NotificationListItem
+              key={`ver-${instance._id}`}
+              instance={instance}
+              tabType="verified"
+            />
+          ))}
+            
+        </UScroll>
+      )}
     </UView>
   );
 }
