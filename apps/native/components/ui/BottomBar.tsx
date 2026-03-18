@@ -26,10 +26,10 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       iconFilled: "lock-closed",
       label: "Strict",
     },
-    insights: {
-      icon: "stats-chart-outline",
-      iconFilled: "stats-chart",
-      label: "Insights",
+    notifications: {
+      icon: "notifications-outline",
+      iconFilled: "notifications",
+      label: "Alerts",
     },
     profile: {
       icon: "person-outline",

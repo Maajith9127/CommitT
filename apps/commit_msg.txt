@@ -1,5 +1,8 @@
-feat(native): add notifications screen and fix navigation UI tearing
+feat(notifications): dogfood scheduled tasks with live waiver expirations
 
-- Created a new [(notifications)](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/_layout.tsx:301:0-328:1) route group with a dedicated index screen.
-- Made the header bell icon in the main layout interactive, routing to `/(notifications)`.
-- Applied global `contentStyle: { backgroundColor: "black" }` to the root React Navigation stack. This eliminates the default white canvas peek-through (ghosting/flashing) during fast slide transitions, ensuring seamless dark-mode navigation.
+- Rewrote `api.notifications.read.getGroups` to query Convex's internal `_scheduled_functions` system queue directly as a dogfooding strategy.
+- Implemented payload extraction to isolate `jobArgs.instanceId` and strictly map pending jobs into `Upcoming` (Verifications) and `Waivers` (Enforcements) based on cron execution paths.
+- Replaced vulnerable array mapping with a hardened `ctx.db.get(id)` lookup that automatically catches and logs deleted DB Ghost Jobs.
+- Injected the raw execution bomb timestamp (`_live_schedule_time`) directly from the Cron queue onto task instances to serve as the absolute source of truth.
+- Implemented ascending chronological sorting based on precise countdown margins.
+- Updated `NotificationsListItem` UI to format and display a live `Expires At:` warning using the newly bound system tracking timestamp.

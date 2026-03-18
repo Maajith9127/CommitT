@@ -25,10 +25,10 @@ export function TabsBar({ tabs, activeTab, onChange }: TabsBarProps) {
         return (
           <UPress key={tab.key} onPress={() => onChange(tab.key)} className="flex-1">
             <UView
-              className={`py-3 items-center border-b-2 ${isActive ? "border-blue-500" : "border-transparent"}`}
+              className={`py-3 items-center border-b-2 ${isActive ? "border-[#4FA0FF]" : "border-transparent"}`}
             >
               <AuthTitle
-                className={`mb-0 text-xl font-medium ${isActive ? "text-blue-400" : "text-gray-400"}`}
+                className={`mb-0 text-xl font-medium ${isActive ? "text-[#4FA0FF]" : "text-gray-400"}`}
               >
                 {tab.label}
               </AuthTitle>

@@ -2,7 +2,7 @@ import { Tabs, usePathname, useRouter } from "expo-router";
 import { Text, View, Pressable, Image } from "react-native";
 import { withUniwind } from "uniwind";
 import { BottomTabBar } from "@/components/ui/index";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { HeaderTitle } from "@/components/ui/text";
 import { AddButton, SecondaryButton } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
@@ -139,7 +139,7 @@ export default function MainLayout() {
     
     if (pathname.includes("/calendar")) return { title: "Calendar", icon };
     if (pathname.includes("/strict")) return { title: "Strict Mode", icon };
-    if (pathname.includes("/insights")) return { title: "Insights", icon };
+    if (pathname.includes("/notifications")) return { title: "Alerts", icon: "bell-ring-outline" };
     if (pathname.includes("/profile")) return { title: "Profile", icon };
     
     // Fallback default is the main Commits screen
@@ -183,11 +183,6 @@ export default function MainLayout() {
            {/* Header Right: Actions (e.g., Calendar Icon, Notifications) */}
            <UView className="flex-row items-center gap-4">
               {rightAction && <View>{rightAction}</View>}
-              {!rightAction && (
-                <UPressable onPress={() => router.push("/(notifications)")}>
-                  <MaterialCommunityIcons name="bell-outline" size={24} color="#333" />
-                </UPressable>
-              )}
            </UView>
         </UView>
       )}
@@ -208,7 +203,7 @@ export default function MainLayout() {
             <Tabs.Screen name="commits" />
             <Tabs.Screen name="schedules" />
             <Tabs.Screen name="strict" />
-            <Tabs.Screen name="insights" />
+            <Tabs.Screen name="notifications" />
             <Tabs.Screen name="profile" />
             
             {/* These routes are grouped logically here but hidden from the bottom tab bar */}
