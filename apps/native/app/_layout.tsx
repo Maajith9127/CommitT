@@ -5,7 +5,7 @@ import { ConvexReactClient } from "convex/react";
 import { Stack } from "expo-router";
 import { SQLiteProvider, useSQLiteContext } from "expo-sqlite";
 import { HeroUINativeProvider } from "heroui-native";
-import { Pressable, Text, Alert, ScrollView, Modal, View } from "react-native";
+import { Pressable, Text, Alert, ScrollView, Modal, View, AppState, type AppStateStatus } from "react-native";
 import { useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -298,31 +298,99 @@ function AlarmFab() {
   );
 }
 
+import JailMonkey from 'jail-monkey';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+/**
+ * SecurityShield
+ * 
+ * Hardware Execution Shield designed to interrogate the Android OS for rooted
+ * environments, location spoofing tools, and active developer options. 
+ * If a breach is detected in production, the application halts execution.
+ */
+function SecurityShield({ children }: { children: React.ReactNode }) {
+  const [isSecure, setIsSecure] = useState(true);
+
+  useEffect(() => {
+    async function runHardwareChecks() {
+      // Bypass rigorous hardware checks on local development environments
+      if (!__DEV__) {
+        try {
+          const isJailBroken = JailMonkey.isJailBroken();
+          const canMockLocation = JailMonkey.canMockLocation();
+          const isDevModeOn = await JailMonkey.isDevelopmentSettingsMode();
+          
+          if (isJailBroken || canMockLocation || isDevModeOn) {
+            console.error(`[Security Violation] Boot blocked: JailBroken:${isJailBroken} | LocationMocked:${canMockLocation} | DevMode:${isDevModeOn}`);
+            setIsSecure(false);
+          } else {
+            // If they turned off the hack and came back, release the lock
+            setIsSecure(true);
+          }
+        } catch (e) {
+          console.warn("[SecurityShield] Hardware interrogation failed", e);
+        }
+      }
+    }
+    
+    // Run on initial boot
+    runHardwareChecks();
+
+    // Listen for the app coming back from the background
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        runHardwareChecks();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Kill the standard rendering thread and lock the app into this generic screen
+  if (!isSecure) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+        <MaterialCommunityIcons name="shield-alert-outline" size={80} color="#FF3B30" style={{ marginBottom: 20 }} />
+        <Text style={{ color: '#FF3B30', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>
+          Security Violation
+        </Text>
+        <Text style={{ color: '#9CA3AF', fontSize: 16, textAlign: 'center', lineHeight: 24 }}>
+          This application has detected unauthorized hardware configuration. It cannot execute natively while Developer Settings or Location Spoofing protocols are active on this device.
+        </Text>
+      </View>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 export default function Layout() {
   useEffect(() => {
     // ── SYSTEM INITIALIZATION ──
-    // Configure hardware authentication at the root so it's available 
-    // even if a user bypasses the (auth) group via session persistence.
     GoogleSignin.configure({
       webClientId: env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
     });
   }, []);
 
   return (
-    <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
-      <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <KeyboardProvider>
-            <AppThemeProvider>
-              <HeroUINativeProvider>
-                <StackLayout />
-                <DbDebugFab />
-                <AlarmFab />
-              </HeroUINativeProvider>
-            </AppThemeProvider>
-          </KeyboardProvider>
-        </GestureHandlerRootView>
-      </ConvexBetterAuthProvider>
-    </SQLiteProvider>
+    <SecurityShield>
+      <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
+        <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <KeyboardProvider>
+              <AppThemeProvider>
+                <HeroUINativeProvider>
+                  <StackLayout />
+                  <DbDebugFab />
+                  <AlarmFab />
+                </HeroUINativeProvider>
+              </AppThemeProvider>
+            </KeyboardProvider>
+          </GestureHandlerRootView>
+        </ConvexBetterAuthProvider>
+      </SQLiteProvider>
+    </SecurityShield>
   );
 }

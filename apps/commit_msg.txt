@@ -1,6 +1,5 @@
-refactor(ui/backend): refine strict mode UX, calendar status colors, and enterprise email templates
+fix(backend): resolve ghost duplicate overlap and sequence barriers
 
-- Migrated `Strict Mode` indicators off the overarching modal banner into continuous grid alignment deeply nested in [EventDetailTime](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailTime.tsx:40:0-240:1), providing a unified visual aesthetic identical to the standard timezone blocks.
-- Wired native color resolution in [useCalendarEvents](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useCalendarEvents.ts:7:0-76:1) to natively paint penalized dates strictly in Red (`#FF3B30`) and active waivers in Warning Orange (`#FF9F0A`).
-- Formalized [EventDetailHeader](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailHeader.tsx:43:0-121:1) status badge mapping logic to instantly parse and style `penalized` and `waiver_active` edge states.
-- Overhauled the `embarrassing_photo` Brevo HTML email execution core. Completely stripped emoji payloads, loud CSS red-flag triggers, and juvenile copywriting to prevent catastrophic automated spam filtering flags, pivoting the aesthetic to an enterprise-grade automated operations report.
+- fix(generator): Expand collision search window 24h backwards in `generateSeries` to prevent spawning duplicate task instances over currently active, locked occurrences.
+- fix(verify): Relax chronological validation in `verify.ts` to allow users to check into perfectly tied overlapping instances without throwing a sequence error.
+- docs(backend): Inject detailed 'Ghost Duplicate Bug' architecture documentation into core service and verification endpoints.

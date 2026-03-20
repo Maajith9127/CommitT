@@ -237,13 +237,17 @@ async function generateSeries(
 
   if (slots.length === 0) return null;
 
-  // 2. BULK FETCH EXISTING INSTANCES
-  // We fetch all existing instances for this user across the generation horizon.
-  // This allows us to avoid overlapping with default instances of other tasks,
-  // manual exceptions, and strict mode locks.
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 2. BULK FETCH EXISTING INSTANCES (WITH COLLISION FIX)
+  // We actively look backward 24 hours into the past before generating!
+  // If we don't, instances that are locked in "Strict Mode" (which started 5 mins ago) 
+  // won't appear in the query, causing the system to blindly spawn a "Ghost Duplicate"
+  // directly overlapping the active event.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const lookbackTime = fromTime - (24 * 60 * 60 * 1000);
   const existingInstances = await ctx.db
     .query("taskInstances")
-    .withIndex("by_assignee_start", (q) => q.eq("assignee_id", task.assignee_id).gte("start", fromTime))
+    .withIndex("by_assignee_start", (q) => q.eq("assignee_id", task.assignee_id).gte("start", lookbackTime))
     .collect();
 
   console.log(`[Service:generateSeries] Fetched ${existingInstances.length} existing instances for collision check.`);

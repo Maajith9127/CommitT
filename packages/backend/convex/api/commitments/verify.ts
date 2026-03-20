@@ -72,7 +72,7 @@ export default authedMutation({
 
     // ── STEP 3: Sequence check ──────────────────────────────────────────────
     // Users must verify tasks in chronological order. We find the earliest
-    // pending instance (by start time) and reject if it doesn't match.
+    // pending instance (by start time) and reject if the user tries to skip ahead.
     //
     // Index used: `by_assignee_start` → sorted by [assignee_id, start].
     // We then filter for status === "pending" and take the first result.
@@ -84,9 +84,16 @@ export default authedMutation({
       .filter((q) => q.eq(q.field("status"), "pending"))
       .first();
 
-    if (!nextPending || nextPending._id !== args.instanceId) {
-      console.warn(`[verify] SEQUENCE: User tried to verify ${args.instanceId}, but next pending by time is ${nextPending?._id ?? "none"}`);
-      return { success: false, status: "failed", message: "This is not your next pending task. You can only verify the task you're supposed to do right now." };
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 🔥 THE GHOST DUPLICATE / OVERLAP FIX:
+    // We relaxed the strict `instanceId` match. If two tasks somehow overlap or run
+    // at the EXACT same millisecond, they effectively tie for "first place". 
+    // This allows the user to click and verify either of them without the backend
+    // screaming "This is not your next pending task!"
+    // ─────────────────────────────────────────────────────────────────────────────
+    if (!nextPending || nextPending.start < instance.start) {
+      console.warn(`[verify] SEQUENCE: User skipped ahead! Next pending starts at ${nextPending?.start}, but this instance starts at ${instance.start}`);
+      return { success: false, status: "failed", message: "You cannot skip ahead! You have an older task that is still pending or active." };
     }
 
     console.log(`[verify]  Sequence check passed — this IS the next pending instance`);
