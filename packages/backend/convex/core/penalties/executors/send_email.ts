@@ -32,28 +32,24 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
   console.log(`[EXECUTOR:send_email] Initiating Brevo blast for Task: ${instance.title} to ${recipientEmail}`);
 
   try {
-    const BREVO_API_KEY = process.env.BREVO_API_KEY;
-    if (!BREVO_API_KEY) {
-      throw new Error("BREVO_API_KEY is not set in environment variables");
+    const RESEND_API_KEY = process.env.RESEND_API_KEY;
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not set in environment variables");
     }
 
-    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const toArray = Array.isArray(recipientEmail) ? recipientEmail : [recipientEmail];
+
+    const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "accept": "application/json",
-        "api-key": BREVO_API_KEY,
-        "content-type": "application/json"
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        sender: { 
-          name: "CommitT Accountability", 
-          email: "maajithanas@gmail.com" // Verified sender in your Brevo account
-        },
-        to: Array.isArray(recipientEmail) 
-          ? recipientEmail.map(email => ({ email })) 
-          : [{ email: recipientEmail }],
+        from: "CommitT Accountability <noreply@hey-jarvis-accountability.store>",
+        to: toArray,
         subject: emailSubject || `[BREACH] Commitment Failed: ${instance.title}`,
-        htmlContent: `
+        html: `
           <div style="font-family: sans-serif; padding: 20px; border: 2px solid #FF3B30; border-radius: 10px;">
             <h2 style="color: #FF3B30;">Commitment Breach Detected</h2>
             <p>This is an automated accountability notification.</p>
@@ -72,11 +68,11 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(`Brevo API returned ${response.status}: ${JSON.stringify(errorData)}`);
+      throw new Error(`Resend API returned ${response.status}: ${JSON.stringify(errorData)}`);
     }
 
     const result = await response.json();
-    console.log(`[EXECUTOR:send_email] Brevo success! Message ID: ${result.messageId}`);
+    console.log(`[EXECUTOR:send_email] Resend success! Message ID: ${result.id}`);
     return { success: true };
 
   } catch (error: any) {

@@ -49,7 +49,7 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     penalty_waiver: args.penalty_waiver,
   });
 
-  console.log("[Service:createInternal] Validation result:", JSON.stringify(validation, null, 2));
+
 
   if (!validation.valid) {
     throw new Error(`[${validation.errorCode}] ${validation.error}`);
@@ -61,7 +61,7 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
     .withIndex("by_assignee_id", (q) => q.eq("assignee_id", args.assignee_id))
     .collect();
 
-  console.log(`[Service:createInternal] Checking conflicts against ${existingTasks.length} existing tasks`);
+
 
   const conflictResult = findConflict({
     assignee_id: args.assignee_id,
@@ -70,11 +70,8 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
   }, existingTasks);
 
   if (conflictResult.hasConflict) {
-    console.warn("[Service:createInternal] Conflict detected:", JSON.stringify(conflictResult, null, 2));
     throw new Error(`[SCHEDULE_CONFLICT] ${formatConflictMessage(conflictResult.details)}`);
   }
-
-  console.log("[Service:createInternal] No conflicts found. Proceeding to insert.");
 
   // ─────────────────────────────────────────────────────────────────────
   // 3. RESOLVE PENALTY PHOTO URL
@@ -338,10 +335,15 @@ export async function removeInternal(ctx: MutationCtx, args: { id: Id<"tasks">, 
   if (task.assigner_id !== args.user_id) throw new Error("[UNAUTHORIZED] Permission denied");
 
   // 1. Clean up all future instances + cancel any active scheduled job
+  // NOTE: Manual-edited and strict-locked instances are intentionally preserved.
   await Instances.cleanupFuture(ctx, args.id);
   
   // 2. Delete the task itself
   await ctx.db.delete(args.id);
+
+  // 3. Re-sync the schedule for any surviving manual-edited instances.
+  // Without this, orphaned instances would have no active heartbeat job.
+  await syncTaskSchedule(ctx, args.id);
 }
 
 /**

@@ -10,7 +10,7 @@
 import { Recurrence } from "../../types/domain/commitment";
 import { findNextTimeSlot } from "../commitments/scheduler";
 
-const MS_PER_YEAR = 365 * 24 * 60 * 60 * 1000;
+const MS_PER_MONTH = 30 * 24 * 60 * 60 * 1000;
 
 export interface GeneratedSlot {
   startTime: number;
@@ -22,7 +22,7 @@ export interface GeneratedSlot {
  * 
  * - Respects `ends.type === "after"` (count limit)
  * - Respects `ends.type === "on"` (end date)
- * - Caps at the provided horizon (default: 1 year from fromTime)
+ * - Caps at the provided horizon (default: 30 days from fromTime)
  * 
  * @returns Array of { startTime, endTime } sorted chronologically
  */
@@ -30,7 +30,7 @@ export function generateTimeSlots(
   recurrence: Recurrence,
   fromTime: number,
   timezoneOffset: number = 0,
-  horizonMs: number = MS_PER_YEAR,
+  horizonMs: number = MS_PER_MONTH,
 ): GeneratedSlot[] {
   const slots: GeneratedSlot[] = [];
   const horizonEnd = fromTime + horizonMs;

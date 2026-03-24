@@ -1,5 +1,1 @@
-fix(backend): resolve ghost duplicate overlap and sequence barriers
-
-- fix(generator): Expand collision search window 24h backwards in `generateSeries` to prevent spawning duplicate task instances over currently active, locked occurrences.
-- fix(verify): Relax chronological validation in `verify.ts` to allow users to check into perfectly tied overlapping instances without throwing a sequence error.
-- docs(backend): Inject detailed 'Ghost Duplicate Bug' architecture documentation into core service and verification endpoints.
+fix(checkpoint): checkpoint to revert back 

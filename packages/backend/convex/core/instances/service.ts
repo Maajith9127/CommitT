@@ -250,7 +250,7 @@ async function generateSeries(
     .withIndex("by_assignee_start", (q) => q.eq("assignee_id", task.assignee_id).gte("start", lookbackTime))
     .collect();
 
-  console.log(`[Service:generateSeries] Fetched ${existingInstances.length} existing instances for collision check.`);
+
 
   // 3. Map slots to Database Records — with Collision Avoidance
   const instanceIds: Id<"taskInstances">[] = [];
@@ -261,7 +261,6 @@ async function generateSeries(
     );
 
     if (overlappingEvent) {
-      console.log(`[Service:generateSeries] COLLISION DETECTED: Skipping slot ${new Date(slot.startTime).toISOString()} because it overlaps with existing instance: "${overlappingEvent.title}"`);
       continue; // Prevent overlapping instances; priority goes to existing ones.
     }
 
@@ -290,6 +289,7 @@ async function generateSeries(
     });
   }
 
+  console.log(`[Service:generateSeries] Generated ${instanceIds.length} instances for task ${taskId}`);
   return instanceIds[0];
 }
 
