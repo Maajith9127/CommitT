@@ -63,8 +63,8 @@ export async function armAccountabilityContract(
 ) {
   if (!instance.penalty || !instance.penalty_waiver) return;
 
-  // TEMPORARY: Hardcoded 6 second delay for testing mail delivery
-  const expiresAt = Date.now() + 6000;
+  // Calculate the absolute expiration timestamp based on the waiver's configured deadline
+  const expiresAt = Date.now() + (instance.penalty_waiver.deadline_minutes * 60 * 1000);
 
   // Cleanup existing jobs to prevent duplicate enforcement (Safety Guard)
   if (instance.enforcement_job_id) {
