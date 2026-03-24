@@ -1,1 +1,19 @@
-fix(checkpoint): checkpoint to revert back 
+feat(native-scheduler): implement end-of-window alarms & guaranteed mediaplayer looping
+
+**Audio Infrastructure Evolution:**
+- Bundled custom production mp3s (`alarm_start.mp3`, `alarm_end.mp3`) directly into the native Android `/res/raw` directory.
+- Replaced the generic `RingtoneManager` with a robust `MediaPlayer` architecture in [AlarmActivity](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmActivity.kt:29:0-349:1) to guarantee infinite looping of short audio clips across all API levels (fixing OEM-specific Ringtone bugs).
+- Created a deterministic [resolveAlarmSound()](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmScheduler.kt:52:4-67:5) map, guaranteeing the correct psychological audio cue fires (Action pulse vs. Finality hit) without relying on unpredictable Android user default ringtones.
+- Forcibly routed the audio stream using `USAGE_ALARM` AudioAttributes to guarantee sounds aggressively pierce through Do-Not-Disturb (DND) and Silent modes.
+
+**Lifecycle & End-Alarm Expansion:**
+- Engineered a new `END_ALARM` evaluation branch inside the native Android math engine ([findNextTrigger](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmScheduler.kt:216:4-328:5)) to fire at the exact millisecond an event's window closes.
+- Designed the Lockscreen UI to render a distinct red "⏰ Time's Up!" layout.
+- Decoupled `END_ALARM` from local database mutations, allowing it to act purely as a frontend notification while the backend Convex execution runner silently handles the actual verification grading and penalty execution.
+- Ensured the new alarm state seamlessly inherits the existing native "Sticky Note" storage resilience to easily survive phone reboots and app force-closures.
+
+**Backend Infrastructure:**
+- Fully migrated the critical accountability email transport pipeline away from Brevo and integrated the robust Resend HTTP API.
+
+**Security:**
+- Verified and fully re-secured the `JailMonkey` hardware interrogation shield in the root layout to block access from Jailbroken devices, Mock Location spoofers, and Dev Mode users in production.

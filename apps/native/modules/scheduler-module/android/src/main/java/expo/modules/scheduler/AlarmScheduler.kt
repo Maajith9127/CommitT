@@ -35,6 +35,39 @@ object AlarmScheduler {
     private const val KEY_ALARMS_LIST = "AlarmsList"
 
     /**
+     * AUDIO RESOURCE MAP (Production Sound Pipeline)
+     * -----------------------------------------------------------------------
+     * Maps each alarm type to an embedded audio resource in /res/raw/.
+     * This guarantees every alarm fires with a deterministic, bundled sound
+     * regardless of user device configuration, system defaults, or OEM quirks.
+     *
+     * alarm_start -> Energetic pulse for pre-alarms, main start, and check-ins.
+     * alarm_end   -> Heavy finality tone for the "Time's Up" end-of-window alarm.
+     *
+     * To add a new sound: Drop the .mp3 into res/raw/, add a constant here,
+     * and extend resolveAlarmSound() below.
+     */
+    private const val SOUND_KEY_START = "alarm_start"
+    private const val SOUND_KEY_END = "alarm_end"
+
+    /**
+     * resolveAlarmSound()
+     * -----------------------------------------------------------------------
+     * Deterministic sound routing based on alarm type. Decouples sound selection
+     * from user-facing config, ensuring the correct psychological audio cue fires
+     * for each phase of the accountability lifecycle.
+     *
+     * PRE_ALARM / MAIN_ALARM / CHECKPOINT_ALARM -> SOUND_KEY_START (alert, action)
+     * END_ALARM                                 -> SOUND_KEY_END   (finality, closure)
+     */
+    private fun resolveAlarmSound(alarmType: String): String {
+        return when (alarmType) {
+            "END_ALARM" -> SOUND_KEY_END
+            else -> SOUND_KEY_START  // PRE_ALARM, MAIN_ALARM, CHECKPOINT_ALARM
+        }
+    }
+
+    /**
      * scheduleNextAlarm()
      * 
      * The master function. It opens the database, grabs the upcoming tasks, figures out 
@@ -75,10 +108,13 @@ object AlarmScheduler {
             // Query Explanation: "Select all tasks where the end time hasn't happened yet *AND* 
             // the status is actively 'pending', sort them by chronology, and fetch the first 20."
             // NOTE: We now pull 'checkpoints' and 'end_time' to mathematically support continuous pings!
+            // NOTE: We also select 'proceeding' status instances because END_ALARM must
+            // fire even after the user has checked in. The end-of-window alarm is a universal
+            // closure notification that applies to ALL verification styles.
             val cursor = database.rawQuery(
                 """SELECT id, title, start_time, config_json, checkpoints, end_time 
                    FROM task_instances 
-                   WHERE end_time >= ? AND status = 'pending'
+                   WHERE end_time >= ? AND status IN ('pending', 'proceeding')
                    ORDER BY start_time ASC LIMIT 20""",
                 arrayOf(currentTimeMs.toString())
             )
@@ -127,7 +163,7 @@ object AlarmScheduler {
                     }
 
                     // Execute algorithmic check to find the absolute closest actionable alarm
-                    val (triggerTime, alarmType) = findNextTrigger(mainStart, currentTimeMs, configJsonStr, checkpointsStr)
+                    val (triggerTime, alarmType) = findNextTrigger(mainStart, currentTimeMs, configJsonStr, checkpointsStr, mainEnd)
                     
                     Log.v(TAG, "[EVAL_ROW_$rowIndex] Result -> Trigger: $triggerTime, Type: $alarmType")
 
@@ -139,7 +175,9 @@ object AlarmScheduler {
                         bestTitle = title
                         bestAlarmType = alarmType
                         bestMainTime = mainStart
-                        bestSoundKey = currentSoundKey
+                        // Sound routing: Use deterministic alarm-type-driven sound,
+                        // falling back to user config only if resolveAlarmSound is bypassed.
+                        bestSoundKey = resolveAlarmSound(alarmType)
                         bestIsStayThroughout = isStayThroughout
                     }
                     rowIndex++
@@ -183,13 +221,14 @@ object AlarmScheduler {
      * Evaluates staggered pre-alarms AND strictly scheduled structural checkpoints.
      * The moment it finds the absolutely closest event IN THE FUTURE, it returns it instantly.
      * 
-     * @return Pair(TimestampToWakeUpOn, AlarmTypeString) -> "PRE_ALARM", "MAIN_ALARM", "CHECKPOINT_ALARM"
+     * @return Pair(TimestampToWakeUpOn, AlarmTypeString) -> "PRE_ALARM", "MAIN_ALARM", "CHECKPOINT_ALARM", "END_ALARM"
      */
     private fun findNextTrigger(
         mainStartMs: Long, 
         nowMs: Long, 
         configJsonStr: String, 
-        checkpointsStr: String
+        checkpointsStr: String,
+        mainEndMs: Long = 0L
     ): Pair<Long, String> {
         var leadTimeMinutes = 15
         var intervalMinutes = 2
@@ -269,6 +308,19 @@ object AlarmScheduler {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "[ALARM MATH] Structural checkpoints strictly unparseable or empty. Bypassing.", e)
+            }
+        }
+
+        // 4. END_ALARM: Universal window-close notification.
+        //    Fires at the exact end of every event regardless of verification style.
+        //    This tells the user "Time's up!" and triggers the backend verification chain.
+        //    PRIORITY: Lower than PRE, MAIN, and CHECKPOINT — it only wins if all others
+        //    have already passed but the end boundary is still in the future.
+        if (mainEndMs > 0L && mainEndMs > nowMs) {
+            Log.v(TAG, "[ALARM MATH] Found future END_ALARM at $mainEndMs")
+            if (mainEndMs < closestFutureTrigger) {
+                closestFutureTrigger = mainEndMs
+                closestTriggerType = "END_ALARM"
             }
         }
         
@@ -446,7 +498,7 @@ object AlarmScheduler {
                 }
 
                 // 4. Run the exact same Pre-Alarm engine here too
-                val (triggerTime, alarmType) = findNextTrigger(mainStart, currentTimeMs, configJsonStr, checkpointsStr)
+                val (triggerTime, alarmType) = findNextTrigger(mainStart, currentTimeMs, configJsonStr, checkpointsStr, mainEnd)
                 
                 if (triggerTime < bestTriggerTime) {
                     Log.d(TAG, "[FALLBACK_BEST] New Fallback Best: $title at $triggerTime")
@@ -455,7 +507,8 @@ object AlarmScheduler {
                     bestTitle = title
                     bestAlarmType = alarmType
                     bestMainTime = mainStart
-                    bestSoundKey = currentSoundKey
+                    // Sound routing: Deterministic alarm-type-driven sound (mirrors primary flow)
+                    bestSoundKey = resolveAlarmSound(alarmType)
                     bestIsStayThroughout = isStayThroughout
                 }
             }
