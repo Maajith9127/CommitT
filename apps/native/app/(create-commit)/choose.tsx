@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { View, ScrollView } from "react-native";
+import { View } from "react-native";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { PrimaryButton } from "@/components/ui";
 import { TopBar, TabsBar, InlineAddBar, SelectableListItem } from "@/components/ui/blocklist";
+import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
 
 const UView = withUniwind(View);
-const UScroll = withUniwind(ScrollView);
 
 type Tab = "apps" | "webs" | "ai";
 
@@ -75,7 +75,12 @@ export default function ChooseScreen() {
   };
 
   return (
-    <UView className="flex-1 bg-black px-4 pt-10">
+    <ActionScreenLayout
+      className="pt-10"
+      footer={
+        <PrimaryButton onPress={() => {}}>Save</PrimaryButton>
+      }
+    >
       {/* TOP BAR */}
       <TopBar
         onBack={() => router.back()}
@@ -104,46 +109,38 @@ export default function ChooseScreen() {
         />
       )}
 
-      {/* CONTENT */}
-      <UScroll className="flex-1">
-        {/* APPS */}
-        {activeTab === "apps" &&
-          filteredApps.map((app) => (
-            <SelectableListItem
-              key={app.id}
-              icon="cellphone"
-              label={app.name}
-              selected={app.selected}
-              onToggle={() => toggleApp(app.id)}
-            />
-          ))}
+      {/* CONTENT (APPs) */}
+      {activeTab === "apps" &&
+        filteredApps.map((app) => (
+          <SelectableListItem
+            key={app.id}
+            icon="cellphone"
+            label={app.name}
+            selected={app.selected}
+            onToggle={() => toggleApp(app.id)}
+          />
+        ))}
 
-        {/* WEBS */}
-        {activeTab === "webs" &&
-          webs.map((web) => (
-            <SelectableListItem
-              key={web.id}
-              icon="web"
-              label={web.name}
-              selected={web.selected}
-              onToggle={() => toggleWeb(web.id)}
-            />
-          ))}
+      {/* CONTENT (WEBS) */}
+      {activeTab === "webs" &&
+        webs.map((web) => (
+          <SelectableListItem
+            key={web.id}
+            icon="web"
+            label={web.name}
+            selected={web.selected}
+            onToggle={() => toggleWeb(web.id)}
+          />
+        ))}
 
-        {/* AI */}
-        {activeTab === "ai" && (
-          <UView className="py-10 items-center">
-            <FooterText className="text-gray-500 text-center">
-              AI-generated rules will appear here
-            </FooterText>
-          </UView>
-        )}
-      </UScroll>
-
-      {/* SAVE */}
-      <UView className="mb-8">
-        <PrimaryButton onPress={() => {}}>Save</PrimaryButton>
-      </UView>
-    </UView>
+      {/* CONTENT (AI) */}
+      {activeTab === "ai" && (
+        <UView className="py-10 items-center">
+          <FooterText className="text-gray-500 text-center">
+            AI-generated rules will appear here
+          </FooterText>
+        </UView>
+      )}
+    </ActionScreenLayout>
   );
 }
