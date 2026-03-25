@@ -54,16 +54,16 @@ export function DigitalCommitItem({
         >
           {items.map((item) => (
             <UView key={item.id} className="mr-5 flex-row items-center">
-              {item.iconName ? (
+              {item.icon ? (
+                <Image
+                  source={{ uri: item.icon }}
+                  style={{ width: 32, height: 32, borderRadius: 8 }}
+                />
+              ) : item.iconName ? (
                 <MaterialCommunityIcons
                   name={item.iconName as any}
                   size={item.iconSize ?? 24}
                   color={item.iconColor ?? accentColor}
-                />
-              ) : item.icon ? (
-                <Image
-                  source={{ uri: item.icon }}
-                  style={{ width: 32, height: 32, borderRadius: 8 }}
                 />
               ) : null}
 

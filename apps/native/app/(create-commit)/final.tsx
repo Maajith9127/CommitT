@@ -1,10 +1,11 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, useWindowDimensions, View, Text, Switch, Image } from "react-native";
 import { withUniwind } from "uniwind";
 import type { Id } from "@commit/backend/convex/_generated/dataModel";
 import { useFreshPhotoUrl } from "@/hooks/useFreshPhotoUrl";
+import { AppListerModule, type InstalledApp } from "@/modules/app-lister-module";
 
 import { ActionScreenLayout, AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
@@ -18,6 +19,13 @@ import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
 import { useCommitTask } from "@/hooks/useCommitTask";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
+
+/** Metadata for a device-installed application resolved from native */
+interface ResolvedApp {
+  id: string;
+  name: string;
+  icon?: string;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Styled Components
@@ -182,6 +190,41 @@ export default function FinalScreen() {
 
   // Mutations and DB handled by custom hook 
   const executeCommit = useCommitTask();
+
+  // Native App Data
+  const [allInstalledApps, setAllInstalledApps] = useState<InstalledApp[]>([]);
+
+  useEffect(() => {
+    async function fetchApps() {
+      try {
+        const apps = await AppListerModule.getInstalledApps();
+        setAllInstalledApps(apps);
+      } catch (err) {
+        console.error("Failed to fetch installed apps:", err);
+      }
+    }
+    fetchApps();
+  }, []);
+
+  /** Filter the entire device list to only those in the user's blocklist */
+  const selectedAppsMetadata = useMemo(() => {
+    const blockCondition = draft.conditions.find(
+      (c) => c.metric_key === "digital_commitment"
+    );
+    const storeApps = (blockCondition?.target.value as { apps: string[] })?.apps || [];
+
+    return storeApps
+      .map((pkg) => {
+        const app = allInstalledApps.find((a) => a.id === pkg);
+        if (!app) return null;
+        return {
+          id: app.id,
+          name: app.name,
+          icon: app.iconBase64 || undefined,
+        };
+      })
+      .filter(Boolean) as ResolvedApp[];
+  }, [draft.conditions, allInstalledApps]);
   // ─────────────────────────────────────────────────────────────────────────
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -569,7 +612,11 @@ export default function FinalScreen() {
         <UView className="mb-3">
           <HeaderTitle>Digital Commitment</HeaderTitle>
         </UView>
-        <CommitCard className="mb-5" onPress={() => router.push("/(create-commit)/choose")} />
+        <CommitCard
+          className="mb-5"
+          apps={selectedAppsMetadata}
+          onPress={() => router.push("/(create-commit)/choose")}
+        />
 
 
 

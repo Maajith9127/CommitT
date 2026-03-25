@@ -1,16 +1,7 @@
-feat: Implement Mission-Critical Accessibility Enforcer (M.C.A.E.) and Visual Neutralization UI
+feat(native-ui): resolve dynamic app icons in Digital Commitment summary
 
-[ARCHITECTURAL UPGRADE]
-Re-engineered the blocker-module to transition from silent enforcement to a high-visibility, native neutralization layer (BlockerOverlayActivity). This update establishes a multi-layered security shield across the entire Android OS during active commitment windows.
-
-[KEY CAPABILITIES]
-- PROTOCOL A (Anti-Tamper): Implemented a real-time UI inspection engine to intercept long-presses on the CommitT application icon. This prevents users from accessing the 'Uninstall' or 'App Info' menus from the launcher during commitment sessions.
-- PROTOCOL B (Violation Neutralization): Automated the interception of system-level uninstaller packages (com.android.packageinstaller, etc.) and unauthorized foreground application windows.
-- NATIVE UI ENFORCER: Launched a high-performance Kotlin-based overlay that bypasses the JS thread and Android keyguard, ensuring deterministic app blocking with a professional CommitT terracotta UI.
-- PRODUCTION HARDENING: Refactored the core Accessibility Service into a modular, protocol-driven architecture (M.C.A.E.) with rigorous memory management (Node recycling) and direct-to-vault SQLite lookups for sub-5ms latency.
-- SECURE BYPASS POLICY: Removed the 'com.android.settings' bypass, allowing full commitment enforcement on the device configuration layer.
-
-[TECHNICAL SPECS]
-- Accessibility events: typeWindowStateChanged | typeViewLongClicked
-- Native UI: Programmatic layout construction (0.0s render lag)
-- Vault lookup: Direct SQLite (bypassing React Native bridge)
+- Replace static "AC Remote Control" placeholder with real device-installed app data.
+- Integrate AppListerModule into FinalScreen to resolve blocklisted package names.
+- Update DigitalCommitment and DigitalCommitItem to render Base64 icons from native.
+- Fix native module import strategy in final.tsx from namespace to named import.
+- Maintain high-fidelity design placeholders for Websites and AI sections.

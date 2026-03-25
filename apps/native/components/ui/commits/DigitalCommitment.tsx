@@ -9,22 +9,31 @@ const UView = withUniwind(View);
 type Props = {
   className?: string;
   onPress?: () => void;
+  apps?: any[];
 };
 
-export function CommitCard({ className = "", onPress }: Props) {
+export function CommitCard({ 
+  className = "", 
+  onPress, 
+  apps = [] 
+}: Props) {
   return (
     <Pressable onPress={onPress}>
       <UView className={`w-full rounded-3xl bg-[#1A1A1A] px-5 py-1 ${className}`}>
         {/* APPLICATIONS */}
         <DigitalCommitItem
           title="Applications"
-          items={[
-            {
-              id: "1",
-              name: "AC Remote Control",
-              iconName: "apps",
-            },
-          ]}
+          items={
+            apps.length > 0
+              ? apps
+              : [
+                  {
+                    id: "1",
+                    name: "AC Remote Control",
+                    iconName: "apps",
+                  },
+                ]
+          }
           icons={
             <>
               <MaterialCommunityIcons name="grid" size={18} color="#4FA0FF" />
@@ -36,7 +45,9 @@ export function CommitCard({ className = "", onPress }: Props) {
                 color="#4FA0FF"
                 style={{ marginLeft: 12 }}
               />
-              <FooterText className="ml-1 text-blue-400">1</FooterText>
+              <FooterText className="ml-1 text-blue-400">
+                {apps.length > 0 ? apps.length : "1"}
+              </FooterText>
             </>
           }
         />
