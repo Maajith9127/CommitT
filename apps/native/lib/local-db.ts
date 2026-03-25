@@ -275,6 +275,13 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   }
 
   // ── Migration 10 → 11 (add blocked_websites table) ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // WEB BLOCKING INFRASTRUCTURE:
+  // While the current Android Enforcer (BlockerAccessibilityService) performs 
+  // high-performance surgical queries directly on 'task_instances' for app-launches,
+  // the 'blocked_websites' table is established here to support future URL-level
+  // interception within the Chrome browser.
+  // ─────────────────────────────────────────────────────────────────────────────
   if (currentVersion === 10) {
     console.log('[Migration] Migrating from 10 to 11 (Blocked Websites)...');
     
@@ -291,6 +298,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     `);
     
     console.log('[Migration] 10 → 11 Successful.');
+    currentVersion = 11;
   }
 }
 

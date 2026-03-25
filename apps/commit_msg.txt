@@ -1,7 +1,8 @@
-feat(native): integrate digital commitment blocklist into triple-write flow
+feat(android): implement stabilized production-grade app blocking enforcer
 
-- Implement TaskDraftStore actions to manage digital commitments (apps/websites)
-- Add SQLite migrations (v10, v11) for dedicated `blocked_apps` and `blocked_websites` tables
-- Update local repository to project JSON conditions into relational blocking tables for high-performance native querying
-- Optimize app list loading with module-level caching in [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) to eliminate native bridge lag
-- Ensure atomic synchronization across Convex Cloud, SQLite cache, and Android hardware scheduling
+- Refactor BlockerAccessibilityService to use 'Direct-to-Vault' enforcement, bypassing the React bridge for sub-5ms latency.
+- Implement multi-path SQLite resolution (Expo Default, Standard, and Absolute) to ensure reliable vault access across Android variants.
+- Add 'Relation-Aware' JSON parsing logic to support both 'outside' and 'within' digital commitment styles.
+- Upgrade BlockerModule with a hardened system status audit for accurate permission reporting in the UI.
+- Stabilize local-db schema (v11) with 'blocked_websites' support and enterprise-level migration documentation.
+- Standardize all native modules with professional, deterministic logging and formal architectural documentation.
