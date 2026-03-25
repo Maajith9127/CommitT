@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Image, ScrollView, View } from "react-native";
+import { Image, ScrollView, View, Pressable } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText, HeaderTitle } from "@/components/ui/text";
 
@@ -23,6 +23,7 @@ type Props = {
   showBorder?: boolean;
   accentColor?: string; // icon color
   titleColor?: string; // title color
+  onPress?: () => void;
 };
 
 export function DigitalCommitItem({
@@ -32,17 +33,20 @@ export function DigitalCommitItem({
   showBorder = true,
   accentColor = "#4FA0FF",
   titleColor = "#FFFFFF",
+  onPress,
 }: Props) {
   return (
     <UPress className="py-3">
-      {/* TITLE ROW */}
-      <UView className="flex-row items-center justify-between">
-        <HeaderTitle className="text-lg" style={{ color: titleColor }}>
-          {title}
-        </HeaderTitle>
+      {/* TITLE ROW - Wrapped in Pressable to avoid scroll conflicts */}
+      <Pressable onPress={onPress}>
+        <UView className="flex-row items-center justify-between">
+          <HeaderTitle className="text-lg" style={{ color: titleColor }}>
+            {title}
+          </HeaderTitle>
 
-        <UView className="flex-row items-center">{icons}</UView>
-      </UView>
+          <UView className="flex-row items-center">{icons}</UView>
+        </UView>
+      </Pressable>
 
       {/* ITEMS */}
       {items.length > 0 && (

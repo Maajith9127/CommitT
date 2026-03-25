@@ -1,7 +1,6 @@
-feat(native-ui): resolve dynamic app icons in Digital Commitment summary
+fix(native-ui): decouple navigation from scrollable digital commit items
 
-- Replace static "AC Remote Control" placeholder with real device-installed app data.
-- Integrate AppListerModule into FinalScreen to resolve blocklisted package names.
-- Update DigitalCommitment and DigitalCommitItem to render Base64 icons from native.
-- Fix native module import strategy in final.tsx from namespace to named import.
-- Maintain high-fidelity design placeholders for Websites and AI sections.
+- Remove the all-encompassing Pressable wrapper from the CommitCard to prevent gesture conflicts.
+- Refactor DigitalCommitItem to wrap only the header row (title and icons) in a Pressable.
+- Ensure the application ScrollView is independent of the navigation trigger for smoother horizontal scrolling.
+- This allows users to swipe through blocked apps without accidentally triggering a transition to the selection screen.
