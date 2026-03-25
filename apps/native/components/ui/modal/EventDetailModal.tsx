@@ -27,7 +27,7 @@ import { useCalendarStore } from '@/stores/useCalendarStore';
 import { EventDetailHeader } from './EventDetailHeader';
 import { EventDetailTime } from './EventDetailTime';
 import { LocationSection } from './EventDetailLocation';
-import { PenaltySection, WaiverSection } from './EventDetailConditions';
+import { PenaltySection, WaiverSection, BlocklistSection } from './EventDetailConditions';
 import { ActionMenu, ActionMenuItem } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from './ConfirmationModal';
 import { WaiverActionModal } from './WaiverActionModal';
@@ -407,6 +407,9 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
               isLocVerifying={verifyingMetric === 'location'}
               onVerifyLoc={(evidence: any) => handleVerifyCondition('location', evidence)}
             />
+
+            {/* ── Blocked Apps ── */}
+            <BlocklistSection event={currentEvent} />
 
             {/* ── Financial Penalty ── */}
             <PenaltySection event={currentEvent} />

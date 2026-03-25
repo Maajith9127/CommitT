@@ -1,7 +1,8 @@
-feat(ui): optimize digital commitment flow and resolve navigation latency
+feat(native/ui): implement high-fidelity Digital Commitment blocklist in EventDetailModal
 
-- Implement InteractionManager to defer heavy rendering in choose.tsx, ensuring 60FPS navigation.
-- Refactor application list to use virtualized FlatList for high-performance scrolling.
-- Add premium horizontal skeleton shimmers to DigitalCommitItem for zero-snap loading on FinalScreen.
-- Decouple header counts from metadata resolution to keep card indicators static and accurate from mount.
-- Revert native bridge caching to ensure real-time app resolution while maintaining UI thread fluidity.
+- Added [BlocklistSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:300:0-387:2) to [EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0) with dynamic native app metadata resolution (icons & names).
+- Integrated the blocklist into `EventDetailModal` with a premium, horizontally scrollable icon gallery.
+- Optimized modal layout hierarchy: Time → Location → Digital Commitment → Penalty → Waiver.
+- Fixed a runtime crash related to named imports from the [AppListerModule](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/app-lister-module/index.ts:34:0-38:2) bridge.
+- Harmonized iconography using `shield-lock-outline` / `cellphone-lock` and consistent `gray-400` styling.
+- Improved [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) loading stability with a dedicated `HorizontalAppSkeleton` and static header counts derived from the draft store.

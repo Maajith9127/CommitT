@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View } from 'react-native';
+import { View, ScrollView, Image } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { BodyText } from '@/components/ui/text';
+import { BodyText, FooterText } from '@/components/ui/text';
+import { AppListerModule } from '@/modules/app-lister-module';
+import { HorizontalAppSkeleton } from '@/components/ui/skeletons/HorizontalAppSkeleton';
 import Animated, { 
   useAnimatedStyle, 
   withRepeat, 
@@ -283,5 +285,104 @@ export const WaiverSection = ({ event, onPress }: { event: any; onPress?: () => 
       status={status}
       onPress={onPress}
     />
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCKLIST SECTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+type ResolvedApp = {
+  id: string;
+  name: string;
+  icon?: string;
+};
+
+/**
+ * Renders the list of apps blocked by the digital commitment.
+ * Uses the same row layout as Penalty/Waiver, but adds a horizontal icon list.
+ */
+export const BlocklistSection = ({ event }: { event: any }) => {
+  const [resolvedApps, setResolvedApps] = useState<ResolvedApp[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 1. Resolve application IDs from the commitment condition
+  const blockCondition = event?.conditions?.find(
+    (c: any) => c.metric_key === "digital_commitment"
+  );
+  
+  const appIds: string[] = blockCondition?.target?.value?.apps || [];
+
+  useEffect(() => {
+    if (appIds.length === 0) {
+      setIsLoading(false);
+      return;
+    }
+
+    async function resolveMetadata() {
+      setIsLoading(true);
+      try {
+        const allApps = await AppListerModule.getInstalledApps();
+        const resolved = appIds.map(id => {
+          const match = allApps.find(a => a.id === id);
+          return {
+            id,
+            name: match?.name || id,
+            icon: match?.iconBase64
+          };
+        });
+        setResolvedApps(resolved);
+      } catch (err) {
+        console.error("[BlocklistSection] Metadata resolution failed:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    resolveMetadata();
+  }, [appIds.join(',')]);
+
+  if (!blockCondition || appIds.length === 0) return null;
+
+  return (
+    <UView className="border-b border-white/20 p-6">
+      {/* HEADER ROW (Referencing Penalty/Waiver style) */}
+      <UView className="flex-row items-center mb-5">
+        <MaterialCommunityIcons name="cellphone-lock" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
+        <UView className="flex-1">
+          <BodyText className="text-white text-base">Digital Commitment</BodyText>
+          <BodyText className="text-gray-400 text-sm mt-1">These apps are blocked</BodyText>
+        </UView>
+        <VerificationStatusCircle status="neutral" />
+      </UView>
+
+      {/* ICON GALLERY (Nested below for clean hierarchy) */}
+      <UView className="pl-11">
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
+        >
+          {isLoading ? (
+            <>
+              <HorizontalAppSkeleton />
+              <HorizontalAppSkeleton />
+            </>
+          ) : (
+            resolvedApps.map((app) => (
+              <UView key={app.id} className="mr-5">
+                {app.icon ? (
+                  <Image
+                    source={{ uri: app.icon }}
+                    style={{ width: 32, height: 32, borderRadius: 8 }}
+                  />
+                ) : (
+                  <MaterialCommunityIcons name="apps" size={24} color="#4FA0FF" />
+                )}
+              </UView>
+            ))
+          )}
+        </ScrollView>
+      </UView>
+    </UView>
   );
 };
