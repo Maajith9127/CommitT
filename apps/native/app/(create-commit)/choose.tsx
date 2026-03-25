@@ -24,7 +24,7 @@
  * @see components/ui/blocklist/ — Reusable UI components (TopBar, TabsBar, etc.)
  * @see components/ui/ActionScreenLayout.tsx — 3-zone layout (header/scroll/footer)
  */
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
@@ -34,6 +34,8 @@ import { TopBar, TabsBar, InlineAddBar, SelectableListItem } from "@/components/
 import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
 import { AppListerModule } from "../../modules/app-lister-module";
 import { AppCardSkeleton } from "@/components/ui/skeletons/AppCardSkeleton";
+import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { Condition } from "@/stores/useTaskDraftStore";
 
 const UView = withUniwind(View);
 
@@ -61,10 +63,27 @@ const TABS = [
   { key: "ai", label: "AI" },
 ];
 
+// ─── Module-Level App Cache ──────────────────────────────────────────────────
+// WHY OUTSIDE THE COMPONENT?
+// The native bridge call (PackageManager → Bitmap → Base64) takes 1–3 seconds.
+// Since installed apps don't change mid-session, we cache the raw result here.
+// This variable survives component unmount/remount from Expo Router navigation,
+// so the user only sees the skeleton shimmer ONCE per app session.
+let _cachedApps: BlockItem[] | null = null;
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ChooseScreen() {
   const router = useRouter();
+
+  // ── Store Integration ──
+  const conditions = useTaskDraftStore((s: any) => s.draft.conditions);
+  const setBlocklist = useTaskDraftStore((s: any) => s.setBlocklist);
+
+  // Derived current blocklist from store
+  const blockCondition = conditions.find((c: Condition) => c.metric_key === "digital_commitment");
+  const storeApps = (blockCondition?.target.value as { apps: string[]; websites: string[] })?.apps || [];
+  const storeWebs = (blockCondition?.target.value as { apps: string[]; websites: string[] })?.websites || [];
 
   // ── Tab & Search State ──
   const [activeTab, setActiveTab] = useState<Tab>("apps");
@@ -76,45 +95,48 @@ export default function ChooseScreen() {
   const [apps, setApps] = useState<BlockItem[]>([]);
   const [isLoadingApps, setIsLoadingApps] = useState(false);
 
-  /** Ref-based load guard — avoids the stale closure problem of reading
-   *  `apps.length` inside a useEffect that doesn't list `apps` as a dep.
-   *  A ref is immune to the closure issue because `.current` is always fresh. */
-  const hasLoadedApps = useRef(false);
-
-  /**
-   * Native App Fetcher
-   *
-   * Calls into the Kotlin `AppListerModule` to retrieve all launchable apps
-   * on the device. Uses `hasLoadedApps` ref to prevent redundant native bridge
-   * calls when the user switches tabs back and forth.
-   *
-   * WHY `activeTab` in deps?
-   *   We only trigger the fetch when the user first lands on the "apps" tab.
-   *   Subsequent tab switches reuse the cached state.
-   */
   useEffect(() => {
-    if (activeTab !== "apps" || hasLoadedApps.current) return;
+    if (activeTab !== "apps") return;
 
+    // FAST PATH: Cache hit — just re-sync selections from store
+    if (_cachedApps) {
+      setApps(
+        _cachedApps.map((app: BlockItem) => ({
+          ...app,
+          selected: storeApps.indexOf(app.id) !== -1,
+        }))
+      );
+      setIsLoadingApps(false);
+      return;
+    }
+
+    // SLOW PATH: First visit — fetch from native bridge
     setIsLoadingApps(true);
     AppListerModule.getInstalledApps()
-      .then((realApps) => {
-        setApps(realApps);
-        hasLoadedApps.current = true;
+      .then((realApps: BlockItem[]) => {
+        // Populate the session cache
+        _cachedApps = realApps;
+
+        const syncedApps = realApps.map((app: BlockItem) => ({
+          ...app,
+          selected: storeApps.indexOf(app.id) !== -1,
+        }));
+
+        setApps(syncedApps);
+        console.log(`[Blocklist] Cached ${realApps.length} apps from native bridge.`);
       })
-      .catch((error) => console.error("Native App Lister Error:", error))
+      .catch((error: any) => console.error("Native App Lister Error:", error))
       .finally(() => setIsLoadingApps(false));
-  }, [activeTab]);
+  }, [activeTab]); // Removed storeApps from dep to fix loop temporarily while reverting
 
   // ── Websites State (manually entered by user) ──
-  const [webs, setWebs] = useState<BlockItem[]>([
-    { id: "w1", name: "amazon.in", selected: false },
-    { id: "w2", name: "drive.google.com", selected: false },
-    { id: "w3", name: "instagram.com", selected: false },
-  ]);
+  // Initialize from store on mount
+  const [webs, setWebs] = useState<BlockItem[]>(
+    storeWebs.map((w: string, i: number) => ({ id: `w_init_${i}`, name: w, selected: true })),
+  );
 
   // ── Derived State ──
-  /** Live-filtered app list based on the search bar input. */
-  const filteredApps = apps.filter((app) =>
+  const filteredApps = apps.filter((app: BlockItem) =>
     app.name.toLowerCase().includes(searchText.toLowerCase()),
   );
 
@@ -126,33 +148,60 @@ export default function ChooseScreen() {
     setSearchText("");
   };
 
-  /** Toggles the `selected` state of a single app by its package name. */
+  /** Toggles selecting an app and IMMEDIATELY updates the store. */
   const toggleApp = (id: string) => {
-    setApps((prev) => prev.map((a) => (a.id === id ? { ...a, selected: !a.selected } : a)));
+    console.log(`[Blocklist] Toggling app: ${id}`);
+
+    setApps((prev: BlockItem[]) => {
+      const next = prev.map((a: BlockItem) => (a.id === id ? { ...a, selected: !a.selected } : a));
+
+      // Update store immediately
+      const currentSelected = next.filter((a: BlockItem) => a.selected).map((a: BlockItem) => a.id);
+      setBlocklist({ apps: currentSelected });
+
+      return next;
+    });
   };
 
-  /** Toggles the `selected` state of a single website entry. */
+  /** Toggles selecting a website and IMMEDIATELY updates the store. */
   const toggleWeb = (id: string) => {
-    setWebs((prev) => prev.map((w) => (w.id === id ? { ...w, selected: !w.selected } : w)));
+    console.log(`[Blocklist] Toggling website item: ${id}`);
+
+    setWebs((prev: BlockItem[]) => {
+      const next = prev.map((w: BlockItem) => (w.id === id ? { ...w, selected: !w.selected } : w));
+
+      // Update store immediately
+      const currentSelected = next.filter((w: BlockItem) => w.selected).map((w: BlockItem) => w.name);
+      setBlocklist({ websites: currentSelected });
+
+      return next;
+    });
   };
 
-  /** Adds a new website/AI rule from the inline text input. */
+  /** Adds a new website entry and IMMEDIATELY updates the store. */
   const handleAddInline = () => {
     if (!inlineText.trim()) return;
 
     if (activeTab === "webs") {
-      setWebs((prev) => [
-        ...prev,
-        { id: `w${Date.now()}`, name: inlineText.trim(), selected: true },
-      ]);
+      const newWeb = { id: `w${Date.now()}`, name: inlineText.trim(), selected: true };
+
+      setWebs((prev: BlockItem[]) => {
+        const next = [...prev, newWeb];
+
+        // Update store
+        const currentSelected = next.filter((w: BlockItem) => w.selected).map((w: BlockItem) => w.name);
+        setBlocklist({ websites: currentSelected });
+
+        return next;
+      });
+
+      console.log(`[Blocklist] Added website: ${newWeb.name}`);
     }
     // TODO: AI tab — send prompt to backend for rule generation
     setInlineText("");
   };
 
   // ── Fixed Header Content ──
-  // Extracted into a variable so it can be passed to ActionScreenLayout's
-  // `header` prop. This keeps it pinned above the scroll area.
   const headerContent = (
     <>
       <TopBar
@@ -188,13 +237,12 @@ export default function ChooseScreen() {
       className="pt-10"
       header={headerContent}
       footer={
-        <PrimaryButton onPress={() => {}}>Save</PrimaryButton>
+        <PrimaryButton onPress={() => router.back()}>Save</PrimaryButton>
       }
     >
       {/* ── Apps Tab: Loading State ── */}
-      {activeTab === "apps" && isLoadingApps && (
+      {activeTab === "apps" && apps.length === 0 && isLoadingApps && (
         <>
-          {/* Render 12 skeleton rows to fill the screen while native apps fetch */}
           {Array.from({ length: 12 }).map((_, i) => (
             <AppCardSkeleton key={i} />
           ))}
@@ -202,8 +250,8 @@ export default function ChooseScreen() {
       )}
 
       {/* ── Apps Tab: Loaded List ── */}
-      {activeTab === "apps" && !isLoadingApps &&
-        filteredApps.map((app) => (
+      {activeTab === "apps" &&
+        filteredApps.map((app: BlockItem) => (
           <SelectableListItem
             key={app.id}
             icon="cellphone"
@@ -216,7 +264,7 @@ export default function ChooseScreen() {
 
       {/* ── Webs Tab ── */}
       {activeTab === "webs" &&
-        webs.map((web) => (
+        webs.map((web: BlockItem) => (
           <SelectableListItem
             key={web.id}
             icon="web"

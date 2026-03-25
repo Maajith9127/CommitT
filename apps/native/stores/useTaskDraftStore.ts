@@ -140,6 +140,8 @@ type TaskDraftStore = {
   setDraft: (draft: Partial<TaskDraft>) => void;
   setConfig: (updates: Partial<TaskConfig>) => void;
   setWaiver: (updates: Partial<NonNullable<TaskDraft["penalty_waiver"]>>) => void;
+  // blocklist
+  setBlocklist: (updates: { apps?: string[]; websites?: string[] }) => void;
 };
 
 const createEmptyDraft = (): TaskDraft => ({
@@ -423,9 +425,15 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
         (state: TaskDraftStore) => {
           let updatedConditions = [...state.draft.conditions];
           
-          if (updates) {
-            const index = updatedConditions.findIndex((c: any) => c.metric_key === "location");
-            const locationCondition: Condition = {
+        if (updates) {
+          let index = -1;
+          for (let i = 0; i < updatedConditions.length; i++) {
+            if (updatedConditions[i].metric_key === "location") {
+              index = i;
+              break;
+            }
+          }
+          const locationCondition: Condition = {
               id: index >= 0 ? updatedConditions[index].id : nanoid(),
               metric_key: "location",
               relation: updates.isInverse ? "outside" : "within",
@@ -446,7 +454,7 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
               updatedConditions.push(locationCondition);
             }
           } else {
-            updatedConditions = updatedConditions.filter((c: any) => c.metric_key !== "location");
+            updatedConditions = updatedConditions.filter((c: Condition) => c.metric_key !== "location");
           }
 
           return {
@@ -586,6 +594,60 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
         },
         false,
         "draft/setWaiver"
+      ),
+
+    setBlocklist: (updates: { apps?: string[]; websites?: string[] }) =>
+      set(
+        (state: TaskDraftStore) => {
+          let updatedConditions = [...state.draft.conditions];
+          let index = -1;
+          for (let i = 0; i < updatedConditions.length; i++) {
+            if (updatedConditions[i].metric_key === "digital_commitment") {
+              index = i;
+              break;
+            }
+          }
+          
+          const currentTarget = index >= 0 && updatedConditions[index].target.type === "array" 
+            ? (updatedConditions[index].target.value as { apps: string[]; websites: string[] })
+            : { apps: [], websites: [] };
+          
+          const newApps = updates.apps ?? currentTarget.apps;
+          const newWebs = updates.websites ?? currentTarget.websites;
+
+          // If both are empty, remove the condition
+          if (newApps.length === 0 && newWebs.length === 0) {
+            updatedConditions = updatedConditions.filter((c: Condition) => c.metric_key !== "digital_commitment");
+          } else {
+            const blockCondition: Condition = {
+              id: index >= 0 ? updatedConditions[index].id : nanoid(),
+              metric_key: "digital_commitment",
+              relation: "outside",
+              target: {
+                type: "array",
+                value: {
+                  apps: newApps,
+                  websites: newWebs,
+                },
+              },
+            };
+
+            if (index >= 0) {
+              updatedConditions[index] = blockCondition;
+            } else {
+              updatedConditions.push(blockCondition);
+            }
+          }
+
+          return {
+            draft: {
+              ...state.draft,
+              conditions: updatedConditions,
+            },
+          };
+        },
+        false,
+        "draft/setBlocklist"
       ),
   }))
 );
