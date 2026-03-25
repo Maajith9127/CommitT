@@ -33,6 +33,7 @@ import { PrimaryButton } from "@/components/ui";
 import { TopBar, TabsBar, InlineAddBar, SelectableListItem } from "@/components/ui/blocklist";
 import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
 import { AppListerModule } from "../../modules/app-lister-module";
+import { AppCardSkeleton } from "@/components/ui/skeletons/AppCardSkeleton";
 
 const UView = withUniwind(View);
 
@@ -192,12 +193,12 @@ export default function ChooseScreen() {
     >
       {/* ── Apps Tab: Loading State ── */}
       {activeTab === "apps" && isLoadingApps && (
-        <UView className="py-10 items-center justify-center flex-1">
-          <ActivityIndicator size="large" color="#ffffff" />
-          <FooterText className="text-gray-500 mt-4 text-center">
-            Fetching installed applications...
-          </FooterText>
-        </UView>
+        <>
+          {/* Render 12 skeleton rows to fill the screen while native apps fetch */}
+          {Array.from({ length: 12 }).map((_, i) => (
+            <AppCardSkeleton key={i} />
+          ))}
+        </>
       )}
 
       {/* ── Apps Tab: Loaded List ── */}

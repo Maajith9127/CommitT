@@ -1,17 +1,15 @@
-import React, { useEffect } from 'react';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withRepeat, 
-  withTiming, 
-  withSequence,
-  Easing
-} from 'react-native-reanimated';
-import { ViewStyle, StyleProp } from 'react-native';
-import { withUniwind } from 'uniwind';
-import { View } from 'react-native';
+import React, { useEffect } from "react";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
+import { ViewStyle, StyleProp } from "react-native";
+import { withUniwind } from "uniwind";
 
-const UView = withUniwind(View);
+const UAnimatedView = withUniwind(Animated.View);
 
 interface SkeletonProps {
   width?: number | string;
@@ -22,84 +20,49 @@ interface SkeletonProps {
   delay?: number;
 }
 
-export function SkeletonBlock({ 
-  width, 
-  height, 
-  borderRadius = 8, 
-  style, 
+/**
+ * SkeletonBlock
+ *
+ * A highly optimized, hardware-accelerated loading placeholder.
+ * Uses a smooth Opacity Pulse. We avoid TranslateX/Layout calculations
+ * because rendering 30+ blocks with `onLayout` and nested translating views
+ * causes severe frame drops on Android devices.
+ */
+export function SkeletonBlock({
+  width,
+  height,
+  borderRadius = 8,
+  style,
   className = "",
-  delay = 0 
+  delay = 0,
 }: SkeletonProps) {
-  // Calculate shine animation
-  const translateX = useSharedValue(-100); 
+  // Base opacity value. We pulse between 0.2 and 0.6.
+  const opacity = useSharedValue(0.2);
 
   useEffect(() => {
-    // Wait for layout to start animation correctly or just use a generic large value if width is percentage
-    // Actually, simple % based animation is safer
+    // 800ms fade-in, 800ms fade-out, looping infinitely.
+    opacity.value = withRepeat(
+      withTiming(0.6, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+      -1, // Infinite loop
+      true // Reverse on each loop (yo-yo effect)
+    );
   }, []);
-  
-  const shineStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: withRepeat(withTiming(150, { duration: 1500, easing: Easing.linear }), -1, false) }] 
-      // Wait, 150 is arbitrary. If width is 100%, we need percentage.
-      // Reanimated supports percentage strings in translate?
-      // "100%"
-    };
-  });
-  
-  // Use a simpler approach: Opacity Pulse with a wider range to simulate "shine/glow" if gradient is missing
-  // User asked for "shine thruh". 
-  // without linear gradient, an opacity wave is the best approximation unless I implement the moving bar.
-  
-  // Let's implement the moving bar with onLayout to get width.
-  const [layoutWidth, setLayoutWidth] = React.useState(0);
-  
-  const animatedShine = useAnimatedStyle(() => {
-     if (layoutWidth === 0) return {};
-     return {
-        transform: [{ translateX: withRepeat(withSequence(withTiming(layoutWidth, { duration: 1000, easing: Easing.inOut(Easing.ease) }), withTiming(-layoutWidth, { duration: 0 })), -1, false) }]
-        // Wait, start at -layoutWidth, go to layoutWidth.
-        // need to control initial value.
-     };
-  });
-  
-  // Reset shared value
-  const x = useSharedValue(-100);
-  useEffect(() => {
-      if (layoutWidth > 0) {
-          x.value = -layoutWidth;
-          x.value = withRepeat(
-            withTiming(layoutWidth * 2, { duration: 1500, easing: Easing.linear }),
-            -1,
-            false
-          );
-      }
-  }, [layoutWidth]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value }]
+    opacity: opacity.value,
   }));
 
   const baseStyle: ViewStyle = {
-    backgroundColor: '#333333', 
-    overflow: 'hidden',
+    backgroundColor: "#333333", // Base skeleton color
     width: width as any,
     height: height as any,
     borderRadius,
   };
 
   return (
-    <View 
-      style={[baseStyle, style]} 
+    <UAnimatedView
+      style={[baseStyle, style, animatedStyle]}
       className={className}
-      onLayout={(e) => setLayoutWidth(e.nativeEvent.layout.width)}
-    >
-        <Animated.View 
-            style={[
-                { width: 20, height: '100%', backgroundColor: 'rgba(255,255,255,0.1)', opacity: 0.5 }, 
-                animatedStyle
-            ]} 
-        />
-    </View>
+    />
   );
 }

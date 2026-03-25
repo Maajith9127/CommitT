@@ -1,10 +1,7 @@
-feat(apps): implement native app lister module for blocklist selection" -m "- Created AppListerModule in Kotlin to fetch device applications using Android PackageManager.
-- Added smart filtering via getLaunchIntentForPackage() to exclude background services and system daemons while keeping consumer apps (Chrome, YouTube, etc.).
-- Implemented robust Base64 app icon extraction handling BitmapDrawable, AdaptiveIconDrawable, and VectorDrawable with scaling.
-- Fixed critical native heap memory leaks by explicitly recycling intermediate Bitmaps and Canvas allocations after compression.
-- Declared QUERY_ALL_PACKAGES in AndroidManifest with Play Store compliance justification.
-- Built strict TypeScript bridge (index.ts) for type-safe JS consumption.
-- Refactored choose.tsx to integrate native fetching, including loading states and a useRef-based cache guard to prevent React stale closures.
-- Upgraded ActionScreenLayout to support fixed headers (search/tabs) with scrollable content.
-- Updated SelectableListItem to prioritize rendering native Base64 imageUri over fallback icons.
-- Added comprehensive production-level KDoc/JSDoc architecture comments across all modified files.
+perf(ui): implement optimized app card skeleton loading states
+
+- Created [AppCardSkeleton](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/AppCardSkeleton.tsx:6:0-27:1) component to perfectly mirror the layout of [SelectableListItem](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/blocklist/SelectableListItem.tsx:30:0-84:1), preventing layout shift during native app fetching in [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0).
+- Refactored [SkeletonBlock](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/SkeletonBlock.tsx:22:0-67:1) to use a hardware-accelerated Opacity pulse instead of a TranslateX slide animation.
+- Eliminated severe Android dropped-frame lag by removing `onLayout` calculations across 30+ simultaneous skeleton nodes.
+- Fixed [SkeletonBlock](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/SkeletonBlock.tsx:22:0-67:1) styling by wrapping React Native's `Animated.View` with `withUniwind` to correctly apply Tailwind classes.
+- Aligned skeleton list exactly with final content in `choose.tsx` by removing stray margin wrappers.
