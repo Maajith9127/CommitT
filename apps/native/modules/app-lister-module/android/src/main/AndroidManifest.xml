@@ -1,0 +1,31 @@
+<!--
+  AndroidManifest.xml — App Lister Module
+  ════════════════════════════════════════
+
+  This manifest is automatically MERGED into the root app's AndroidManifest.xml
+  by the Android Gradle build system. Any permissions declared here will appear
+  in the final APK without polluting the main app.json or app config.
+
+  PLAY STORE COMPLIANCE:
+    Google requires a "Permissions Declaration Form" for QUERY_ALL_PACKAGES.
+    Approved categories include: antivirus, file manager, browser, and
+    DIGITAL WELLBEING / APP BLOCKER (our use-case).
+    Justification: "The app needs to display all installed applications so the
+    user can select which ones to block during focus sessions."
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="expo.modules.applister">
+
+    <!--
+      QUERY_ALL_PACKAGES (Required for Android 11+ / API 30+)
+      Without this, PackageManager.getInstalledApplications() returns ONLY
+      the apps explicitly listed in a <queries> block, which defeats the
+      purpose of a dynamic app blocker.
+    -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
+    <application>
+        <!-- This module has no Activities, Receivers, or Services.
+             It only queries the PackageManager at runtime. -->
+    </application>
+
+</manifest>

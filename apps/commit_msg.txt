@@ -1,3 +1,10 @@
-- Wrapped [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) with the standardized [ActionScreenLayout](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ActionScreenLayout.tsx:16:0-53:1) component.
-- Moved the 'Save' button into the layout's `footer` prop for consistent sticky positioning.
-- Removed the manual `UScroll` implementation as scrolling is now internally managed by the layout.
+feat(apps): implement native app lister module for blocklist selection" -m "- Created AppListerModule in Kotlin to fetch device applications using Android PackageManager.
+- Added smart filtering via getLaunchIntentForPackage() to exclude background services and system daemons while keeping consumer apps (Chrome, YouTube, etc.).
+- Implemented robust Base64 app icon extraction handling BitmapDrawable, AdaptiveIconDrawable, and VectorDrawable with scaling.
+- Fixed critical native heap memory leaks by explicitly recycling intermediate Bitmaps and Canvas allocations after compression.
+- Declared QUERY_ALL_PACKAGES in AndroidManifest with Play Store compliance justification.
+- Built strict TypeScript bridge (index.ts) for type-safe JS consumption.
+- Refactored choose.tsx to integrate native fetching, including loading states and a useRef-based cache guard to prevent React stale closures.
+- Upgraded ActionScreenLayout to support fixed headers (search/tabs) with scrollable content.
+- Updated SelectableListItem to prioritize rendering native Base64 imageUri over fallback icons.
+- Added comprehensive production-level KDoc/JSDoc architecture comments across all modified files.
