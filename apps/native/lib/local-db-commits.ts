@@ -106,8 +106,12 @@ export async function updateTaskInLocalDb(
   // ── 3. Atomically overwrite the entire future schedule trajectory ──
   if (taskRow) {
     const localTaskId = taskRow.id;
-    // Brutally purge the stale historical projections
+    
+    // Brutally purge the stale historical projections from ALL relevant tables
+    // to ensure no duplicates or orphaned blocking rules exist.
     await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [localTaskId]);
+    await db.runAsync("DELETE FROM blocked_apps WHERE task_id = ?", [localTaskId]);
+    await db.runAsync("DELETE FROM blocked_websites WHERE task_id = ?", [localTaskId]);
     
     // Repopulate fully aligned with the newly edited timeframe constraints
     await syncInstancesToLocalDb(db, localTaskId, backendInstances, now);
@@ -202,7 +206,8 @@ export async function updateInstanceInLocalDb(
 async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, backendInstances: any[], now: number) {
   if (backendInstances.length === 0) return;
 
-  const statement = await db.prepareAsync(
+  // 1. Prepare statements for batched insertion
+  const instanceStatement = await db.prepareAsync(
     `INSERT INTO task_instances 
       (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, status, title,
        config_json, checkpoints, conditions_json, penalty_json, penalty_waiver_json,
@@ -210,12 +215,22 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
+  const blockAppsStatement = await db.prepareAsync(
+    `INSERT INTO blocked_apps (task_id, package_name, active_from, active_until) 
+     VALUES (?, ?, ?, ?)`
+  );
+
+  const blockWebStatement = await db.prepareAsync(
+    `INSERT INTO blocked_websites (task_id, domain, active_from, active_until) 
+     VALUES (?, ?, ?, ?)`
+  );
+
   try {
     for (const instance of backendInstances) {
       const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
       
-      // Strict parameter binding preventing SQL Injection and data mutations
-      await statement.executeAsync([
+      // A. Insert the main instance 
+      await instanceStatement.executeAsync([
         instanceId,
         localTaskId,
         instance._id,
@@ -233,10 +248,28 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
         instance.is_manual_edit ? 1 : 0,
         now,
       ]);
+
+      // B. Project Digital Commitments (Blocked Apps & Websites) into dedicated tables
+      // This allows the native enforcer to query simple flat tables instead of parsing JSON.
+      if (instance.conditions) {
+        const digitalCond = instance.conditions.find((c: any) => c.metric_key === "digital_commitment");
+        if (digitalCond?.target?.value) {
+          const { apps = [], websites = [] } = digitalCond.target.value;
+          
+          for (const pkg of apps) {
+            await blockAppsStatement.executeAsync([localTaskId, pkg, instance.start, instance.end]);
+          }
+          
+          for (const domain of websites) {
+            await blockWebStatement.executeAsync([localTaskId, domain, instance.start, instance.end]);
+          }
+        }
+      }
     }
-    console.log(`[TaskRepository] Highly cohesive SQLite synchronization complete. Inserted ${backendInstances.length} projected timelines.`);
+    console.log(`[TaskRepository] SQLite sync complete. Projected ${backendInstances.length} instances.`);
   } finally {
-    // Crucial Memory Management execution cleanup!
-    await statement.finalizeAsync();
+    await instanceStatement.finalizeAsync();
+    await blockAppsStatement.finalizeAsync();
+    await blockWebStatement.finalizeAsync();
   }
 }

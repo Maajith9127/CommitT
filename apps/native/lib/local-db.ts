@@ -12,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 10;
+const DATABASE_VERSION = 11;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -272,6 +272,25 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
 
     await db.execAsync(`PRAGMA user_version = 10`);
     console.log('[Migration] 9 → 10 Successful.');
+  }
+
+  // ── Migration 10 → 11 (add blocked_websites table) ──
+  if (currentVersion === 10) {
+    console.log('[Migration] Migrating from 10 to 11 (Blocked Websites)...');
+    
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS blocked_websites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        domain TEXT NOT NULL,
+        active_from INTEGER,
+        active_until INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_blocked_domain ON blocked_websites(domain, active_until);
+      PRAGMA user_version = 11;
+    `);
+    
+    console.log('[Migration] 10 → 11 Successful.');
   }
 }
 

@@ -1,7 +1,7 @@
-feat(native): integrate blocklist configuration with habit draft store
+feat(native): integrate digital commitment blocklist into triple-write flow
 
-- Implemented `setBlocklist` in `TaskDraftStore` for digital commitment conditions
-- Wired `choose.tsx` to handle real-time store updates for apps and websites
-- Implemented module-level session caching for native app metadata to prevent redundant loading
-- Resolved infinite render loop by optimizing state sync logic in Blocklist screen
-- Standardized digital commitment schema with `metric_key: "digital_commitment"`
+- Implement TaskDraftStore actions to manage digital commitments (apps/websites)
+- Add SQLite migrations (v10, v11) for dedicated `blocked_apps` and `blocked_websites` tables
+- Update local repository to project JSON conditions into relational blocking tables for high-performance native querying
+- Optimize app list loading with module-level caching in [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) to eliminate native bridge lag
+- Ensure atomic synchronization across Convex Cloud, SQLite cache, and Android hardware scheduling
