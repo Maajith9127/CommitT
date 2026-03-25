@@ -1,6 +1,7 @@
-fix(native-ui): decouple navigation from scrollable digital commit items
+feat(ui): optimize digital commitment flow and resolve navigation latency
 
-- Remove the all-encompassing Pressable wrapper from the CommitCard to prevent gesture conflicts.
-- Refactor DigitalCommitItem to wrap only the header row (title and icons) in a Pressable.
-- Ensure the application ScrollView is independent of the navigation trigger for smoother horizontal scrolling.
-- This allows users to swipe through blocked apps without accidentally triggering a transition to the selection screen.
+- Implement InteractionManager to defer heavy rendering in choose.tsx, ensuring 60FPS navigation.
+- Refactor application list to use virtualized FlatList for high-performance scrolling.
+- Add premium horizontal skeleton shimmers to DigitalCommitItem for zero-snap loading on FinalScreen.
+- Decouple header counts from metadata resolution to keep card indicators static and accurate from mount.
+- Revert native bridge caching to ensure real-time app resolution while maintaining UI thread fluidity.

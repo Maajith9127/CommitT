@@ -10,12 +10,16 @@ type Props = {
   className?: string;
   onPress?: () => void;
   apps?: any[];
+  isAppsLoading?: boolean;
+  selectedCount?: number;
 };
 
 export function CommitCard({ 
   className = "", 
   onPress, 
-  apps = [] 
+  apps = [],
+  isAppsLoading = false,
+  selectedCount = 0,
 }: Props) {
   return (
     <UView className={`w-full rounded-3xl bg-[#1A1A1A] px-5 py-1 ${className}`}>
@@ -23,6 +27,7 @@ export function CommitCard({
       <DigitalCommitItem
         title="Applications"
         onPress={onPress}
+        isLoading={isAppsLoading}
         items={
           apps.length > 0
             ? apps
@@ -46,7 +51,7 @@ export function CommitCard({
               style={{ marginLeft: 12 }}
             />
             <FooterText className="ml-1 text-blue-400">
-              {apps.length > 0 ? apps.length : "1"}
+              {selectedCount}
             </FooterText>
           </>
         }

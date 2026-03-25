@@ -193,14 +193,18 @@ export default function FinalScreen() {
 
   // Native App Data
   const [allInstalledApps, setAllInstalledApps] = useState<InstalledApp[]>([]);
+  const [isAppsLoading, setIsAppsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchApps() {
+      setIsAppsLoading(true);
       try {
         const apps = await AppListerModule.getInstalledApps();
         setAllInstalledApps(apps);
       } catch (err) {
         console.error("Failed to fetch installed apps:", err);
+      } finally {
+        setIsAppsLoading(false);
       }
     }
     fetchApps();
@@ -615,6 +619,11 @@ export default function FinalScreen() {
         <CommitCard
           className="mb-5"
           apps={selectedAppsMetadata}
+          isAppsLoading={isAppsLoading}
+          selectedCount={
+            (draft.conditions.find((c) => c.metric_key === "digital_commitment")
+              ?.target.value as { apps: string[] })?.apps.length || 0
+          }
           onPress={() => router.push("/(create-commit)/choose")}
         />
 
