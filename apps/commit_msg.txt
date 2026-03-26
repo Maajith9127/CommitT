@@ -1,7 +1,7 @@
-feat(native): implement high-fidelity digital commitment edit flow
+feat(native): implement double-confirmation & strict-lock guards for blocklist edits
 
-- Replicated the 'choose.tsx' creation UI within the EventDetailModal singleton to provide a 1:1 consistent instance-editing experience.
-- Implemented a two-stage 'Confirmation → Action' pipeline for Blocklist modifications, mirroring the premium Waiver architecture.
-- Synchronized blocklist updates with both the Convex backend and the local Android SQLite database for immediate enforcer reactivity.
-- Optimized the 'BlocklistView' using the ActionScreenLayout to ensure pixel-perfect alignment of headers, tabs, and footer zones.
-- Silenced high-frequency rendering logs in the temporal metadata component to clarify terminal output during debugging.
+- Integrated 'ConfirmationModal' into the Save workflow with simplified, single-title messaging for high-impact clarity.
+- Harmonized 'Cancel/Discard' button styling with semantic Red (#FF3B30) across both the entry and exit modals.
+- Enhanced 'BlocklistView' to intercept 'STRICT_LOCK_ACTIVE' errors, providing clear user feedback when commitments are locked.
+- Updated the Convex 'instance:update' mutation to persist structural condition changes to the cloud.
+- Optimized the synchronization sequence: Cloud Sync (Backend) → Hardware Sync (Local SQLite) for guaranteed enforcer reactivity.

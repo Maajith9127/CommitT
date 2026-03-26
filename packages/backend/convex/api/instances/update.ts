@@ -21,6 +21,7 @@ export const update = authedMutation({
     end: v.optional(v.number()),
     strict_until: v.optional(v.number()),
     is_manual_edit: v.optional(v.boolean()),
+    conditions: v.optional(v.array(v.any())),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;

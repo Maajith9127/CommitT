@@ -485,10 +485,11 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
       {/* ── Blocklist Edit Confirmation Modal ── */}
       <ConfirmationModal
         visible={blocklistConfirmVisible}
-        title={`Edit this Digital Commitment?\n\n(This will update the blocklist only for this specific task instance)`}
+        title="Edit this Digital Commitment? This update only affects this specific task instance."
         confirmText="Edit"
         cancelText="Cancel"
         confirmColor="#4FA0FF"
+        cancelColor="#FF3B30"
         onConfirm={() => {
           setBlocklistConfirmVisible(false);
           setBlocklistModalVisible(true);

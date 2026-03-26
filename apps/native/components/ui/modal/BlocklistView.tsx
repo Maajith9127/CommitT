@@ -1,19 +1,39 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { View, Text, ScrollView, ActivityIndicator, Image, Pressable, Alert } from "react-native";
+/**
+ * BlocklistView — Blocklist Configuration Screen (Mirror of choose.tsx)
+ * ═════════════════════════════════════════════════
+ */
+import React, { useState, useEffect } from "react";
+import { View, Text, Alert, ActivityIndicator } from "react-native";
 import { withUniwind } from "uniwind";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { TopBar, TabsBar, InlineAddBar, SelectableListItem } from "@/components/ui/blocklist";
 import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
-import { TopBar, TabsBar, InlineAddBar, SelectableListItem } from "../blocklist";
 import { AppListerModule } from "../../../modules/app-lister-module";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { PrimaryButton } from "@/components/ui/button";
 import { AppCardSkeleton } from "@/components/ui/skeletons/AppCardSkeleton";
+import { ConfirmationModal } from "./ConfirmationModal";
 import { useSQLiteContext } from "expo-sqlite";
 import { useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
 import { updateInstanceInLocalDb } from "@/lib/local-db-commits";
 
 const UView = withUniwind(View);
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type Tab = "apps" | "webs" | "ai";
+
+type BlockItem = {
+  id: string;
+  name: string;
+  selected: boolean;
+  iconBase64?: string | null;
+};
+
+// ─── Shared Session Cache ─────────────────────────────────────────────────────
+let _cachedApps: BlockItem[] | null = null;
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 interface BlocklistViewProps {
   event: any;
@@ -30,125 +50,135 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
   const db = useSQLiteContext();
   const updateConvexInstance = useMutation(api.api.instances.update.update);
 
-  // 1. EXTRACT INITIAL STATE
+  // 1. EXTRACT INITIAL COMMITMENT STATE
   const blockCondition = event?.conditions?.find((c: any) => c.metric_key === "digital_commitment");
-  const initialApps = blockCondition?.target?.value?.apps || [];
-  const initialWebLinks = blockCondition?.target?.value?.websites || [];
+  const initialAppIds = (blockCondition?.target?.value as any)?.apps || [];
+  const initialWebLinks = (blockCondition?.target?.value as any)?.websites || [];
 
-  // 2. STATE
-  const [activeTab, setActiveTab] = useState<"apps" | "webs" | "ai">("apps");
+  // 2. TABS & SEARCH STATE
+  const [activeTab, setActiveTab] = useState<Tab>("apps");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [inlineText, setInlineText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [lockError, setLockError] = useState<{ title: string; message: string } | null>(null);
 
-  // ── Apps State (populated from native Kotlin module) ──
-  const [apps, setApps] = useState<any[]>([]);
+  // 3. APPS STATE 
+  const [apps, setApps] = useState<BlockItem[]>([]);
   const [isLoadingApps, setIsLoadingApps] = useState(false);
 
-  // ── Websites State (manually entered by user) ──
-  const [webs, setWebs] = useState<string[]>(initialWebLinks);
-
-  // 3. LOAD DATA
   useEffect(() => {
     if (activeTab !== "apps") return;
-    if (apps.length > 0) return;
+    if (_cachedApps) {
+      setApps(_cachedApps.map(app => ({
+        ...app,
+        selected: initialAppIds.indexOf(app.id) !== -1,
+      })));
+      return;
+    }
 
     setIsLoadingApps(true);
     AppListerModule.getInstalledApps()
-      .then((realApps: any[]) => {
-        setApps(realApps.sort((a, b) => a.name.localeCompare(b.name)));
+      .then((realApps: BlockItem[]) => {
+        _cachedApps = realApps;
+        setApps(realApps.map(app => ({
+          ...app,
+          selected: initialAppIds.indexOf(app.id) !== -1,
+        })));
       })
-      .catch((error: any) => console.error("Native App Lister Error:", error))
+      .catch((err: any) => console.error("Native Bridge Error:", err))
       .finally(() => setIsLoadingApps(false));
   }, [activeTab]);
 
-  // Seeding the apps with selection from event
-  const processedApps = useMemo(() => {
-    const selectedSet = new Set(initialApps);
-    return apps.map(app => ({
-      ...app,
-      selected: selectedSet.has(app.id)
-    }));
-  }, [apps, initialApps]);
+  // 4. WEBSITES STATE
+  const [webs, setWebs] = useState<BlockItem[]>(
+    initialWebLinks.map((w: string, i: number) => ({ id: `w_init_${i}`, name: w, selected: true }))
+  );
 
-  // Current selections (tracked locally for edit)
-  const [currentSelectedApps, setCurrentSelectedApps] = useState<Set<string>>(new Set(initialApps));
+  // 5. FILTERING
+  const filteredApps = apps.filter(app =>
+    app.name.toLowerCase().includes(searchText.toLowerCase())
+  );
 
-  // 4. FILTERING
-  const filteredApps = useMemo(() => {
-    const filtered = apps.filter((app: any) =>
-      app.name.toLowerCase().includes(searchText.toLowerCase()),
-    );
-    return filtered.map(app => ({
-        ...app,
-        selected: currentSelectedApps.has(app.id)
-    }));
-  }, [apps, searchText, currentSelectedApps]);
-
-  // 5. ACTIONS
+  // 6. ACTIONS
   const handleTabChange = (key: string) => {
-    setActiveTab(key as any);
+    setActiveTab(key as Tab);
     setSearchOpen(false);
     setSearchText("");
   };
 
   const toggleApp = (id: string) => {
-    setCurrentSelectedApps((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    setApps(prev => prev.map(a => (a.id === id ? { ...a, selected: !a.selected } : a)));
   };
 
-  const handleAddWeb = () => {
+  const toggleWeb = (id: string) => {
+    setWebs(prev => prev.map(w => (w.id === id ? { ...w, selected: !w.selected } : w)));
+  };
+
+  const handleAddInline = () => {
     if (!inlineText.trim()) return;
-    setWebs((prev) => [...prev, inlineText.trim()]);
+    if (activeTab === "webs") {
+      setWebs(prev => [...prev, { id: `w${Date.now()}`, name: inlineText.trim(), selected: true }]);
+    }
     setInlineText("");
   };
 
-  const handleSave = async () => {
-     setIsSaving(true);
-     try {
-       const newConditions = event.conditions.map((c: any) => {
+  // ─── FINAL PERSISTENCE LOGIC ───────────────────────────────────────────────
+  const processSave = async () => {
+    setIsSaving(true);
+    try {
+      const selectedAppIds = apps.filter(a => a.selected).map(a => a.id);
+      const selectedWebs = webs.filter(w => w.selected).map(w => w.name);
+
+      const newConditions = event.conditions.map((c: any) => {
          if (c.metric_key === "digital_commitment") {
            return {
              ...c,
-             target: {
-               ...c.target,
-               value: {
-                 ...c.target.value,
-                 apps: Array.from(currentSelectedApps),
-                 websites: webs
-               }
-             }
+             target: { ...c.target, value: { apps: selectedAppIds, websites: selectedWebs } }
            };
          }
          return c;
-       });
+      });
 
-       // SYNC 1: CONVEX
-       await updateConvexInstance({
-         id: event._id,
-         conditions: newConditions
-       });
+      // 1. SYNC TO CLOUD FIRST (Per request)
+      const result = await updateConvexInstance({ 
+        id: event._id, 
+        conditions: newConditions 
+      }) as any;
 
-       // SYNC 2: LOCAL SQLITE (Immediate Enforcer Update)
-       await updateInstanceInLocalDb(db, event._id, {
-         conditions: newConditions
-       });
+      // Check if instance is locked (Strict Mode Violation)
+      if (result.success === false && result.error === "STRICT_LOCK_ACTIVE") {
+        setIsSaving(false);
+        setShowSaveConfirm(false);
+        // Transition to Lock Error modal
+        setLockError({
+          title: "Instance Locked",
+          message: result.message || "This commitment is currently in its 'Strict Lock Zone' and cannot be edited until the lockout period ends."
+        });
+        return;
+      }
 
-       console.log("[BlocklistView] Instance updated successfully!");
-       onClose();
-     } catch (err) {
-       Alert.alert("Save Failed", String(err));
-     } finally {
-       setIsSaving(false);
-     }
+      if (!result.success) {
+        throw new Error(result.message || "Sync failed");
+      }
+
+      // 2. SYNC TO LOCAL DEVICE IMMEDIATELY (For hardware enforcer)
+      await updateInstanceInLocalDb(db, event._id, { 
+        conditions: newConditions 
+      });
+
+      console.log("[BlocklistView] Instance updated successfully.");
+      setShowSaveConfirm(false);
+      onClose();
+    } catch (err) {
+      Alert.alert("Save Failed", String(err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // 6. COMPOSED HEADER CONTENT (Ditto layout of choose.tsx)
+  // 7. HEADER CONTENT
   const headerContent = (
     <>
       <TopBar
@@ -156,7 +186,7 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
         enableSearch={activeTab === "apps"}
         searchOpen={searchOpen}
         searchText={searchText}
-        onSearchToggle={() => setSearchOpen((p) => !p)}
+        onSearchToggle={() => setSearchOpen(p => !p)}
         onSearchChange={setSearchText}
       />
 
@@ -171,41 +201,33 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
           placeholder={activeTab === "webs" ? "Add website" : "Describe what to block"}
           value={inlineText}
           onChange={setInlineText}
-          onSubmit={handleAddWeb}
+          onSubmit={handleAddInline}
         />
       )}
     </>
   );
 
-  const footerContent = (
-    <PrimaryButton 
-      onPress={handleSave} 
-      disabled={isSaving}
-    >
-      {isSaving ? 'Saving...' : 'Save Changes'}
-    </PrimaryButton>
-  );
-
-  // 7. RENDER
   return (
     <ActionScreenLayout
       className="pt-10"
       header={headerContent}
-      footer={footerContent}
+      footer={
+        <PrimaryButton onPress={() => setShowSaveConfirm(true)}>
+          Save Changes
+        </PrimaryButton>
+      }
       paddingHorizontal={16}
     >
-      {/* ── Apps Tab: Loading State ── */}
+      {/* ── Apps Tab: Loading ── */}
       {activeTab === "apps" && apps.length === 0 && isLoadingApps && (
         <>
-          {Array.from({ length: 12 }).map((_, i) => (
-            <AppCardSkeleton key={i} />
-          ))}
+          {Array.from({ length: 12 }).map((_, i) => <AppCardSkeleton key={i} />)}
         </>
       )}
 
-      {/* ── Apps Tab: Loaded List ── */}
+      {/* ── Apps Tab: List ── */}
       {activeTab === "apps" &&
-        filteredApps.map((app: any) => (
+        filteredApps.map(app => (
           <SelectableListItem
             key={app.id}
             icon="cellphone"
@@ -218,13 +240,13 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
 
       {/* ── Webs Tab ── */}
       {activeTab === "webs" &&
-        webs.map((web: string, idx: number) => (
+        webs.map(web => (
           <SelectableListItem
-            key={`${web}-${idx}`}
+            key={web.id}
             icon="web"
-            label={web}
-            selected={true}
-            onToggle={() => setWebs((p) => p.filter((_, i) => i !== idx))}
+            label={web.name}
+            selected={web.selected}
+            onToggle={() => toggleWeb(web.id)}
           />
         ))}
 
@@ -236,6 +258,29 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
           </FooterText>
         </UView>
       )}
+
+      {/* Double-Confirmation Modal */}
+      <ConfirmationModal
+        visible={showSaveConfirm}
+        title="Save your selection? This immediately updates your blocked apps list."
+        confirmText="Save"
+        cancelText="Discard"
+        cancelColor="#FF4F4F"
+        isLoading={isSaving}
+        onConfirm={processSave}
+        onCancel={() => setShowSaveConfirm(false)}
+      />
+
+      {/* Lock Error Modal (Acknowledgement style) */}
+      <ConfirmationModal
+        visible={!!lockError}
+        title="Commitment Locked: This instance is in its 'Strict Lock Zone' and cannot be edited."
+        confirmText="Understood"
+        singleButton
+        confirmColor="#FF4F4F"
+        onConfirm={() => setLockError(null)}
+        onCancel={() => setLockError(null)}
+      />
     </ActionScreenLayout>
   );
 };
