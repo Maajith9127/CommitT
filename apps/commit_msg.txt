@@ -1,17 +1,5 @@
-feat(native-enforcement): implement location-aware geofencing & dynamic overlay
+style(native-ui): harmonize semantic red across commitment confirmation modals
 
-Core Enforcer Engine:
-- Re-engineered BlockerAccessibilityService for real-time location-aware decisioning.
-- Implemented geofence verification algorithm with high-fidelity GPS calculation.
-- Integrated Fail-Safe security protocols: auto-blocks apps if GPS is disabled or permissions revoked.
-- Optimized temporal window resolution using surgical SQLite queries on task_instances.
-
-Native UI Hooks:
-- Refactored BlockerOverlayActivity to render dynamic, reason-based feedback (e.g., "Location is off").
-- Decoupled enforcement messaging from static blocklists for better user transparency.
-
-Diagnostic Telemetry:
-- Added high-fidelity logging (TAG: BlockerService) covering vault resolution, geofence distance, and security events.
-
-Infrastructure Fixes:
-- Fixed ADB permission errors in WSL by elevating server initialization to root in connect-phone.ps1.
+- Updated 'Keep current' (EventDetailLocation) and 'Discard' (BlocklistView) buttons to use semantic red (#FF3B30).
+- Synchronized the Lock Error acknowledgement button in BlocklistView with the same red palette.
+- Ensured visual consistency for destructive and cancellation actions across the commitment editing workflow.

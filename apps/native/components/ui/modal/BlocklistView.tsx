@@ -265,7 +265,7 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
         title="Save your selection? This immediately updates your blocked apps list."
         confirmText="Save"
         cancelText="Discard"
-        cancelColor="#FF4F4F"
+        cancelColor="#FF3B30"
         isLoading={isSaving}
         onConfirm={processSave}
         onCancel={() => setShowSaveConfirm(false)}
@@ -277,7 +277,7 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
         title="Commitment Locked: This instance is in its 'Strict Lock Zone' and cannot be edited."
         confirmText="Understood"
         singleButton
-        confirmColor="#FF4F4F"
+        confirmColor="#FF3B30"
         onConfirm={() => setLockError(null)}
         onCancel={() => setLockError(null)}
       />

@@ -6,6 +6,12 @@ import { GoogleMaps } from 'expo-maps';
 import { BodyText } from '@/components/ui/text';
 import { useLocation } from "@/hooks/useLocation";
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
+import { useMutation } from 'convex/react';
+import { api } from '@commit/backend/convex/_generated/api';
+import { ConfirmationModal } from './ConfirmationModal';
+import { updateInstanceInLocalDb } from '@/lib/local-db-commits';
+import { useSQLiteContext } from "expo-sqlite";
+import { Alert } from 'react-native';
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
@@ -55,6 +61,14 @@ export const LocationSection = React.memo(({
     const { hasPermission, requestLocation, isLocating } = useLocation();
     const [isMapReady, setIsMapReady] = useState(false);
     
+    // NATIVE DRAG & PIVOT STATE
+    const [tempCoords, setTempCoords] = useState<{ latitude: number, longitude: number } | null>(null);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
+    
+    const db = useSQLiteContext();
+    const updateConvexInstance = useMutation(api.api.instances.update.update);
+    
     // Reset map initialization state when the task instance context changes.
     // This ensures that the map view re-synchronizes with the coordinates 
     // of the newly selected event and prevents stale data persistence.
@@ -67,6 +81,68 @@ export const LocationSection = React.memo(({
     const { lat, lng, radius, address } = locCondition.target.value;
     const isInverse = locCondition.relation === 'outside';
     const relationText = locCondition.relation === 'within' ? 'Within' : 'Outside';
+
+    // DYNAMIC COORDINATE RESOLUTION
+    // Uses the temporary drag-target if it exists, otherwise falls back to saved data.
+    const displayLat = tempCoords?.latitude ?? lat;
+    const displayLng = tempCoords?.longitude ?? lng;
+
+    /**
+     * handleConfirmUpdate()
+     * -------------------------------------------------------------------------------
+     * Finalizes the location pivot. Synchronizes the new geofence coordinates to 
+     * Convex first (Strict Lock verification) then persists to the local vault.
+     */
+    const handleConfirmUpdate = async () => {
+        if (!tempCoords) return;
+        setIsUpdating(true);
+        try {
+            const newConditions = event.conditions.map((c: any) => {
+                if (c.metric_key === 'location') {
+                    return {
+                        ...c,
+                        target: {
+                            ...c.target,
+                            value: {
+                                ...c.target.value,
+                                lat: tempCoords.latitude,
+                                lng: tempCoords.longitude,
+                                address: "Updated Location"
+                            }
+                        }
+                    };
+                }
+                return c;
+            });
+
+            // 1. CLOUD SYNC: Submit change to Convex logic layer
+            const result = await updateConvexInstance({
+                id: event._id,
+                conditions: newConditions
+            }) as any;
+
+            if (result.success === false && result.error === "STRICT_LOCK_ACTIVE") {
+                Alert.alert("Commitment Locked", result.message);
+                setTempCoords(null);
+                setShowConfirm(false);
+                return;
+            }
+
+            if (!result.success) throw new Error(result.message || "Sync failed");
+
+            // 2. VAULT SYNC: Persist to local hardware enforcer
+            await updateInstanceInLocalDb(db, event._id, { conditions: newConditions });
+
+            setTempCoords(null);
+            setShowConfirm(false);
+        } catch (err) {
+            Alert.alert("Update Failed", String(err));
+            setTempCoords(null);
+            setShowConfirm(false);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     return (
         <UView className="border-b border-white/20 flex-col pb-6"> 
@@ -126,6 +202,10 @@ export const LocationSection = React.memo(({
                                     isMyLocationEnabled: hasPermission === true,
                                 }}
                                 onMapLoaded={() => setIsMapReady(true)}
+                                onMapLongClick={(e) => {
+                                    setTempCoords(e.coordinates);
+                                    setShowConfirm(true);
+                                }}
                                 // If mapping an "Outside" constraint, draw the entire world
                                 // in semi-red, and punch out a transparent hole for the valid area!
                                 polygons={
@@ -141,7 +221,7 @@ export const LocationSection = React.memo(({
                                             { latitude: -85, longitude: -179.9 },
                                             { latitude: 85, longitude: -179.9 },
                                             ...getCirclePoints(
-                                                { latitude: lat, longitude: lng },
+                                                { latitude: displayLat, longitude: displayLng },
                                                 radius,
                                             ).reverse(),
                                             ],
@@ -153,7 +233,7 @@ export const LocationSection = React.memo(({
                                 }
                                 circles={[
                                     {
-                                        center: { latitude: lat, longitude: lng },
+                                        center: { latitude: displayLat, longitude: displayLng },
                                         radius: radius,
                                         color: isInverse ? "transparent" : "#4FA0FF40",
                                         lineColor: "#4FA0FF",
@@ -172,6 +252,22 @@ export const LocationSection = React.memo(({
                     )}
             </UView>
             </View>
+
+            {/* Pivot Confirmation Logic */}
+            <ConfirmationModal
+                visible={showConfirm}
+                title="Change location for this event?"
+                confirmText="Yes, Move it"
+                confirmColor="#4FA0FF"
+                cancelText="Keep current"
+                cancelColor="#FF3B30"
+                isLoading={isUpdating}
+                onConfirm={handleConfirmUpdate}
+                onCancel={() => {
+                    setTempCoords(null);
+                    setShowConfirm(false);
+                }}
+            />
         </UView>
     );
 }, (prev, next) => {
