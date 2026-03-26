@@ -45,7 +45,6 @@ export function EventDetailTime({
   checkpoints,
   strictUntil,
 }: EventDetailTimeProps) {
-  console.log('[EventDetailTime] Rendering with config:', JSON.stringify(config, null, 2));
   const [now, setNow] = useState(Date.now());
   const opacityAnim = useRef(new Animated.Value(0.5)).current;
 

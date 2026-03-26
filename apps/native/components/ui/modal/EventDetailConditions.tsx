@@ -302,7 +302,7 @@ type ResolvedApp = {
  * Renders the list of apps blocked by the digital commitment.
  * Uses the same row layout as Penalty/Waiver, but adds a horizontal icon list.
  */
-export const BlocklistSection = ({ event }: { event: any }) => {
+export const BlocklistSection = ({ event, onPress }: { event: any; onPress?: () => void }) => {
   const [resolvedApps, setResolvedApps] = useState<ResolvedApp[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -352,7 +352,10 @@ export const BlocklistSection = ({ event }: { event: any }) => {
           <BodyText className="text-white text-base">Digital Commitment</BodyText>
           <BodyText className="text-gray-400 text-sm mt-1">These apps are blocked</BodyText>
         </UView>
-        <VerificationStatusCircle status="neutral" />
+        <VerificationStatusCircle 
+          status="neutral" 
+          onPress={onPress}
+        />
       </UView>
 
       {/* ICON GALLERY (Nested below for clean hierarchy) */}

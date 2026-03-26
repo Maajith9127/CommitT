@@ -1,8 +1,7 @@
-feat(native/ui): implement high-fidelity Digital Commitment blocklist in EventDetailModal
+feat(native): implement high-fidelity digital commitment edit flow
 
-- Added [BlocklistSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:300:0-387:2) to [EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0) with dynamic native app metadata resolution (icons & names).
-- Integrated the blocklist into `EventDetailModal` with a premium, horizontally scrollable icon gallery.
-- Optimized modal layout hierarchy: Time → Location → Digital Commitment → Penalty → Waiver.
-- Fixed a runtime crash related to named imports from the [AppListerModule](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/app-lister-module/index.ts:34:0-38:2) bridge.
-- Harmonized iconography using `shield-lock-outline` / `cellphone-lock` and consistent `gray-400` styling.
-- Improved [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) loading stability with a dedicated `HorizontalAppSkeleton` and static header counts derived from the draft store.
+- Replicated the 'choose.tsx' creation UI within the EventDetailModal singleton to provide a 1:1 consistent instance-editing experience.
+- Implemented a two-stage 'Confirmation → Action' pipeline for Blocklist modifications, mirroring the premium Waiver architecture.
+- Synchronized blocklist updates with both the Convex backend and the local Android SQLite database for immediate enforcer reactivity.
+- Optimized the 'BlocklistView' using the ActionScreenLayout to ensure pixel-perfect alignment of headers, tabs, and footer zones.
+- Silenced high-frequency rendering logs in the temporal metadata component to clarify terminal output during debugging.
