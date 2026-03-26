@@ -1,5 +1,19 @@
-style(native-ui): harmonize semantic red across commitment confirmation modals
+feat(native-enforcement): implement location-aware geofencing & total lockdown protocols
 
-- Updated 'Keep current' (EventDetailLocation) and 'Discard' (BlocklistView) buttons to use semantic red (#FF3B30).
-- Synchronized the Lock Error acknowledgement button in BlocklistView with the same red palette.
-- Ensured visual consistency for destructive and cancellation actions across the commitment editing workflow.
+Location-Aware Enforcement Engine:
+- Re-engineered BlockerAccessibilityService for real-time location-aware decisioning.
+- Implemented geofence verification algorithm with high-fidelity GPS calculation.
+- Integrated Fail-Safe protocols: auto-blocks apps if GPS is disabled or permissions revoked.
+
+Total Lockdown & Anti-Tamper Shield:
+- Implemented a tiered enforcement protocol: Soft Overlay (Apps) vs. Total Lockdown (System).
+- Engineered Hard Ejection (GLOBAL_ACTION_LOCK_SCREEN) for system management tampering.
+- Blocks Settings, Accessibility edits, and Uninstaller intents during active commitments.
+- Forces device re-authentication through PIN/Biometrics if bypass-attempts are detected.
+- Expanded the Universal Management Blocklist to cover Settings, Play Store, and Installer.
+
+Native UI Hooks:
+- Implemented 'Pivot & Confirm' geofence interaction for commitments on the map.
+- Decoupled map camera from drag-coordinates for a stable, high-fidelity UI experience.
+- Harmonized semantic Red (#FF3B30) across all confirmation and destructive action modals.
+
