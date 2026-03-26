@@ -1,7 +1,17 @@
-feat(native): implement double-confirmation & strict-lock guards for blocklist edits
+feat(native-enforcement): implement location-aware geofencing & dynamic overlay
 
-- Integrated 'ConfirmationModal' into the Save workflow with simplified, single-title messaging for high-impact clarity.
-- Harmonized 'Cancel/Discard' button styling with semantic Red (#FF3B30) across both the entry and exit modals.
-- Enhanced 'BlocklistView' to intercept 'STRICT_LOCK_ACTIVE' errors, providing clear user feedback when commitments are locked.
-- Updated the Convex 'instance:update' mutation to persist structural condition changes to the cloud.
-- Optimized the synchronization sequence: Cloud Sync (Backend) → Hardware Sync (Local SQLite) for guaranteed enforcer reactivity.
+Core Enforcer Engine:
+- Re-engineered BlockerAccessibilityService for real-time location-aware decisioning.
+- Implemented geofence verification algorithm with high-fidelity GPS calculation.
+- Integrated Fail-Safe security protocols: auto-blocks apps if GPS is disabled or permissions revoked.
+- Optimized temporal window resolution using surgical SQLite queries on task_instances.
+
+Native UI Hooks:
+- Refactored BlockerOverlayActivity to render dynamic, reason-based feedback (e.g., "Location is off").
+- Decoupled enforcement messaging from static blocklists for better user transparency.
+
+Diagnostic Telemetry:
+- Added high-fidelity logging (TAG: BlockerService) covering vault resolution, geofence distance, and security events.
+
+Infrastructure Fixes:
+- Fixed ADB permission errors in WSL by elevating server initialization to root in connect-phone.ps1.
