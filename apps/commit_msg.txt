@@ -1,12 +1,14 @@
-refactor(ui): modernize EventDetail modal with global app store integration
+perf(ui): optimize Blocklist editor and streamline navigation flow
 
-- Transitioned [BlocklistSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:302:0-387:2) to use the global `useAppStore` for 
-  instant, zero-latency metadata resolution.
-- Eliminated redundant native bridge calls and `useEffect` hooks during 
-  modal mount by leveraging pre-hydrated state.
-- Migrated verification gallery to use file-based `iconUri` paths for 
-  OOM-safe rendering of application icons.
-- Implemented high-performance reactive `useMemo` for resolving blocked 
-  application IDs to names and icons.
-- Added production-grade internal documentation for metadata resolution 
-  and fallback icon handling.
+- Integrated global `useAppStore` into [BlocklistView](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/BlocklistView.tsx:51:0-302:2) to enable 
+  instant, high-performance application discovery.
+- Implemented `FlatList` virtualization in the blocklist editor to 
+  ensure smooth scrolling across large app catalogs.
+- Enabled edge-to-edge separators via `fullWidthContent` mode for 
+  a premium, native-aligned aesthetic.
+- Streamlined UX by removing the intermediate confirmation modal when 
+  accessing digital commitment settings from Event Details.
+- Added a local staging phase for app selections, ensuring changes 
+  are only synced to Cloud/SQLite upon explicit user confirmation.
+- Resolved strict TypeScript linting errors and removed redundant 
+  legacy fetch logic.

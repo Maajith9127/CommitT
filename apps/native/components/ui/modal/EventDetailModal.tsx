@@ -118,7 +118,6 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
   const [isStartingWaiver, setIsStartingWaiver] = useState(false);
   const [strictConfirmVisible, setStrictConfirmVisible] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
-  const [blocklistConfirmVisible, setBlocklistConfirmVisible] = useState(false);
   const [blocklistModalVisible, setBlocklistModalVisible] = useState(false);
 
   const startWaiver = useMutation(api.api.instances.waivers.startSession);
@@ -414,7 +413,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             {/* ── Blocked Apps ── */}
             <BlocklistSection 
               event={currentEvent} 
-              onPress={() => setBlocklistConfirmVisible(true)}
+              onPress={() => setBlocklistModalVisible(true)}
             />
 
             {/* ── Financial Penalty ── */}
@@ -482,20 +481,6 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         onClose={() => setBlocklistModalVisible(false)}
       />
 
-      {/* ── Blocklist Edit Confirmation Modal ── */}
-      <ConfirmationModal
-        visible={blocklistConfirmVisible}
-        title="Edit this Digital Commitment? This update only affects this specific task instance."
-        confirmText="Edit"
-        cancelText="Cancel"
-        confirmColor="#4FA0FF"
-        cancelColor="#FF3B30"
-        onConfirm={() => {
-          setBlocklistConfirmVisible(false);
-          setBlocklistModalVisible(true);
-        }}
-        onCancel={() => setBlocklistConfirmVisible(false)}
-      />
 
       {/* ── Waiver Start Confirmation Modal ── */}
       <ConfirmationModal

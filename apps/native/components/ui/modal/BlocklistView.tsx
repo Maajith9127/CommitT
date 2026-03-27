@@ -11,6 +11,9 @@ import { AppListerModule } from "../../../modules/app-lister-module";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { PrimaryButton } from "@/components/ui/button";
 import { AppCardSkeleton } from "@/components/ui/skeletons/AppCardSkeleton";
+import { useAppStore } from "@/stores/useAppStore";
+import { useMemo } from "react";
+import { FlatList } from "react-native";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { useSQLiteContext } from "expo-sqlite";
 import { useMutation } from "convex/react";
@@ -31,7 +34,7 @@ type BlockItem = {
 };
 
 // ─── Shared Session Cache ─────────────────────────────────────────────────────
-let _cachedApps: BlockItem[] | null = null;
+// (Shared Session Cache DEPRECATED: Now handled by global useAppStore)
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -64,40 +67,41 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [lockError, setLockError] = useState<{ title: string; message: string } | null>(null);
 
-  // 3. APPS STATE 
-  const [apps, setApps] = useState<BlockItem[]>([]);
-  const [isLoadingApps, setIsLoadingApps] = useState(false);
+  // 3. APPS STATE (Virtualized via Global Store)
+  const discoveredApps = useAppStore((s: any) => s.apps);
+  const isLoadingApps = discoveredApps.length === 0;
 
-  useEffect(() => {
-    if (activeTab !== "apps") return;
-    if (_cachedApps) {
-      setApps(_cachedApps.map(app => ({
+  // Compute reactive app list with current selection states (SORTED BY SELECTION)
+  const apps = useMemo(() => {
+    return discoveredApps
+      .map(app => ({
         ...app,
         selected: initialAppIds.indexOf(app.id) !== -1,
-      })));
-      return;
-    }
-
-    setIsLoadingApps(true);
-    AppListerModule.getInstalledApps()
-      .then((realApps: BlockItem[]) => {
-        _cachedApps = realApps;
-        setApps(realApps.map(app => ({
-          ...app,
-          selected: initialAppIds.indexOf(app.id) !== -1,
-        })));
-      })
-      .catch((err: any) => console.error("Native Bridge Error:", err))
-      .finally(() => setIsLoadingApps(false));
-  }, [activeTab]);
+      }))
+      .sort((a: any, b: any) => {
+        if (a.selected && !b.selected) return -1;
+        if (!a.selected && b.selected) return 1;
+        return a.name.localeCompare(b.name);
+      });
+  }, [discoveredApps, initialAppIds.join(',')]);
 
   // 4. WEBSITES STATE
   const [webs, setWebs] = useState<BlockItem[]>(
     initialWebLinks.map((w: string, i: number) => ({ id: `w_init_${i}`, name: w, selected: true }))
   );
 
-  // 5. FILTERING
-  const filteredApps = apps.filter(app =>
+  // 5. LOCAL SELECTION STATE (Used for tempering edits before save)
+  const [localAppSelections, setLocalAppSelections] = useState<string[]>(initialAppIds);
+
+  // 6. FILTERING (Applied to the reactive store-backed list)
+  const reactiveApps = useMemo(() => {
+    return apps.map(a => ({
+      ...a,
+      selected: localAppSelections.includes(a.id)
+    }));
+  }, [apps, localAppSelections]);
+
+  const filteredApps = reactiveApps.filter(app =>
     app.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
@@ -109,7 +113,11 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
   };
 
   const toggleApp = (id: string) => {
-    setApps(prev => prev.map(a => (a.id === id ? { ...a, selected: !a.selected } : a)));
+    // Note: We use the `apps` computed from store, but for toggling in the modal, 
+    // we need to manage the temporary local selection before the user hits "Save".
+    setLocalAppSelections((prev: string[]) => 
+      (prev as any).includes(id) ? (prev as any).filter((p: any) => p !== id) : [...prev, id]
+    );
   };
 
   const toggleWeb = (id: string) => {
@@ -128,7 +136,7 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
   const processSave = async () => {
     setIsSaving(true);
     try {
-      const selectedAppIds = apps.filter(a => a.selected).map(a => a.id);
+      const selectedAppIds = localAppSelections;
       const selectedWebs = webs.filter(w => w.selected).map(w => w.name);
 
       const newConditions = event.conditions.map((c: any) => {
@@ -211,6 +219,8 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
     <ActionScreenLayout
       className="pt-10"
       header={headerContent}
+      scrollable={activeTab !== "apps"}
+      fullWidthContent={activeTab === "apps"}
       footer={
         <PrimaryButton onPress={() => setShowSaveConfirm(true)}>
           Save Changes
@@ -225,18 +235,25 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
         </>
       )}
 
-      {/* ── Apps Tab: List ── */}
-      {activeTab === "apps" &&
-        filteredApps.map(app => (
-          <SelectableListItem
-            key={app.id}
-            icon="cellphone"
-            imageUri={app.iconBase64}
-            label={app.name}
-            selected={app.selected}
-            onToggle={() => toggleApp(app.id)}
-          />
-        ))}
+      {/* ── Apps Tab: Virtualized List ── */}
+      {activeTab === "apps" && (
+        <FlatList
+          data={filteredApps}
+          keyExtractor={(item: any) => item.id}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={10}
+          windowSize={5}
+          renderItem={({ item }: { item: any }) => (
+            <SelectableListItem
+              icon="cellphone"
+              imageUri={item.iconUri}
+              label={item.name}
+              selected={item.selected}
+              onToggle={() => toggleApp(item.id)}
+            />
+          )}
+        />
+      )}
 
       {/* ── Webs Tab ── */}
       {activeTab === "webs" &&
