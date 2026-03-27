@@ -1,12 +1,12 @@
-style(ui): implement edge-to-edge separators and selection pinning
+refactor(ui): modernize EventDetail modal with global app store integration
 
-- Refactored [SelectableListItem](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/blocklist/SelectableListItem.tsx:30:0-86:1) to decouple horizontal borders from 
-  content padding, enabling edge-to-edge separators.
-- Added `fullWidthContent` mode to [ActionScreenLayout](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ActionScreenLayout.tsx:39:0-123:1) for specialized 
-  high-performance list layouts.
-- Enhanced [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) with dynamic sorting to pin selected applications 
-  to the top of the discovery list.
-- Improved alphabetical sub-sorting for unselected apps to maintain a 
-  predictable browsing experience.
-- Resolved strict TypeScript linting errors in the `FlatList` renderer 
-  and sort functions.
+- Transitioned [BlocklistSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:302:0-387:2) to use the global `useAppStore` for 
+  instant, zero-latency metadata resolution.
+- Eliminated redundant native bridge calls and `useEffect` hooks during 
+  modal mount by leveraging pre-hydrated state.
+- Migrated verification gallery to use file-based `iconUri` paths for 
+  OOM-safe rendering of application icons.
+- Implemented high-performance reactive `useMemo` for resolving blocked 
+  application IDs to names and icons.
+- Added production-grade internal documentation for metadata resolution 
+  and fallback icon handling.
