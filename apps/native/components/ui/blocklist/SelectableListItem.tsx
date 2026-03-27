@@ -49,36 +49,38 @@ type SelectableListItemProps = {
 export function SelectableListItem({ icon, label, imageUri, selected, onToggle }: SelectableListItemProps) {
   return (
     <UPress onPress={onToggle}>
-      <UView className="flex-row items-center py-3 border-b border-[#2A2A2A] -mx-4 px-4">
-        <UView className="flex-row items-center flex-1">
-          {/* Priority 1: Real app icon from native Base64 extraction */}
-          {imageUri ? (
-            <UView className="w-10 h-10 mr-3 overflow-hidden rounded-lg items-center justify-center">
-              <Image source={{ uri: imageUri }} style={{ width: 40, height: 40, resizeMode: "cover" }} />
-            </UView>
-          ) : icon === "cellphone" ? (
-            /* Priority 2: Generic phone icon fallback (apps without extractable icons) */
-            <UView className="w-10 h-10 mr-3 rounded-lg bg-[#1A1A1A] items-center justify-center">
-              <MaterialCommunityIcons name="cellphone" size={20} color="#4FA0FF" />
-            </UView>
-          ) : (
-            /* Priority 3: Globe icon for website entries */
-            <MaterialCommunityIcons
-              name="web"
-              size={20}
-              color="#4FA0FF"
-              style={{ marginRight: 12 }}
-            />
-          )}
-          <AuthTitle className="mb-0 text-white text-base font-normal">{label}</AuthTitle>
-        </UView>
+      <UView className="border-b border-[#2A2A2A]">
+        <UView className="flex-row items-center py-3 px-4">
+          <UView className="flex-row items-center flex-1">
+            {/* Priority 1: Real app icon from native Base64 extraction */}
+            {imageUri ? (
+              <UView className="w-10 h-10 mr-3 overflow-hidden rounded-lg items-center justify-center">
+                <Image source={{ uri: imageUri }} style={{ width: 40, height: 40, resizeMode: "cover" }} />
+              </UView>
+            ) : icon === "cellphone" ? (
+              /* Priority 2: Generic phone icon fallback (apps without extractable icons) */
+              <UView className="w-10 h-10 mr-3 rounded-lg bg-[#1A1A1A] items-center justify-center">
+                <MaterialCommunityIcons name="cellphone" size={20} color="#4FA0FF" />
+              </UView>
+            ) : (
+              /* Priority 3: Globe icon for website entries */
+              <MaterialCommunityIcons
+                name="web"
+                size={20}
+                color="#4FA0FF"
+                style={{ marginRight: 12 }}
+              />
+            )}
+            <AuthTitle className="mb-0 text-white text-base font-normal">{label}</AuthTitle>
+          </UView>
 
-        {/* Right side: selection checkbox */}
-        <MaterialCommunityIcons
-          name={selected ? "checkbox-marked" : "checkbox-blank-outline"}
-          size={22}
-          color={selected ? "#4FA0FF" : "#777"}
-        />
+          {/* Right side: selection checkbox */}
+          <MaterialCommunityIcons
+            name={selected ? "checkbox-marked" : "checkbox-blank-outline"}
+            size={22}
+            color={selected ? "#4FA0FF" : "#777"}
+          />
+        </UView>
       </UView>
     </UPress>
   );

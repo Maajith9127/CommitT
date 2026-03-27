@@ -88,12 +88,20 @@ export default function ChooseScreen() {
   // ── High Performance Discovery State ──
   const discoveredApps = useAppStore((s: any) => s.apps);
 
-  // Compute reactive app list with current selection states (RESTORED FULL LIST)
+  // Compute reactive app list with current selection states (SORTED BY SELECTION)
   const apps = useMemo(() => {
-    return discoveredApps.map(app => ({
-      ...app,
-      selected: storeApps.indexOf(app.id) !== -1
-    }));
+    return discoveredApps
+      .map(app => ({
+        ...app,
+        selected: storeApps.indexOf(app.id) !== -1
+      }))
+      .sort((a: any, b: any) => {
+        // Sort selected apps to the top
+        if (a.selected && !b.selected) return -1;
+        if (!a.selected && b.selected) return 1;
+        // Keep alphabetic sorting within groups
+        return a.name.localeCompare(b.name);
+      });
   }, [discoveredApps, storeApps]);
 
   const isLoadingApps = discoveredApps.length === 0;
@@ -203,6 +211,7 @@ export default function ChooseScreen() {
       className="pt-10"
       header={headerContent}
       scrollable={activeTab !== "apps"} // Only apps tab needs high-performance virtualization
+      fullWidthContent={activeTab === "apps"} // Edge-to-edge separators for apps
       footer={
         <PrimaryButton onPress={() => router.back()}>Save</PrimaryButton>
       }
@@ -220,11 +229,11 @@ export default function ChooseScreen() {
       {activeTab === "apps" && (
         <FlatList
           data={filteredApps}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: any) => item.id}
           showsVerticalScrollIndicator={false}
           initialNumToRender={10}
           windowSize={5}
-          renderItem={({ item }) => (
+          renderItem={({ item }: { item: any }) => (
             <SelectableListItem
               icon="cellphone"
               imageUri={item.iconUri}

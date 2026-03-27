@@ -1,10 +1,12 @@
-perf(ui): implement FlatList virtualization and lazy-loading for Blocklist
+style(ui): implement edge-to-edge separators and selection pinning
 
-- Added `scrollable` prop to [ActionScreenLayout](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ActionScreenLayout.tsx:35:0-114:1) to support non-nested 
-  high-performance list rendering.
-- Replaced eager `.map()` rendering in [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) with native `FlatList` 
-  virtualization.
-- Eliminated 1-second navigation bottleneck by setting `initialNumToRender` 
-  to 10 for the primary app discovery catalog.
-- Ensured reactive selection states and search filtering remain performant 
-  across 300+ installed applications.
+- Refactored [SelectableListItem](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/blocklist/SelectableListItem.tsx:30:0-86:1) to decouple horizontal borders from 
+  content padding, enabling edge-to-edge separators.
+- Added `fullWidthContent` mode to [ActionScreenLayout](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ActionScreenLayout.tsx:39:0-123:1) for specialized 
+  high-performance list layouts.
+- Enhanced [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) with dynamic sorting to pin selected applications 
+  to the top of the discovery list.
+- Improved alphabetical sub-sorting for unselected apps to maintain a 
+  predictable browsing experience.
+- Resolved strict TypeScript linting errors in the `FlatList` renderer 
+  and sort functions.

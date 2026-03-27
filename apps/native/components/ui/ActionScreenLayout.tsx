@@ -31,6 +31,10 @@ type ActionScreenLayoutProps = {
   /** Additional Tailwind classes for the footer wrapper. */
   footerClassName?: string;
   scrollable?: boolean;
+  /** Whether the main content should ignore the horizontal padding.
+   *  Useful for edge-to-edge list items with separators.
+   *  @default false */
+  fullWidthContent?: boolean;
 };
 
 /**
@@ -73,7 +77,27 @@ export function ActionScreenLayout({
   scrollClassName = "",
   footerClassName = "",
   scrollable = true,
+  fullWidthContent = false,
 }: ActionScreenLayoutProps) {
+  const horizontalPadding = fullWidthContent ? 0 : paddingHorizontal;
+
+  const content = scrollable ? (
+    <UScroll
+      showsVerticalScrollIndicator={false}
+      className={`flex-1 ${scrollClassName}`}
+      contentContainerStyle={{
+        paddingHorizontal: horizontalPadding,
+        paddingBottom: 0,
+      }}
+    >
+      {children}
+    </UScroll>
+  ) : (
+    <UView className={`flex-1 ${scrollClassName}`} style={{ paddingHorizontal: horizontalPadding }}>
+      {children}
+    </UView>
+  );
+
   return (
     <UView className={`flex-1 bg-black ${className}`}>
       {/* ZONE 0: FIXED HEADER */}
@@ -83,23 +107,8 @@ export function ActionScreenLayout({
         </UView>
       )}
 
-      {/* ZONE 1: MAIN CONTENT (SCROLLABLE OR CUSTOM) */}
-      {scrollable ? (
-        <UScroll
-          showsVerticalScrollIndicator={false}
-          className={`flex-1 ${scrollClassName}`}
-          contentContainerStyle={{
-            paddingHorizontal,
-            paddingBottom: 0,
-          }}
-        >
-          {children}
-        </UScroll>
-      ) : (
-        <UView className="flex-1" style={{ paddingHorizontal }}>
-          {children}
-        </UView>
-      )}
+      {/* ZONE 1: MAIN CONTENT */}
+      {content}
 
       {/* ZONE 2: FIXED FOOTER */}
       {footer && (
