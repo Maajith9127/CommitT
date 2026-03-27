@@ -24,8 +24,8 @@
  * @see components/ui/blocklist/ — Reusable UI components (TopBar, TabsBar, etc.)
  * @see components/ui/ActionScreenLayout.tsx — 3-zone layout (header/scroll/footer)
  */
-import { useState, useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { useState, useEffect, useMemo } from "react";
+import { View, ActivityIndicator, FlatList } from "react-native";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
@@ -35,7 +35,6 @@ import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
 import { AppCardSkeleton } from "@/components/ui/skeletons/AppCardSkeleton";
 import { useTaskDraftStore, type Condition } from "@/stores/useTaskDraftStore";
 import { useAppStore } from "@/stores/useAppStore";
-import { useMemo } from "react";
 
 const UView = withUniwind(View);
 
@@ -87,9 +86,9 @@ export default function ChooseScreen() {
   const [inlineText, setInlineText] = useState("");
 
   // ── High Performance Discovery State ──
-  const discoveredApps = useAppStore((s) => s.apps);
+  const discoveredApps = useAppStore((s: any) => s.apps);
 
-  // Compute reactive app list with current selection states
+  // Compute reactive app list with current selection states (RESTORED FULL LIST)
   const apps = useMemo(() => {
     return discoveredApps.map(app => ({
       ...app,
@@ -203,6 +202,7 @@ export default function ChooseScreen() {
     <ActionScreenLayout
       className="pt-10"
       header={headerContent}
+      scrollable={activeTab !== "apps"} // Only apps tab needs high-performance virtualization
       footer={
         <PrimaryButton onPress={() => router.back()}>Save</PrimaryButton>
       }
@@ -216,18 +216,25 @@ export default function ChooseScreen() {
         </>
       )}
 
-      {/* ── Apps Tab: Loaded List ── */}
-      {activeTab === "apps" &&
-        filteredApps.map((app: any) => (
-          <SelectableListItem
-            key={app.id}
-            icon="cellphone"
-            imageUri={app.iconUri}
-            label={app.name}
-            selected={app.selected}
-            onToggle={() => toggleApp(app.id)}
-          />
-        ))}
+      {/* ── Apps Tab: Virtualized List ── */}
+      {activeTab === "apps" && (
+        <FlatList
+          data={filteredApps}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={10}
+          windowSize={5}
+          renderItem={({ item }) => (
+            <SelectableListItem
+              icon="cellphone"
+              imageUri={item.iconUri}
+              label={item.name}
+              selected={item.selected}
+              onToggle={() => toggleApp(item.id)}
+            />
+          )}
+        />
+      )}
 
       {/* ── Webs Tab ── */}
       {activeTab === "webs" &&

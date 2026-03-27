@@ -30,6 +30,7 @@ type ActionScreenLayoutProps = {
   scrollClassName?: string;
   /** Additional Tailwind classes for the footer wrapper. */
   footerClassName?: string;
+  scrollable?: boolean;
 };
 
 /**
@@ -71,29 +72,36 @@ export function ActionScreenLayout({
   className = "",
   scrollClassName = "",
   footerClassName = "",
+  scrollable = true,
 }: ActionScreenLayoutProps) {
   return (
     <UView className={`flex-1 bg-black ${className}`}>
-      {/* ZONE 0: FIXED HEADER — stays pinned above the scroll area */}
+      {/* ZONE 0: FIXED HEADER */}
       {header && (
         <UView style={{ paddingHorizontal }}>
           {header}
         </UView>
       )}
 
-      {/* ZONE 1: SCROLLABLE CONTENT — flex-1 fills all remaining vertical space */}
-      <UScroll
-        showsVerticalScrollIndicator={false}
-        className={`flex-1 ${scrollClassName}`}
-        contentContainerStyle={{
-          paddingHorizontal,
-          paddingBottom: 0,
-        }}
-      >
-        {children}
-      </UScroll>
+      {/* ZONE 1: MAIN CONTENT (SCROLLABLE OR CUSTOM) */}
+      {scrollable ? (
+        <UScroll
+          showsVerticalScrollIndicator={false}
+          className={`flex-1 ${scrollClassName}`}
+          contentContainerStyle={{
+            paddingHorizontal,
+            paddingBottom: 0,
+          }}
+        >
+          {children}
+        </UScroll>
+      ) : (
+        <UView className="flex-1" style={{ paddingHorizontal }}>
+          {children}
+        </UView>
+      )}
 
-      {/* ZONE 2: FIXED FOOTER — stays pinned at the bottom of the screen */}
+      {/* ZONE 2: FIXED FOOTER */}
       {footer && (
         <UView
           className={`pb-10 pt-4 ${footerClassName}`}

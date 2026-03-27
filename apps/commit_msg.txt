@@ -1,12 +1,10 @@
-feat(native): high-performance app discovery and file-based icon caching
+perf(ui): implement FlatList virtualization and lazy-loading for Blocklist
 
-- Refactored native Android module to extract app icons as PNG files to 
-  the cache directory instead of memory-heavy Base64 strings.
-- Implemented `useAppStore` globally via Zustand for an "Instant-On" 
-  catalog available across the entire app.
-- Integrated background synchronization in the main [commits.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:0:0-0:0) 
-  landing screen to eliminate UI jitter during configuration.
-- Migrated [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) and [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) to consume the global store, 
-  enabling reactive app list rendering with zero navigation delay.
-- Optimized blocklist discovery pathing by switching from JS bridge 
-  transfer to native file URI references (`file://`).
+- Added `scrollable` prop to [ActionScreenLayout](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ActionScreenLayout.tsx:35:0-114:1) to support non-nested 
+  high-performance list rendering.
+- Replaced eager `.map()` rendering in [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) with native `FlatList` 
+  virtualization.
+- Eliminated 1-second navigation bottleneck by setting `initialNumToRender` 
+  to 10 for the primary app discovery catalog.
+- Ensured reactive selection states and search filtering remain performant 
+  across 300+ installed applications.
