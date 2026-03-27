@@ -1,14 +1,13 @@
-perf(ui): optimize Blocklist editor and streamline navigation flow
+feat(creation): restore Smart Pre-fill and synchronize penalty enums
 
-- Integrated global `useAppStore` into [BlocklistView](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/BlocklistView.tsx:51:0-302:2) to enable 
-  instant, high-performance application discovery.
-- Implemented `FlatList` virtualization in the blocklist editor to 
-  ensure smooth scrolling across large app catalogs.
-- Enabled edge-to-edge separators via `fullWidthContent` mode for 
-  a premium, native-aligned aesthetic.
-- Streamlined UX by removing the intermediate confirmation modal when 
-  accessing digital commitment settings from Event Details.
-- Added a local staging phase for app selections, ensuring changes 
-  are only synced to Cloud/SQLite upon explicit user confirmation.
-- Resolved strict TypeScript linting errors and removed redundant 
-  legacy fetch logic.
+- Re-enabled the [useAccountabilityPrefill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useAccountabilityPrefill.ts:5:0-42:1) hook in the final 
+  creation screen to automatically fetch the user's "Accountability 
+  Identity" (last-used penalty and waiver) from Convex.
+- Synchronized the frontend penalty display logic with the official 
+  backend enums (`send_money`, `send_email`, `embarrassing_photo`, 
+  `commit_direct`) to ensure accurate metadata resolution.
+- Updated the task draft store's default state to include reasonable 
+  initial penalty and waiver configurations, preventing empty-stake 
+  CommitTs during the fetch transition.
+- Refined the "Zero-Friction" creation experience, ensuring users are 
+  immediately "pre-armed" with their historical accountability style.

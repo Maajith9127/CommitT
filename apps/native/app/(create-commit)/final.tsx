@@ -18,6 +18,7 @@ import { HeaderTitle } from "@/components/ui/text";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
 import { useCommitTask } from "@/hooks/useCommitTask";
+import { useAccountabilityPrefill } from "@/hooks/useAccountabilityPrefill";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 
 /** Metadata for a device-installed application resolved from native */
@@ -177,8 +178,13 @@ export default function FinalScreen() {
   const { width: screenWidth } = useWindowDimensions();
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Store Selectors
+  // Store Selectors & Hooks
   // ─────────────────────────────────────────────────────────────────────────
+  
+  // PRODUCTION RATIONALE: "The Smart Handshake"
+  // This hook fetches the user's historical penalty/waiver from the backend 
+  // to ensure new tasks are "pre-armed" with their personal accountability style.
+  useAccountabilityPrefill();
 
   const draft = useTaskDraftStore((state) => state.draft) as TaskDraft;
   const setTitle = useTaskDraftStore((state) => state.setTitle);
@@ -628,7 +634,7 @@ export default function FinalScreen() {
           let displaySubtitle = "Set a consequence for failing your commitment";
           let displayIcon = "alert-circle-outline";
 
-          if (penalty?.type === "money") {
+          if (penalty?.type === "send_money") {
             displayTitle = "Money Penalty";
             displaySubtitle = `₹${config?.amount || 500} will be deducted if you fail`;
             displayIcon = "currency-inr";
@@ -636,14 +642,14 @@ export default function FinalScreen() {
             displayTitle = "Embarrassing Photo";
             displaySubtitle = `Will be sent via ${config?.channel || "delivery channel"} to your chosen mail id `;
             displayIcon = "camera-enhance-outline";
-          } else if (penalty?.type === "cringe_message") {
-            displayTitle = "Cringe Message";
-            displaySubtitle = "Shameful message will be sent to contact";
-            displayIcon = "message-alert-outline";
-          } else if (penalty?.type === "block_app") {
-            displayTitle = "Block Favourite App";
-            displaySubtitle = "Access to chosen app will be restricted";
-            displayIcon = "cellphone-off";
+          } else if (penalty?.type === "send_email") {
+            displayTitle = "Shame Email";
+            displaySubtitle = "Automated email will be sent to your recipients";
+            displayIcon = "email-outline";
+          } else if (penalty?.type === "commit_direct") {
+            displayTitle = "Direct Accountability";
+            displaySubtitle = "Consequence sent directly to your partner";
+            displayIcon = "account-arrow-right-outline";
           }
 
           return (

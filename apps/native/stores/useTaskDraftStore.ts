@@ -166,6 +166,21 @@ const createEmptyDraft = (): TaskDraft => ({
   },
 
   conditions: [],
+  penalty: {
+    type: "embarrassing_photo",
+    config: {
+      channel: "email",
+      emailTo: "",
+    },
+  },
+  penalty_waiver: {
+    type: "captcha",
+    config: {
+      count: 5,
+      difficulty: "medium",
+    },
+    deadline_minutes: 60,
+  },
   config: {
     verification_style: "just_show_up",
     grace_period_minutes: 10,
