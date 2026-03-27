@@ -1,19 +1,12 @@
-feat(native-enforcement): implement location-aware geofencing & total lockdown protocols
+feat(native): high-performance app discovery and file-based icon caching
 
-Location-Aware Enforcement Engine:
-- Re-engineered BlockerAccessibilityService for real-time location-aware decisioning.
-- Implemented geofence verification algorithm with high-fidelity GPS calculation.
-- Integrated Fail-Safe protocols: auto-blocks apps if GPS is disabled or permissions revoked.
-
-Total Lockdown & Anti-Tamper Shield:
-- Implemented a tiered enforcement protocol: Soft Overlay (Apps) vs. Total Lockdown (System).
-- Engineered Hard Ejection (GLOBAL_ACTION_LOCK_SCREEN) for system management tampering.
-- Blocks Settings, Accessibility edits, and Uninstaller intents during active commitments.
-- Forces device re-authentication through PIN/Biometrics if bypass-attempts are detected.
-- Expanded the Universal Management Blocklist to cover Settings, Play Store, and Installer.
-
-Native UI Hooks:
-- Implemented 'Pivot & Confirm' geofence interaction for commitments on the map.
-- Decoupled map camera from drag-coordinates for a stable, high-fidelity UI experience.
-- Harmonized semantic Red (#FF3B30) across all confirmation and destructive action modals.
-
+- Refactored native Android module to extract app icons as PNG files to 
+  the cache directory instead of memory-heavy Base64 strings.
+- Implemented `useAppStore` globally via Zustand for an "Instant-On" 
+  catalog available across the entire app.
+- Integrated background synchronization in the main [commits.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:0:0-0:0) 
+  landing screen to eliminate UI jitter during configuration.
+- Migrated [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) and [choose.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/choose.tsx:0:0-0:0) to consume the global store, 
+  enabling reactive app list rendering with zero navigation delay.
+- Optimized blocklist discovery pathing by switching from JS bridge 
+  transfer to native file URI references (`file://`).

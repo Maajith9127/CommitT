@@ -18,6 +18,7 @@ import { useTasks, Task } from "@/hooks/commits/useTasks";
 import { useTaskActions } from "@/hooks/commits/useTaskActions";
 import { useTaskSelection, AnchorPosition } from "@/hooks/commits/useTaskSelection";
 import { useAccountabilityPrefill } from "@/hooks/useAccountabilityPrefill";
+import { useAppDiscovery } from "@/hooks/useAppDiscovery";
 import { DEFAULT_TASKS } from "@/data/defaults";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -104,9 +105,9 @@ export default function CommitsScreen() {
   } = useTaskSelection();
 
   // 4. Persistence & Pre-fill Layer
-  // BACKGROUND: Silently loads the "Accountability Identity" into the draft 
-  // so that clicking 'Add Task' is instantaneous.
-  useAccountabilityPrefill();
+  // 5. App Discovery Trigger
+  // Triggers the background fetch of installed apps + PNG icons
+  useAppDiscovery();
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLocking, setIsLocking] = useState(false);

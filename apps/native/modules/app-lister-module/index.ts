@@ -20,15 +20,12 @@ import { requireNativeModule } from "expo-modules-core";
 
 /** Represents a single installed application returned from the native layer. */
 export type InstalledApp = {
-  /** Unique Android package name (e.g. "com.google.chrome"). Used as React `key`. */
+  /** Unique Android package name (e.g. "com.google.chrome"). */
   id: string;
-  /** Human-readable app label pulled from Android's PackageManager (e.g. "Chrome"). */
+  /** Human-readable app label (e.g. "Chrome"). */
   name: string;
-  /** Base64-encoded PNG data URI for the app icon, or null if extraction failed.
-   *  Can be passed directly to `<Image source={{ uri: iconBase64 }}>`. */
-  iconBase64: string | null;
-  /** Toggle state managed by the JS UI layer. Always `false` from native. */
-  selected: boolean;
+  /** Filesystem path (file://) to the cached PNG icon on the device. */
+  iconUri: string | null;
 };
 
 /** Type-safe contract matching the Kotlin AsyncFunction exports. */

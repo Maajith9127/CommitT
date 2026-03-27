@@ -1,11 +1,11 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ScrollView, useWindowDimensions, View, Text, Switch, Image } from "react-native";
 import { withUniwind } from "uniwind";
 import type { Id } from "@commit/backend/convex/_generated/dataModel";
 import { useFreshPhotoUrl } from "@/hooks/useFreshPhotoUrl";
-import { AppListerModule, type InstalledApp } from "@/modules/app-lister-module";
+import { useAppStore } from "@/stores/useAppStore";
 
 import { ActionScreenLayout, AddButton, Input, PrimaryButton } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
@@ -191,24 +191,10 @@ export default function FinalScreen() {
   // Mutations and DB handled by custom hook 
   const executeCommit = useCommitTask();
 
-  // Native App Data
-  const [allInstalledApps, setAllInstalledApps] = useState<InstalledApp[]>([]);
-  const [isAppsLoading, setIsAppsLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchApps() {
-      setIsAppsLoading(true);
-      try {
-        const apps = await AppListerModule.getInstalledApps();
-        setAllInstalledApps(apps);
-      } catch (err) {
-        console.error("Failed to fetch installed apps:", err);
-      } finally {
-        setIsAppsLoading(false);
-      }
-    }
-    fetchApps();
-  }, []);
+  // ─────────────────────────────────────────────────────────────────────────
+  // App Discovery Data
+  // ─────────────────────────────────────────────────────────────────────────
+  const allInstalledApps = useAppStore((s) => s.apps);
 
   /** Filter the entire device list to only those in the user's blocklist */
   const selectedAppsMetadata = useMemo(() => {
@@ -224,7 +210,7 @@ export default function FinalScreen() {
         return {
           id: app.id,
           name: app.name,
-          icon: app.iconBase64 || undefined,
+          icon: app.iconUri || undefined,
         };
       })
       .filter(Boolean) as ResolvedApp[];
@@ -619,7 +605,7 @@ export default function FinalScreen() {
         <CommitCard
           className="mb-5"
           apps={selectedAppsMetadata}
-          isAppsLoading={isAppsLoading}
+          isAppsLoading={allInstalledApps.length === 0}
           selectedCount={
             (draft.conditions.find((c) => c.metric_key === "digital_commitment")
               ?.target.value as { apps: string[] })?.apps.length || 0

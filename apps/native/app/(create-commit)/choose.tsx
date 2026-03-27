@@ -32,10 +32,10 @@ import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { PrimaryButton } from "@/components/ui";
 import { TopBar, TabsBar, InlineAddBar, SelectableListItem } from "@/components/ui/blocklist";
 import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
-import { AppListerModule } from "../../modules/app-lister-module";
 import { AppCardSkeleton } from "@/components/ui/skeletons/AppCardSkeleton";
-import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
-import { Condition } from "@/stores/useTaskDraftStore";
+import { useTaskDraftStore, type Condition } from "@/stores/useTaskDraftStore";
+import { useAppStore } from "@/stores/useAppStore";
+import { useMemo } from "react";
 
 const UView = withUniwind(View);
 
@@ -64,12 +64,7 @@ const TABS = [
 ];
 
 // ─── Module-Level App Cache ──────────────────────────────────────────────────
-// WHY OUTSIDE THE COMPONENT?
-// The native bridge call (PackageManager → Bitmap → Base64) takes 1–3 seconds.
-// Since installed apps don't change mid-session, we cache the raw result here.
-// This variable survives component unmount/remount from Expo Router navigation,
-// so the user only sees the skeleton shimmer ONCE per app session.
-let _cachedApps: BlockItem[] | null = null;
+// (DEPRECATED: Now handled by useAppStore globally)
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -91,43 +86,18 @@ export default function ChooseScreen() {
   const [searchText, setSearchText] = useState("");
   const [inlineText, setInlineText] = useState("");
 
-  // ── Apps State (populated from native Kotlin module) ──
-  const [apps, setApps] = useState<BlockItem[]>([]);
-  const [isLoadingApps, setIsLoadingApps] = useState(false);
+  // ── High Performance Discovery State ──
+  const discoveredApps = useAppStore((s) => s.apps);
 
-  useEffect(() => {
-    if (activeTab !== "apps") return;
+  // Compute reactive app list with current selection states
+  const apps = useMemo(() => {
+    return discoveredApps.map(app => ({
+      ...app,
+      selected: storeApps.indexOf(app.id) !== -1
+    }));
+  }, [discoveredApps, storeApps]);
 
-    // FAST PATH: Cache hit — just re-sync selections from store
-    if (_cachedApps) {
-      setApps(
-        _cachedApps.map((app: BlockItem) => ({
-          ...app,
-          selected: storeApps.indexOf(app.id) !== -1,
-        }))
-      );
-      setIsLoadingApps(false);
-      return;
-    }
-
-    // SLOW PATH: First visit — fetch from native bridge
-    setIsLoadingApps(true);
-    AppListerModule.getInstalledApps()
-      .then((realApps: BlockItem[]) => {
-        // Populate the session cache
-        _cachedApps = realApps;
-
-        const syncedApps = realApps.map((app: BlockItem) => ({
-          ...app,
-          selected: storeApps.indexOf(app.id) !== -1,
-        }));
-
-        setApps(syncedApps);
-        console.log(`[Blocklist] Cached ${realApps.length} apps from native bridge.`);
-      })
-      .catch((error: any) => console.error("Native App Lister Error:", error))
-      .finally(() => setIsLoadingApps(false));
-  }, [activeTab]); // Removed storeApps from dep to fix loop temporarily while reverting
+  const isLoadingApps = discoveredApps.length === 0;
 
   // ── Websites State (manually entered by user) ──
   // Initialize from store on mount
@@ -151,16 +121,13 @@ export default function ChooseScreen() {
   /** Toggles selecting an app and IMMEDIATELY updates the store. */
   const toggleApp = (id: string) => {
     console.log(`[Blocklist] Toggling app: ${id}`);
+    
+    // Toggle logic injected directly into the draft store
+    const nextSelected = storeApps.includes(id)
+      ? storeApps.filter(pkg => pkg !== id)
+      : [...storeApps, id];
 
-    setApps((prev: BlockItem[]) => {
-      const next = prev.map((a: BlockItem) => (a.id === id ? { ...a, selected: !a.selected } : a));
-
-      // Update store immediately
-      const currentSelected = next.filter((a: BlockItem) => a.selected).map((a: BlockItem) => a.id);
-      setBlocklist({ apps: currentSelected });
-
-      return next;
-    });
+    setBlocklist({ apps: nextSelected });
   };
 
   /** Toggles selecting a website and IMMEDIATELY updates the store. */
@@ -251,11 +218,11 @@ export default function ChooseScreen() {
 
       {/* ── Apps Tab: Loaded List ── */}
       {activeTab === "apps" &&
-        filteredApps.map((app: BlockItem) => (
+        filteredApps.map((app: any) => (
           <SelectableListItem
             key={app.id}
             icon="cellphone"
-            imageUri={app.iconBase64}
+            imageUri={app.iconUri}
             label={app.name}
             selected={app.selected}
             onToggle={() => toggleApp(app.id)}

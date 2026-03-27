@@ -8,7 +8,8 @@ import android.graphics.drawable.BitmapDrawable
 import android.util.Base64
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
 
 /**
  * AppListerModule — Native Expo Module (Android Only)
@@ -53,71 +54,54 @@ class AppListerModule : Module() {
     }
 
     /**
-     * Extracts and converts an app's native Drawable icon into a Base64 data URI.
-     *
-     * EDGE CASES HANDLED:
-     *   1. BitmapDrawable — Direct `.bitmap` extraction (most common).
-     *   2. AdaptiveIconDrawable / VectorDrawable — Rasterized onto a Canvas first,
-     *      since these don't expose a `.bitmap` property.
-     *   3. Icons with 0 intrinsic dimensions — Falls back to 96x96 default.
-     *   4. Any unexpected exception — Returns `null` gracefully so the JS UI
-     *      can fall back to a generic placeholder icon.
-     *
-     * @param pm     The device's PackageManager instance.
-     * @param appInfo The ApplicationInfo for the target app.
-     * @return A `data:image/png;base64,...` string, or `null` on failure.
+     * Extracts and saves an app's icon as a PNG in the local cache directory.
      */
-    private fun getBase64Icon(pm: PackageManager, appInfo: ApplicationInfo): String? {
-        // Track Bitmaps we create so we can recycle them in `finally`,
-        // preventing native heap leaks when processing 200+ app icons.
+    private fun getIconUri(pm: PackageManager, appInfo: ApplicationInfo): String? {
+        val context = appContext.reactContext ?: return null
+        val packageName = appInfo.packageName
+        
+        val iconDir = File(context.cacheDir, "app_icons")
+        if (!iconDir.exists()) iconDir.mkdirs()
+        
+        val iconFile = File(iconDir, "$packageName.png")
+        
+        // Return existing if present (Sync logic can clear this dir if needed)
+        if (iconFile.exists()) {
+            return android.net.Uri.fromFile(iconFile).toString()
+        }
+
         var rasterizedBitmap: Bitmap? = null
         var scaledBitmap: Bitmap? = null
 
         try {
             val drawable = pm.getApplicationIcon(appInfo)
 
-            // Step 1: Convert Drawable → Bitmap
             val bitmap = if (drawable is BitmapDrawable) {
-                // Fast path: most app icons are already BitmapDrawables.
-                // Do NOT recycle this — it's owned by the system's drawable cache.
                 drawable.bitmap
             } else {
-                // Slow path: AdaptiveIconDrawable (API 26+) or VectorDrawable
-                // must be manually rasterized onto a Canvas. We OWN this bitmap.
                 val bw = drawable.intrinsicWidth.takeIf { it > 0 } ?: 96
                 val bh = drawable.intrinsicHeight.takeIf { it > 0 } ?: 96
                 val b = Bitmap.createBitmap(bw, bh, Bitmap.Config.ARGB_8888)
-                rasterizedBitmap = b // Mark for recycling
+                rasterizedBitmap = b
                 val canvas = Canvas(b)
                 drawable.setBounds(0, 0, canvas.width, canvas.height)
                 drawable.draw(canvas)
                 b
             }
 
-            // Step 2: Scale down to prevent memory bloat when sending 100+ icons
-            // over the React Native JS bridge in a single payload.
-            // createScaledBitmap returns the SAME object if dimensions already match,
-            // so we only recycle if it's a genuinely new allocation.
             val scaled = Bitmap.createScaledBitmap(bitmap, ICON_SIZE, ICON_SIZE, true)
             if (scaled !== bitmap) {
-                scaledBitmap = scaled // Mark for recycling only if it's a new object
+                scaledBitmap = scaled
             }
 
-            // Step 3: Compress to PNG and encode as Base64
-            val stream = ByteArrayOutputStream()
-            scaled.compress(Bitmap.CompressFormat.PNG, 100, stream)
-            val byteArray = stream.toByteArray()
-            stream.close()
+            FileOutputStream(iconFile).use { out ->
+                scaled.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
 
-            // Return as a data URI that React Native's <Image> can render directly
-            return "data:image/png;base64," + Base64.encodeToString(byteArray, Base64.NO_WRAP)
+            return android.net.Uri.fromFile(iconFile).toString()
         } catch (e: Exception) {
-            // Graceful degradation: JS side will show a fallback icon
             return null
         } finally {
-            // CRITICAL: Always free native bitmap memory regardless of success/failure.
-            // Without this, processing 200+ icons holds ~200MB of dead native heap
-            // until GC eventually collects — causing ANR/OOM on low-RAM devices.
             scaledBitmap?.recycle()
             rasterizedBitmap?.recycle()
         }
@@ -164,14 +148,12 @@ class AppListerModule : Module() {
 
                 val appName = pm.getApplicationLabel(appInfo).toString()
                 val packageName = appInfo.packageName
-                val iconBase64 = getBase64Icon(pm, appInfo)
+                val iconUri = getIconUri(pm, appInfo)
 
-                // This Map auto-serializes to a JS Object over the bridge
                 mapOf(
-                    "id"         to packageName,   // Unique identifier (e.g. "com.google.chrome")
-                    "name"       to appName,        // Human-readable label (e.g. "Chrome")
-                    "iconBase64" to iconBase64,     // data:image/png;base64,... or null
-                    "selected"   to false           // Default unselected; JS manages toggle state
+                    "id"      to packageName,
+                    "name"    to appName,
+                    "iconUri" to iconUri
                 )
             }.sortedBy { it["name"].toString().lowercase() }
         }
