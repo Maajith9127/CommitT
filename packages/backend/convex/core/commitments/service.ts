@@ -131,42 +131,10 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
   await syncTaskSchedule(ctx, taskId);
 
   // ═══════════════════════════════════════════════════════════════════════
-  // 5. ATOMIC PRESET REFRESH — Maintain "Latest Accountability Identity"
+  // 5. ATOMIC PRESET HARVEST — Building the Habit Library
   // ═══════════════════════════════════════════════════════════════════════
-  /**
-   * PRODUCTION RATIONALE: "The Last Known Good"
-   * The user wants the app to always remember their *most recent* penalty style.
-   * To keep the DB clean and the UI simple, we enforce a 'Single Preset' rule:
-   * 1. Wipe all old presets for this user.
-   * 2. Insert the current configuration as the new source of truth.
-   */
-  if (args.penalty) {
-    try {
-      // 1. Fetch all existing presets for this user
-      const oldPresets = await ctx.db
-        .query("accountabilityPresets")
-        .withIndex("by_userId", (q) => q.eq("userId", args.assignee_id))
-        .collect();
-
-      // 2. Clear the slate (Atomic Cleanup)
-      for (const preset of oldPresets) {
-        await ctx.db.delete(preset._id);
-      }
-
-      // 3. Register the new "Accountability Identity"
-      await ctx.db.insert("accountabilityPresets", {
-        userId: args.assignee_id,
-        penalty: args.penalty, // CLEAN template (storageId, no transient URLs)
-        penalty_waiver: args.penalty_waiver,
-        last_used_at: now,
-        usage_count: (oldPresets[0]?.usage_count || 0) + 1, // Carry over momentum
-      });
-      
-      console.log(`[Service:createInternal] Accountability Identity refreshed for user ${args.assignee_id}`);
-    } catch (presetError) {
-      console.error("[Service:createInternal] Non-critical identity refresh failed:", presetError);
-    }
-  }
+  await refreshAccountabilityIdentity(ctx, args.assignee_id, args.penalty, args.penalty_waiver);
+  await harvestConditionPresets(ctx, args.assignee_id, args.conditions);
 
   return { taskId };
 }
@@ -277,45 +245,10 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
   await syncTaskSchedule(ctx, id);
 
   // ═══════════════════════════════════════════════════════════════════════
-  // 7. ATOMIC PRESET REFRESH — Update "Latest Accountability Identity"
+  // 7. ATOMIC PRESET REFRESH — Update Habit Library
   // ═══════════════════════════════════════════════════════════════════════
-  /**
-   * REASONING: An update to a task is an update to the user's commitment style.
-   * We wipe the old preset and store the latest one.
-   */
-  const cleanPenalty = args.penalty;
-  const cleanWaiver = args.penalty_waiver;
-
-  if (cleanPenalty) {
-    try {
-      const now = Date.now();
-      const userId = existingTask.assignee_id;
-
-      // 1. Fetch all existing presets for this user
-      const oldPresets = await ctx.db
-        .query("accountabilityPresets")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
-        .collect();
-
-      // 2. Clear the slate
-      for (const preset of oldPresets) {
-        await ctx.db.delete(preset._id);
-      }
-
-      // 3. Register the new identity
-      await ctx.db.insert("accountabilityPresets", {
-        userId,
-        penalty: cleanPenalty,
-        penalty_waiver: cleanWaiver,
-        last_used_at: now,
-        usage_count: (oldPresets[0]?.usage_count || 0) + 1,
-      });
-
-      console.log(`[Service:updateInternal] Accountability Identity refreshed on task update for ${userId}`);
-    } catch (presetError) {
-      console.error("[Service:updateInternal] Failed to refresh preset during update:", presetError);
-    }
-  }
+  await refreshAccountabilityIdentity(ctx, existingTask.assignee_id, updates.penalty ?? existingTask.penalty, updates.penalty_waiver ?? existingTask.penalty_waiver);
+  await harvestConditionPresets(ctx, existingTask.assignee_id, updates.conditions ?? existingTask.conditions);
 }
 
 /**
@@ -436,3 +369,124 @@ export async function activateStrictModeInternal(
   };
 }
 
+/**
+ * ═════════════════════════════════════════════════════════════════════════════
+ * PRESET ENGINE — Internal Helpers
+ * ═════════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * PRODUCTION RATIONALE: "The Accountability Identity"
+ * Maintains a single, high-confidence preset of the user's most recent penalty.
+ * This is used for the "Smart Pre-fill" feature in the mobile app.
+ */
+async function refreshAccountabilityIdentity(ctx: MutationCtx, userId: string, penalty: any, waiver: any) {
+  if (!penalty) return;
+
+  try {
+    const now = Date.now();
+    const oldPresets = await ctx.db
+      .query("accountabilityPresets")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+
+    for (const p of oldPresets) await ctx.db.delete(p._id);
+
+    await ctx.db.insert("accountabilityPresets", {
+      userId,
+      penalty,
+      penalty_waiver: waiver,
+      last_used_at: now,
+      usage_count: (oldPresets[0]?.usage_count || 0) + 1,
+    });
+  } catch (err) {
+    console.error(`[PresetEngine] refreshAccountabilityIdentity failed:`, err);
+  }
+}
+
+/**
+ * PRODUCTION RATIONALE: "Autonomous Harvest"
+ * Scans a task's conditions and saves 'New' components (locations, app lists)
+ * to the user's library. If a component is already known, it bumps its usage 
+ * rank to improve future suggestions.
+ */
+async function harvestConditionPresets(ctx: MutationCtx, userId: string, conditions: any[]) {
+  if (!conditions || conditions.length === 0) return;
+
+  const now = Date.now();
+
+  for (const condition of conditions) {
+    try {
+      // 1. LOCATION HARVEST
+      if (condition.metric_key === "location" && condition.target?.value) {
+        const { lat, lng, radius, address } = condition.target.value;
+        if (lat === undefined || lng === undefined) continue;
+
+        // Epsilon check (approx 10 meters) to find existing matching waypoint
+        const existing = await ctx.db
+          .query("locationPresets")
+          .withIndex("by_userId", (q: any) => q.eq("userId", userId))
+          .filter((q: any) => 
+            q.and(
+              q.gte(q.field("lat"), lat - 0.0001),
+              q.lte(q.field("lat"), lat + 0.0001),
+              q.gte(q.field("lng"), lng - 0.0001),
+              q.lte(q.field("lng"), lng + 0.0001),
+              q.eq(q.field("radius"), radius)
+            )
+          )
+          .first();
+
+        if (existing) {
+          await ctx.db.patch(existing._id, { 
+            last_used_at: now, 
+            usage_count: existing.usage_count + 1 
+          });
+        } else {
+          await ctx.db.insert("locationPresets", {
+            userId, address: address || "Custom Location", lat, lng, radius,
+            last_used_at: now,
+            usage_count: 1
+          });
+        }
+      }
+
+      // 2. DIGITAL COMMITMENT HARVEST
+      if (condition.metric_key === "digital_commitment" && condition.target?.value) {
+        let { apps, websites } = condition.target.value;
+        const sortedApps = [...(apps || [])].sort();
+        const sortedWebsites = [...(websites || [])].sort();
+
+        // Find identical app set
+        const existingSets = await ctx.db
+          .query("digitalCommitmentPresets")
+          .withIndex("by_userId", (q) => q.eq("userId", userId))
+          .collect();
+
+        const match = existingSets.find(p => {
+          const pApps = [...(p.apps || [])].sort();
+          const pWebsites = [...(p.websites || [])].sort();
+          return JSON.stringify(pApps) === JSON.stringify(sortedApps) &&
+                 JSON.stringify(pWebsites) === JSON.stringify(sortedWebsites);
+        });
+
+        if (match) {
+          await ctx.db.patch(match._id, { 
+            last_used_at: now, 
+            usage_count: match.usage_count + 1 
+          });
+        } else {
+          await ctx.db.insert("digitalCommitmentPresets", {
+            userId,
+            apps: sortedApps,
+            websites: sortedWebsites,
+            last_used_at: now,
+            usage_count: 1
+          });
+        }
+      }
+    } catch (err) {
+      console.error(`[PresetEngine] Harvest failed for condition ${condition.metric_key}:`, err);
+    }
+  }
+}

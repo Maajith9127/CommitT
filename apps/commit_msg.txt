@@ -1,13 +1,10 @@
-feat(creation): restore Smart Pre-fill and synchronize penalty enums
+feat(backend): Implement Accountability Preset Library with Autonomous Harvest Engine
 
-- Re-enabled the [useAccountabilityPrefill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useAccountabilityPrefill.ts:5:0-42:1) hook in the final 
-  creation screen to automatically fetch the user's "Accountability 
-  Identity" (last-used penalty and waiver) from Convex.
-- Synchronized the frontend penalty display logic with the official 
-  backend enums (`send_money`, `send_email`, `embarrassing_photo`, 
-  `commit_direct`) to ensure accurate metadata resolution.
-- Updated the task draft store's default state to include reasonable 
-  initial penalty and waiver configurations, preventing empty-stake 
-  CommitTs during the fetch transition.
-- Refined the "Zero-Friction" creation experience, ensuring users are 
-  immediately "pre-armed" with their historical accountability style.
+This update introduces a persistent habit-harvesting system that automatically captures and ranks a user's frequently used locations and app-blocklists.
+
+Key features include:
+- Added 'locationPresets' and 'digitalCommitmentPresets' tables to the schema.
+- Integrated an autonomous harvest engine into 'create' and 'update' task mutations.
+- Implemented smart deduplication (coordinate epsilon & sorted app matching).
+- Added Discovery API queries for smart suggestions based on recency and popularity.
+- Synchronized location naming conventions ('lat'/'lng') across the entire backend stack.

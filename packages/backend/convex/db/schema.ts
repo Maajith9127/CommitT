@@ -374,4 +374,36 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_recency", ["userId", "last_used_at"]),
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CONDITION HARVEST — Library of Reusable Habit Components
+  // ═══════════════════════════════════════════════════════════════════════
+  // These tables automatically gather "frequent" components from the user's 
+  // history. Unlike AccountabilityPresets (which is a global profile), 
+  // these are granular chunks (App Sets, Specific Locations).
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  locationPresets: defineTable({
+    userId: v.string(),
+    address: v.string(),
+    lat: v.number(),
+    lng: v.number(),
+    radius: v.number(),
+    last_used_at: v.number(),
+    usage_count: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_recency", ["userId", "last_used_at"])
+    .index("by_lat_lng", ["lat", "lng"]),
+
+  digitalCommitmentPresets: defineTable({
+    userId: v.string(),
+    apps: v.array(v.string()),
+    websites: v.array(v.string()),
+    name: v.optional(v.string()), // e.g., "Social Media Block"
+    last_used_at: v.number(),
+    usage_count: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_recency", ["userId", "last_used_at"]),
 });

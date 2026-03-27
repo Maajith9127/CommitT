@@ -50,3 +50,41 @@ export const getLatest = query({
     };
   },
 });
+
+/**
+ * PRODUCTION RATIONALE: "Location Quick-Pick"
+ * Fetches the user's most recently/frequently visited task locations.
+ * Allows the UI to suggest "Home", "Office", or "Gym" without re-searching.
+ */
+export const getRecommendedLocations = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    return await ctx.db
+      .query("locationPresets")
+      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
+      .order("desc") // Priority: Recency first (Most likely to be used again)
+      .take(args.limit ?? 5);
+  },
+});
+
+/**
+ * PRODUCTION RATIONALE: "Habitual Application Blocklists"
+ * Fetches saved groups of blocked apps. Instead of manually picking 
+ * Instagram/Twitter every time, users can select their "Socials" preset.
+ */
+export const getRecommendedDigitalCommitments = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    return await ctx.db
+      .query("digitalCommitmentPresets")
+      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
+      .order("desc")
+      .take(args.limit ?? 5);
+  },
+});
