@@ -1,9 +1,6 @@
-feat(presets): prioritize most-used templates & optimize map rendering performance
+ui(time): add indicator dot for slots with active conditions
 
-- Backend: Added 'by_userId_popularity' indexes to location and digital presets.
-- Backend: Updated suggestion engine to sort saved templates by usage frequency.
-- UI: Implemented 'Waterfall Loading' for Google Maps to prevent CPU spikes.
-- UI: Staggered modal map initialization by batches of 2 every 300ms.
-- UI: Standardized preset modal heights to 78% for better UX balance.
-- UI: Unified library iconography using the 'bookmark-outline' badge across modals.
-- UI: Neutralized header colors to match consistent app-wide icon standards (#9CA3AF).
+- Implemented a red status indicator (#FF3B30) for TimeSlotCard.
+- Logic: The dot appears if either Location or App Block rules are set.
+- Layout: Positioned in the header, tightly clustered to the left of the expansion arrow for clear status visibility.
+- UX: Provides an immediate visual cue of slot-level accountability without needing to expand the card.

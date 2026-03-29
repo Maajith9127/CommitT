@@ -126,6 +126,10 @@ export function TimeSlotCard({
           {startTime} – {endTime}
         </AuthTitle>
 
+        {(hasLocation || hasDigital) && (
+          <UView className="ml-2 mr-0 w-2 h-2 rounded-full bg-[#FF3B30]" />
+        )}
+
         <UPressable 
           onPress={toggleExpand}
           className="ml-2 h-8 w-8 items-center justify-center"
