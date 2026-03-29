@@ -16,11 +16,13 @@ import React, { useMemo } from 'react';
 import { View, ScrollView, Image, Pressable, ActivityIndicator, Text } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery } from 'convex/react';
+import { api } from "@commit/backend/convex/_generated/api";
 
 import { BaseDrawerModal } from './BaseDrawerModal';
 import { HeaderTitle, BodyText } from '@/components/ui/text';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
-import { usePresetStore, type DigitalPreset } from '@/stores/usePresetStore';
+import { type DigitalPreset } from '@/stores/usePresetStore';
 import { useAppStore } from '@/stores/useAppStore';
 
 // ── Uniwind primitives ──────────────────────────────────────────────────────
@@ -49,16 +51,14 @@ export function DigitalPresetPickerModal({
   onSelect,
   selectedId,
 }: DigitalPresetPickerModalProps) {
-  // ── Data Layer: Read directly from the pre-hydrated store ──
-  const digitalCommitments = usePresetStore((s: { digitalCommitments: DigitalPreset[] }) => s.digitalCommitments);
-  const hydrationStatus = usePresetStore((s: { hydrationStatus: string }) => s.hydrationStatus);
+  // ── Data Layer: Live Subscription from Convex ──
+  const digitalCommitments = useQuery(api.api.commitments.presets.getRecommendedDigitalCommitments, { limit: 12 });
 
-  const isLoading = hydrationStatus === "loading";
-  const isEmpty = hydrationStatus === "ready" && digitalCommitments.length === 0;
+  const isLoading = digitalCommitments === undefined;
+  const isEmpty = digitalCommitments !== undefined && digitalCommitments.length === 0;
 
   /**
    * handleSelect — Toggle-aware selection handler.
-   * If the user taps the already-selected preset, it deselects it.
    */
   function handleSelect(preset: DigitalPreset) {
     if (selectedId === preset._id) {
@@ -72,7 +72,7 @@ export function DigitalPresetPickerModal({
     <BaseDrawerModal
       visible={visible}
       onClose={onClose}
-      height="90%"
+      height="70%"
     >
       {/* ── Header ── */}
       <UView className="px-6 py-6 pt-8 border-b border-white/10">
@@ -115,7 +115,7 @@ export function DigitalPresetPickerModal({
         )}
 
         {/* Preset Cards */}
-        {digitalCommitments.map((preset: DigitalPreset) => (
+        {digitalCommitments?.map((preset: DigitalPreset) => (
           <DigitalPresetCard
             key={preset._id}
             preset={preset}

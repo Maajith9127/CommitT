@@ -18,11 +18,13 @@ import { View, ScrollView, Platform, Pressable, ActivityIndicator, StyleSheet } 
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GoogleMaps } from 'expo-maps';
+import { useQuery } from 'convex/react';
+import { api } from "@commit/backend/convex/_generated/api";
 
 import { BaseDrawerModal } from './BaseDrawerModal';
 import { HeaderTitle, BodyText } from '@/components/ui/text';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
-import { usePresetStore, type LocationPreset } from '@/stores/usePresetStore';
+import { type LocationPreset } from '@/stores/usePresetStore';
 
 // ── Uniwind primitives ──────────────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -50,20 +52,18 @@ export function LocationPresetPickerModal({
   onSelect,
   selectedId,
 }: LocationPresetPickerModalProps) {
-  // ── Data Layer: Read directly from the pre-hydrated store ──
-  const locations = usePresetStore((s: { locations: LocationPreset[] }) => s.locations);
-  const hydrationStatus = usePresetStore((s: { hydrationStatus: string }) => s.hydrationStatus);
+  // ── Data Layer: Live Subscription from Convex ──
+  // Using the RecommendedLocations query which returns the user's saved presets
+  const locations = useQuery(api.api.commitments.presets.getRecommendedLocations, { limit: 12 });
 
-  const isLoading = hydrationStatus === "loading";
-  const isEmpty = hydrationStatus === "ready" && locations.length === 0;
+  const isLoading = locations === undefined;
+  const isEmpty = locations !== undefined && locations.length === 0;
 
   /**
    * handleSelect — Toggle-aware selection handler.
-   * If the user taps the already-selected preset, it deselects it.
    */
   function handleSelect(preset: LocationPreset) {
     if (selectedId === preset._id) {
-      // Deselect: tapping the active preset clears it
       onSelect(null);
     } else {
       onSelect(preset);
@@ -74,7 +74,7 @@ export function LocationPresetPickerModal({
     <BaseDrawerModal
       visible={visible}
       onClose={onClose}
-      height="90%"
+      height="70%"
     >
       {/* ── Header ── */}
       <UView className="px-6 py-6 pt-8 border-b border-white/10">
@@ -116,8 +116,8 @@ export function LocationPresetPickerModal({
           </UView>
         )}
 
-        {/* Preset Cards — rendered from Zustand cache (instant) */}
-        {locations.map((preset: LocationPreset) => (
+        {/* Preset Cards — rendered from Convex query */}
+        {locations?.map((preset: LocationPreset) => (
           <LocationPresetCard
             key={preset._id}
             preset={preset}

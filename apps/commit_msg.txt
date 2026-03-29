@@ -1,14 +1,7 @@
-feat(native): full per-slot accountability integration & UX refinement
+feat(native/ui): transition preset pickers to live backend subscriptions
 
-- **End-to-End Integration**: Fully wired `LocationPresetPickerModal` and `DigitalPresetPickerModal` to individual time slots, enabling persistent per-slot condition states.
-- **Dynamic UI Logic**: 
-    - Refactored `TimeSlotCard` with ref-based height remeasurement for jitter-free Reanimated transitions that adapt to multi-line addresses.
-    - Added a horizontal scrollable strip of app icons (28x28) in the App Block row, resolved instantly via `useAppStore`.
-- **UX & Control System**:
-    - Isolated selection interactivity to the `VerificationStatusCircle` to prevent accidental choosing while scrolling presets.
-    - Updated picker modals to remain open during selection/deselection for rapid review, closing only on explicit user dismissal.
-    - Increased modal heights to 90% for a more expansive list and map viewing area.
-- **Design & Layout Polish**:
-    - Standardized picker headers with properly aligned `HeaderTitle` and iconography.
-    - Implemented smart bottom spacing in the schedule view to ensure expanded card content is never clipped by the global footer.
-- **Performance**: Maintained the "Instant Recall" zero-latency data flow from the pre-hydrated Zustand store to all picker components.
+- Migrate `LocationPresetPickerModal` and `DigitalPresetPickerModal` to live Convex `useQuery` subscriptions.
+- Implement real-time "Recommended Locations" and "Digital Commitments" syncing directly from the backend.
+- Fix monorepo-wide API import resolution by correctly utilizing the `@commit/backend` alias.
+- Add robust loading guards and optional chaining to prevent crashes during initial data hydration.
+- Refine interaction flow: restrict selection to the `VerificationStatusCircle` and maintain persistent modal states for seamless multi-preset toggling.
