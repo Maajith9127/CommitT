@@ -1,6 +1,6 @@
-ui(time): add indicator dot for slots with active conditions
+fix(verification): exclude digital commitments from discrete pulse-check status
 
-- Implemented a red status indicator (#FF3B30) for TimeSlotCard.
-- Logic: The dot appears if either Location or App Block rules are set.
-- Layout: Positioned in the header, tightly clustered to the left of the expansion arrow for clear status visibility.
-- UX: Provides an immediate visual cue of slot-level accountability without needing to expand the card.
+- Bug: Task instances were adding "digital_commitment: pending" to discrete location checkpoints during updates.
+- Logic: Digital commitments are violation-based (continuous) or auto-verified, and do not require point-in-time pulse checks like location rules.
+- Fix: Updated `generateStayThroughoutCheckpoints` and `generateJustShowUpCheckpoints` to skip 'digital_commitment' when populating the `verification_status` of a checkpoint.
+- Impact: Corrects verification reporting and ensures that discrete check-in windows correctly focus only on anchor-based conditions (location).

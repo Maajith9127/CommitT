@@ -63,8 +63,8 @@ function generateStayThroughoutCheckpoints(args: {
       const hasDigital = args.conditions.some((c: any) => c.metric_key === "digital_commitment");
 
       for (const cond of args.conditions) {
-        const isDigital = cond.metric_key === "digital_commitment";
-        verificationStatus[cond.metric_key] = (isPast || (isDigital && !hasLocation)) ? "verified" : "pending";
+        if (cond.metric_key === "digital_commitment") continue;
+        verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
       }
       
       checkpoints.push({
@@ -102,8 +102,8 @@ function generateJustShowUpCheckpoints(args: {
   const isPast = args.start < Date.now();
 
   for (const cond of args.conditions) {
-    const isDigital = cond.metric_key === "digital_commitment";
-    verificationStatus[cond.metric_key] = (isPast || (isDigital && !hasLocation)) ? "verified" : "pending";
+    if (cond.metric_key === "digital_commitment") continue;
+    verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
   }
 
   return [{
