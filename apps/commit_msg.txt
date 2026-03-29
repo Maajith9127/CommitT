@@ -1,6 +1,24 @@
-refactor(native/ui): enable preset deselection & polish slot card visuals
+feat(native): implement functional 'History' integration for Blocklist configuration
 
-- Fix "unable to unchoose" bug by making `VerificationStatusCircle` tappable in the `verified` state when an `onPress` is provided.
-- Increase app icon dimensions in `TimeSlotCard` from 28x28 to 36x36 for improved visibility.
-- Adjust slot card layout spacing and border radii to maintain premium aesthetic with larger iconography.
-- Finalize toggle-ready interaction model for both Location and Digital preset pickers.
+[OVERVIEW]
+Activated the "History" feature within the Blocklist (ChooseScreen) setup flow, 
+transitioning the header's clock icon from a visual placeholder into a 
+high-fidelity interaction point for rapid commitment configuration.
+
+[TECHNICAL CHANGES]
+- FEATURE: Integrated `DigitalPresetPickerModal` into `ChooseScreen` to allow 
+  the application of saved app-blocking presets directly during draft creation.
+- LOGIC: Developed `handlePresetSelect` to perform a multi-target synchronization:
+    1. Store Update: Injects preset `apps` and `websites` into the global `useTaskDraftStore`.
+    2. Local Sync: Hydrates the local `webs` state manually to ensure immediate 
+       UI reactivity for added website entries.
+- STATE: Implemented `historyModalVisible` state to manage the overlay lifecycle 
+  within the `ActionScreenLayout` architecture.
+- CLEANUP: Standardized imports and resolved TypeScript identifier errors for 
+  improved stability in the native creation group.
+
+[UX IMPROVEMENTS]
+- Added high-context interaction for the `clock-check-outline` header action, 
+  providing users with an "instant recall" path for frequent blocklists.
+- Maintained layout integrity by ensuring the history picker respects 
+  the dynamic 3-zone standard (header/scroll/footer) of the Blocklist screen.

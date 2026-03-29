@@ -25,7 +25,7 @@
  * @see components/ui/ActionScreenLayout.tsx — 3-zone layout (header/scroll/footer)
  */
 import { useState, useEffect, useMemo } from "react";
-import { View, ActivityIndicator, FlatList } from "react-native";
+import { View, ActivityIndicator, FlatList, Pressable } from "react-native";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
@@ -35,8 +35,12 @@ import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
 import { AppCardSkeleton } from "@/components/ui/skeletons/AppCardSkeleton";
 import { useTaskDraftStore, type Condition } from "@/stores/useTaskDraftStore";
 import { useAppStore } from "@/stores/useAppStore";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { DigitalPresetPickerModal } from "@/components/ui/modal/DigitalPresetPickerModal";
+import { type DigitalPreset } from "@/stores/usePresetStore";
 
 const UView = withUniwind(View);
+const UPressable = withUniwind(Pressable);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -84,6 +88,7 @@ export default function ChooseScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [inlineText, setInlineText] = useState("");
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
 
   // ── High Performance Discovery State ──
   const discoveredApps = useAppStore((s: any) => s.apps);
@@ -175,6 +180,29 @@ export default function ChooseScreen() {
     setInlineText("");
   };
 
+  /** Applies a saved preset from history and updates both apps and webs. */
+  const handlePresetSelect = (preset: DigitalPreset | null) => {
+    if (!preset) return;
+    
+    console.log(`[Blocklist] Applying history preset: ${preset.name || preset._id}`);
+    
+    // Replace current selection with preset values
+    setBlocklist({ 
+      apps: preset.apps, 
+      websites: preset.websites 
+    });
+
+    // If there are new websites, we need to sync the local 'webs' state as well
+    // so they appear in the UI correctly.
+    setWebs(preset.websites.map((w, i) => ({ 
+      id: `w_preset_${Date.now()}_${i}`, 
+      name: w, 
+      selected: true 
+    })));
+
+    setHistoryModalVisible(false);
+  };
+
   // ── Fixed Header Content ──
   const headerContent = (
     <>
@@ -187,8 +215,15 @@ export default function ChooseScreen() {
         onSearchChange={setSearchText}
       />
 
-      <UView className="mb-4">
+      <UView className="mb-4 flex-row items-center justify-between">
         <HeaderTitle className="text-3xl mt-3">Blocklist</HeaderTitle>
+        <UPressable 
+          onPress={() => setHistoryModalVisible(true)} 
+          className="mt-3"
+          hitSlop={12}
+        >
+          <MaterialCommunityIcons name="clock-check-outline" size={26} color="#A1A1A1" />
+        </UPressable>
       </UView>
 
       <TabsBar tabs={TABS} activeTab={activeTab} onChange={handleTabChange} />
@@ -265,6 +300,14 @@ export default function ChooseScreen() {
           </FooterText>
         </UView>
       )}
+
+      {/* ── History: Preset Picker Modal ── */}
+      <DigitalPresetPickerModal
+        visible={historyModalVisible}
+        onClose={() => setHistoryModalVisible(false)}
+        onSelect={handlePresetSelect}
+        selectedId={null} // No fixed single preset since user can modify selection
+      />
     </ActionScreenLayout>
   );
 }
