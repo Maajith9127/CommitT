@@ -172,11 +172,20 @@ export function VerificationStatusCircle({
 
   // ── Verified state
   if (status === 'verified') {
-    return (
+    const verifiedContent = (
       <UView className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: '#4CD964', backgroundColor: 'rgba(76, 217, 100, 0.1)' }}>
         <MaterialCommunityIcons name="check" size={24} color="#4CD964" />
       </UView>
     );
+
+    if (onPress) {
+      return (
+        <UPressable onPress={onPress}>
+          {verifiedContent}
+        </UPressable>
+      );
+    }
+    return verifiedContent;
   }
 
   // ── Failed state

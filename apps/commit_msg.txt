@@ -1,7 +1,6 @@
-feat(native/ui): transition preset pickers to live backend subscriptions
+refactor(native/ui): enable preset deselection & polish slot card visuals
 
-- Migrate `LocationPresetPickerModal` and `DigitalPresetPickerModal` to live Convex `useQuery` subscriptions.
-- Implement real-time "Recommended Locations" and "Digital Commitments" syncing directly from the backend.
-- Fix monorepo-wide API import resolution by correctly utilizing the `@commit/backend` alias.
-- Add robust loading guards and optional chaining to prevent crashes during initial data hydration.
-- Refine interaction flow: restrict selection to the `VerificationStatusCircle` and maintain persistent modal states for seamless multi-preset toggling.
+- Fix "unable to unchoose" bug by making `VerificationStatusCircle` tappable in the `verified` state when an `onPress` is provided.
+- Increase app icon dimensions in `TimeSlotCard` from 28x28 to 36x36 for improved visibility.
+- Adjust slot card layout spacing and border radii to maintain premium aesthetic with larger iconography.
+- Finalize toggle-ready interaction model for both Location and Digital preset pickers.

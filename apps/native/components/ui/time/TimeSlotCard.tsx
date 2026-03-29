@@ -184,7 +184,7 @@ export function TimeSlotCard({
                     {resolvedIcons.map((uri, i) => (
                       <View 
                         key={i} 
-                        style={{ marginRight: 10, width: 28, height: 28, borderRadius: 6, overflow: 'hidden' }}
+                        style={{ marginRight: 12, width: 36, height: 36, borderRadius: 8, overflow: 'hidden' }}
                       >
                         <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
                       </View>
