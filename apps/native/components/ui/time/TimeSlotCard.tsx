@@ -107,7 +107,7 @@ export function TimeSlotCard({
   const hasDigital = !!digitalLabel;
 
   return (
-    <UView className="mb-3 w-full rounded-2xl bg-[#1A1A1A] overflow-hidden">
+    <UView className="mb-3 w-full rounded-3xl bg-[#1A1A1A] overflow-hidden">
       {/* ── TIME HEADER ── */}
       <UPressable 
         onPress={onPress}
@@ -141,11 +141,11 @@ export function TimeSlotCard({
           onLayout={onContentLayout}
           style={{ position: 'absolute', width: '100%' }}
         >
-          <UView className="border-t-2 border-black">
+          <UView className="border-t border-white/20">
             {/* ── Location Row ── */}
             <UPressable 
               onPress={onLocationPress}
-              className="flex-row items-center px-4 py-3 border-b-2 border-black"
+              className="flex-row items-center px-4 py-3 border-b border-white/20"
             >
               <MaterialCommunityIcons 
                 name="map-marker-outline" 
@@ -154,8 +154,8 @@ export function TimeSlotCard({
                 style={{ marginRight: 16 }} 
               />
               <UView className="flex-1">
-                <FooterText className="mt-0 text-gray-400">Location</FooterText>
-                <BodyText className={`text-sm mt-0.5 ${hasLocation ? 'text-white' : 'text-gray-500'}`} numberOfLines={1}>
+                <BodyText className="mt-0 text-gray-400 text-sm">Location</BodyText>
+                <BodyText className={`text-base mt-0.5 ${hasLocation ? 'text-white' : 'text-gray-500'}`} numberOfLines={1}>
                   {locationLabel || "Tap to set"}
                 </BodyText>
               </UView>
@@ -164,7 +164,7 @@ export function TimeSlotCard({
             {/* ── App Block Row ── */}
             <UPressable 
               onPress={onDigitalPress}
-              className="flex-row items-center px-4 py-3 border-b-2 border-black"
+              className="flex-row items-center px-4 py-3 border-b border-white/20"
             >
               <MaterialCommunityIcons 
                 name="cellphone-lock" 
@@ -173,7 +173,7 @@ export function TimeSlotCard({
                 style={{ marginRight: 16 }} 
               />
               <UView className="flex-1">
-                <FooterText className="mt-0 text-gray-400">App block</FooterText>
+                <BodyText className="mt-0 text-gray-400 text-sm">App block</BodyText>
                 
                 {resolvedIcons.length > 0 ? (
                   <UScrollView 
@@ -191,7 +191,7 @@ export function TimeSlotCard({
                     ))}
                   </UScrollView>
                 ) : (
-                  <BodyText className={`text-sm mt-0.5 ${hasDigital ? 'text-white' : 'text-gray-500'}`}>
+                  <BodyText className={`text-base mt-0.5 ${hasDigital ? 'text-white' : 'text-gray-500'}`}>
                     {digitalLabel || "Tap to set"}
                   </BodyText>
                 )}
@@ -203,8 +203,8 @@ export function TimeSlotCard({
               onPress={onRemove}
               className="flex-row items-center justify-center py-3 gap-2"
             >
-              <MaterialCommunityIcons name="delete-outline" size={18} color="#FF3B30" />
-              <BodyText className="text-[#FF3B30] text-sm">Delete slot</BodyText>
+              <MaterialCommunityIcons name="delete-outline" size={26} color="#FF3B30" />
+              <BodyText className="text-[#FF3B30] text-sm">Remove</BodyText>
             </UPressable>
           </UView>
         </View>

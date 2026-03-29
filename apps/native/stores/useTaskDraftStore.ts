@@ -143,8 +143,8 @@ type TaskDraftStore = {
   // blocklist
   setBlocklist: (updates: { apps?: string[]; websites?: string[] }) => void;
   // slot-specific conditions
-  setSlotLocation: (index: number, location: { latitude: number; longitude: number; radius: number; address: string; isInverse: boolean } | null) => void;
-  setSlotBlocklist: (index: number, updates: { apps?: string[]; websites?: string[] }) => void;
+  setSlotLocation: (index: number, location: { latitude: number; longitude: number; radius: number; address: string; isInverse: boolean; id?: string } | null) => void;
+  setSlotBlocklist: (index: number, updates: { apps?: string[]; websites?: string[]; id?: string }) => void;
 };
 
 const createEmptyDraft = (): TaskDraft => ({
@@ -687,6 +687,7 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
               target: {
                 type: "number",
                 value: {
+                  id: location.id, // Store source ID for toggle resolution
                   lat: location.latitude,
                   lng: location.longitude,
                   radius: location.radius,
@@ -744,6 +745,7 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
               target: {
                 type: "array",
                 value: {
+                  id: updates.id, // Store source ID for toggle resolution
                   apps: newApps,
                   websites: newWebs,
                 },

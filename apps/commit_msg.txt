@@ -1,23 +1,9 @@
-feat(core): implement contextual slot-specific condition overrides
+feat(native): refine scheduling UI and fix commitment persistence logic
 
-This major architectural upgrade enables per-slot configuration for location 
-and digital blocklist rules, allowing users to define different accountability 
-contracts for different times within the same recurring habit.
-
-Key Changes:
-- Schema: Updated `RecurrenceSchema` in `lib/validators` to include optional 
-  `conditions` for each time window in the task recurrence manifest.
-- Store: Extended `useTaskDraftStore` with `setSlotLocation` and `setSlotBlocklist` 
-  actions to persist per-window configurations within the global draft state.
-- UI: Refactored `time-set.tsx` to eliminate local state in favor of the unified 
-  Zustand store. `TimeSlotCard` components now reactively derive labels 
-  (e.g., specific addresses or app counts) from the slot's condition manifest.
-- Engine: Updated `Instances.generateSeries` with a new `mergeConditions` utility. 
-  It implements a "Contextual Override" strategy where slot-level rules take 
-  precedence over global task rules during instance expansion.
-- Logic: Pushed slot conditions through the `generateTimeSlots` horizon engine 
-  and synchronized internal domain types (`GeneratedSlot`, `TimeWindow`) to 
-  ensure end-to-end type safety.
-
-This ensures that the generated hardware-level verification checkpoints are 
-always contextually accurate to the specific time window being enforced.
+- Refined TimeSlotCard aesthetic with 1px white/20 dividers and increased corner rounding (rounded-3xl).
+- Improved legibility by bumping label font size to 14px and value/placeholder text to 16px.
+- Enhanced Remove action with a larger 26px icon and improved touch targets.
+- Fixed selection/deselection bug in TimeSetScreen by correctly persisting and passing preset IDs through the draft store.
+- Optimized picker modal behavior to prevent auto-closing, requiring explicit dismissal via the close button.
+- Resolved 'NOT NULL constraint failed' SQLite error by ensuring assigner_id fallbacks to the active session during creation.
+- Cleaned up app layout by removing stale route definitions for 'verify' and 'calendar'.

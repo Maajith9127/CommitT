@@ -97,7 +97,10 @@ export const LocationSection = React.memo(({
         if (!tempCoords) return;
         setIsUpdating(true);
         try {
-            const newConditions = event.conditions.map((c: any) => {
+            // ── DATA INTEGRITY STRATEGY ──
+            // We map over the LATEST event.conditions snapshot to ensure we don't
+            // accidentally revert other concurrently updated conditions (like apps/webs).
+            const newConditions = (event.conditions || []).map((c: any) => {
                 if (c.metric_key === 'location') {
                     return {
                         ...c,
@@ -271,16 +274,37 @@ export const LocationSection = React.memo(({
         </UView>
     );
 }, (prev, next) => {
-    // Memoization Guard:
-    // Only triggers a re-render if core geographic constraints or 
-    // verification states exhibit changes.
+    /**
+     * ── ARCHITECTURAL MEMOIZATION GUARD ──
+     * 
+     * WHY WE DO THIS:
+     * This component embeds a Google Map. We want to prevent the map from 'flickering'
+     * or re-initializing every second (due to the active timer in the parent modal).
+     * 
+     * THE DATA LOSS TRAP:
+     * If we only monitor 'lat' and 'lng', we create a "stale closure" bug. If the 
+     * user updates the app blocklist (digital_commitment), this component might 
+     * skip the re-render. If the user then pivots the location, they would be 
+     * mapping over an OLD snapshot of the conditions, effectively WIPING OUT 
+     * their digital edits.
+     * 
+     * THE SOLUTION:
+     * We trigger a re-render if the 'event' object identity changes (live updates) 
+     * or if the specific location/verification state explicitly changes.
+     */
     const prevLoc = prev.event?.conditions?.find((c: any) => c.metric_key === 'location')?.target?.value;
     const nextLoc = next.event?.conditions?.find((c: any) => c.metric_key === 'location')?.target?.value;
 
     return (
+        // ID check to ensure we're looking at the same task instance
         prev.event?._id === next.event?._id &&
+        // Context check: If the live object changed (e.g. apps saved), we MUST re-render 
+        // to refresh the base conditions for the location update closure.
+        prev.event === next.event &&
+        // Standard verification state checks
         prev.locStatus === next.locStatus &&
         prev.isLocVerifying === next.isLocVerifying &&
+        // Detailed coordinates check
         prevLoc?.lat === nextLoc?.lat &&
         prevLoc?.lng === nextLoc?.lng &&
         prevLoc?.radius === nextLoc?.radius

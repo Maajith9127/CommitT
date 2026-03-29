@@ -206,9 +206,6 @@ export default function MainLayout() {
             <Tabs.Screen name="notifications" />
             <Tabs.Screen name="profile" />
             
-            {/* These routes are grouped logically here but hidden from the bottom tab bar */}
-            <Tabs.Screen name="verify" options={{ href: null }} />
-            <Tabs.Screen name="calendar" options={{ href: null }} />
         </Tabs>
       </UView>
 

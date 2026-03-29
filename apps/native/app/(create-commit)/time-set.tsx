@@ -189,6 +189,7 @@ export default function TimeSetScreen() {
     } else {
       console.log(`[TimeSet] Location attached to slot ${contextSlotIndex}:`, preset.address);
       setSlotLocation(contextSlotIndex, {
+        id: preset._id, // Pass the preset ID for tracking
         latitude: preset.lat,
         longitude: preset.lng,
         radius: preset.radius,
@@ -196,7 +197,6 @@ export default function TimeSetScreen() {
         isInverse: false, // Standard location check
       });
     }
-    setLocationPickerVisible(false);
   }
 
   /**
@@ -211,11 +211,11 @@ export default function TimeSetScreen() {
     } else {
       console.log(`[TimeSet] Digital preset attached to slot ${contextSlotIndex}:`, preset.name || `${preset.apps.length} apps`);
       setSlotBlocklist(contextSlotIndex, {
+        id: preset._id, // Pass the preset ID for tracking
         apps: preset.apps,
         websites: preset.websites,
       });
     }
-    setDigitalPickerVisible(false);
   }
 
   function handleToggleRepeat() {
@@ -242,6 +242,16 @@ export default function TimeSetScreen() {
 
   const initialFrom = pendingTimes?.from ?? (editingSlotIndex !== null ? secondsToTimeInput(timeSlots[editingSlotIndex].start) : undefined);
   const initialTo = pendingTimes?.to ?? (editingSlotIndex !== null ? secondsToTimeInput(timeSlots[editingSlotIndex].end) : undefined);
+
+  // ── Context-Specific IDs for Pickers ──
+  const currentSlot = contextSlotIndex !== null ? timeSlots[contextSlotIndex] : null;
+  const currentConditions = (currentSlot as any)?.conditions || [];
+  
+  const currentLocCond = currentConditions.find((c: any) => c.metric_key === "location");
+  const selectedLocationId = (currentLocCond?.target?.value as any)?.id || null;
+
+  const currentDigitalCond = currentConditions.find((c: any) => c.metric_key === "digital_commitment");
+  const selectedDigitalId = (currentDigitalCond?.target?.value as any)?.id || null;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Render
@@ -375,7 +385,7 @@ export default function TimeSetScreen() {
           setContextSlotIndex(null);
         }}
         onSelect={handleLocationSelected}
-        selectedId={null} // Determined internally or by label matching if needed
+        selectedId={selectedLocationId}
       />
 
       <DigitalPresetPickerModal
@@ -385,7 +395,7 @@ export default function TimeSetScreen() {
           setContextSlotIndex(null);
         }}
         onSelect={handleDigitalSelected}
-        selectedId={null} // Determined internally or by label matching if needed
+        selectedId={selectedDigitalId}
       />
     </>
   );

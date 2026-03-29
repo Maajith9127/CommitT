@@ -5,6 +5,7 @@ import type { Id } from "@commit/backend/convex/_generated/dataModel";
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
 import { insertTaskToLocalDb, updateTaskInLocalDb } from "@/lib/local-db-commits";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
+import { authClient } from "@/lib/auth-client";
 
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -177,6 +178,7 @@ async function preparePenaltyPayload(
 
 export function useCommitTask() {
   const db = useSQLiteContext();
+  const { data: session } = authClient.useSession(); // Correct way to get session
   const createTask = useMutation(api.api.commitments.create.default);
   const updateTask = useMutation(api.api.commitments.update.default);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
@@ -253,10 +255,19 @@ export function useCommitTask() {
           penalty_waiver: draft.penalty_waiver,
         });
 
-         if (result.success && result.taskId) {
+          if (result.success && result.taskId) {
             try {
-              // --- B. MUTATE SQLITE CACHE SECONDS LATER ---
-              await insertTaskToLocalDb(db, draft, result.taskId, now, cleanedConditions, result.instances || [], cleanedPenalty);
+              // --- B. AUTHENTICATED FALLBACK RESOLUTION ---
+              const sessionUser = session?.user?.id;
+              
+              const finalizedDraft = {
+                ...draft,
+                assigner_id: draft.assigner_id || sessionUser || "",
+                assignee_id: draft.assignee_id || draft.assigner_id || sessionUser || "",
+              };
+
+              // --- C. MUTATE SQLITE CACHE SECONDS LATER ---
+              await insertTaskToLocalDb(db, finalizedDraft, result.taskId, now, cleanedConditions, result.instances || [], cleanedPenalty);
             } catch (localError) {
              console.error('[executeCommit] Local DB Cache Creation execution suspended (non-critical):', localError);
            }
