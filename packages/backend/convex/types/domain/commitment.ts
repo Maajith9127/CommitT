@@ -8,6 +8,7 @@ export type RecurrenceType = "daily" | "weekly" | "monthly" | "once";
 export interface TimeWindow {
   start: number; // seconds from midnight
   end: number;   // seconds from midnight
+  conditions?: Condition[];
 }
 
 export interface Recurrence {

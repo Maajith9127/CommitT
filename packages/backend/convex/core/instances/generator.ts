@@ -15,6 +15,7 @@ const MS_PER_MONTH = 30 * 24 * 60 * 60 * 1000;
 export interface GeneratedSlot {
   startTime: number;
   endTime: number;
+  conditions?: any[];
 }
 
 /**
@@ -78,6 +79,7 @@ export function generateTimeSlots(
     slots.push({
       startTime: nextSlot.startTime,
       endTime: nextSlot.endTime,
+      conditions: nextSlot.timeWindow.conditions,
     });
 
     // Decrement count

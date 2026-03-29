@@ -110,6 +110,30 @@ function generateJustShowUpCheckpoints(args: {
 }
 
 /**
+ * MERGE STRATEGY: Slot Overrides Global
+ * 
+ * Takes the global task conditions and overlays any slot-specific conditions
+ * based on the metric_key. If a slot defines its own 'location', it completely
+ * replaces the global 'location' for that instance.
+ */
+function mergeConditions(global: any[], slot: any[] | undefined): any[] {
+  if (!slot || slot.length === 0) return global;
+  
+  const merged = [...global];
+  
+  for (const sCond of slot) {
+    const idx = merged.findIndex(gCond => gCond.metric_key === sCond.metric_key);
+    if (idx >= 0) {
+      merged[idx] = sCond;
+    } else {
+      merged.push(sCond);
+    }
+  }
+  
+  return merged;
+}
+
+/**
  * Arguments for creating a single task instance.
  *
  * `penalty` and `penalty_waiver` are IMMUTABLE SNAPSHOTS copied from the
@@ -273,7 +297,8 @@ async function generateSeries(
       title: task.title,
       description: task.description,
       recurrence: task.recurrence,
-      conditions: task.conditions,
+      // Priority: Slot Conditions > Global Task Conditions
+      conditions: mergeConditions(task.conditions, slot.conditions),
       config: task.config,
       penalty: task.penalty,                 // Snapshot from master task rules at generation time
       penalty_waiver: task.penalty_waiver,   // Snapshot from master task rules at generation time

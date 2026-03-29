@@ -142,6 +142,9 @@ type TaskDraftStore = {
   setWaiver: (updates: Partial<NonNullable<TaskDraft["penalty_waiver"]>>) => void;
   // blocklist
   setBlocklist: (updates: { apps?: string[]; websites?: string[] }) => void;
+  // slot-specific conditions
+  setSlotLocation: (index: number, location: { latitude: number; longitude: number; radius: number; address: string; isInverse: boolean } | null) => void;
+  setSlotBlocklist: (index: number, updates: { apps?: string[]; websites?: string[] }) => void;
 };
 
 const createEmptyDraft = (): TaskDraft => ({
@@ -663,6 +666,108 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
         },
         false,
         "draft/setBlocklist"
+      ),
+      
+    // -----------------
+    // slot-specific conditions
+    // -----------------
+    setSlotLocation: (index: number, location) =>
+      set(
+        (state: TaskDraftStore) => {
+          const windows = [...state.draft.recurrence.time_windows];
+          if (!windows[index]) return state;
+
+          const currentConditions = windows[index].conditions || [];
+          let updatedConditions = [...currentConditions];
+
+          if (location) {
+            const locCondition: any = {
+              metric_key: "location",
+              relation: location.isInverse ? "outside" : "within",
+              target: {
+                type: "number",
+                value: {
+                  lat: location.latitude,
+                  lng: location.longitude,
+                  radius: location.radius,
+                  address: location.address,
+                },
+              },
+            };
+
+            const idx = updatedConditions.findIndex(c => c.metric_key === "location");
+            if (idx >= 0) updatedConditions[idx] = locCondition;
+            else updatedConditions.push(locCondition);
+          } else {
+            updatedConditions = updatedConditions.filter(c => c.metric_key !== "location");
+          }
+
+          windows[index] = { 
+            ...windows[index], 
+            conditions: updatedConditions.length > 0 ? updatedConditions : undefined 
+          };
+
+          return { 
+            draft: { 
+              ...state.draft, 
+              recurrence: { ...state.draft.recurrence, time_windows: windows } 
+            } 
+          };
+        },
+        false,
+        "draft/setSlotLocation"
+      ),
+
+    setSlotBlocklist: (index: number, updates) =>
+      set(
+        (state: TaskDraftStore) => {
+          const windows = [...state.draft.recurrence.time_windows];
+          if (!windows[index]) return state;
+
+          const currentConditions = windows[index].conditions || [];
+          let updatedConditions = [...currentConditions];
+
+          const idx = updatedConditions.findIndex(c => c.metric_key === "digital_commitment");
+          const currentTarget = idx >= 0 && updatedConditions[idx].target.type === "array"
+            ? (updatedConditions[idx].target.value as { apps: string[]; websites: string[] })
+            : { apps: [], websites: [] };
+
+          const newApps = updates.apps ?? currentTarget.apps;
+          const newWebs = updates.websites ?? currentTarget.websites;
+
+          if (newApps.length === 0 && newWebs.length === 0) {
+            updatedConditions = updatedConditions.filter(c => c.metric_key !== "digital_commitment");
+          } else {
+            const blockCondition: any = {
+              metric_key: "digital_commitment",
+              relation: "outside",
+              target: {
+                type: "array",
+                value: {
+                  apps: newApps,
+                  websites: newWebs,
+                },
+              },
+            };
+
+            if (idx >= 0) updatedConditions[idx] = blockCondition;
+            else updatedConditions.push(blockCondition);
+          }
+
+          windows[index] = { 
+            ...windows[index], 
+            conditions: updatedConditions.length > 0 ? updatedConditions : undefined 
+          };
+
+          return { 
+            draft: { 
+              ...state.draft, 
+              recurrence: { ...state.draft.recurrence, time_windows: windows } 
+            } 
+          };
+        },
+        false,
+        "draft/setSlotBlocklist"
       ),
   }))
 );

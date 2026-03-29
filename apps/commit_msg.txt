@@ -1,24 +1,23 @@
-feat(native): implement functional 'History' integration for Blocklist configuration
+feat(core): implement contextual slot-specific condition overrides
 
-[OVERVIEW]
-Activated the "History" feature within the Blocklist (ChooseScreen) setup flow, 
-transitioning the header's clock icon from a visual placeholder into a 
-high-fidelity interaction point for rapid commitment configuration.
+This major architectural upgrade enables per-slot configuration for location 
+and digital blocklist rules, allowing users to define different accountability 
+contracts for different times within the same recurring habit.
 
-[TECHNICAL CHANGES]
-- FEATURE: Integrated `DigitalPresetPickerModal` into `ChooseScreen` to allow 
-  the application of saved app-blocking presets directly during draft creation.
-- LOGIC: Developed `handlePresetSelect` to perform a multi-target synchronization:
-    1. Store Update: Injects preset `apps` and `websites` into the global `useTaskDraftStore`.
-    2. Local Sync: Hydrates the local `webs` state manually to ensure immediate 
-       UI reactivity for added website entries.
-- STATE: Implemented `historyModalVisible` state to manage the overlay lifecycle 
-  within the `ActionScreenLayout` architecture.
-- CLEANUP: Standardized imports and resolved TypeScript identifier errors for 
-  improved stability in the native creation group.
+Key Changes:
+- Schema: Updated `RecurrenceSchema` in `lib/validators` to include optional 
+  `conditions` for each time window in the task recurrence manifest.
+- Store: Extended `useTaskDraftStore` with `setSlotLocation` and `setSlotBlocklist` 
+  actions to persist per-window configurations within the global draft state.
+- UI: Refactored `time-set.tsx` to eliminate local state in favor of the unified 
+  Zustand store. `TimeSlotCard` components now reactively derive labels 
+  (e.g., specific addresses or app counts) from the slot's condition manifest.
+- Engine: Updated `Instances.generateSeries` with a new `mergeConditions` utility. 
+  It implements a "Contextual Override" strategy where slot-level rules take 
+  precedence over global task rules during instance expansion.
+- Logic: Pushed slot conditions through the `generateTimeSlots` horizon engine 
+  and synchronized internal domain types (`GeneratedSlot`, `TimeWindow`) to 
+  ensure end-to-end type safety.
 
-[UX IMPROVEMENTS]
-- Added high-context interaction for the `clock-check-outline` header action, 
-  providing users with an "instant recall" path for frequent blocklists.
-- Maintained layout integrity by ensuring the history picker respects 
-  the dynamic 3-zone standard (header/scroll/footer) of the Blocklist screen.
+This ensures that the generated hardware-level verification checkpoints are 
+always contextually accurate to the specific time window being enforced.

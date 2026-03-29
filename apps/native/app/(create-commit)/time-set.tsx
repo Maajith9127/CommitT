@@ -86,17 +86,13 @@ export default function TimeSetScreen() {
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [digitalPickerVisible, setDigitalPickerVisible] = useState(false);
 
-  /**
-   * slotConditions: Tracks which presets are attached to each time slot.
-   * Maps slot index → { location?: preset, digital?: preset }
-   */
-  const [slotConditions, setSlotConditions] = useState<SlotConditions>({});
-
   // Zustand selectors
   const draft = useTaskDraftStore((s) => s.draft);
   const setRecurrence = useTaskDraftStore((s) => s.setRecurrence);
   const setTimeWindows = useTaskDraftStore((s) => s.setTimeWindows);
   const removeTimeWindow = useTaskDraftStore((s) => s.removeTimeWindow);
+  const setSlotLocation = useTaskDraftStore((s) => s.setSlotLocation);
+  const setSlotBlocklist = useTaskDraftStore((s) => s.setSlotBlocklist);
 
   // Get time slots directly from recurrence.time_windows
   const timeSlots: TimeSlot[] = draft.recurrence.time_windows;
@@ -163,18 +159,6 @@ export default function TimeSetScreen() {
    */
   function handleRemoveSlot(index: number) {
     removeTimeWindow(index);
-    
-    // Re-index conditions: drop the removed slot, shift higher slots down
-    setSlotConditions((prev: SlotConditions) => {
-      const next: SlotConditions = {};
-      Object.keys(prev).forEach((key) => {
-        const i = parseInt(key);
-        const value = prev[i];
-        if (i < index) next[i] = value;
-        else if (i > index) next[i - 1] = value;
-      });
-      return next;
-    });
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -201,23 +185,18 @@ export default function TimeSetScreen() {
     
     if (preset === null) {
       console.log(`[TimeSet] Location detached from slot ${contextSlotIndex}`);
-      setSlotConditions((prev: SlotConditions) => {
-        const updated = { ...prev };
-        if (updated[contextSlotIndex]) {
-          updated[contextSlotIndex] = { ...updated[contextSlotIndex], location: undefined };
-        }
-        return updated;
-      });
+      setSlotLocation(contextSlotIndex, null);
     } else {
       console.log(`[TimeSet] Location attached to slot ${contextSlotIndex}:`, preset.address);
-      setSlotConditions((prev: SlotConditions) => ({
-        ...prev,
-        [contextSlotIndex]: {
-          ...prev[contextSlotIndex],
-          location: preset,
-        },
-      }));
+      setSlotLocation(contextSlotIndex, {
+        latitude: preset.lat,
+        longitude: preset.lng,
+        radius: preset.radius,
+        address: preset.address,
+        isInverse: false, // Standard location check
+      });
     }
+    setLocationPickerVisible(false);
   }
 
   /**
@@ -228,23 +207,15 @@ export default function TimeSetScreen() {
     
     if (preset === null) {
       console.log(`[TimeSet] Digital commitment detached from slot ${contextSlotIndex}`);
-      setSlotConditions((prev: SlotConditions) => {
-        const updated = { ...prev };
-        if (updated[contextSlotIndex]) {
-          updated[contextSlotIndex] = { ...updated[contextSlotIndex], digital: undefined };
-        }
-        return updated;
-      });
+      setSlotBlocklist(contextSlotIndex, { apps: [], websites: [] });
     } else {
       console.log(`[TimeSet] Digital preset attached to slot ${contextSlotIndex}:`, preset.name || `${preset.apps.length} apps`);
-      setSlotConditions((prev: SlotConditions) => ({
-        ...prev,
-        [contextSlotIndex]: {
-          ...prev[contextSlotIndex],
-          digital: preset,
-        },
-      }));
+      setSlotBlocklist(contextSlotIndex, {
+        apps: preset.apps,
+        websites: preset.websites,
+      });
     }
+    setDigitalPickerVisible(false);
   }
 
   function handleToggleRepeat() {
@@ -339,12 +310,19 @@ export default function TimeSetScreen() {
           </UView>
 
           {/* Time Slot Cards — wired to preset pickers */}
-          {timeSlots.map((slot, index) => {
-            const conditions = slotConditions[index];
-            const locationLabel = conditions?.location?.address || null;
-            const digitalLabel = conditions?.digital
-              ? (conditions.digital.name || `${conditions.digital.apps?.length || 0} Apps Blocked`)
+          {timeSlots.map((slot: any, index: number) => {
+            const slotConditions = slot.conditions || [];
+            
+            const locationCondition = slotConditions.find((c: any) => c.metric_key === "location");
+            const digitalCondition = slotConditions.find((c: any) => c.metric_key === "digital_commitment");
+
+            const locationLabel = (locationCondition?.target?.value as any)?.address || null;
+            const digitalLabel = digitalCondition?.target?.value 
+              ? (digitalCondition.target.value.apps?.length || 0) + " Apps Blocked"
               : null;
+            
+            const selectedLocationId = (locationCondition?.target?.value as any)?.id || null;
+            const selectedDigitalId = (digitalCondition?.target?.value as any)?.id || null;
 
             return (
               <TimeSlotCard
@@ -357,7 +335,7 @@ export default function TimeSetScreen() {
                 onDigitalPress={() => handleOpenDigitalPicker(index)}
                 locationLabel={locationLabel}
                 digitalLabel={digitalLabel}
-                appIds={conditions?.digital?.apps || null}
+                appIds={digitalCondition?.target?.value?.apps || null}
               />
             );
           })}
@@ -397,7 +375,7 @@ export default function TimeSetScreen() {
           setContextSlotIndex(null);
         }}
         onSelect={handleLocationSelected}
-        selectedId={contextSlotIndex !== null ? slotConditions[contextSlotIndex]?.location?._id : null}
+        selectedId={null} // Determined internally or by label matching if needed
       />
 
       <DigitalPresetPickerModal
@@ -407,7 +385,7 @@ export default function TimeSetScreen() {
           setContextSlotIndex(null);
         }}
         onSelect={handleDigitalSelected}
-        selectedId={contextSlotIndex !== null ? slotConditions[contextSlotIndex]?.digital?._id : null}
+        selectedId={null} // Determined internally or by label matching if needed
       />
     </>
   );
