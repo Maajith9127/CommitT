@@ -1,9 +1,9 @@
-feat(native): refine scheduling UI and fix commitment persistence logic
+feat(backend/native): implement slot-specific condition overrides and UI refinements
 
-- Refined TimeSlotCard aesthetic with 1px white/20 dividers and increased corner rounding (rounded-3xl).
-- Improved legibility by bumping label font size to 14px and value/placeholder text to 16px.
-- Enhanced Remove action with a larger 26px icon and improved touch targets.
-- Fixed selection/deselection bug in TimeSetScreen by correctly persisting and passing preset IDs through the draft store.
-- Optimized picker modal behavior to prevent auto-closing, requiring explicit dismissal via the close button.
-- Resolved 'NOT NULL constraint failed' SQLite error by ensuring assigner_id fallbacks to the active session during creation.
-- Cleaned up app layout by removing stale route definitions for 'verify' and 'calendar'.
+- Modified backend instance generation to use a 'Total Override' strategy: slot-specific conditions now completely replace global task rules instead of merging with them.
+- Refined `TimeSlotCard` to only display accountability rules (Location/Digital) if they are explicitly overridden for that specific time window.
+- Improved persistence and visibility of existing task drafts by ensuring slot-level conditions are correctly mapped and rendered when returning to the creation flow.
+- UI Polish:
+  * Renamed "Delete slot" action to "Remove" for better UX.
+  * Increased delete icon size to 26px for improved touch targets.
+  * Resolved JSX layout syntax errors and extra nesting in `time-set.tsx`.

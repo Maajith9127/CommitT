@@ -327,13 +327,10 @@ export default function TimeSetScreen() {
             const digitalCondition = slotConditions.find((c: any) => c.metric_key === "digital_commitment");
 
             const locationLabel = (locationCondition?.target?.value as any)?.address || null;
-            const digitalLabel = digitalCondition?.target?.value 
+            const appBlockLabel = digitalCondition?.target?.value 
               ? (digitalCondition.target.value.apps?.length || 0) + " Apps Blocked"
               : null;
             
-            const selectedLocationId = (locationCondition?.target?.value as any)?.id || null;
-            const selectedDigitalId = (digitalCondition?.target?.value as any)?.id || null;
-
             return (
               <TimeSlotCard
                 key={index}
@@ -344,7 +341,7 @@ export default function TimeSetScreen() {
                 onLocationPress={() => handleOpenLocationPicker(index)}
                 onDigitalPress={() => handleOpenDigitalPicker(index)}
                 locationLabel={locationLabel}
-                digitalLabel={digitalLabel}
+                digitalLabel={appBlockLabel}
                 appIds={digitalCondition?.target?.value?.apps || null}
               />
             );

@@ -21,6 +21,8 @@ export type TimeSlotCardProps = {
   onDigitalPress?: () => void;
   locationLabel?: string | null;
   digitalLabel?: string | null;
+  locationSubLabel?: string | null;
+  digitalSubLabel?: string | null;
   /** List of blocked app IDs to display icons for */
   appIds?: string[] | null;
 };
@@ -47,6 +49,8 @@ export function TimeSlotCard({
   onDigitalPress,
   locationLabel,
   digitalLabel,
+  locationSubLabel,
+  digitalSubLabel,
   appIds,
 }: TimeSlotCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -154,7 +158,12 @@ export function TimeSlotCard({
                 style={{ marginRight: 16 }} 
               />
               <UView className="flex-1">
-                <BodyText className="mt-0 text-gray-400 text-sm">Location</BodyText>
+                <UView className="flex-row items-center justify-between">
+                  <BodyText className="mt-0 text-gray-400 text-sm">Location</BodyText>
+                  {locationSubLabel && (
+                    <BodyText className="text-[10px] text-blue-400/80 font-bold uppercase tracking-wider">{locationSubLabel}</BodyText>
+                  )}
+                </UView>
                 <BodyText className={`text-base mt-0.5 ${hasLocation ? 'text-white' : 'text-gray-500'}`} numberOfLines={1}>
                   {locationLabel || "Tap to set"}
                 </BodyText>
@@ -173,7 +182,12 @@ export function TimeSlotCard({
                 style={{ marginRight: 16 }} 
               />
               <UView className="flex-1">
-                <BodyText className="mt-0 text-gray-400 text-sm">App block</BodyText>
+                <UView className="flex-row items-center justify-between">
+                  <BodyText className="mt-0 text-gray-400 text-sm">App block</BodyText>
+                  {digitalSubLabel && (
+                    <BodyText className="text-[10px] text-blue-400/80 font-bold uppercase tracking-wider">{digitalSubLabel}</BodyText>
+                  )}
+                </UView>
                 
                 {resolvedIcons.length > 0 ? (
                   <UScrollView 

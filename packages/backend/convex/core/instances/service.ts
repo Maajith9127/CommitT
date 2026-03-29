@@ -117,20 +117,14 @@ function generateJustShowUpCheckpoints(args: {
  * replaces the global 'location' for that instance.
  */
 function mergeConditions(global: any[], slot: any[] | undefined): any[] {
-  if (!slot || slot.length === 0) return global;
+  // TOTAL OVERRIDE STRATEGY:
+  // If a slot defines ANY custom condition, it completely supersedes 
+  // the global task-level conditions for that instance. 
+  // This prevents unexpected side-effects (e.g., a slot-specific digital 
+  // blocklist being applied alongside a global location constraint).
+  if (slot && slot.length > 0) return slot;
   
-  const merged = [...global];
-  
-  for (const sCond of slot) {
-    const idx = merged.findIndex(gCond => gCond.metric_key === sCond.metric_key);
-    if (idx >= 0) {
-      merged[idx] = sCond;
-    } else {
-      merged.push(sCond);
-    }
-  }
-  
-  return merged;
+  return global;
 }
 
 /**
