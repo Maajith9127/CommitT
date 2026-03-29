@@ -1,10 +1,7 @@
-feat(ui): implement expandable contextual time slots for granular accountability
+feat(native): per-slot accountability infrastructure & animated UI refactor
 
-This update evolves the commitment creation flow to support unique rules for individual time windows, allowing for different locations and blocklists throughout the day.
-
-Key changes include:
-- Updated Convex schema to allow embedding conditions directly into time_windows.
-- Transformed TimeSlotCard into a premium expandable 'Context Drawer' component.
-- Streamlined the schedule UI by hiding surgical settings and removal actions inside the drawer.
-- Integrated visual placeholders for Location and Digital Mode contexts within each slot.
-- Maintained original typography and hardware icon aesthetics throughout the transition.
+- Refactored `EventDetailModal` into a modular "Shell/Brain" architecture using the new `BaseDrawerModal` and `useEventDetail` hook.
+- Implemented an "Instant Recall" preset system with `usePresetStore` (Zustand) and `usePresetHydration` for one-shot parallel data fetching.
+- Built production-grade `LocationPresetPickerModal` and `DigitalPresetPickerModal` with selection indicators, map loading skeletons, and app icon galleries.
+- Redesigned `TimeSlotCard` with a premium vertical-stack layout and buttery-smooth slide-down animations powered by `react-native-reanimated`.
+- Standardized visual language across the commitment flow with 2px black separators, consistent icon colors (#9CA3AF), and library-standard text components.

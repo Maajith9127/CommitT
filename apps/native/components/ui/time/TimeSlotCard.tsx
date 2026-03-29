@@ -1,105 +1,157 @@
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { useCallback, useState } from "react";
+import { Pressable, View } from "react-native";
 import { withUniwind } from "uniwind";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import Animated, { 
+  useAnimatedStyle, 
+  useSharedValue, 
+  withTiming, 
+  Easing,
+  runOnJS 
+} from "react-native-reanimated";
 
-import { AuthTitle } from "@/components/ui/text";
+import { AuthTitle, BodyText, FooterText } from "@/components/ui/text";
 
 export type TimeSlotCardProps = {
   startTime: string;
   endTime: string;
   onRemove?: () => void;
-  locationName?: string;
-  digitalMode?: string;
+  onPress?: () => void;
 };
 
 const UView = withUniwind(View);
-const UText = withUniwind(Text);
 const UPressable = withUniwind(Pressable);
 
 /**
  * TimeSlotCard Component
- * -----------------------------------------------------------------------------
- * Clean, expandable representation of a scheduled time window.
- * The delete button and granular settings are hidden within the expanded state
- * to maintain a high-signal, zero-clutter interface.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Vertical-stack UI with a smooth slide-down animated drawer.
+ *
+ * ANIMATION:
+ *   Uses Reanimated shared values to animate the drawer height from 0 to
+ *   its measured content height. The animation runs on the UI thread for
+ *   buttery 60fps performance — no JS bridge jank.
  */
 export function TimeSlotCard({ 
   startTime, 
   endTime, 
-  onRemove,
-  locationName,
-  digitalMode 
+  onRemove, 
+  onPress,
 }: TimeSlotCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+  const animatedHeight = useSharedValue(0);
+  const animatedOpacity = useSharedValue(0);
+
+  /**
+   * Measures the drawer content height on first render,
+   * then uses that value for all subsequent animations.
+   */
+  const onContentLayout = useCallback((e: any) => {
+    const height = e.nativeEvent.layout.height;
+    if (height > 0 && contentHeight === 0) {
+      setContentHeight(height);
+    }
+  }, [contentHeight]);
+
+  function toggleExpand(e: any) {
+    e.stopPropagation();
+    const expanding = !isExpanded;
+    setIsExpanded(expanding);
+
+    const targetHeight = expanding ? (contentHeight || 200) : 0;
+    const targetOpacity = expanding ? 1 : 0;
+
+    animatedHeight.value = withTiming(targetHeight, {
+      duration: 280,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    });
+    animatedOpacity.value = withTiming(targetOpacity, {
+      duration: 200,
+    });
+  }
+
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    height: animatedHeight.value,
+    opacity: animatedOpacity.value,
+    overflow: 'hidden' as const,
+  }));
 
   return (
-    <UView className="mb-3 w-full rounded-3xl bg-[#1A1A1A] overflow-hidden">
-      {/* ── HEADER (THE ORIGINAL CARD) ── */}
+    <UView className="mb-3 w-full rounded-2xl bg-[#1A1A1A] overflow-hidden">
+      {/* ── TIME HEADER ── */}
       <UPressable 
-        onPress={() => setIsExpanded(!isExpanded)}
+        onPress={onPress}
         activeOpacity={0.7}
-        className="w-full flex-row items-center px-4 py-3"
+        className="w-full flex-row items-center px-4 py-3.5"
       >
-        {/* ── HARDWARE ICON ── */}
         <UView className="mr-3 h-8 w-8 items-center justify-center rounded-full bg-[#4FA0FF]">
           <MaterialCommunityIcons name="clock-outline" size={18} color="black" />
         </UView>
 
-        {/* ── DURATION MANIFEST ── */}
         <AuthTitle className="mb-0 flex-1 text-left font-medium text-base text-white">
           {startTime} – {endTime}
         </AuthTitle>
 
-        {/* ── EXPANSION TOGGLE (REPLACES ORIGINAL CROSS) ── */}
-        <UView className="ml-2">
+        <UPressable 
+          onPress={toggleExpand}
+          className="ml-2 h-8 w-8 items-center justify-center"
+          hitSlop={12}
+        >
            <MaterialCommunityIcons 
              name={isExpanded ? "chevron-up" : "chevron-down"} 
-             size={20} 
+             size={22} 
              color="#A1A1A1" 
            />
-        </UView>
+        </UPressable>
       </UPressable>
 
-      {/* ── EXPANDED PANEL (THE DRAWER) ── */}
-      {isExpanded && (
-        <UView className="border-t border-[#262626] bg-[#141414] px-4 py-4">
-          <UView className="flex-row items-center justify-between">
-            {/* Condition Placeholders */}
-            <UView className="flex-row items-center gap-4">
-              <UView className="flex-row items-center gap-1.5">
-                <MaterialCommunityIcons name="map-marker" size={14} color="#FF4F85" />
-                <UText className="text-gray-400 text-sm font-medium">
-                  {locationName ?? "Add Location"}
-                </UText>
+      {/* ── ANIMATED DRAWER ── */}
+      <Animated.View style={animatedContainerStyle}>
+        <View 
+          onLayout={onContentLayout}
+          style={{ position: contentHeight === 0 ? 'absolute' : 'relative', opacity: contentHeight === 0 ? 0 : 1 }}
+        >
+          <UView className="border-t-2 border-black">
+            {/* ── Location Row ── */}
+            <UPressable className="flex-row items-center px-4 py-3 border-b-2 border-black">
+              <MaterialCommunityIcons 
+                name="map-marker-outline" 
+                size={28} 
+                color="#9CA3AF" 
+                style={{ marginRight: 16 }} 
+              />
+              <UView className="flex-1">
+                <FooterText className="mt-0 text-gray-400">Location</FooterText>
+                <BodyText className="text-gray-500 text-sm mt-0.5">Tap to set</BodyText>
               </UView>
-              
-              <UView className="flex-row items-center gap-1.5">
-                <MaterialCommunityIcons name="block-helper" size={14} color="#FFB84F" />
-                <UText className="text-gray-400 text-sm font-medium">
-                  {digitalMode ?? "Strict Mode"}
-                </UText>
-              </UView>
-            </UView>
+            </UPressable>
 
-            {/* Removal Action (Delete slot) */}
+            {/* ── App Block Row ── */}
+            <UPressable className="flex-row items-center px-4 py-3 border-b-2 border-black">
+              <MaterialCommunityIcons 
+                name="cellphone-lock" 
+                size={28} 
+                color="#9CA3AF" 
+                style={{ marginRight: 16 }} 
+              />
+              <UView className="flex-1">
+                <FooterText className="mt-0 text-gray-400">App block</FooterText>
+                <BodyText className="text-gray-500 text-sm mt-0.5">Tap to set</BodyText>
+              </UView>
+            </UPressable>
+
+            {/* ── Delete Slot Action ── */}
             <UPressable 
               onPress={onRemove}
-              hitSlop={12}
+              className="flex-row items-center justify-center py-3 gap-2"
             >
-              <UText className="text-red-500 font-semibold text-sm">Delete slot</UText>
+              <MaterialCommunityIcons name="delete-outline" size={18} color="#FF3B30" />
+              <BodyText className="text-[#FF3B30] text-sm">Delete slot</BodyText>
             </UPressable>
           </UView>
-
-          {/* Placeholder for future surgical context controls */}
-          <UView className="mt-4 rounded-xl border border-dashed border-[#333] p-4 items-center justify-center">
-             <UText className="text-gray-600 text-xs text-center italic">
-                Surgical Context Controls coming soon...
-             </UText>
-          </UView>
-        </UView>
-      )}
+        </View>
+      </Animated.View>
     </UView>
   );
 }
