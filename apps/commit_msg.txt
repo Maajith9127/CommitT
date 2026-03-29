@@ -1,7 +1,14 @@
-feat(native): per-slot accountability infrastructure & animated UI refactor
+feat(native): full per-slot accountability integration & UX refinement
 
-- Refactored `EventDetailModal` into a modular "Shell/Brain" architecture using the new `BaseDrawerModal` and `useEventDetail` hook.
-- Implemented an "Instant Recall" preset system with `usePresetStore` (Zustand) and `usePresetHydration` for one-shot parallel data fetching.
-- Built production-grade `LocationPresetPickerModal` and `DigitalPresetPickerModal` with selection indicators, map loading skeletons, and app icon galleries.
-- Redesigned `TimeSlotCard` with a premium vertical-stack layout and buttery-smooth slide-down animations powered by `react-native-reanimated`.
-- Standardized visual language across the commitment flow with 2px black separators, consistent icon colors (#9CA3AF), and library-standard text components.
+- **End-to-End Integration**: Fully wired `LocationPresetPickerModal` and `DigitalPresetPickerModal` to individual time slots, enabling persistent per-slot condition states.
+- **Dynamic UI Logic**: 
+    - Refactored `TimeSlotCard` with ref-based height remeasurement for jitter-free Reanimated transitions that adapt to multi-line addresses.
+    - Added a horizontal scrollable strip of app icons (28x28) in the App Block row, resolved instantly via `useAppStore`.
+- **UX & Control System**:
+    - Isolated selection interactivity to the `VerificationStatusCircle` to prevent accidental choosing while scrolling presets.
+    - Updated picker modals to remain open during selection/deselection for rapid review, closing only on explicit user dismissal.
+    - Increased modal heights to 90% for a more expansive list and map viewing area.
+- **Design & Layout Polish**:
+    - Standardized picker headers with properly aligned `HeaderTitle` and iconography.
+    - Implemented smart bottom spacing in the schedule view to ensure expanded card content is never clipped by the global footer.
+- **Performance**: Maintained the "Instant Recall" zero-latency data flow from the pre-hydrated Zustand store to all picker components.

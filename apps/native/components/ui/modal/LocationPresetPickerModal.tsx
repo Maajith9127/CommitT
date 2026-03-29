@@ -20,7 +20,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GoogleMaps } from 'expo-maps';
 
 import { BaseDrawerModal } from './BaseDrawerModal';
-import { AuthHeading, BodyText } from '@/components/ui/text';
+import { HeaderTitle, BodyText } from '@/components/ui/text';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 import { usePresetStore, type LocationPreset } from '@/stores/usePresetStore';
 
@@ -68,21 +68,20 @@ export function LocationPresetPickerModal({
     } else {
       onSelect(preset);
     }
-    onClose();
   }
 
   return (
     <BaseDrawerModal
       visible={visible}
       onClose={onClose}
-      height="70%"
+      height="90%"
     >
       {/* ── Header ── */}
       <UView className="px-6 py-6 pt-8 border-b border-white/10">
         <UView className="flex-row items-center justify-between">
           <UView className="flex-row items-center gap-3">
             <MaterialCommunityIcons name="map-marker-outline" size={28} color="#4FA0FF" />
-            <AuthHeading className="text-left text-2xl">Saved Locations</AuthHeading>
+            <HeaderTitle className="text-2xl">Saved Locations</HeaderTitle>
           </UView>
           <UPressable onPress={onClose} hitSlop={10}>
             <MaterialCommunityIcons name="close" size={24} color="white" />
@@ -155,9 +154,8 @@ function LocationPresetCard({
   const [isMapReady, setIsMapReady] = useState(false);
 
   return (
-    <UPressable
-      onPress={onSelect}
-      className="border-b border-white/10 active:bg-white/5"
+    <UView
+      className="border-b border-white/10"
     >
       {/* ── Address Row ── */}
       <UView className="px-6 py-5 flex-row items-center">
@@ -176,7 +174,7 @@ function LocationPresetCard({
           </BodyText>
         </UView>
 
-        {/* ── Selection Indicator (mirrors EventDetailModal pattern) ── */}
+        {/* ── Selection Indicator (ONLY this is interactive now) ── */}
         <VerificationStatusCircle
           status={isSelected ? "verified" : "neutral"}
           onPress={onSelect}
@@ -232,7 +230,7 @@ function LocationPresetCard({
           </UView>
         )}
       </UView>
-    </UPressable>
+    </UView>
   );
 }
 

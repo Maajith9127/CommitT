@@ -1,3 +1,19 @@
+/**
+ * TimeSetScreen
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Schedule configuration screen for commitment creation.
+ *
+ * CORE RESPONSIBILITIES:
+ *   1. Day selection (Mon-Sun) with repeat toggle
+ *   2. Time window management (add, edit, remove slots)
+ *   3. Per-slot context attachment (location presets, app blocklists)
+ *
+ * PER-SLOT CONDITIONS:
+ *   Each time slot can have its own location and app-blocking rules.
+ *   Presets are read from the Zustand PresetStore (hydrated at layout level)
+ *   and selected via BaseDrawerModal-backed pickers.
+ */
+
 import { router } from "expo-router";
 import { useState } from "react";
 import { Text, View, Pressable } from "react-native";
@@ -11,6 +27,8 @@ import { DaySelector } from "@/components/ui/time/DaySelector";
 import { TimePicker } from "@/components/ui/time/TimePicker";
 import { TimeSlotCard } from "@/components/ui/time/TimeSlotCard";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
+import { LocationPresetPickerModal } from "@/components/ui/modal/LocationPresetPickerModal";
+import { DigitalPresetPickerModal } from "@/components/ui/modal/DigitalPresetPickerModal";
 
 // State & Utilities
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
@@ -30,6 +48,12 @@ type TimeSlot = {
   start: number;
   end: number;
 };
+
+/** Per-slot condition state — tracks which presets are attached to each slot */
+type SlotConditions = Record<number, {
+  location?: { _id: string; address: string; [key: string]: any };
+  digital?: { _id: string; name?: string; apps: string[]; [key: string]: any };
+}>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
@@ -57,6 +81,17 @@ export default function TimeSetScreen() {
     message: "",
   });
 
+  // ── Per-Slot Preset Picker State ──
+  const [contextSlotIndex, setContextSlotIndex] = useState<number | null>(null);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [digitalPickerVisible, setDigitalPickerVisible] = useState(false);
+
+  /**
+   * slotConditions: Tracks which presets are attached to each time slot.
+   * Maps slot index → { location?: preset, digital?: preset }
+   */
+  const [slotConditions, setSlotConditions] = useState<SlotConditions>({});
+
   // Zustand selectors
   const draft = useTaskDraftStore((s) => s.draft);
   const setRecurrence = useTaskDraftStore((s) => s.setRecurrence);
@@ -67,7 +102,7 @@ export default function TimeSetScreen() {
   const timeSlots: TimeSlot[] = draft.recurrence.time_windows;
 
   // ───────────────────────────────────────────────────────────────────────────
-  // Handlers
+  // Time Slot Handlers
   // ───────────────────────────────────────────────────────────────────────────
 
   /**
@@ -78,16 +113,14 @@ export default function TimeSetScreen() {
     const start = timeToSeconds(from.hour, from.minute, from.period);
     const end = timeToSeconds(to.hour, to.minute, to.period);
 
-    // Filter out the slot we are editing for validation (to allow 'in-place' edits)
     const otherSlots = editingSlotIndex !== null 
       ? timeSlots.filter((_, i) => i !== editingSlotIndex)
       : timeSlots;
 
-    // Validate before updating state
     const validation = validateTimeSlot(start, end, otherSlots);
     if (!validation.valid) {
       console.warn(`[TimeSet] Validation fault: ${validation.error}. Stashing pending manifest.`);
-      setPendingTimes({ from, to }); // Cache the invalid values for correction
+      setPendingTimes({ from, to });
       setErrorModal({ visible: true, message: validation.error });
       return;
     }
@@ -95,43 +128,28 @@ export default function TimeSetScreen() {
     let updatedSlots = [...timeSlots];
 
     if (editingSlotIndex !== null) {
-      // SURGERY MODE: Update specific index
       console.log(`[TimeSet] Executing surgical update on slot ${editingSlotIndex}`);
       updatedSlots[editingSlotIndex] = { start, end };
     } else {
-      // ADDITION MODE: Append new window
       console.log("[TimeSet] Appending new time window manifest");
       updatedSlots.push({ start, end });
     }
 
-    // Sort by start time for deterministic schedule execution
     updatedSlots.sort((a, b) => a.start - b.start);
-
-    // Update time_windows in recurrence
     setTimeWindows(updatedSlots);
     setPickerVisible(false);
     setEditingSlotIndex(null);
-    setPendingTimes(null); // Clear pending state on success
+    setPendingTimes(null);
   }
 
-  /**
-   * Triggers the TimePicker in 'Edit Mode' for an existing slot.
-   */
   function handleEditSlot(index: number) {
     console.log(`[TimeSet] Opening Surgery Manifest for slot ${index}`);
     setEditingSlotIndex(index);
     setPickerVisible(true);
   }
 
-  /**
-   * Cleans up state when picker/modal is dismissed.
-   * Protects editing context if an error modal is active.
-   */
   function handleClosePicker() {
     setPickerVisible(false);
-    
-    // CRITICAL: If an error modal is visible, we DO NOT purge the editingSlotIndex 
-    // or pendingTimes. This allows the 'Change' button to restore the context.
     if (!errorModal.visible) {
       console.log("[TimeSet] Cleaning up interactive manifest states");
       setEditingSlotIndex(null);
@@ -141,15 +159,94 @@ export default function TimeSetScreen() {
 
   /**
    * Remove a time slot by index.
+   * Also re-indexes any attached per-slot conditions.
    */
   function handleRemoveSlot(index: number) {
     removeTimeWindow(index);
+    
+    // Re-index conditions: drop the removed slot, shift higher slots down
+    setSlotConditions((prev: SlotConditions) => {
+      const next: SlotConditions = {};
+      Object.keys(prev).forEach((key) => {
+        const i = parseInt(key);
+        const value = prev[i];
+        if (i < index) next[i] = value;
+        else if (i > index) next[i - 1] = value;
+      });
+      return next;
+    });
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Per-Slot Preset Handlers
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function handleOpenLocationPicker(slotIndex: number) {
+    console.log(`[TimeSet] Opening Location Picker for slot ${slotIndex}`);
+    setContextSlotIndex(slotIndex);
+    setLocationPickerVisible(true);
+  }
+
+  function handleOpenDigitalPicker(slotIndex: number) {
+    console.log(`[TimeSet] Opening Digital Picker for slot ${slotIndex}`);
+    setContextSlotIndex(slotIndex);
+    setDigitalPickerVisible(true);
   }
 
   /**
-   * Toggle the "Repeat" setting for recurrence.
-   * Only enabled when at least one day is selected.
+   * Handles location preset selection (or null for deselect).
    */
+  function handleLocationSelected(preset: any) {
+    if (contextSlotIndex === null) return;
+    
+    if (preset === null) {
+      console.log(`[TimeSet] Location detached from slot ${contextSlotIndex}`);
+      setSlotConditions((prev: SlotConditions) => {
+        const updated = { ...prev };
+        if (updated[contextSlotIndex]) {
+          updated[contextSlotIndex] = { ...updated[contextSlotIndex], location: undefined };
+        }
+        return updated;
+      });
+    } else {
+      console.log(`[TimeSet] Location attached to slot ${contextSlotIndex}:`, preset.address);
+      setSlotConditions((prev: SlotConditions) => ({
+        ...prev,
+        [contextSlotIndex]: {
+          ...prev[contextSlotIndex],
+          location: preset,
+        },
+      }));
+    }
+  }
+
+  /**
+   * Handles digital preset selection (or null for deselect).
+   */
+  function handleDigitalSelected(preset: any) {
+    if (contextSlotIndex === null) return;
+    
+    if (preset === null) {
+      console.log(`[TimeSet] Digital commitment detached from slot ${contextSlotIndex}`);
+      setSlotConditions((prev: SlotConditions) => {
+        const updated = { ...prev };
+        if (updated[contextSlotIndex]) {
+          updated[contextSlotIndex] = { ...updated[contextSlotIndex], digital: undefined };
+        }
+        return updated;
+      });
+    } else {
+      console.log(`[TimeSet] Digital preset attached to slot ${contextSlotIndex}:`, preset.name || `${preset.apps.length} apps`);
+      setSlotConditions((prev: SlotConditions) => ({
+        ...prev,
+        [contextSlotIndex]: {
+          ...prev[contextSlotIndex],
+          digital: preset,
+        },
+      }));
+    }
+  }
+
   function handleToggleRepeat() {
     const hasDays = draft.recurrence.days_of_week && draft.recurrence.days_of_week.length > 0;
     if (!hasDays) return;
@@ -157,14 +254,8 @@ export default function TimeSetScreen() {
     const isRecurring = draft.recurrence.ends?.type === "never";
     
     if (isRecurring) {
-      setRecurrence({ 
-        ends: { 
-          type: "after", 
-          count: 1 // Store will recalculate based on days * slots
-        } 
-      });
+      setRecurrence({ ends: { type: "after", count: 1 } });
     } else {
-      // Logic: Turn REPEAT ON -> Never Ends
       setRecurrence({ ends: { type: "never" } });
     }
   }
@@ -178,11 +269,6 @@ export default function TimeSetScreen() {
   const canSave = hasDaysSelected && hasTimeSlots;
   const isRepeatEnabled = draft.recurrence.ends?.type === "never";
 
-  // PREP INITIAL MANIFEST:
-  // Priority order: 
-  // 1. Pending (Failed) inputs 
-  // 2. Existing slot data (if editing)
-  // 3. undefined (defaults to 6-8 AM)
   const initialFrom = pendingTimes?.from ?? (editingSlotIndex !== null ? secondsToTimeInput(timeSlots[editingSlotIndex].start) : undefined);
   const initialTo = pendingTimes?.to ?? (editingSlotIndex !== null ? secondsToTimeInput(timeSlots[editingSlotIndex].end) : undefined);
 
@@ -205,7 +291,7 @@ export default function TimeSetScreen() {
           </PrimaryButton>
         }
       >
-        {/* Header (Inside scroll for unified physics) */}
+        {/* Header */}
         <UView className="mb-8">
           <HeaderTitle className="text-3xl text-blue-400">Active Time</HeaderTitle>
           <UText className="mt-1 mb-0 text-left text-base text-gray-400">
@@ -217,7 +303,6 @@ export default function TimeSetScreen() {
         <UView className="mb-4 flex-row items-center justify-between">
           <HeaderTitle>Days</HeaderTitle>
 
-          {/* Repeat Toggle */}
           <UPressable
             disabled={!hasDaysSelected}
             onPress={handleToggleRepeat}
@@ -237,14 +322,12 @@ export default function TimeSetScreen() {
           </UPressable>
         </UView>
 
-        {/* Day Selector */}
         <UView className="mb-8">
           <DaySelector />
         </UView>
 
         {/* Times Section */}
         <UView className="mb-6">
-          {/* Times Header with Add Button */}
           <UView className="mb-2 flex-row items-center justify-between">
             <HeaderTitle>Times</HeaderTitle>
             <UView className={hasDaysSelected ? "opacity-100" : "opacity-25"}>
@@ -255,17 +338,33 @@ export default function TimeSetScreen() {
             </UView>
           </UView>
 
-          {/* Existing Time Slots */}
-          {timeSlots.map((slot, index) => (
-            <TimeSlotCard
-              key={index}
-              startTime={secondsToDisplay(slot.start)}
-              endTime={secondsToDisplay(slot.end)}
-              onRemove={() => handleRemoveSlot(index)}
-              onPress={() => handleEditSlot(index)}
-            />
-          ))}
+          {/* Time Slot Cards — wired to preset pickers */}
+          {timeSlots.map((slot, index) => {
+            const conditions = slotConditions[index];
+            const locationLabel = conditions?.location?.address || null;
+            const digitalLabel = conditions?.digital
+              ? (conditions.digital.name || `${conditions.digital.apps?.length || 0} Apps Blocked`)
+              : null;
+
+            return (
+              <TimeSlotCard
+                key={index}
+                startTime={secondsToDisplay(slot.start)}
+                endTime={secondsToDisplay(slot.end)}
+                onRemove={() => handleRemoveSlot(index)}
+                onPress={() => handleEditSlot(index)}
+                onLocationPress={() => handleOpenLocationPicker(index)}
+                onDigitalPress={() => handleOpenDigitalPicker(index)}
+                locationLabel={locationLabel}
+                digitalLabel={digitalLabel}
+                appIds={conditions?.digital?.apps || null}
+              />
+            );
+          })}
         </UView>
+
+        {/* Bottom spacer — ensures expanded cards are never clipped behind the footer */}
+        <UView style={{ height: 120 }} />
       </ActionScreenLayout>
 
       {/* Time Picker Modal */}
@@ -286,8 +385,29 @@ export default function TimeSetScreen() {
         onCancel={() => setErrorModal({ visible: false, message: "" })}
         onConfirm={() => {
           setErrorModal({ visible: false, message: "" });
-          setPickerVisible(true); // Re-open picker to change time
+          setPickerVisible(true);
         }}
+      />
+
+      {/* ── Per-Slot Preset Picker Modals ── */}
+      <LocationPresetPickerModal
+        visible={locationPickerVisible}
+        onClose={() => {
+          setLocationPickerVisible(false);
+          setContextSlotIndex(null);
+        }}
+        onSelect={handleLocationSelected}
+        selectedId={contextSlotIndex !== null ? slotConditions[contextSlotIndex]?.location?._id : null}
+      />
+
+      <DigitalPresetPickerModal
+        visible={digitalPickerVisible}
+        onClose={() => {
+          setDigitalPickerVisible(false);
+          setContextSlotIndex(null);
+        }}
+        onSelect={handleDigitalSelected}
+        selectedId={contextSlotIndex !== null ? slotConditions[contextSlotIndex]?.digital?._id : null}
       />
     </>
   );

@@ -18,7 +18,7 @@ import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { BaseDrawerModal } from './BaseDrawerModal';
-import { AuthHeading, BodyText } from '@/components/ui/text';
+import { HeaderTitle, BodyText } from '@/components/ui/text';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 import { usePresetStore, type DigitalPreset } from '@/stores/usePresetStore';
 import { useAppStore } from '@/stores/useAppStore';
@@ -66,21 +66,20 @@ export function DigitalPresetPickerModal({
     } else {
       onSelect(preset);
     }
-    onClose();
   }
 
   return (
     <BaseDrawerModal
       visible={visible}
       onClose={onClose}
-      height="70%"
+      height="90%"
     >
       {/* ── Header ── */}
       <UView className="px-6 py-6 pt-8 border-b border-white/10">
         <UView className="flex-row items-center justify-between">
           <UView className="flex-row items-center gap-3">
             <MaterialCommunityIcons name="cellphone-lock" size={28} color="#C084FC" />
-            <AuthHeading className="text-left text-2xl">App Blocklists</AuthHeading>
+            <HeaderTitle className="text-2xl">App Blocklists</HeaderTitle>
           </UView>
           <UPressable onPress={onClose} hitSlop={10}>
             <MaterialCommunityIcons name="close" size={24} color="white" />
@@ -167,9 +166,8 @@ function DigitalPresetCard({
   const displayName = preset.name || `${preset.apps.length} Apps Blocked`;
 
   return (
-    <UPressable
-      onPress={onSelect}
-      className="border-b border-white/10 active:bg-white/5 p-6"
+    <UView
+      className="border-b border-white/10 p-6"
     >
       {/* ── Header Row ── */}
       <UView className="flex-row items-center mb-4">
@@ -186,7 +184,7 @@ function DigitalPresetCard({
           </BodyText>
         </UView>
 
-        {/* ── Selection Indicator (mirrors EventDetailModal pattern) ── */}
+        {/* ── Selection Indicator (ONLY this is interactive now) ── */}
         <VerificationStatusCircle
           status={isSelected ? "verified" : "neutral"}
           onPress={onSelect}
@@ -222,6 +220,6 @@ function DigitalPresetCard({
           ))}
         </ScrollView>
       </UView>
-    </UPressable>
+    </UView>
   );
 }

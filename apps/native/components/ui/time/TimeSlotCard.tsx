@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
+import { useCallback, useRef, useState, useMemo } from "react";
+import { Pressable, View, ScrollView, Image } from "react-native";
 import { withUniwind } from "uniwind";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, { 
@@ -7,68 +7,94 @@ import Animated, {
   useSharedValue, 
   withTiming, 
   Easing,
-  runOnJS 
 } from "react-native-reanimated";
 
 import { AuthTitle, BodyText, FooterText } from "@/components/ui/text";
+import { useAppStore } from "@/stores/useAppStore";
 
 export type TimeSlotCardProps = {
   startTime: string;
   endTime: string;
   onRemove?: () => void;
   onPress?: () => void;
+  onLocationPress?: () => void;
+  onDigitalPress?: () => void;
+  locationLabel?: string | null;
+  digitalLabel?: string | null;
+  /** List of blocked app IDs to display icons for */
+  appIds?: string[] | null;
 };
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
+const UScrollView = withUniwind(ScrollView);
 
 /**
  * TimeSlotCard Component
  * ─────────────────────────────────────────────────────────────────────────────
  * Vertical-stack UI with a smooth slide-down animated drawer.
  *
- * ANIMATION:
- *   Uses Reanimated shared values to animate the drawer height from 0 to
- *   its measured content height. The animation runs on the UI thread for
- *   buttery 60fps performance — no JS bridge jank.
+ * APP ICONS:
+ *   If appIds are provided, it renders a horizontal scrollable strip of 10x10 icons
+ *   resolved from the global useAppStore.
  */
 export function TimeSlotCard({ 
   startTime, 
   endTime, 
   onRemove, 
   onPress,
+  onLocationPress,
+  onDigitalPress,
+  locationLabel,
+  digitalLabel,
+  appIds,
 }: TimeSlotCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [contentHeight, setContentHeight] = useState(0);
+  
+  /** Ref-based height tracking — no re-renders, no jitter */
+  const measuredHeight = useRef(0);
+  const isExpandedRef = useRef(false);
+  
   const animatedHeight = useSharedValue(0);
   const animatedOpacity = useSharedValue(0);
 
-  /**
-   * Measures the drawer content height on first render,
-   * then uses that value for all subsequent animations.
-   */
+  // ── Resolve App Icons ──
+  const allApps = useAppStore((s) => s.apps);
+  const resolvedIcons = useMemo(() => {
+    if (!appIds || appIds.length === 0) return [];
+    return appIds.map(id => {
+      const match = allApps.find(a => a.id === id);
+      return match?.iconUri || null;
+    }).filter(icon => icon !== null);
+  }, [appIds, allApps]);
+
   const onContentLayout = useCallback((e: any) => {
     const height = e.nativeEvent.layout.height;
-    if (height > 0 && contentHeight === 0) {
-      setContentHeight(height);
+    if (height > 0) {
+      measuredHeight.current = height;
+      if (isExpandedRef.current) {
+        animatedHeight.value = withTiming(height, {
+          duration: 150,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+        });
+      }
     }
-  }, [contentHeight]);
+  }, [animatedHeight]);
 
   function toggleExpand(e: any) {
     e.stopPropagation();
     const expanding = !isExpanded;
     setIsExpanded(expanding);
+    isExpandedRef.current = expanding;
 
-    const targetHeight = expanding ? (contentHeight || 200) : 0;
-    const targetOpacity = expanding ? 1 : 0;
-
-    animatedHeight.value = withTiming(targetHeight, {
-      duration: 280,
-      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-    });
-    animatedOpacity.value = withTiming(targetOpacity, {
-      duration: 200,
-    });
+    animatedHeight.value = withTiming(
+      expanding ? (measuredHeight.current || 200) : 0, 
+      { duration: 280, easing: Easing.bezier(0.25, 0.1, 0.25, 1) }
+    );
+    animatedOpacity.value = withTiming(
+      expanding ? 1 : 0, 
+      { duration: 200 }
+    );
   }
 
   const animatedContainerStyle = useAnimatedStyle(() => ({
@@ -76,6 +102,9 @@ export function TimeSlotCard({
     opacity: animatedOpacity.value,
     overflow: 'hidden' as const,
   }));
+
+  const hasLocation = !!locationLabel;
+  const hasDigital = !!digitalLabel;
 
   return (
     <UView className="mb-3 w-full rounded-2xl bg-[#1A1A1A] overflow-hidden">
@@ -110,11 +139,14 @@ export function TimeSlotCard({
       <Animated.View style={animatedContainerStyle}>
         <View 
           onLayout={onContentLayout}
-          style={{ position: contentHeight === 0 ? 'absolute' : 'relative', opacity: contentHeight === 0 ? 0 : 1 }}
+          style={{ position: 'absolute', width: '100%' }}
         >
           <UView className="border-t-2 border-black">
             {/* ── Location Row ── */}
-            <UPressable className="flex-row items-center px-4 py-3 border-b-2 border-black">
+            <UPressable 
+              onPress={onLocationPress}
+              className="flex-row items-center px-4 py-3 border-b-2 border-black"
+            >
               <MaterialCommunityIcons 
                 name="map-marker-outline" 
                 size={28} 
@@ -123,12 +155,17 @@ export function TimeSlotCard({
               />
               <UView className="flex-1">
                 <FooterText className="mt-0 text-gray-400">Location</FooterText>
-                <BodyText className="text-gray-500 text-sm mt-0.5">Tap to set</BodyText>
+                <BodyText className={`text-sm mt-0.5 ${hasLocation ? 'text-white' : 'text-gray-500'}`} numberOfLines={1}>
+                  {locationLabel || "Tap to set"}
+                </BodyText>
               </UView>
             </UPressable>
 
             {/* ── App Block Row ── */}
-            <UPressable className="flex-row items-center px-4 py-3 border-b-2 border-black">
+            <UPressable 
+              onPress={onDigitalPress}
+              className="flex-row items-center px-4 py-3 border-b-2 border-black"
+            >
               <MaterialCommunityIcons 
                 name="cellphone-lock" 
                 size={28} 
@@ -137,7 +174,27 @@ export function TimeSlotCard({
               />
               <UView className="flex-1">
                 <FooterText className="mt-0 text-gray-400">App block</FooterText>
-                <BodyText className="text-gray-500 text-sm mt-0.5">Tap to set</BodyText>
+                
+                {resolvedIcons.length > 0 ? (
+                  <UScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    className="mt-1"
+                  >
+                    {resolvedIcons.map((uri, i) => (
+                      <View 
+                        key={i} 
+                        style={{ marginRight: 10, width: 28, height: 28, borderRadius: 6, overflow: 'hidden' }}
+                      >
+                        <Image source={{ uri }} style={{ width: '100%', height: '100%' }} />
+                      </View>
+                    ))}
+                  </UScrollView>
+                ) : (
+                  <BodyText className={`text-sm mt-0.5 ${hasDigital ? 'text-white' : 'text-gray-500'}`}>
+                    {digitalLabel || "Tap to set"}
+                  </BodyText>
+                )}
               </UView>
             </UPressable>
 
