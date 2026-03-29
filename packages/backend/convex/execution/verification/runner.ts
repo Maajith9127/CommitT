@@ -63,8 +63,8 @@ export async function armAccountabilityContract(
 ) {
   if (!instance.penalty || !instance.penalty_waiver) return;
 
-  // Calculate the absolute expiration timestamp based on the waiver's configured deadline
-  const expiresAt = Date.now() + (instance.penalty_waiver.deadline_minutes * 60 * 1000);
+  const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
+  const expiresAt = baseTime + deadlineMs;
 
   // Cleanup existing jobs to prevent duplicate enforcement (Safety Guard)
   if (instance.enforcement_job_id) {

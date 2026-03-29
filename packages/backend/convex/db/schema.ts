@@ -73,6 +73,15 @@ export default defineSchema({
       time_windows: v.array(v.object({
         start: v.number(),  // seconds from midnight
         end: v.number(),    // seconds from midnight
+        conditions: v.optional(v.array(v.object({
+          metric_key: v.string(),
+          component: v.optional(v.string()),
+          relation: relationEnum,
+          target: v.object({
+            type: targetTypeEnum,
+            value: v.any(),
+          }),
+        }))),
       })),
       ends: v.optional(v.object({
         type: recurrenceEndsTypeEnum,
@@ -171,6 +180,15 @@ export default defineSchema({
       time_windows: v.array(v.object({
         start: v.number(),  // seconds from midnight
         end: v.number(),    // seconds from midnight
+        conditions: v.optional(v.array(v.object({
+          metric_key: v.string(),
+          component: v.optional(v.string()),
+          relation: relationEnum,
+          target: v.object({
+            type: targetTypeEnum,
+            value: v.any(),
+          }),
+        }))),
       })),
       ends: v.optional(v.object({
         type: recurrenceEndsTypeEnum,
