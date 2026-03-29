@@ -72,13 +72,13 @@ export function DigitalPresetPickerModal({
     <BaseDrawerModal
       visible={visible}
       onClose={onClose}
-      height="70%"
+      height="78%"
     >
       {/* ── Header ── */}
       <UView className="px-6 py-6 pt-8 border-b border-white/10">
         <UView className="flex-row items-center justify-between">
           <UView className="flex-row items-center gap-3">
-            <MaterialCommunityIcons name="cellphone-lock" size={28} color="#C084FC" />
+            <MaterialCommunityIcons name="bookmark-outline" size={28} color="#9CA3AF" />
             <HeaderTitle className="text-2xl">App Blocklists</HeaderTitle>
           </UView>
           <UPressable onPress={onClose} hitSlop={10}>
@@ -99,7 +99,7 @@ export function DigitalPresetPickerModal({
         {/* Loading State */}
         {isLoading && (
           <UView className="py-20 items-center justify-center">
-            <ActivityIndicator size="large" color="#C084FC" />
+            <ActivityIndicator size="large" color="#9CA3AF" />
             <BodyText className="text-gray-500 mt-4">Loading your blocklists...</BodyText>
           </UView>
         )}

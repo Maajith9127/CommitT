@@ -64,8 +64,8 @@ export const getRecommendedLocations = query({
 
     return await ctx.db
       .query("locationPresets")
-      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
-      .order("desc") // Priority: Recency first (Most likely to be used again)
+      .withIndex("by_userId_popularity", (q) => q.eq("userId", identity.subject))
+      .order("desc") // Priority: Popularity first (Most used ones on top)
       .take(args.limit ?? 5);
   },
 });
@@ -83,8 +83,8 @@ export const getRecommendedDigitalCommitments = query({
 
     return await ctx.db
       .query("digitalCommitmentPresets")
-      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
-      .order("desc")
+      .withIndex("by_userId_popularity", (q) => q.eq("userId", identity.subject))
+      .order("desc") // Priority: Popularity first
       .take(args.limit ?? 5);
   },
 });

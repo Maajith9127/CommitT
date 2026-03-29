@@ -13,7 +13,7 @@
  *   - Map previews show a loading skeleton until the tiles load
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Platform, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -74,13 +74,13 @@ export function LocationPresetPickerModal({
     <BaseDrawerModal
       visible={visible}
       onClose={onClose}
-      height="70%"
+      height="78%"
     >
       {/* ── Header ── */}
       <UView className="px-6 py-6 pt-8 border-b border-white/10">
         <UView className="flex-row items-center justify-between">
           <UView className="flex-row items-center gap-3">
-            <MaterialCommunityIcons name="map-marker-outline" size={28} color="#4FA0FF" />
+            <MaterialCommunityIcons name="bookmark-outline" size={28} color="#9CA3AF" />
             <HeaderTitle className="text-2xl">Saved Locations</HeaderTitle>
           </UView>
           <UPressable onPress={onClose} hitSlop={10}>
@@ -101,7 +101,7 @@ export function LocationPresetPickerModal({
         {/* Loading State */}
         {isLoading && (
           <UView className="py-20 items-center justify-center">
-            <ActivityIndicator size="large" color="#4FA0FF" />
+            <ActivityIndicator size="large" color="#9CA3AF" />
             <BodyText className="text-gray-500 mt-4">Loading your locations...</BodyText>
           </UView>
         )}
@@ -117,9 +117,10 @@ export function LocationPresetPickerModal({
         )}
 
         {/* Preset Cards — rendered from Convex query */}
-        {locations?.map((preset: LocationPreset) => (
+        {locations?.map((preset: LocationPreset, index: number) => (
           <LocationPresetCard
             key={preset._id}
+            index={index}
             preset={preset}
             isSelected={selectedId === preset._id}
             onSelect={() => handleSelect(preset)}
@@ -144,14 +145,29 @@ export function LocationPresetPickerModal({
  */
 function LocationPresetCard({
   preset,
+  index,
   isSelected,
   onSelect,
 }: {
   preset: LocationPreset;
+  index: number;
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const [shouldRender, setShouldRender] = useState(false);
   const [isMapReady, setIsMapReady] = useState(false);
+
+  // ── PRODUCTION STRATEGY: STAGGERED WATERFALL LOADING ──
+  // We avoid initializing all Google Maps simultaneously to prevent 
+  // UI thread congestion. We load them in batches of 2 every 300ms.
+  useEffect(() => {
+    const delay = Math.floor(index / 2) * 300;
+    const timer = setTimeout(() => {
+      setShouldRender(true);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [index]);
 
   return (
     <UView
@@ -185,42 +201,46 @@ function LocationPresetCard({
       <UView className="w-full h-32 bg-[#2A2A2A]">
         {Platform.OS === 'android' ? (
           <View style={{ flex: 1, width: '100%' }}>
-            <GoogleMaps.View
-              style={{ flex: 1, width: '100%' }}
-              cameraPosition={{
-                coordinates: { latitude: preset.lat, longitude: preset.lng },
-                zoom: 16,
-              }}
-              uiSettings={{
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                compassEnabled: false,
-                mapToolbarEnabled: false,
-                scrollGesturesEnabled: false,
-                zoomGesturesEnabled: false,
-                tiltGesturesEnabled: false,
-                rotateGesturesEnabled: false,
-              }}
-              properties={{
-                mapType: 'HYBRID',
-                isMyLocationEnabled: false,
-              }}
-              onMapLoaded={() => setIsMapReady(true)}
-              circles={[
-                {
-                  center: { latitude: preset.lat, longitude: preset.lng },
-                  radius: preset.radius,
-                  color: "#4FA0FF40",
-                  lineColor: "#4FA0FF",
-                  lineWidth: 8,
-                },
-              ]}
-            />
-            {/* Map Loading Skeleton — visible until tiles finish loading */}
-            {!isMapReady && (
+            {shouldRender ? (
+              <GoogleMaps.View
+                style={{ flex: 1, width: '100%' }}
+                cameraPosition={{
+                  coordinates: { latitude: preset.lat, longitude: preset.lng },
+                  zoom: 16,
+                }}
+                uiSettings={{
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  compassEnabled: false,
+                  mapToolbarEnabled: false,
+                  scrollGesturesEnabled: false,
+                  zoomGesturesEnabled: false,
+                  tiltGesturesEnabled: false,
+                  rotateGesturesEnabled: false,
+                }}
+                properties={{
+                  mapType: 'HYBRID',
+                  isMyLocationEnabled: false,
+                }}
+                onMapLoaded={() => setIsMapReady(true)}
+                circles={[
+                  {
+                    center: { latitude: preset.lat, longitude: preset.lng },
+                    radius: preset.radius,
+                    color: "#4FA0FF40",
+                    lineColor: "#4FA0FF",
+                    lineWidth: 8,
+                  },
+                ]}
+              />
+            ) : null}
+            {/* Map Loading Skeleton — visible until tiles finish loading OR before staggered start */}
+            {(!shouldRender || !isMapReady) && (
               <View style={[StyleSheet.absoluteFill, styles.mapSkeleton]}>
                 <ActivityIndicator size="small" color="#9CA3AF" />
-                <BodyText className="text-gray-500 text-xs mt-2">Loading map...</BodyText>
+                <BodyText className="text-gray-500 text-xs mt-2">
+                  {!shouldRender ? "Queued..." : "Loading map..."}
+                </BodyText>
               </View>
             )}
           </View>

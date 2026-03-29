@@ -1,10 +1,9 @@
-feat(protocol): implement 'Lightweight Protocol' for digital app blocking
+feat(presets): prioritize most-used templates & optimize map rendering performance
 
-Optimized the accountability engine to handle commitments requiring only digital blocks without redundant checkpoint generation.
-
-- Backend (Core): Implemented checkpoint-skipping in `createOne` and `update` services for tasks with no location requirement.
-- Backend (Grading): Updated `runner.ts` to provide a default 'PASS' verdict for instances without checkpoints, while still enforcing reported violations.
-- Native UI (Logic): Enhanced status calculation in `useEventDetail` to show 'Proceeded' for successful digital-only tasks.
-- Native UI (Details): Refined `EventDetailTime` to display 'Digital Block: Active (Auto-verify)' instead of check-in counts during the task window.
-- Native UI (Status): Updated post-event feedback to correctly show 'Completed' in green rather than a red 'Expired' label for success cases.
-- Bug Fix (Creation): Resolved a state-handling issue in `time-set.tsx` that was wiping out slot-level conditions during time window edits.
+- Backend: Added 'by_userId_popularity' indexes to location and digital presets.
+- Backend: Updated suggestion engine to sort saved templates by usage frequency.
+- UI: Implemented 'Waterfall Loading' for Google Maps to prevent CPU spikes.
+- UI: Staggered modal map initialization by batches of 2 every 300ms.
+- UI: Standardized preset modal heights to 78% for better UX balance.
+- UI: Unified library iconography using the 'bookmark-outline' badge across modals.
+- UI: Neutralized header colors to match consistent app-wide icon standards (#9CA3AF).

@@ -412,6 +412,7 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_userId_recency", ["userId", "last_used_at"])
+    .index("by_userId_popularity", ["userId", "usage_count"])
     .index("by_lat_lng", ["lat", "lng"]),
 
   digitalCommitmentPresets: defineTable({
@@ -423,5 +424,6 @@ export default defineSchema({
     usage_count: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_userId_recency", ["userId", "last_used_at"]),
+    .index("by_userId_recency", ["userId", "last_used_at"])
+    .index("by_userId_popularity", ["userId", "usage_count"]),
 });
