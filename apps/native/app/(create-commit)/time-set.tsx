@@ -125,7 +125,11 @@ export default function TimeSetScreen() {
 
     if (editingSlotIndex !== null) {
       console.log(`[TimeSet] Executing surgical update on slot ${editingSlotIndex}`);
-      updatedSlots[editingSlotIndex] = { start, end };
+      updatedSlots[editingSlotIndex] = { 
+        ...updatedSlots[editingSlotIndex], 
+        start, 
+        end 
+      };
     } else {
       console.log("[TimeSet] Appending new time window manifest");
       updatedSlots.push({ start, end });

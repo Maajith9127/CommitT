@@ -19,13 +19,24 @@ export function evaluateGradingVerdict(instance: any): boolean {
   const style = instance.config.verification_style;
   const checkpoints = instance.checkpoints || [];
 
+  // 1. EARLY FAILURE CHECK: If any condition was explicitly marked as 'failed' (e.g. by live telemetry)
+  const anyConditionFailed = (instance.conditions || []).some((c: any) => c.status === "failed");
+  if (anyConditionFailed) {
+    console.log(`[evaluateGradingVerdict] FAIL: Explicit violation found in condition statuses.`);
+    return true; 
+  }
+
+  // 2. LIGHTWEIGHT PROTOCOL: If no checkpoints exist (skipping generation), treat as success.
+  if (checkpoints.length === 0) {
+    console.log(`[evaluateGradingVerdict] No checkpoints found for ${instance._id}. Defaulting to PASS.`);
+    return false; // isFailed = false (Success)
+  }
+
   if (style === "stay_throughout") {
     // STAY_THROUGHOUT LOGIC: Tolerance-based verification.
-    // The user must maintain a presence across multiple checkpoints.
     const config = instance.config.stay_throughout_config;
     const maxMissed = config?.max_missed_checkins ?? 0;
     
-    // Evaluate missed checkpoints (where any condition status remains 'pending')
     const missedCount = checkpoints.filter((cp: any) => 
       Object.values(cp.verification_status).some(s => s === "pending")
     ).length;
@@ -35,7 +46,6 @@ export function evaluateGradingVerdict(instance: any): boolean {
     return isFailed;
   } else {
     // JUST_SHOW_UP LOGIC: Point-in-time verification.
-    // Fulfillment is granted if at least one checkpoint reached the 'verified' terminal state.
     const hasVerified = checkpoints.some((cp: any) => 
       Object.values(cp.verification_status).every(s => s === "verified")
     );

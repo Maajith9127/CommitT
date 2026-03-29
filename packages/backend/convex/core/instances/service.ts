@@ -59,10 +59,12 @@ function generateStayThroughoutCheckpoints(args: {
       const verificationStatus: Record<string, string> = {};
       const isPast = chunkStart < Date.now();
       
-      // Initialize pings. If the time is already past, we mark as verified
-      // to avoid penalizing the user for system delays or late task creation.
+      const hasLocation = args.conditions.some((c: any) => c.metric_key === "location");
+      const hasDigital = args.conditions.some((c: any) => c.metric_key === "digital_commitment");
+
       for (const cond of args.conditions) {
-        verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
+        const isDigital = cond.metric_key === "digital_commitment";
+        verificationStatus[cond.metric_key] = (isPast || (isDigital && !hasLocation)) ? "verified" : "pending";
       }
       
       checkpoints.push({
@@ -95,9 +97,13 @@ function generateJustShowUpCheckpoints(args: {
   const checkpointEnd = Math.min(args.end, args.start + graceMs);
   
   const verificationStatus: Record<string, string> = {};
+  const hasLocation = args.conditions.some((c: any) => c.metric_key === "location");
+  const hasDigital = args.conditions.some((c: any) => c.metric_key === "digital_commitment");
   const isPast = args.start < Date.now();
+
   for (const cond of args.conditions) {
-    verificationStatus[cond.metric_key] = isPast ? "verified" : "pending";
+    const isDigital = cond.metric_key === "digital_commitment";
+    verificationStatus[cond.metric_key] = (isPast || (isDigital && !hasLocation)) ? "verified" : "pending";
   }
 
   return [{
@@ -163,29 +169,44 @@ async function createOne(
   ctx: MutationCtx,
   args: InstanceCreateArgs
 ): Promise<Id<"taskInstances">> {
+  const hasLocation = args.conditions.some((c: any) => c.metric_key === "location");
+  const hasDigital = args.conditions.some((c: any) => c.metric_key === "digital_commitment");
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // THE LIGHTWEIGHT PROTOCOL — User Idea: Skip checkpoints for digital-only
+  // ─────────────────────────────────────────────────────────────────────────────
+  // If there is no location requirement, we don't need arrival/periodic pings.
+  // The digital commitment is tracked globally for the instance duration.
+  const isDigitalOnly = hasDigital && !hasLocation;
+
   // Reset all verification conditions to neutral start state
+  // FIX: If Digital-only (no location), default to 'verified' status immediately.
   let processedConditions = args.conditions.map((c: any) => ({
     ...c,
-    status: "neutral" as const,
+    status: (isDigitalOnly && c.metric_key === "digital_commitment") 
+      ? "verified" 
+      : "neutral" as const,
   }));
 
   let rootCheckpoints: any[] | undefined = undefined;
 
-  // Delegate checkpoint creation based on user preference
-  if (args.config.verification_style === "stay_throughout") {
-    rootCheckpoints = generateStayThroughoutCheckpoints({
-      start: args.start,
-      end: args.end,
-      conditions: args.conditions,
-      config: args.config,
-    });
-  } else if (args.config.verification_style === "just_show_up") {
-    rootCheckpoints = generateJustShowUpCheckpoints({
-      start: args.start,
-      end: args.end,
-      conditions: args.conditions,
-      config: args.config,
-    });
+  // Only perform expensive checkpoint generation if we actually have a location anchor
+  if (!isDigitalOnly) {
+    if (args.config.verification_style === "stay_throughout") {
+      rootCheckpoints = generateStayThroughoutCheckpoints({
+        start: args.start,
+        end: args.end,
+        conditions: args.conditions,
+        config: args.config,
+      });
+    } else if (args.config.verification_style === "just_show_up") {
+      rootCheckpoints = generateJustShowUpCheckpoints({
+        start: args.start,
+        end: args.end,
+        conditions: args.conditions,
+        config: args.config,
+      });
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -423,27 +444,36 @@ async function update(
 
       console.log(`[INSTANCES:update] Triggering RESCHEDULE for instance ${id}`);
 
+      const hasLocation = existing.conditions.some((c: any) => c.metric_key === "location");
+      const hasDigital = existing.conditions.some((c: any) => c.metric_key === "digital_commitment");
+      const isDigitalOnly = hasDigital && !hasLocation;
+
       // Recalculate verification checkpoints for the new window
-      if (existing.config.verification_style === "stay_throughout") {
-        patch.checkpoints = generateStayThroughoutCheckpoints({
-          start: newStart,
-          end: newEnd,
-          conditions: existing.conditions,
-          config: existing.config,
-        });
-      } else if (existing.config.verification_style === "just_show_up") {
-        patch.checkpoints = generateJustShowUpCheckpoints({
-          start: newStart,
-          end: newEnd,
-          conditions: existing.conditions,
-          config: existing.config,
-        });
+      if (!isDigitalOnly) {
+        if (existing.config.verification_style === "stay_throughout") {
+          patch.checkpoints = generateStayThroughoutCheckpoints({
+            start: newStart,
+            end: newEnd,
+            conditions: existing.conditions,
+            config: existing.config,
+          });
+        } else if (existing.config.verification_style === "just_show_up") {
+          patch.checkpoints = generateJustShowUpCheckpoints({
+            start: newStart,
+            end: newEnd,
+            conditions: existing.conditions,
+            config: existing.config,
+          });
+        }
+      } else {
+        // Lightweight Protocol: Explicitly clear any legacy checkpoints if moving to digital-only
+        patch.checkpoints = undefined;
       }
 
       // Reset conditions (Previous effort is invalidated by a time change)
       patch.conditions = existing.conditions.map((c: any) => ({
         ...c,
-        status: "neutral",
+        status: (isDigitalOnly && c.metric_key === "digital_commitment") ? "verified" : "neutral",
       }));
     }
   }

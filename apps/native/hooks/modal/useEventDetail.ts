@@ -163,8 +163,20 @@ export function useEventDetail(): EventDetailState {
     if (!currentEvent) return "pending";
     const style = currentEvent.config?.verification_style;
 
-    if (style === "just_show_up" && Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
-      const cp = currentEvent.checkpoints[0];
+    const checkpoints = currentEvent.checkpoints || [];
+    const conditions = currentEvent.conditions || [];
+
+    // Protocol fallback: If no checkpoints exist (Lightweight Protocol), 
+    // evaluate the status based on the top-level condition array.
+    if (checkpoints.length === 0) {
+      if (conditions.length > 0 && conditions.every((c: any) => c.status === "verified")) {
+         return "proceeded";
+      }
+      return currentEvent.status;
+    }
+
+    if (style === "just_show_up") {
+      const cp = checkpoints[0];
       const statuses = cp.verification_status || {};
       const allVerified = Object.keys(statuses).every(key => (statuses as any)[key] === "verified");
       return allVerified ? "proceeded" : currentEvent.status;

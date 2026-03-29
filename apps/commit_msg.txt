@@ -1,9 +1,9 @@
-feat(backend/native): implement slot-specific condition overrides and UI refinements
+feat(protocol): implement 'Lightweight Protocol' for digital-only commitments
 
-- Modified backend instance generation to use a 'Total Override' strategy: slot-specific conditions now completely replace global task rules instead of merging with them.
-- Refined `TimeSlotCard` to only display accountability rules (Location/Digital) if they are explicitly overridden for that specific time window.
-- Improved persistence and visibility of existing task drafts by ensuring slot-level conditions are correctly mapped and rendered when returning to the creation flow.
-- UI Polish:
-  * Renamed "Delete slot" action to "Remove" for better UX.
-  * Increased delete icon size to 26px for improved touch targets.
-  * Resolved JSX layout syntax errors and extra nesting in `time-set.tsx`.
+Optimized the accountability flow for tasks requiring only digital app-blocking (no location) to reduce database overhead and improve the user experience.
+
+- Backend (Core): Implemented checkpoint-skipping in `createOne` and `update` services for digital-only tasks.
+- Backend (Grading): Updated `runner.ts` to treat instances with no checkpoints as "Success by Default" while maintaining strictness for reported violations.
+- Native UI: Enhanced status calculation in `useEventDetail` to display "Proceeded" for digital-only tasks by evaluating top-level condition states.
+- Native UI: Fixed a bug in `time-set.tsx` where editing a time slot would destructively wipe out attached conditions (location/blocklists).
+- State Consistency: Ensuring digital conditions are initialized to "verified" during rescheduling to provide a seamless "Proceeded" UI state.
