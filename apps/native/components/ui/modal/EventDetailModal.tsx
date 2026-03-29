@@ -110,6 +110,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
           <EventDetailTime
             start={state.currentEvent.start}
             end={state.currentEvent.end}
+            status={state.currentEvent.status}
             config={state.currentEvent.config}
             checkpoints={(state.currentEvent as any).checkpoints}
             strictUntil={state.currentEvent.strict_until}

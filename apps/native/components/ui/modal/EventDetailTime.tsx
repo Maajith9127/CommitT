@@ -28,6 +28,8 @@ export interface EventDetailTimeProps {
   start: number;
   /** Instance end timestamp (ms epoch) */
   end: number;
+  /** Instance status */
+  status?: string;
   /** Instance config containing constraints like grace_period_minutes */
   config?: any;
   /** Active checkpoints for "stay_throughout" tasks */
@@ -41,6 +43,7 @@ export interface EventDetailTimeProps {
 export function EventDetailTime({
   start,
   end,
+  status,
   config,
   checkpoints,
   strictUntil,
@@ -94,7 +97,22 @@ export function EventDetailTime({
   const graceMinutes = config?.grace_period_minutes ?? 0;
   const graceEnd = start + (graceMinutes * 60 * 1000);
 
-  if (isStayThroughout) {
+  const hasNoCheckpoints = !checkpoints || checkpoints.length === 0;
+
+  if (now < start) {
+    timerLabel = 'Starts-in';
+    timerValue = formatCountdown(start - now);
+    timerTextColor = 'text-white';
+  } else if (now > end) {
+    timerLabel = 'Status';
+    timerValue = status === 'proceeded' ? 'Completed' : 'Expired';
+    timerTextColor = status === 'proceeded' ? 'text-green-500' : 'text-red-500';
+  } else if (hasNoCheckpoints) {
+    // ── Lightweight Protocol Logic (Digital Only) ───────────────────────────
+    timerLabel = 'Digital Block';
+    timerValue = 'Active (Auto-verify)';
+    timerTextColor = 'text-green-500';
+  } else if (isStayThroughout) {
     // ── Stay Throughout Logic ────────────────────────────────────────────────
     // In continuous monitoring mode, we tally up failure counts based on 
     // randomized checkpoints. This UI calculate its own "missed" tally
@@ -139,30 +157,20 @@ export function EventDetailTime({
     // ═════════════════════════════════════════════════════════════════════════
     // JUST SHOW UP LOGIC — Traditional Strict-Time Countdown Limits
     // ═════════════════════════════════════════════════════════════════════════
-    if (now < start) {
-      timerLabel = 'Starts-in';
-      timerValue = formatCountdown(start - now);
-      timerTextColor = 'text-white';
-    } else if (now > end) {
-      timerLabel = 'Status';
-      timerValue = 'Expired';
-      timerTextColor = 'text-red-500';
-    } else {
-      if (graceMinutes > 0) {
-        if (now <= graceEnd) {
-          timerLabel = 'Grace Ends-in';
-          timerValue = formatCountdown(graceEnd - now);
-          timerTextColor = 'text-yellow-400';
-        } else {
-          timerLabel = 'Status';
-          timerValue = 'Expired';
-          timerTextColor = 'text-red-500';
-        }
+    if (graceMinutes > 0) {
+      if (now <= graceEnd) {
+        timerLabel = 'Grace Ends-in';
+        timerValue = formatCountdown(graceEnd - now);
+        timerTextColor = 'text-yellow-400';
       } else {
-        timerLabel = 'Expires-in';
-        timerValue = formatCountdown(end - now);
-        timerTextColor = 'text-green-500';
+        timerLabel = 'Status';
+        timerValue = 'Expired';
+        timerTextColor = 'text-red-500';
       }
+    } else {
+      timerLabel = 'Expires-in';
+      timerValue = formatCountdown(end - now);
+      timerTextColor = 'text-green-500';
     }
   }
 

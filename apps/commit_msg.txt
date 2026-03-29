@@ -1,9 +1,10 @@
-feat(protocol): implement 'Lightweight Protocol' for digital-only commitments
+feat(protocol): implement 'Lightweight Protocol' for digital app blocking
 
-Optimized the accountability flow for tasks requiring only digital app-blocking (no location) to reduce database overhead and improve the user experience.
+Optimized the accountability engine to handle commitments requiring only digital blocks without redundant checkpoint generation.
 
-- Backend (Core): Implemented checkpoint-skipping in `createOne` and `update` services for digital-only tasks.
-- Backend (Grading): Updated `runner.ts` to treat instances with no checkpoints as "Success by Default" while maintaining strictness for reported violations.
-- Native UI: Enhanced status calculation in `useEventDetail` to display "Proceeded" for digital-only tasks by evaluating top-level condition states.
-- Native UI: Fixed a bug in `time-set.tsx` where editing a time slot would destructively wipe out attached conditions (location/blocklists).
-- State Consistency: Ensuring digital conditions are initialized to "verified" during rescheduling to provide a seamless "Proceeded" UI state.
+- Backend (Core): Implemented checkpoint-skipping in `createOne` and `update` services for tasks with no location requirement.
+- Backend (Grading): Updated `runner.ts` to provide a default 'PASS' verdict for instances without checkpoints, while still enforcing reported violations.
+- Native UI (Logic): Enhanced status calculation in `useEventDetail` to show 'Proceeded' for successful digital-only tasks.
+- Native UI (Details): Refined `EventDetailTime` to display 'Digital Block: Active (Auto-verify)' instead of check-in counts during the task window.
+- Native UI (Status): Updated post-event feedback to correctly show 'Completed' in green rather than a red 'Expired' label for success cases.
+- Bug Fix (Creation): Resolved a state-handling issue in `time-set.tsx` that was wiping out slot-level conditions during time window edits.
