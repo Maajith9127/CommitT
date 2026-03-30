@@ -1,13 +1,10 @@
-import { query } from "../../_generated/server";
+import { query, mutation } from "../../_generated/server";
 import { v } from "convex/values";
 
 /**
  * PRODUCTION RATIONALE: "Zero-Friction Accountability"
  * Fetches the user's "Accountability Identity" — their most recently used 
  * penalty and waiver configuration. 
- * 
- * Used by the mobile app's pre-fill engine to "arm" the task creation draft 
- * before the user even types a title.
  */
 export const getLatest = query({
   args: {},
@@ -18,17 +15,11 @@ export const getLatest = query({
     const preset = await ctx.db
       .query("accountabilityPresets")
       .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
-      .order("desc") // We only have one, but desc ensures we get the latest if we ever allow multiple
+      .order("desc") 
       .first();
 
     if (!preset) return null;
 
-    // ─────────────────────────────────────────────────────────────────────
-    // AUTO-HEALING: Resolve Fresh Photo URL for the Draft Preview
-    // ─────────────────────────────────────────────────────────────────────
-    // If the preset contains a photo penalty, we resolve a fresh signed URL
-    // so the draft in Zustand starts with a working preview immediately.
-    // ─────────────────────────────────────────────────────────────────────
     let resolvedPenalty = preset.penalty;
     
     if (preset.penalty?.type === "embarrassing_photo" && preset.penalty?.config?.storageId) {
@@ -53,8 +44,6 @@ export const getLatest = query({
 
 /**
  * PRODUCTION RATIONALE: "Location Quick-Pick"
- * Fetches the user's most recently/frequently visited task locations.
- * Allows the UI to suggest "Home", "Office", or "Gym" without re-searching.
  */
 export const getRecommendedLocations = query({
   args: { limit: v.optional(v.number()) },
@@ -65,15 +54,13 @@ export const getRecommendedLocations = query({
     return await ctx.db
       .query("locationPresets")
       .withIndex("by_userId_popularity", (q) => q.eq("userId", identity.subject))
-      .order("desc") // Priority: Popularity first (Most used ones on top)
+      .order("desc") 
       .take(args.limit ?? 5);
   },
 });
 
 /**
  * PRODUCTION RATIONALE: "Habitual Application Blocklists"
- * Fetches saved groups of blocked apps. Instead of manually picking 
- * Instagram/Twitter every time, users can select their "Socials" preset.
  */
 export const getRecommendedDigitalCommitments = query({
   args: { limit: v.optional(v.number()) },
@@ -84,7 +71,77 @@ export const getRecommendedDigitalCommitments = query({
     return await ctx.db
       .query("digitalCommitmentPresets")
       .withIndex("by_userId_popularity", (q) => q.eq("userId", identity.subject))
-      .order("desc") // Priority: Popularity first
+      .order("desc") 
       .take(args.limit ?? 5);
+  },
+});
+
+/**
+ * PRODUCTION RATIONALE: "Cleanup Location presets"
+ */
+export const deleteLocationPreset = mutation({
+  args: { id: v.id("locationPresets") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing || existing.userId !== identity.subject) {
+      throw new Error("Unauthorized");
+    }
+
+    await ctx.db.delete(args.id);
+    return { success: true };
+  },
+});
+
+/**
+ * PRODUCTION RATIONALE: "Cleanup Digital presets"
+ */
+export const deleteDigitalPreset = mutation({
+  args: { id: v.id("digitalCommitmentPresets") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing || existing.userId !== identity.subject) {
+      throw new Error("Unauthorized");
+    }
+
+    await ctx.db.delete(args.id);
+    return { success: true };
+  },
+});
+
+/**
+ * PRODUCTION RATIONALE: "Smart Sorting - Popularity Boost"
+ */
+export const incrementLocationUsage = mutation({
+  args: { id: v.id("locationPresets") },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) return;
+    
+    await ctx.db.patch(args.id, {
+      usage_count: (existing.usage_count || 0) + 1,
+      last_used_at: Date.now(),
+    });
+  },
+});
+
+/**
+ * PRODUCTION RATIONALE: "Smart Sorting - Popularity Boost"
+ */
+export const incrementDigitalUsage = mutation({
+  args: { id: v.id("digitalCommitmentPresets") },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) return;
+    
+    await ctx.db.patch(args.id, {
+      usage_count: (existing.usage_count || 0) + 1,
+      last_used_at: Date.now(),
+    });
   },
 });

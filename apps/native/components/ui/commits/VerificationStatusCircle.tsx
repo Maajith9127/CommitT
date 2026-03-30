@@ -49,7 +49,7 @@ const UPressable = withUniwind(Pressable);
 // ── Types ───────────────────────────────────────────────────────────────────
 
 /** All possible verification statuses (mirrors conditionStatusEnum in schema) */
-type StatusType = 'neutral' | 'verified' | 'failed' | 'applied' | 'waived' | 'percentage';
+type StatusType = 'neutral' | 'verified' | 'failed' | 'applied' | 'waived' | 'percentage' | 'dots';
 
 export interface VerificationCircleProps {
   /** Current verification status of this condition */
@@ -202,6 +202,19 @@ export function VerificationStatusCircle({
         <MaterialCommunityIcons name="close" size={24} color="#FF3B30" />
       </UView>
     );
+  }
+
+  // ── Dots state (Management/More state) ──
+  if (status === 'dots') {
+    const dotsContent = (
+      <UView className={baseOuterClass}>
+        <MaterialCommunityIcons name="dots-vertical" size={24} color={iconColor} />
+      </UView>
+    );
+    if (onPress) {
+      return <UPressable onPress={onPress}>{dotsContent}</UPressable>;
+    }
+    return dotsContent;
   }
 
   // ── Applied / Waived states
