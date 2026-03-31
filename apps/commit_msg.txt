@@ -1,9 +1,15 @@
-feat(native/backend): implement production-grade preset management system
+feat(blocker/native): upgrade to 'Deterministic Live-Only' enforcement architecture
 
-- Finalized contextual 'Three Dots' overflow menus for individual Location and Digital preset cards.
-- Integrated anchored `ActionMenu` with precise coordinate-capturing using native `onTouchStart` events.
-- Implemented the full deletion workflow, including the `ConfirmationModal` and destructive action safeguards.
-- Added visual management states to `VerificationStatusCircle` (vertical dots affordance and red cross indicator).
-- Developed the Convex CRUD backend for presets, including owner-only deletion mutations and Smart Sorting usage tracking (`incrementUsage`).
-- Synchronized card selection logic with the global Zustand store and the backend’s frequency algorithms to support "most-used" sorting.
-- Reinforced UI stability with staggered map rendering and loading skeletons during management transitions.
+Re-engineered the BlockerAccessibilityService to transition from passive, event-based auditing to a proactive, high-accuracy enforcement loop. This update eliminates dependency on stale OS-cached location data and implements a 'Fail-Closed' security model.
+
+Key Architectural Changes:
+- Strict GPS Determinism: Removed all fallbacks to 'getLastKnownLocation' (Passive/Network). Access is now gated exclusively by a real-time 1Hz GPS stream managed via a dedicated LocationListener.
+- High-Frequency Active Tracking: Implemented automated GPS wake-up/sleep logic. When a commitment is active, the system requests 1-second interval updates to ensure sub-meter accuracy and zero-latency enforcement.
+- Fail-Closed Security Policy: Tightened the location staleness threshold to 10s. If a fresh coordinate is unavailable or exceeds this age, the engine defaults to a 'Blocked' state for all restricted packages.
+- Unified Enforcement Engine: Consolidated redundant scroll/click/window event handlers into a single synchronized auditor to prevent race conditions during package transitions.
+- Vigilant Pulse Audit: Introduced a 5-second background 'heartbeat' (pulseRunnable). This ensures foreground packages are re-validated even in the absence of user interactions or scroll events.
+- Hardened Anti-Tamper Shields: Restored deep-scan audits for System Settings, Accessibility, and App Info screens to prevent unauthorized service termination or uninstallation during active commitments.
+
+Security & Performance:
+- Optimized GPS lifecycle to minimize battery drain when no commitments are active.
+- Reduced audit latency to ensure overlays appear before protected content is rendered.
