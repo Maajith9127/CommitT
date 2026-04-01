@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, Text } from "react-native";
+import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, Text, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { withUniwind } from "uniwind";
 import { useQuery, useMutation } from "convex/react";
@@ -21,6 +21,7 @@ import { LocationPresetSkeleton, DigitalPresetSkeleton } from "@/components/ui/s
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
+const UButton = withUniwind(TouchableOpacity);
 const MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // Design System Tokens
@@ -260,6 +261,33 @@ export default function PresetsScreen() {
         onConfirm={executeDeletion}
         onCancel={() => setShowDeleteConfirm(false)}
       />
+
+      {/* ── Floating Add Button ── */}
+      <UButton
+        onPress={() => {
+          if (activeTab === "location") {
+            const latest = locations?.[0] as any;
+            if (latest) {
+              // Seed with latest data but NO presetId -> will trigger CREATE
+              router.push({
+                pathname: "/(create-commit)/edit-location-preset",
+                params: {
+                  lat: String(latest.lat),
+                  lng: String(latest.lng),
+                  radius: String(latest.radius),
+                  address: latest.address ?? "New Location",
+                },
+              });
+            } else {
+              router.push("/(create-commit)/location-set");
+            }
+          }
+        }}
+        className="absolute bottom-8 right-6 h-14 w-14 items-center justify-center rounded-full bg-[#1A1A1A] shadow-lg shadow-black/50 border border-white/10"
+        activeOpacity={0.8}
+      >
+        <MaterialCommunityIcons name="plus" size={32} color={COLORS.primary} />
+      </UButton>
     </UView>
   );
 }

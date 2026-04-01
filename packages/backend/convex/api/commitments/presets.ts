@@ -139,6 +139,38 @@ export const updateLocationPreset = mutation({
 });
 
 /**
+ * PRODUCTION RATIONALE: "Expressive Identity Creation"
+ * 
+ * Allows users to manually save a new location preset.
+ * Automatically initializes usage signals (count=0) to ensure the sorting
+ * algorithm treats it correctly.
+ */
+export const createLocationPreset = mutation({
+  args: {
+    address: v.string(),
+    lat: v.number(),
+    lng: v.number(),
+    radius: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const id = await ctx.db.insert("locationPresets", {
+      userId: identity.subject,
+      address: args.address,
+      lat: args.lat,
+      lng: args.lng,
+      radius: args.radius,
+      usage_count: 0,
+      last_used_at: Date.now(),
+    });
+
+    return { success: true, id };
+  },
+});
+
+/**
  * PRODUCTION RATIONALE: "Cleanup Digital presets"
  */
 export const deleteDigitalPreset = mutation({

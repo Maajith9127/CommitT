@@ -155,8 +155,9 @@ export default function EditLocationPresetScreen() {
   // ── Device Sensors ──
   const { hasPermission, requestLocation, isLocating } = useLocation();
 
-  // ── Backend Mutation ──
+  // ── Backend Mutations ──
   const updatePreset = useMutation(api.api.commitments.presets.updateLocationPreset);
+  const createPreset = useMutation(api.api.commitments.presets.createLocationPreset);
   const [isSaving, setIsSaving] = useState(false);
 
   // ── Keyboard Tracking (Reanimated – translateY only, always visible) ──
@@ -233,26 +234,37 @@ export default function EditLocationPresetScreen() {
   }, []);
 
   /**
-   * Save Preset — Fires the updateLocationPreset mutation.
-   * Navigates back immediately; Convex reactivity handles the UI refresh.
+   * Save Preset — Fires update or create mutation.
+   * Navigates back immediately.
    */
   const handleSavePreset = useCallback(async () => {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      await updatePreset({
-        id: presetId,
-        address: storeAddress,
-        lat: storeLat,
-        lng: storeLng,
-        radius: storeRadius,
-      });
+      if (presetId) {
+        // Update existing
+        await updatePreset({
+          id: presetId,
+          address: storeAddress,
+          lat: storeLat,
+          lng: storeLng,
+          radius: storeRadius,
+        });
+      } else {
+        // Create as new preset
+        await createPreset({
+          address: storeAddress,
+          lat: storeLat,
+          lng: storeLng,
+          radius: storeRadius,
+        });
+      }
       router.back();
     } catch (error) {
       console.error("[EditPreset] Save failed:", error);
       setIsSaving(false);
     }
-  }, [isSaving, updatePreset, presetId, storeAddress, storeLat, storeLng, storeRadius, router]);
+  }, [isSaving, updatePreset, createPreset, presetId, storeAddress, storeLat, storeLng, storeRadius, router]);
 
   // ── Platform Guard ──
   if (Platform.OS !== "android") {

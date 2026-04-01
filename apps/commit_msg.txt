@@ -1,17 +1,21 @@
-feat(native): implement keyboard-aware preset editing and stable map UX
+feat(presets): implement keyboard-aware editing and quick-add FAB
 
-Refines the location preset editing experience with a premium, keyboard-aware 
-interface and improved map interaction stability.
+Enhances the preset management experience with better ergonomics, stable 
+map interactions, and an expressive creation workflow.
 
-- Integrated Reanimated to elevate the edit panel above the keyboard (matches 
-  CaptchaWaiverView pattern).
-- Implemented a unified 'Edit Name' input field with a built-in cancel (X) 
-  dismissal button for better name-change ergonomics.
-- Upgraded UI icons to MaterialCommunityIcons (pencil, magnify, close-circle) 
-  with a cleaner, white-color aesthetic (removing circular backgrounds).
-- Disabled automatic camera re-centering during map taps and long-presses to 
-  ensure the viewport remains steady while adding/adjusting regions.
-- Prevented automatic keyboard dismissal during map interactions, allowing 
-  users to edit preset names and adjust map locations simultaneously.
-- Cleaned up component logic by removing redundant camera fly effects and 
-  fixing duplicated variable declarations.
+- Keyboard-Aware UI: Implemented panel elevation in the location editor using 
+  Reanimated to keep inputs fully visible and interactive above the keyboard.
+- Floating Add Button (FAB): Added a premium circular '+' button to the 
+  Presets Hub with a pre-seeding logic that clones the 'latest' location 
+  data for fast duplication and refinement.
+- Dual Save/Create Logic: Updated the editor and backend to support both 
+  in-place refinements (update) and brand-new entries (create) depending 
+  on the entry point.
+- Stable Map Interactions: 
+    - Disabled automatic camera re-centering during manual taps/long-presses.
+    - Prevented keyboard dismissal during map interaction (scroll/zoom/pin-drop).
+- UI/UX Polish: 
+    - Replaced generic icons with white MaterialCommunityIcons.
+    - Integrated a unified name input field with a 'close-circle' dismissal button.
+    - Added createLocationPreset mutation to the Convex backend with 
+      automatic usage signal initialization.
