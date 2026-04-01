@@ -3,6 +3,7 @@ package expo.modules.scheduler
 import android.app.Activity
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
@@ -105,12 +106,10 @@ class AlarmActivity : Activity() {
     private fun elevateWindowPermissions() {
         Log.d(TAG, "[OS MANIPULATION] Modifying underlying OS Window structures for lock bypass...")
         
-        // Android 8.1 (Oreo MR1) deprecated flags and introduced clean explicit methodologies.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true) // Blows directly through Keyguard (Requires explicit Manifest XML configs we already added) 
-            setTurnScreenOn(true)   // Flips screen completely
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
         } else {
-            // Deprecated flag pathing universally executed for extremely old phone backward compatibility 
             @Suppress("DEPRECATION")
             window.addFlags(
                 WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
@@ -118,7 +117,6 @@ class AlarmActivity : Activity() {
             )
         }
         
-        // KEEP_SCREEN_ON absolutely refuses to let the phone go idle immediately while this UI specifically is open
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         Log.v(TAG, "[OS MANIPULATION] Window Flags Applied. Power parameter: ALWAYS_ON.")
     }
@@ -126,7 +124,24 @@ class AlarmActivity : Activity() {
     /**
      * constructVisualHierarchy()
      * 
-     * Dynamically builds a simple Layout using Kotlin code so we bypass React Native bloat. 
+     * Builds the alarm UI programmatically with the CommitT design system.
+     * Uses dp-based measurements, consistent font weights, and the primary
+     * blue pill button matching the blocker overlay's visual language.
+     *
+     * Layout structure (top-to-bottom, vertically centered):
+     * ```
+     * +----------------------------------+
+     * |        (black background)         |
+     * |                                   |
+     * |       STATUS LABEL                |  <- light, 14sp, letter-spaced
+     * |                                   |
+     * |       Task Title                  |  <- medium, 28sp, white
+     * |       Subtitle / Countdown        |  <- light, 16sp, grey
+     * |                                   |
+     * |       [ Dismiss ]                 |  <- semibold, primary blue pill
+     * |                                   |
+     * +----------------------------------+
+     * ```
      */
     private fun constructVisualHierarchy(
         taskTitle: String, 
@@ -137,67 +152,118 @@ class AlarmActivity : Activity() {
         isStayThroughout: Boolean
     ) {
         Log.v(TAG, "[UI CONSTRUCTION] Building Native visual tree...")
-        // Base layout spanning full dimensions of phone screen 
+
+        val dp = { value: Float ->
+            TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, value, resources.displayMetrics
+            ).toInt()
+        }
+
+        // Base layout — pure black, centered content
         val rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#0A0A0A")) // Sleek pure black styling background 
-            setPadding(48, 48, 48, 48)
+            setBackgroundColor(Color.BLACK)
+            setPadding(dp(32f), dp(48f), dp(32f), dp(48f))
         }
 
-        // Title text formatting dynamically changing output text mapping.
-        val headerText = TextView(this).apply {
-            when (alarmType) {
-                "PRE_ALARM" -> {
-                    // Determine a countdown offset explicitly rounded cleanly mathematically 
-                    val minutesRemaining = max(1, (mainTimeMs - System.currentTimeMillis()) / 60000)
-                    val timeLabel = if (minutesRemaining == 1L) "in 1 minute" else "in $minutesRemaining minutes"
-                    text = "$taskTitle\n$timeLabel"
-                    Log.d(TAG, "[UI CONSTRUCTION] Render -> PRE_ALARM countdown: $minutesRemaining mins")
-                }
-                "CHECKPOINT_ALARM" -> {
-                    // Specific phrasing request by the user for stay_throughout check-ins!
-                    text = "Check in for\n$taskTitle"
-                    Log.d(TAG, "[UI CONSTRUCTION] Render -> CHECKPOINT_ALARM")
-                }
-                "END_ALARM" -> {
-                    // END_ALARM: Universal window-close notification.
-                    // Fires at the exact end of every event to notify the user their
-                    // habit window has closed. Backend verification handles the actual grading.
-                    text = "⏰ Time's Up!\n$taskTitle"
-                    setTextColor(Color.parseColor("#FF6B6B")) // Red accent for urgency
-                    Log.d(TAG, "[UI CONSTRUCTION] Render -> END_ALARM")
-                }
-                else -> {
-                    // MAIN_ALARM or default fallback
-                    text = "Time for:\n$taskTitle"
-                    Log.d(TAG, "[UI CONSTRUCTION] Render -> MAIN_ALARM")
-                }
-            }
+        // ── Status label (alarm type context) ──
+        val statusLabel: String
+        val statusColor: Int
 
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 32f)
+        when (alarmType) {
+            "PRE_ALARM" -> {
+                statusLabel = "UPCOMING"
+                statusColor = Color.WHITE
+            }
+            "CHECKPOINT_ALARM" -> {
+                statusLabel = "CHECK IN"
+                statusColor = Color.WHITE
+            }
+            "END_ALARM" -> {
+                statusLabel = "TIME'S UP"
+                statusColor = Color.parseColor("#FF6B6B")
+            }
+            else -> {
+                statusLabel = "TIME TO START"
+                statusColor = Color.WHITE
+            }
+        }
+
+        val headingText = TextView(this).apply {
+            text = statusLabel
+            typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextColor(statusColor)
+            letterSpacing = 0.2f
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, dp(16f))
+        }
+        rootLayout.addView(headingText)
+
+        // ── Task title (primary content) ──
+        val titleText = TextView(this).apply {
+            text = taskTitle
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            setPadding(0, 16, 0, 48)
+            setPadding(0, 0, 0, dp(8f))
         }
-        rootLayout.addView(headerText)
+        rootLayout.addView(titleText)
 
-        // The interactable "DISMISS" button sequence
+        // ── Subtitle / countdown info ──
+        val subtitleContent: String? = when (alarmType) {
+            "PRE_ALARM" -> {
+                val minutesRemaining = max(1, (mainTimeMs - System.currentTimeMillis()) / 60000)
+                if (minutesRemaining == 1L) "Starting in 1 minute" else "Starting in $minutesRemaining minutes"
+            }
+            "CHECKPOINT_ALARM" -> "Confirm you are on track"
+            "END_ALARM" -> "Your commitment window has ended"
+            "MAIN_ALARM" -> "Your commitment starts now"
+            else -> null
+        }
+
+        if (subtitleContent != null) {
+            val subtitleText = TextView(this).apply {
+                text = subtitleContent
+                typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                setTextColor(Color.parseColor("#BBBBBB"))
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(48f))
+            }
+            rootLayout.addView(subtitleText)
+        } else {
+            val spacer = android.view.View(this)
+            rootLayout.addView(spacer, LinearLayout.LayoutParams(0, dp(40f)))
+        }
+
+        Log.d(TAG, "[UI CONSTRUCTION] Render -> $alarmType")
+
+        // ── Primary action: Dismiss button (pill shape, primary blue) ──
         val dismissalButton = Button(this).apply {
-            text = "DISMISS"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+            text = "Dismiss"
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTextColor(Color.WHITE)
-            setBackgroundColor(Color.parseColor("#4FA0FF")) // Attractive light-bluish interaction cue
+
+            val shape = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = dp(100f).toFloat()
+                setColor(Color.parseColor("#4FA0FF"))
+            }
+            background = shape
+
+            setPadding(dp(16f), 0, dp(16f), 0)
+            isAllCaps = false
             
-            // Interaction logic routing exclusively back to AlarmScheduler
             setOnClickListener {
                 Log.i(TAG, "==== [USER DISMISSAL DETECTED] ====")
                 Log.d(TAG, "[WAKE API] Terminating audio and vibration oscillations.")
                 
-                // Immediately stop the noise/vibration
                 terminateHardwareAlerts()
 
-                // Logic bifurcation separating actual data manipulation consequences 
                 if (alarmType == "MAIN_ALARM" && instanceId.isNotEmpty()) {
                     Log.i(TAG, "[MUTATION] Triggering 'proceeded' status update for ID: $instanceId")
                     if (!isStayThroughout) {
@@ -206,9 +272,6 @@ class AlarmActivity : Activity() {
                          Log.d(TAG, "[MUTATION] Skipping 'proceeded' status for 'stay_throughout' main alarm.")
                     }
                 } else if (alarmType == "END_ALARM") {
-                    // END_ALARM: No local mutation needed. The backend verification runner
-                    // (runVerification) handles the final grading verdict and penalty logic.
-                    // We simply acknowledge the end-of-window notification.
                     Log.d(TAG, "[MUTATION] END_ALARM dismissed. Backend handles verification verdict.")
                 } else if (alarmType == "CHECKPOINT_ALARM") {
                     Log.d(TAG, "[MUTATION] Checkpoint dismissed. No local DB mutation required.")
@@ -216,18 +279,23 @@ class AlarmActivity : Activity() {
                     Log.d(TAG, "[MUTATION] Pre-alarm dismissed.")
                 }
 
-                // Explicitly demand the routing framework completely rewrite Android AlarmManager configuration to the *next* trigger.
                 Log.i(TAG, "[CHAIN PROPAGATION] Propagating schedule chain upon dismissal.")
                 hasScheduledNext = true
                 AlarmScheduler.scheduleNextAlarm(applicationContext)
 
                 Log.d(TAG, "[WAKE API] Finishing activity.")
-                // Disintegrate this activity from user focus natively
                 finish()
             }
         }
-        rootLayout.addView(dismissalButton)
-        // Bind the hierarchy to screen
+
+        val btnParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            dp(56f)
+        ).apply {
+            setMargins(dp(24f), 0, dp(24f), 0)
+        }
+        rootLayout.addView(dismissalButton, btnParams)
+
         setContentView(rootLayout)
     }
 
@@ -246,8 +314,6 @@ class AlarmActivity : Activity() {
         Log.d(TAG, "[SYSTEM ALERTS] Initializing alerts for sound: $soundKey")
         try {
             // PHASE 1: AUDIO RESOLUTION
-            // Attempt to resolve the bundled raw resource. If it exists, we use it.
-            // Otherwise, fall back to the device's default alarm tone.
             var resolvedUri: android.net.Uri? = null
 
             if (soundKey.isNotEmpty() && soundKey.lowercase() != "default") {
@@ -271,11 +337,6 @@ class AlarmActivity : Activity() {
             }
 
             // PHASE 2: MEDIA PLAYER CONSTRUCTION
-            // MediaPlayer is chosen over Ringtone for production reliability:
-            // - isLooping works on ALL API levels (Ringtone only API 28+)
-            // - AudioAttributes.USAGE_ALARM force-routes audio through the alarm
-            //   stream, bypassing Do-Not-Disturb and silent mode restrictions.
-            // - Seamlessly loops even sub-second audio files without gaps.
             val alarmAttributes = AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_ALARM)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -284,16 +345,14 @@ class AlarmActivity : Activity() {
             alertMediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(alarmAttributes)
                 setDataSource(applicationContext, resolvedUri!!)
-                isLooping = true   // CRITICAL: Loop until user dismisses
-                prepare()          // Synchronous prepare (resource is local, never network)
+                isLooping = true
+                prepare()
             }
 
             Log.d(TAG, "[SYSTEM ALERTS] MediaPlayer prepared. Starting looped playback.")
             alertMediaPlayer?.start()
 
             // PHASE 3: HAPTIC VIBRATION
-            // Parallel vibration pattern ensures the alarm is felt, not just heard.
-            // Pattern: [delay=0ms, vibrate=500ms, pause=500ms] repeating from index 0.
             deviceVibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             val vibrationPattern = longArrayOf(0, 500, 500)
 
@@ -323,7 +382,7 @@ class AlarmActivity : Activity() {
         try {
             alertMediaPlayer?.let {
                 if (it.isPlaying) it.stop()
-                it.release()  // CRITICAL: Release native resources to prevent memory leaks
+                it.release()
             }
         } catch (e: Exception) {
             Log.w(TAG, "[SYSTEM ALERTS] MediaPlayer release encountered error: ${e.message}")
