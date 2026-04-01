@@ -1,8 +1,9 @@
-feat(presets): implement location tab and navigation restructuring
+perf(presets): optimize location map rendering and elevate code to production standards
 
-- Renamed 'Strict Mode' to 'Presets' in the bottom navigation bar and updated the icon to `options-outline`.
-- Restructured `(main)/_layout.tsx` to include the new `/presets` route in the header configuration.
-- Refactored `app/(main)/presets.tsx` with a three-tabbed interface: Location, Blocks, and Photos.
-- Integrated `getRecommendedLocations` from the Convex backend to populate the Location tab.
-- Reused the `LocationPresetCard` component with support for staggered map loading and hybrid map views.
-- Implemented `ActionMenu` integration for preset management (deletion with ConfirmationModal).
+- Replaced heavy native GoogleMaps.View instances with cached Google Static Maps API images to eliminate re-initialization lag and reduce RAM overhead.
+- Implemented `createCirclePath` utility to approximate circular geofence rendering on static map tiles with a 24-point polygon path.
+- Increased default preview zoom level to 18 for improved street-level detail.
+- Added comprehensive JSDoc-style documentation explaining functional rationale and architectural decisions.
+- Introduced `COLORS` design tokens for consistent theme management.
+- Hardened TypeScript types for image events and data structures.
+- Added structured diagnostic logging and loading skeleton transitions for improved UX.

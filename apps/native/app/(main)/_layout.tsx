@@ -193,6 +193,7 @@ export default function MainLayout() {
           tabBar={(props) => <BottomTabBar {...props} />}
           screenOptions={{
             headerShown: false, // Disabling Expo's default header since we use our custom sticky header above
+            freezeOnBlur: true, // Keeps inactive tabs mounted to prevent map re-initialization
             tabBarStyle: {
               backgroundColor: "#000000",
               borderTopWidth: 0,
