@@ -1,11 +1,6 @@
-style(scheduler): increase alarm typography scale for improved legibility
+feat(navigation): replace 'Strict Mode' with 'Presets' in bottom navigation
 
-Increased the typographic hierarchy in AlarmActivity to enhance visual impact 
-during high-urgency wake events:
-- Enlarged status label to 16sp with existing 0.2f letter-spacing.
-- Scaled task title to 36sp (from 28sp) for immediate recognition.
-- Bumped subtitle/countdown text to 20sp for better at-a-glance reading.
-- Increased 'Dismiss' button text to 18sp to improve action clarity.
-
-These changes maintain the pure-black premium aesthetic while ensuring 
-critical info is readable even from a distance.
+- Renamed the 'Strict' tab to 'Presets' in the bottom navigation bar.
+- Updated the tab icon from lock-closed to options-outline for better semantics.
+- Refactored (main)/_layout.tsx to handle the new /presets route and header title.
+- Created the initial Presets screen component in app/(main)/presets.tsx.

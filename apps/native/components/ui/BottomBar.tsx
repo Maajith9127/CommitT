@@ -21,10 +21,10 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
       iconFilled: "calendar",
       label: "Calendar",
     },
-    strict: {
-      icon: "lock-closed-outline",
-      iconFilled: "lock-closed",
-      label: "Strict",
+    presets: {
+      icon: "options-outline",
+      iconFilled: "options",
+      label: "Presets",
     },
     notifications: {
       icon: "notifications-outline",

@@ -138,7 +138,7 @@ export default function MainLayout() {
     }
     
     if (pathname.includes("/calendar")) return { title: "Calendar", icon };
-    if (pathname.includes("/strict")) return { title: "Strict Mode", icon };
+    if (pathname.includes("/presets")) return { title: "Presets", icon };
     if (pathname.includes("/notifications")) return { title: "Alerts", icon: "bell-ring-outline" };
     if (pathname.includes("/profile")) return { title: "Profile", icon };
     
@@ -202,7 +202,7 @@ export default function MainLayout() {
         >
             <Tabs.Screen name="commits" />
             <Tabs.Screen name="schedules" />
-            <Tabs.Screen name="strict" />
+            <Tabs.Screen name="presets" />
             <Tabs.Screen name="notifications" />
             <Tabs.Screen name="profile" />
             
