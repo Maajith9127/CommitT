@@ -1,21 +1,20 @@
-feat(presets): implement keyboard-aware editing and quick-add FAB
+feat(presets): implement digital blocklist editor and persistence flow
 
-Enhances the preset management experience with better ergonomics, stable 
-map interactions, and an expressive creation workflow.
+Extends the preset management system to support app and website blocklist 
+customization with full backend synchronization.
 
-- Keyboard-Aware UI: Implemented panel elevation in the location editor using 
-  Reanimated to keep inputs fully visible and interactive above the keyboard.
-- Floating Add Button (FAB): Added a premium circular '+' button to the 
-  Presets Hub with a pre-seeding logic that clones the 'latest' location 
-  data for fast duplication and refinement.
-- Dual Save/Create Logic: Updated the editor and backend to support both 
-  in-place refinements (update) and brand-new entries (create) depending 
-  on the entry point.
-- Stable Map Interactions: 
-    - Disabled automatic camera re-centering during manual taps/long-presses.
-    - Prevented keyboard dismissal during map interaction (scroll/zoom/pin-drop).
-- UI/UX Polish: 
-    - Replaced generic icons with white MaterialCommunityIcons.
-    - Integrated a unified name input field with a 'close-circle' dismissal button.
-    - Added createLocationPreset mutation to the Convex backend with 
-      automatic usage signal initialization.
+- Digital Editor Screen: Created `edit-digital-preset.tsx` utilizing shared 
+  UI components (TopBar, TabsBar, SelectableListItem) for a consistent 
+  scanning and selection experience.
+- Backend Integration: Added `createDigitalPreset` and `updateDigitalPreset` 
+  Convex mutations to handle the persistence of app/web selection arrays 
+  to the user's permanent library.
+- Navigation Bridge: Integrated the digital editor into the Presets Hub:
+    - "Edit" action now passes current app/web configurations as params.
+    - FAB (+) on the Blocks tab initializes a new creation flow seeded 
+      from the user's most recent blocklist.
+- Performance & UX: 
+    - Reused `AppCardSkeleton` and `ActionScreenLayout` for zero-friction 
+      loading states and layout parity with the fulfillment flow.
+    - Implemented a double-confirmation save pattern to prevent accidental 
+      library modifications.

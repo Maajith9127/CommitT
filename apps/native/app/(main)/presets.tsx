@@ -234,7 +234,18 @@ export default function PresetsScreen() {
                     lat: String(activePreset.lat),
                     lng: String(activePreset.lng),
                     radius: String(activePreset.radius),
-                    address: activePreset.address ?? "Selected Location",
+                    address: (activePreset as any).address ?? "Selected Location",
+                  },
+                });
+              } else if (activePreset && 'apps' in activePreset) {
+                // Digital Preset — navigate to the blocklist editor
+                router.push({
+                  pathname: "/(create-commit)/edit-digital-preset",
+                  params: {
+                    presetId: activePreset._id,
+                    apps: JSON.stringify((activePreset as any).apps),
+                    websites: JSON.stringify((activePreset as any).websites),
+                    name: (activePreset as any).name || "Blocklist",
                   },
                 });
               }
@@ -280,6 +291,23 @@ export default function PresetsScreen() {
               });
             } else {
               router.push("/(create-commit)/location-set");
+            }
+          } else if (activeTab === "blocks") {
+            const latest = digitalPresets?.[0] as any;
+            if (latest) {
+              router.push({
+                pathname: "/(create-commit)/edit-digital-preset",
+                params: {
+                  apps: JSON.stringify(latest.apps),
+                  websites: JSON.stringify(latest.websites),
+                  name: "New Blocklist",
+                },
+              });
+            } else {
+              router.push({
+                pathname: "/(create-commit)/edit-digital-preset",
+                params: { name: "New Blocklist" },
+              });
             }
           }
         }}

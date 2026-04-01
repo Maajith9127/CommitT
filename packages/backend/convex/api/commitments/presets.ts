@@ -190,6 +190,64 @@ export const deleteDigitalPreset = mutation({
 });
 
 /**
+ * PRODUCTION RATIONALE: "Expressive Digital Commitments"
+ *
+ * Allows users to update an existing digital (app-blocklist) preset.
+ */
+export const updateDigitalPreset = mutation({
+  args: {
+    id: v.id("digitalCommitmentPresets"),
+    apps: v.array(v.string()),
+    websites: v.array(v.string()),
+    name: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing || existing.userId !== identity.subject) {
+      throw new Error("Unauthorized: Preset not found or access denied.");
+    }
+
+    await ctx.db.patch(args.id, {
+      apps: args.apps,
+      websites: args.websites,
+      name: args.name,
+      last_used_at: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Allows users to manually save a new digital preset.
+ */
+export const createDigitalPreset = mutation({
+  args: {
+    apps: v.array(v.string()),
+    websites: v.array(v.string()),
+    name: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const id = await ctx.db.insert("digitalCommitmentPresets", {
+      userId: identity.subject,
+      apps: args.apps,
+      websites: args.websites,
+      name: args.name,
+      usage_count: 0,
+      last_used_at: Date.now(),
+    });
+
+    return { success: true, id };
+  },
+});
+
+/**
  * PRODUCTION RATIONALE: "Smart Sorting - Popularity Boost"
  */
 export const incrementLocationUsage = mutation({
