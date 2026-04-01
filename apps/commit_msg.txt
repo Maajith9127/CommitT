@@ -1,7 +1,17 @@
-feat(presets): implement full location preset editing flow
+feat(native): implement keyboard-aware preset editing and stable map UX
 
-- Added `updateLocationPreset` mutation with user ownership validation.
-- Created `usePresetEditStore` bridge to decouple preset editing from the main task creation floor.
-- Implemented `edit-location-preset.tsx` with editable name, radius slider, and search integration.
-- Added `search-preset-location.tsx` to allow searching for new coordinates during the edit flow.
-- Enhanced navigation transitions for the `(create-commit)` group to use a smooth 450ms fade.
+Refines the location preset editing experience with a premium, keyboard-aware 
+interface and improved map interaction stability.
+
+- Integrated Reanimated to elevate the edit panel above the keyboard (matches 
+  CaptchaWaiverView pattern).
+- Implemented a unified 'Edit Name' input field with a built-in cancel (X) 
+  dismissal button for better name-change ergonomics.
+- Upgraded UI icons to MaterialCommunityIcons (pencil, magnify, close-circle) 
+  with a cleaner, white-color aesthetic (removing circular backgrounds).
+- Disabled automatic camera re-centering during map taps and long-presses to 
+  ensure the viewport remains steady while adding/adjusting regions.
+- Prevented automatic keyboard dismissal during map interactions, allowing 
+  users to edit preset names and adjust map locations simultaneously.
+- Cleaned up component logic by removing redundant camera fly effects and 
+  fixing duplicated variable declarations.

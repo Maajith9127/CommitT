@@ -1,4 +1,6 @@
-import { View, Platform, Text, TouchableOpacity } from "react-native";
+import { View, Platform, Text, TouchableOpacity, Keyboard, KeyboardEvent } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { GoogleMaps, GoogleMapsView } from "expo-maps";
@@ -157,25 +159,31 @@ export default function EditLocationPresetScreen() {
   const updatePreset = useMutation(api.api.commitments.presets.updateLocationPreset);
   const [isSaving, setIsSaving] = useState(false);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // REACT TO STORE CHANGES (from search page returning)
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Keyboard Tracking (Reanimated – translateY only, always visible) ──
+  const keyboardHeight = useSharedValue(0);
 
-  /**
-   * When the user selects a place from search-preset-location, the store
-   * updates and this effect fires, flying the camera to the new coordinates.
-   */
   useEffect(() => {
-    if (hasHydrated.current && storeLat && storeLng && mapReady) {
-      isUserInteracting.current = false;
-      setCameraTarget((prev) => ({
-        ...prev,
-        latitude: storeLat,
-        longitude: storeLng,
-        zoom: 19,
-      }));
-    }
-  }, [storeLat, storeLng, mapReady]);
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e: KeyboardEvent) => {
+        keyboardHeight.value = withTiming(e.endCoordinates.height, { duration: 250 });
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        keyboardHeight.value = withTiming(0, { duration: 250 });
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const animatedPanelStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -keyboardHeight.value }],
+  }));
 
   // ─────────────────────────────────────────────────────────────────────────
   // CAMERA AUTOMATION
@@ -273,7 +281,9 @@ export default function EditLocationPresetScreen() {
           isMyLocationEnabled: hasPermission === true,
         }}
         onMapLoaded={() => setMapReady(true)}
-        onCameraMoveStarted={() => { isUserInteracting.current = true; }}
+        onCameraMoveStarted={() => { 
+          isUserInteracting.current = true;
+        }}
         onCameraMove={(e: any) => {
           if (e?.cameraPosition?.coordinates) isUserInteracting.current = true;
         }}
@@ -292,11 +302,6 @@ export default function EditLocationPresetScreen() {
         }}
         onMapClick={(e: { coordinates: { latitude: number; longitude: number } }) => {
           isUserInteracting.current = false;
-          setCameraTarget((prev) => ({
-            ...prev,
-            latitude: e.coordinates.latitude,
-            longitude: e.coordinates.longitude,
-          }));
         }}
         onMapLongClick={(e: { coordinates: { latitude: number; longitude: number } }) => {
           setStoreLocation({
@@ -321,30 +326,45 @@ export default function EditLocationPresetScreen() {
 
       {/* ── LAYER 2: FLOATING NAV BAR ── */}
       <LocationMapNavBar
-        onBack={() => router.back()}
-        onLocate={handleLocate}
-        onSearch={() => router.push("/(create-commit)/search-preset-location")}
+        onBack={() => {
+          Keyboard.dismiss();
+          router.back();
+        }}
+        onLocate={() => {
+          Keyboard.dismiss();
+          handleLocate();
+        }}
+        onSearch={() => {
+          Keyboard.dismiss();
+          router.push("/(create-commit)/search-preset-location");
+        }}
       />
 
-      {/* ── LAYER 3: BOTTOM EDIT PANEL ── */}
-      <PresetEditPanel
-        address={storeAddress}
-        radius={storeRadius}
-        isSaving={isSaving}
-        onAddressChange={setStoreAddress}
-        onRadiusChange={handleRadiusChange}
-        onSearchPress={() => router.push("/(create-commit)/search-preset-location")}
-        onCenterPress={() => {
-          isUserInteracting.current = false;
-          setCameraTarget((prev) => ({
-            ...prev,
-            latitude: storeLat,
-            longitude: storeLng,
-            zoom: 19,
-          }));
-        }}
-        onSave={handleSavePreset}
-      />
+      {/* ── LAYER 3: BOTTOM EDIT PANEL (slides up with keyboard) ── */}
+      <Animated.View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0 }, animatedPanelStyle]}>
+        <PresetEditPanel
+          address={storeAddress}
+          radius={storeRadius}
+          isSaving={isSaving}
+          onAddressChange={setStoreAddress}
+          onRadiusChange={handleRadiusChange}
+          onSearchPress={() => {
+            Keyboard.dismiss();
+            router.push("/(create-commit)/search-preset-location");
+          }}
+          onCenterPress={() => {
+            Keyboard.dismiss();
+            isUserInteracting.current = false;
+            setCameraTarget((prev) => ({
+              ...prev,
+              latitude: storeLat,
+              longitude: storeLng,
+              zoom: 19,
+            }));
+          }}
+          onSave={handleSavePreset}
+        />
+      </Animated.View>
     </View>
   );
 }
@@ -357,14 +377,6 @@ export default function EditLocationPresetScreen() {
  * PresetEditPanel
  *
  * A purpose-built bottom control panel for location preset editing.
- * Unlike `LocationConditionPanel` (which is tightly coupled to useTaskDraftStore),
- * this component is fully controlled via props — no global state dependency.
- *
- * Features:
- * - Editable address name via text input
- * - Radius slider (20m – 2000m)
- * - Search button to switch to Google Places search
- * - Save Preset button with loading state
  */
 function PresetEditPanel({
   address,
@@ -388,18 +400,29 @@ function PresetEditPanel({
   const [isEditingName, setIsEditingName] = useState(false);
 
   return (
-    <UView className="absolute bottom-4 left-4 right-4 rounded-3xl bg-[#1A1A1A] px-4 py-4">
+    <UView className="m-4 mb-8 rounded-3xl bg-[#1A1A1A] px-4 py-4">
 
       {/* ── Location Name (Tap to edit) ── */}
       {isEditingName ? (
-        <Input
-          value={address}
-          onChangeText={onAddressChange}
-          onBlur={() => setIsEditingName(false)}
-          autoFocus
-          className="h-10 py-0 bg-[#2A2A2A] text-base"
-          placeholder="Enter location name"
-        />
+        <UView 
+          className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-3 h-12"
+          style={{ width: '100%' }}
+        >
+          <Input
+            value={address}
+            onChangeText={onAddressChange}
+            onBlur={() => setIsEditingName(false)}
+            autoFocus
+            className="flex-1 bg-transparent p-0 font-semibold text-white text-base"
+            placeholder="Edit preset name..."
+          />
+          <UButton 
+            onPress={() => Keyboard.dismiss()}
+            className="ml-2"
+          >
+            <MaterialCommunityIcons name="close-circle" size={20} color="#666" />
+          </UButton>
+        </UView>
       ) : (
         <UView className="flex-row items-center justify-between">
           <UButton onPress={onCenterPress} activeOpacity={0.7} className="flex-1">
@@ -407,20 +430,22 @@ function PresetEditPanel({
               {address}
             </HeaderTitle>
           </UButton>
+        <UView className="flex-row items-center">
           <UButton
             onPress={() => setIsEditingName(true)}
-            className="ml-2 h-8 w-8 items-center justify-center rounded-full bg-[#2A2A2A]"
+            className="ml-2"
             activeOpacity={0.7}
           >
-            <Text style={{ color: "#4FA0FF", fontSize: 14 }}>✏️</Text>
+            <MaterialCommunityIcons name="pencil" size={20} color="white" />
           </UButton>
           <UButton
             onPress={onSearchPress}
-            className="ml-2 h-8 w-8 items-center justify-center rounded-full bg-[#2A2A2A]"
+            className="ml-2"
             activeOpacity={0.7}
           >
-            <Text style={{ color: "#4FA0FF", fontSize: 14 }}>🔍</Text>
+             <MaterialCommunityIcons name="magnify" size={22} color="white" />
           </UButton>
+        </UView>
         </UView>
       )}
 
