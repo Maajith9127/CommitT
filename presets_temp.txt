@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, Text } from "react-native";
 import { withUniwind } from "uniwind";
 import { useQuery, useMutation } from "convex/react";
@@ -12,7 +12,6 @@ import { ActionMenu } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
 import { type LocationPreset, type DigitalPreset } from '@/stores/usePresetStore';
 import { useAppStore } from '@/stores/useAppStore';
-import { LocationPresetSkeleton, DigitalPresetSkeleton } from "@/components/ui/skeletons/PresetCardSkeleton";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS & STYLING
@@ -142,10 +141,9 @@ export default function PresetsScreen() {
           {activeTab === "location" && (
             <UView>
                 {locations === undefined && (
-                  <UView>
-                    {[1, 2, 3].map((i) => (
-                      <LocationPresetSkeleton key={i} />
-                    ))}
+                  <UView className="py-20 items-center justify-center">
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <BodyText className="text-gray-500 mt-4">Loading your locations...</BodyText>
                   </UView>
                 )}
 
@@ -174,10 +172,9 @@ export default function PresetsScreen() {
           {activeTab === "blocks" && (
              <UView>
                 {digitalPresets === undefined && (
-                  <UView>
-                    {[1, 2, 3].map((i) => (
-                      <DigitalPresetSkeleton key={i} />
-                    ))}
+                  <UView className="py-20 items-center justify-center">
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <BodyText className="text-gray-500 mt-4">Loading your blocklists...</BodyText>
                   </UView>
                 )}
 
@@ -406,3 +403,4 @@ function DigitalPresetCard({
     </UView>
   );
 }
+

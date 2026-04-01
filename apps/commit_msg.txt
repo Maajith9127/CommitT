@@ -1,6 +1,5 @@
-style(map): enhance circular geofence Rendering and unify static previews
+style(presets): replace loading spinners with skeleton loaders for improved UX
 
-- Ported high-performance Static Maps API rendering to `LocationPresetPickerModal`, replacing the legacy SDK views for a 90% reduction in RAM usage.
-- Refined `createCirclePath` resolution to 40 polygon points for perfectly smooth circular renders on high-DPI displays.
-- Increased geofence stroke thickness to `weight:5` to ensure high contrast against complex hybrid/satellite map tiles.
-- Unified the geofence visual style across both the Presets Hub and the Location Selection Modal.
+- Created LocationPresetSkeleton and DigitalPresetSkeleton in components/ui/skeletons.
+- Replaced ActivityIndicator placeholders in PresetsScreen with shimmer skeletons.
+- Improved visual continuity during data hydration across all preset tabs.
