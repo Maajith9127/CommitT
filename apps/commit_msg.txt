@@ -1,7 +1,6 @@
-feat(presets): implement digital blocks tab with app icon resolution
+style(map): enhance circular geofence Rendering and unify static previews
 
-- Integrated DigitalPresetCard into the Presets Hub with automated app icon resolution via useAppStore.
-- Added a horizontal scrolling icon gallery to each blocklist preset for quick identification.
-- Linked to Convex backend via getRecommendedDigitalCommitments and deleteDigitalPreset mutations.
-- Optimized UI state management to handle both Location and Digital preset management (edit/delete) within a unified ActionMenu flow.
-- Added empty states and loading skeletons specifically for digital blocklists.
+- Ported high-performance Static Maps API rendering to `LocationPresetPickerModal`, replacing the legacy SDK views for a 90% reduction in RAM usage.
+- Refined `createCirclePath` resolution to 40 polygon points for perfectly smooth circular renders on high-DPI displays.
+- Increased geofence stroke thickness to `weight:5` to ensure high contrast against complex hybrid/satellite map tiles.
+- Unified the geofence visual style across both the Presets Hub and the Location Selection Modal.

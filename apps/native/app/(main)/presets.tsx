@@ -47,7 +47,7 @@ const PRESET_TABS: { key: Tab; label: string }[] = [
  * 
  * Generates an encoded path string for Google Static Maps to render a geofence.
  */
-function createCirclePath(lat: number, lng: number, radius: number, points: number = 24): string {
+function createCirclePath(lat: number, lng: number, radius: number, points: number = 40): string {
   const coords = [];
   const km = radius / 1000;
   const latDegree = km / 111.32;
@@ -60,7 +60,7 @@ function createCirclePath(lat: number, lng: number, radius: number, points: numb
     coords.push(`${pLat.toFixed(6)},${pLng.toFixed(6)}`);
   }
   coords.push(coords[0]);
-  return `path=color:0x4FA0FFff|weight:2|fillcolor:0x4FA0FF40|${coords.join('|')}`;
+  return `path=color:0x4FA0FFff|weight:5|fillcolor:0x4FA0FF40|${coords.join('|')}`;
 }
 
 /**

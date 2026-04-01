@@ -4,11 +4,10 @@
  * A production-ready, reusable modal for selecting saved location presets.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, ScrollView, Platform, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, ScrollView, Pressable, ActivityIndicator, Image } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { GoogleMaps } from 'expo-maps';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from "@commit/backend/convex/_generated/api";
 
@@ -24,14 +23,44 @@ const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 const UPressable = withUniwind(Pressable);
 
-// ── Props ───────────────────────────────────────────────────────────────────
+const MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-export interface LocationPresetPickerModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onSelect: (preset: LocationPreset | null) => void;
-  selectedId?: string | null;
+// ─────────────────────────────────────────────────────────────────────────────
+// UTILITIES (Static Maps API)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * createCirclePath
+ * Generates an encoded path string for Google Static Maps to render a geofence.
+ */
+function createCirclePath(lat: number, lng: number, radius: number, points: number = 40): string {
+  const coords = [];
+  const km = radius / 1000;
+  const latDegree = km / 111.32;
+  const lngDegree = km / (111.32 * Math.cos(lat * Math.PI / 180));
+
+  for (let i = 0; i < points; i++) {
+    const theta = (i / points) * (2 * Math.PI);
+    const pLat = lat + latDegree * Math.sin(theta);
+    const pLng = lng + lngDegree * Math.cos(theta);
+    coords.push(`${pLat.toFixed(6)},${pLng.toFixed(6)}`);
+  }
+  coords.push(coords[0]);
+  return `path=color:0x4FA0FFff|weight:5|fillcolor:0x4FA0FF40|${coords.join('|')}`;
 }
+
+/**
+ * getStaticMapUrl
+ * Returns a URL for the Google Static Maps API for high-performance preview rendering.
+ */
+function getStaticMapUrl(lat: number, lng: number, radius: number, zoom: number = 18): string {
+  const circlePath = createCirclePath(lat, lng, radius);
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=600x256&maptype=hybrid&${circlePath}&markers=size:tiny|color:0x4FA0FF|${lat},${lng}&key=${MAPS_API_KEY}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN MODAL COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function LocationPresetPickerModal({
   visible,
@@ -41,12 +70,9 @@ export function LocationPresetPickerModal({
 }: LocationPresetPickerModalProps) {
   const locations = useQuery(api.api.commitments.presets.getRecommendedLocations, { limit: 12 });
   
-  // ── UI Logic: Context Menu State ──
   const [activePreset, setActivePreset] = useState<LocationPreset | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-
-  // ── Deletion Flow State ──
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -64,11 +90,7 @@ export function LocationPresetPickerModal({
   }
 
   return (
-    <BaseDrawerModal
-      visible={visible}
-      onClose={onClose}
-      height="78%"
-    >
+    <BaseDrawerModal visible={visible} onClose={onClose} height="78%">
       {/* ── Header ── */}
       <UView className="px-6 py-6 pt-8 border-b border-white/10">
         <UView className="flex-row items-center justify-between">
@@ -107,10 +129,9 @@ export function LocationPresetPickerModal({
           </UView>
         )}
 
-        {locations?.map((preset: LocationPreset, index: number) => (
+        {locations?.map((preset: LocationPreset) => (
           <LocationPresetCard
             key={preset._id}
-            index={index}
             preset={preset}
             isSelected={selectedId === preset._id}
             onSelect={() => handleSelect(preset)}
@@ -123,7 +144,6 @@ export function LocationPresetPickerModal({
         ))}
       </UScroll>
 
-      {/* ── Contextual Management Menu ── */}
       <ActionMenu
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
@@ -143,7 +163,6 @@ export function LocationPresetPickerModal({
             icon: "pencil-outline",
             label: "Edit",
             onPress: () => {
-              console.log("Prod: Open Edit Modal for", activePreset?._id);
               setMenuVisible(false);
             },
           },
@@ -159,7 +178,6 @@ export function LocationPresetPickerModal({
         ]}
       />
 
-      {/* ── Deletion Confirmation ── */}
       <ConfirmationModal
         visible={showDeleteConfirm}
         title="Delete this preset?"
@@ -190,29 +208,20 @@ export function LocationPresetPickerModal({
 
 function LocationPresetCard({
   preset,
-  index,
   isSelected,
   onSelect,
   onMorePress,
 }: {
   preset: LocationPreset;
-  index: number;
   isSelected: boolean;
   onSelect: () => void;
   onMorePress: (x: number, y: number) => void;
 }) {
-  const [shouldRender, setShouldRender] = useState(false);
-  const [isMapReady, setIsMapReady] = useState(false);
-
-  useEffect(() => {
-    const delay = Math.floor(index / 2) * 300;
-    const timer = setTimeout(() => setShouldRender(true), delay);
-    return () => clearTimeout(timer);
-  }, [index]);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const staticMapUri = getStaticMapUrl(preset.lat, preset.lng, preset.radius);
 
   return (
     <UView className="border-b border-white/10">
-      {/* ── Address Row ── */}
       <UView className="px-6 py-5 flex-row items-center">
         <MaterialCommunityIcons
           name="map-marker-outline"
@@ -229,7 +238,6 @@ function LocationPresetCard({
           </BodyText>
         </UView>
 
-        {/* ── Selection Indicator (Vertical Dots trigger menu) ── */}
         <UView 
           className="relative"
           onTouchStart={(e) => {
@@ -245,66 +253,27 @@ function LocationPresetCard({
         </UView>
       </UView>
 
-      {/* ── Map Preview ── */}
       <UView className="w-full h-32 bg-[#2A2A2A]">
-        {Platform.OS === 'android' ? (
-          <View style={{ flex: 1, width: '100%' }}>
-            {shouldRender ? (
-              <GoogleMaps.View
-                style={{ flex: 1, width: '100%' }}
-                cameraPosition={{
-                  coordinates: { latitude: preset.lat, longitude: preset.lng },
-                  zoom: 16,
-                }}
-                uiSettings={{
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  compassEnabled: false,
-                  mapToolbarEnabled: false,
-                  scrollGesturesEnabled: false,
-                  zoomGesturesEnabled: false,
-                  tiltGesturesEnabled: false,
-                  rotateGesturesEnabled: false,
-                }}
-                properties={{
-                  mapType: 'HYBRID',
-                  isMyLocationEnabled: false,
-                }}
-                onMapLoaded={() => setIsMapReady(true)}
-                circles={[
-                  {
-                    center: { latitude: preset.lat, longitude: preset.lng },
-                    radius: preset.radius,
-                    color: "#4FA0FF40",
-                    lineColor: "#4FA0FF",
-                    lineWidth: 8,
-                  },
-                ]}
-              />
-            ) : null}
-            {(!shouldRender || !isMapReady) && (
-              <View style={[StyleSheet.absoluteFill, styles.mapSkeleton]}>
-                <ActivityIndicator size="small" color="#9CA3AF" />
-                <BodyText className="text-gray-500 text-xs mt-2">
-                  {!shouldRender ? "Queued..." : "Loading map..."}
-                </BodyText>
-              </View>
-            )}
+        <Image
+          source={{ uri: staticMapUri }}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="cover"
+          onLoad={() => setImageLoaded(true)}
+        />
+        {!imageLoaded && (
+          <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A2A2A' }}>
+            <ActivityIndicator size="small" color="#9CA3AF" />
+            <BodyText className="text-gray-500 text-xs mt-2">Initializing Preview...</BodyText>
           </View>
-        ) : (
-          <UView className="flex-1 items-center justify-center">
-            <MaterialCommunityIcons name="google-maps" size={32} color="#4B5563" />
-          </UView>
         )}
       </UView>
     </UView>
   );
 }
 
-const styles = StyleSheet.create({
-  mapSkeleton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2A2A2A',
-  },
-});
+export interface LocationPresetPickerModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (preset: LocationPreset | null) => void;
+  selectedId?: string | null;
+}
