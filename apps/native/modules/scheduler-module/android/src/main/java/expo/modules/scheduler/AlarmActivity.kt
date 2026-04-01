@@ -193,7 +193,7 @@ class AlarmActivity : Activity() {
         val headingText = TextView(this).apply {
             text = statusLabel
             typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             setTextColor(statusColor)
             letterSpacing = 0.2f
             gravity = Gravity.CENTER
@@ -205,7 +205,7 @@ class AlarmActivity : Activity() {
         val titleText = TextView(this).apply {
             text = taskTitle
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 36f)
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
             setPadding(0, 0, 0, dp(8f))
@@ -228,7 +228,7 @@ class AlarmActivity : Activity() {
             val subtitleText = TextView(this).apply {
                 text = subtitleContent
                 typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
                 setTextColor(Color.parseColor("#BBBBBB"))
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(48f))
@@ -245,7 +245,7 @@ class AlarmActivity : Activity() {
         val dismissalButton = Button(this).apply {
             text = "Dismiss"
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             setTextColor(Color.WHITE)
 
             val shape = android.graphics.drawable.GradientDrawable().apply {

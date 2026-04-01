@@ -1,35 +1,11 @@
-feat(android): unified design system & metadata enrichment for blocker and scheduler modules
+style(scheduler): increase alarm typography scale for improved legibility
 
-This commit implements a comprehensive UI/UX overhaul for the native Android enforcement 
-and notification layers, ensuring brand consistency and improved user context during 
-active commitments.
+Increased the typographic hierarchy in AlarmActivity to enhance visual impact 
+during high-urgency wake events:
+- Enlarged status label to 16sp with existing 0.2f letter-spacing.
+- Scaled task title to 36sp (from 28sp) for immediate recognition.
+- Bumped subtitle/countdown text to 20sp for better at-a-glance reading.
+- Increased 'Dismiss' button text to 18sp to improve action clarity.
 
-Blocker Module Enhancements:
-- Data Layer: Enhanced BlockerAccessibilityService to query the SQLite vault for 
-  'task_instances' metadata. It now extracts 'title' and 'end_time' to provide 
-  violation-specific context.
-- UI Redesign: Refactored BlockerOverlayActivity to a premium "distraction-free" 
-  aesthetic:
-    * Pure black (#000000) background for OLED efficiency and focus.
-    * Hierarchical typography using 'sans-serif-light' for status (letter-spaced), 
-      'sans-serif-medium' for titles, and bold variants for actions.
-    * Standardized 56dp pill-shaped 'Primary Blue' (#4FA0FF) action buttons.
-    * Integrated localized "Active until HH:mm" expiration indicator.
-- Resilience: Fixed structural corruptions and stabilized the enforcement pulse logic.
-
-Scheduler Module Enhancements:
-- UI Synchronization: Rewrote AlarmActivity's programmatic layout to perfectly match 
-  the blocker module's design language.
-- Aesthetics: Migrated from flat layouts to a refined design system:
-    * Removed all emojis for a professional, clinical appearance.
-    * Transitioned from raw pixel measurements to dynamic dp-based scaling.
-    * Implemented a distinct status label (e.g., "UPCOMING", "TIME'S UP") positioned 
-      above the task title with 0.2f letter spacing.
-- Button Standardization: Updated the 'Dismiss' button to a GradientDrawable pill 
-  shape, consistent with the blocker's 'Return to CommitT' button.
-
-Technical Improvements:
-- Unified typography tokens (sans-serif-light/medium/bold) across all native components.
-- Standardized padding and margin constants via internal dp-resolution helpers.
-- Fixed structural regression in BlockerAccessibilityService.kt involving misplaced 
-  imports and stray expressions.
+These changes maintain the pure-black premium aesthetic while ensuring 
+critical info is readable even from a distance.
