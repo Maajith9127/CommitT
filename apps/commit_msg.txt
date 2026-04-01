@@ -1,5 +1,7 @@
-style(presets): replace loading spinners with skeleton loaders for improved UX
+feat(presets): implement full location preset editing flow
 
-- Created LocationPresetSkeleton and DigitalPresetSkeleton in components/ui/skeletons.
-- Replaced ActivityIndicator placeholders in PresetsScreen with shimmer skeletons.
-- Improved visual continuity during data hydration across all preset tabs.
+- Added `updateLocationPreset` mutation with user ownership validation.
+- Created `usePresetEditStore` bridge to decouple preset editing from the main task creation floor.
+- Implemented `edit-location-preset.tsx` with editable name, radius slider, and search integration.
+- Added `search-preset-location.tsx` to allow searching for new coordinates during the edit flow.
+- Enhanced navigation transitions for the `(create-commit)` group to use a smooth 450ms fade.

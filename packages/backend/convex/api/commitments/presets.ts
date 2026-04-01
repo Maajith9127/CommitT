@@ -96,6 +96,49 @@ export const deleteLocationPreset = mutation({
 });
 
 /**
+ * PRODUCTION RATIONALE: "In-Place Preset Refinement"
+ *
+ * Allows authenticated users to update an existing location preset's
+ * core properties (address, coordinates, radius) without destroying
+ * usage history or creating duplicates.
+ *
+ * WHY NOT DELETE + Re-Create?
+ *   Preserves the original `usage_count` and `_creationTime`, which feed
+ *   into the "most-used" sorting algorithm on the Presets Hub. Deleting
+ *   and recreating would reset this popularity signal to zero.
+ *
+ * SECURITY: Ownership is validated before any mutation is applied.
+ */
+export const updateLocationPreset = mutation({
+  args: {
+    id: v.id("locationPresets"),
+    address: v.string(),
+    lat: v.number(),
+    lng: v.number(),
+    radius: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing || existing.userId !== identity.subject) {
+      throw new Error("Unauthorized: Preset not found or access denied.");
+    }
+
+    await ctx.db.patch(args.id, {
+      address: args.address,
+      lat: args.lat,
+      lng: args.lng,
+      radius: args.radius,
+      last_used_at: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
  * PRODUCTION RATIONALE: "Cleanup Digital presets"
  */
 export const deleteDigitalPreset = mutation({

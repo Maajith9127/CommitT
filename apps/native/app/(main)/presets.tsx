@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, Text } from "react-native";
+import { useRouter } from "expo-router";
 import { withUniwind } from "uniwind";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
@@ -82,6 +83,7 @@ function getStaticMapUrl(lat: number, lng: number, radius: number, zoom: number 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function PresetsScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("location");
 
   // --- DATA LAYER (Convex Integration) ---
@@ -222,6 +224,19 @@ export default function PresetsScreen() {
             label: "Edit",
             onPress: () => {
               setMenuVisible(false);
+              if (activePreset && 'lat' in activePreset) {
+                // Location Preset — navigate to the dedicated edit map page
+                router.push({
+                  pathname: "/(create-commit)/edit-location-preset",
+                  params: {
+                    presetId: activePreset._id,
+                    lat: String(activePreset.lat),
+                    lng: String(activePreset.lng),
+                    radius: String(activePreset.radius),
+                    address: activePreset.address ?? "Selected Location",
+                  },
+                });
+              }
             },
           },
           {
