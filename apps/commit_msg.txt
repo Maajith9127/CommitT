@@ -1,20 +1,11 @@
-feat(presets): implement digital blocklist editor and persistence flow
+style(navigation): restore native slide transitions and full-screen layout
 
-Extends the preset management system to support app and website blocklist 
-customization with full backend synchronization.
+Fixes the navigation regression in the create-commit flow to ensure consistent 
+branding and native-feel transitions.
 
-- Digital Editor Screen: Created `edit-digital-preset.tsx` utilizing shared 
-  UI components (TopBar, TabsBar, SelectableListItem) for a consistent 
-  scanning and selection experience.
-- Backend Integration: Added `createDigitalPreset` and `updateDigitalPreset` 
-  Convex mutations to handle the persistence of app/web selection arrays 
-  to the user's permanent library.
-- Navigation Bridge: Integrated the digital editor into the Presets Hub:
-    - "Edit" action now passes current app/web configurations as params.
-    - FAB (+) on the Blocks tab initializes a new creation flow seeded 
-      from the user's most recent blocklist.
-- Performance & UX: 
-    - Reused `AppCardSkeleton` and `ActionScreenLayout` for zero-friction 
-      loading states and layout parity with the fulfillment flow.
-    - Implemented a double-confirmation save pattern to prevent accidental 
-      library modifications.
+- Removed explicit 'fade' animation override for (create-commit) in root _layout.tsx.
+- Re-enabled global 'slide_from_right' behavior for the commitment creation stack.
+- Removed 'transparentModal' presentation to eliminate the system-level 
+  border/overlay effect.
+- Enforced 'black' backgroundColor via contentStyle for a seamless, 
+  immersion-preserving transition.

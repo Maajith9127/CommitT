@@ -19,8 +19,7 @@ export default function CreateCommitLayout() {
   return (
     <Stack
       screenOptions={{
-        animation: "fade",
-        presentation: "transparentModal",
+        animation: "slide_from_right",
         headerShown: false,
         contentStyle: { backgroundColor: "black" },
       }}
