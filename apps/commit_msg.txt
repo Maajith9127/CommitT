@@ -1,6 +1,8 @@
-feat(navigation): replace 'Strict Mode' with 'Presets' in bottom navigation
+feat(presets): implement location tab and navigation restructuring
 
-- Renamed the 'Strict' tab to 'Presets' in the bottom navigation bar.
-- Updated the tab icon from lock-closed to options-outline for better semantics.
-- Refactored (main)/_layout.tsx to handle the new /presets route and header title.
-- Created the initial Presets screen component in app/(main)/presets.tsx.
+- Renamed 'Strict Mode' to 'Presets' in the bottom navigation bar and updated the icon to `options-outline`.
+- Restructured `(main)/_layout.tsx` to include the new `/presets` route in the header configuration.
+- Refactored `app/(main)/presets.tsx` with a three-tabbed interface: Location, Blocks, and Photos.
+- Integrated `getRecommendedLocations` from the Convex backend to populate the Location tab.
+- Reused the `LocationPresetCard` component with support for staggered map loading and hybrid map views.
+- Implemented `ActionMenu` integration for preset management (deletion with ConfirmationModal).
