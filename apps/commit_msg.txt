@@ -1,9 +1,7 @@
-perf(presets): optimize location map rendering and elevate code to production standards
+feat(presets): implement digital blocks tab with app icon resolution
 
-- Replaced heavy native GoogleMaps.View instances with cached Google Static Maps API images to eliminate re-initialization lag and reduce RAM overhead.
-- Implemented `createCirclePath` utility to approximate circular geofence rendering on static map tiles with a 24-point polygon path.
-- Increased default preview zoom level to 18 for improved street-level detail.
-- Added comprehensive JSDoc-style documentation explaining functional rationale and architectural decisions.
-- Introduced `COLORS` design tokens for consistent theme management.
-- Hardened TypeScript types for image events and data structures.
-- Added structured diagnostic logging and loading skeleton transitions for improved UX.
+- Integrated DigitalPresetCard into the Presets Hub with automated app icon resolution via useAppStore.
+- Added a horizontal scrolling icon gallery to each blocklist preset for quick identification.
+- Linked to Convex backend via getRecommendedDigitalCommitments and deleteDigitalPreset mutations.
+- Optimized UI state management to handle both Location and Digital preset management (edit/delete) within a unified ActionMenu flow.
+- Added empty states and loading skeletons specifically for digital blocklists.

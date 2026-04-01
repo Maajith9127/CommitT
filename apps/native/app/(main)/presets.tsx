@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, Text } from "react-native";
 import { withUniwind } from "uniwind";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
@@ -10,7 +10,8 @@ import { BodyText } from "@/components/ui/text";
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 import { ActionMenu } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
-import { type LocationPreset } from '@/stores/usePresetStore';
+import { type LocationPreset, type DigitalPreset } from '@/stores/usePresetStore';
+import { useAppStore } from '@/stores/useAppStore';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS & STYLING
@@ -45,18 +46,10 @@ const PRESET_TABS: { key: Tab; label: string }[] = [
  * createCirclePath
  * 
  * Generates an encoded path string for Google Static Maps to render a geofence.
- * Static Maps doesn't support 'Circle' primitives, so we approximate with a polygon.
- * 
- * @param lat Center Latitude
- * @param lng Center Longitude
- * @param radius Radius in meters
- * @param points Resolution of the circle (higher = smoother)
  */
 function createCirclePath(lat: number, lng: number, radius: number, points: number = 24): string {
   const coords = [];
   const km = radius / 1000;
-  
-  // Approximate degree conversion based on Earth's circumference
   const latDegree = km / 111.32;
   const lngDegree = km / (111.32 * Math.cos(lat * Math.PI / 180));
 
@@ -66,11 +59,7 @@ function createCirclePath(lat: number, lng: number, radius: number, points: numb
     const pLng = lng + lngDegree * Math.cos(theta);
     coords.push(`${pLat.toFixed(6)},${pLng.toFixed(6)}`);
   }
-  
-  // Close the loop
   coords.push(coords[0]);
-  
-  // path formatting: weight, color (AA prefix for opacity), fillcolor (AA prefix)
   return `path=color:0x4FA0FFff|weight:2|fillcolor:0x4FA0FF40|${coords.join('|')}`;
 }
 
@@ -78,17 +67,12 @@ function createCirclePath(lat: number, lng: number, radius: number, points: numb
  * getStaticMapUrl
  * 
  * Returns a URL for the Google Static Maps API.
- * 
- * PROD RATIONALE: 
- * We use Static Maps in listing views instead of the Live SDK because it reduces 
- * RAM usage by ~90% and eliminates re-initialization lag when swiping tabs.
  */
 function getStaticMapUrl(lat: number, lng: number, radius: number, zoom: number = 18): string {
   const circlePath = createCirclePath(lat, lng, radius);
   const size = "600x256";
   const mapType = "hybrid";
   const marker = `size:tiny|color:0x4FA0FF|${lat},${lng}`;
-  
   return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&maptype=${mapType}&${circlePath}&markers=${marker}&key=${MAPS_API_KEY}`;
 }
 
@@ -103,15 +87,18 @@ export default function PresetsScreen() {
   const locations = useQuery(api.api.commitments.presets.getRecommendedLocations, { limit: 20 });
   const deleteLocationPreset = useMutation(api.api.commitments.presets.deleteLocationPreset);
 
-  // --- UI STATE ---
-  const [activePreset, setActivePreset] = useState<LocationPreset | null>(null);
+  const digitalPresets = useQuery(api.api.commitments.presets.getRecommendedDigitalCommitments, { limit: 20 });
+  const deleteDigitalPreset = useMutation(api.api.commitments.presets.deleteDigitalPreset);
+
+  // --- UI STATE (Unified for both types of presets) ---
+  const [activePreset, setActivePreset] = useState<LocationPreset | DigitalPreset | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Handlers
-  const handleOpenMenu = (preset: LocationPreset, x: number, y: number) => {
+  const handleOpenMenu = (preset: LocationPreset | DigitalPreset, x: number, y: number) => {
     setActivePreset(preset);
     setMenuPosition({ x, y });
     setMenuVisible(true);
@@ -121,7 +108,13 @@ export default function PresetsScreen() {
     if (!activePreset) return;
     setIsDeleting(true);
     try {
-      await deleteLocationPreset({ id: activePreset._id as any });
+      if ('lat' in activePreset) {
+        // It's a LocationPreset
+        await deleteLocationPreset({ id: activePreset._id });
+      } else {
+        // It's a DigitalPreset
+        await deleteDigitalPreset({ id: activePreset._id });
+      }
       setShowDeleteConfirm(false);
     } catch (error) {
       console.error("[Presets] Deletion Failed:", error);
@@ -129,9 +122,6 @@ export default function PresetsScreen() {
       setIsDeleting(false);
     }
   };
-
-  const isLoading = locations === undefined;
-  const isEmpty = locations !== undefined && locations.length === 0;
 
   return (
     <UView className="flex-1 bg-black pt-2">
@@ -145,16 +135,19 @@ export default function PresetsScreen() {
       </UView>
 
       <UScroll className="flex-1 mt-2" showsVerticalScrollIndicator={false}>
+          {/* ──────────────────────────────────────────────────────────────────
+              LOCATION TAB
+          ────────────────────────────────────────────────────────────────── */}
           {activeTab === "location" && (
             <UView>
-                {isLoading && (
+                {locations === undefined && (
                   <UView className="py-20 items-center justify-center">
                     <ActivityIndicator size="large" color={COLORS.primary} />
                     <BodyText className="text-gray-500 mt-4">Loading your locations...</BodyText>
                   </UView>
                 )}
 
-                {isEmpty && (
+                {locations !== undefined && locations.length === 0 && (
                   <UView className="py-20 items-center justify-center px-8">
                     <MaterialCommunityIcons name="map-marker-off-outline" size={48} color="#333" />
                     <BodyText className="text-gray-500 mt-4 text-center">
@@ -173,13 +166,40 @@ export default function PresetsScreen() {
             </UView>
           )}
 
+          {/* ──────────────────────────────────────────────────────────────────
+              BLOCKS TAB (Digital Presets)
+          ────────────────────────────────────────────────────────────────── */}
           {activeTab === "blocks" && (
-            <UView className="px-6 py-10 items-center justify-center">
-                <MaterialCommunityIcons name="shield-lock-outline" size={40} color="#333" />
-                <BodyText className="text-gray-500 mt-4">Digital blocklist presets coming soon.</BodyText>
+             <UView>
+                {digitalPresets === undefined && (
+                  <UView className="py-20 items-center justify-center">
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <BodyText className="text-gray-500 mt-4">Loading your blocklists...</BodyText>
+                  </UView>
+                )}
+
+                {digitalPresets !== undefined && digitalPresets.length === 0 && (
+                  <UView className="py-20 items-center justify-center px-8">
+                    <MaterialCommunityIcons name="shield-off-outline" size={48} color="#333" />
+                    <BodyText className="text-gray-500 mt-4 text-center">
+                      No saved blocklists yet. Create a commitment with app-blocking to see it here.
+                    </BodyText>
+                  </UView>
+                )}
+
+                {digitalPresets?.map((preset) => (
+                  <DigitalPresetCard
+                    key={preset._id}
+                    preset={preset as any}
+                    onMorePress={(x, y) => handleOpenMenu(preset as any, x, y)}
+                  />
+                ))}
             </UView>
           )}
 
+          {/* ──────────────────────────────────────────────────────────────────
+              PHOTOS TAB
+          ────────────────────────────────────────────────────────────────── */}
           {activeTab === "photos" && (
             <UView className="px-6 py-10 items-center justify-center">
                 <MaterialCommunityIcons name="image-multiple-outline" size={40} color="#333" />
@@ -198,7 +218,6 @@ export default function PresetsScreen() {
             icon: "pencil-outline",
             label: "Edit",
             onPress: () => {
-              // Future: Integration with LocationSetScreen for editing existing presets
               setMenuVisible(false);
             },
           },
@@ -233,9 +252,6 @@ export default function PresetsScreen() {
 
 /**
  * LocationPresetCard
- * 
- * Reusable card representing a saved geofence configuration.
- * Optimized with Image Caching via Static Maps URL.
  */
 function LocationPresetCard({
   preset,
@@ -249,7 +265,6 @@ function LocationPresetCard({
 
   return (
     <UView className="border-b border-white/10">
-      {/* ── Info Row ── */}
       <UView className="px-6 py-5 flex-row items-center">
         <MaterialCommunityIcons
           name="map-marker-outline"
@@ -266,7 +281,6 @@ function LocationPresetCard({
           </BodyText>
         </UView>
 
-        {/* --- Context Menu Trigger --- */}
         <UView 
           className="relative"
           onTouchStart={(e) => {
@@ -277,7 +291,6 @@ function LocationPresetCard({
         </UView>
       </UView>
 
-      {/* ── Visual Preview Section ── */}
       <View style={{ width: '100%', height: 160, backgroundColor: COLORS.bgCard }}>
         <Image
           source={{ uri: staticMapUri }}
@@ -285,12 +298,9 @@ function LocationPresetCard({
           resizeMode="cover"
           onLoad={() => setImageLoaded(true)}
           onError={(e: NativeSyntheticEvent<ImageErrorEventData>) => {
-            // Silently log in prod, usually indicative of API quota or key restriction
             console.warn("[Presets] Static Map Error:", e.nativeEvent.error);
           }}
         />
-        
-        {/* Loading Overlay */}
         {!imageLoaded && (
           <View style={{ 
             position: 'absolute', inset: 0, 
@@ -302,6 +312,94 @@ function LocationPresetCard({
           </View>
         )}
       </View>
+    </UView>
+  );
+}
+
+/**
+ * DigitalPresetCard
+ * 
+ * Renders a saved app-blocklist preset with an integrated icon gallery.
+ * Why use this? Provides immediate visual feedback on which apps are blocked without expanding.
+ */
+function DigitalPresetCard({
+  preset,
+  onMorePress,
+}: {
+  preset: DigitalPreset;
+  onMorePress: (x: number, y: number) => void;
+}) {
+  const discoveredApps = useAppStore((s: { apps: any[] }) => s.apps);
+
+  // Resolve raw app IDs into Display Names and Icon URIs
+  const resolvedApps = useMemo(() => {
+    return preset.apps.map((id: string) => {
+      const match = discoveredApps.find((a: any) => a.id === id);
+      return {
+        id,
+        name: match?.name || id.split('.').pop() || id,
+        icon: match?.iconUri,
+      };
+    });
+  }, [preset.apps, discoveredApps]);
+
+  const displayName = preset.name || `${preset.apps.length} Apps Blocked`;
+
+  return (
+    <UView className="border-b border-white/10 p-6">
+      <UView className="flex-row items-center mb-4">
+        <MaterialCommunityIcons
+          name="cellphone-lock"
+          size={28}
+          color={COLORS.textSecondary}
+          style={{ marginRight: 16 }}
+        />
+        <UView className="flex-1">
+          <BodyText className="text-white text-base">{displayName}</BodyText>
+          <BodyText className="text-gray-400 text-sm mt-1">
+            Used {preset.usage_count}x
+          </BodyText>
+        </UView>
+
+        <UView 
+          className="relative"
+          onTouchStart={(e) => {
+            onMorePress(e.nativeEvent.pageX, e.nativeEvent.pageY);
+          }}
+        >
+          <VerificationStatusCircle status="dots" onPress={() => {}} />
+        </UView>
+      </UView>
+
+      {/* ── App Icon Gallery ── */}
+      <UView className="pl-11">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
+        >
+          {resolvedApps.map((app) => (
+            <UView key={app.id} className="mr-4 items-center">
+              {app.icon ? (
+                <Image
+                  source={{ uri: app.icon }}
+                  style={{ width: 36, height: 36, borderRadius: 10 }}
+                />
+              ) : (
+                <UView
+                  className="items-center justify-center bg-[#2A2A2A] rounded-xl"
+                  style={{ width: 36, height: 36 }}
+                >
+                  <MaterialCommunityIcons name="apps" size={20} color="#666" />
+                </UView>
+              )}
+              <Text style={{ color: '#6B7280', fontSize: 10, marginTop: 4, maxWidth: 64 }} numberOfLines={1}>
+                {app.name}
+              </Text>
+            </UView>
+          ))}
+        </ScrollView>
+      </UView>
     </UView>
   );
 }
