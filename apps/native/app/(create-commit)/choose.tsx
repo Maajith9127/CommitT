@@ -259,16 +259,6 @@ export default function ChooseScreen() {
       </UView>
 
       <TabsBar tabs={TABS} activeTab={activeTab} onChange={handleTabChange} />
-
-      {/* Inline input bar only visible on Webs and AI tabs */}
-      {activeTab !== "apps" && (
-        <InlineAddBar
-          placeholder={activeTab === "webs" ? "Add website" : "Describe what to block"}
-          value={inlineText}
-          onChange={setInlineText}
-          onSubmit={handleAddInline}
-        />
-      )}
     </>
   );
 
@@ -280,9 +270,7 @@ export default function ChooseScreen() {
       scrollable={false} // We handle our own paging ScrollView below
       fullWidthContent={true} // Allow horizontal paging to touch edges
       footer={
-        <UView style={{ paddingHorizontal: 16 }}>
           <PrimaryButton onPress={() => router.back()}>Save</PrimaryButton>
-        </UView>
       }
     >
       {/**
@@ -336,7 +324,14 @@ export default function ChooseScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
-             <UView className="pb-10">
+             <UView className="pb-10 pt-2">
+                <InlineAddBar
+                  placeholder="Add website URL"
+                  value={inlineText}
+                  onChange={setInlineText}
+                  onSubmit={handleAddInline}
+                />
+                <UView className="mt-4" />
                 {webs.map((web: BlockItem) => (
                   <SelectableListItem
                     key={web.id}
@@ -356,10 +351,18 @@ export default function ChooseScreen() {
             style={{ width: SCREEN_WIDTH }} 
             showsVerticalScrollIndicator={false}
           >
-            <UView className="py-12 items-center px-6">
-              <FooterText className="text-gray-500 text-center">
-                AI-generated rules will appear here
-              </FooterText>
+            <UView className="py-2 px-6">
+                <InlineAddBar
+                  placeholder="Describe what to block"
+                  value={inlineText}
+                  onChange={setInlineText}
+                  onSubmit={handleAddInline}
+                />
+                <UView className="py-10 items-center">
+                  <FooterText className="text-gray-500 text-center">
+                    AI-generated rules will appear here
+                  </FooterText>
+                </UView>
             </UView>
           </ScrollView>
       </ScrollView>

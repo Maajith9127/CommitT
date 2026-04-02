@@ -1,17 +1,16 @@
-feat(native): implement premium sliding tab transitions for Presets and Choose screens
+ui(native): refine navigation transitions and layout consistency
 
-Replaced the static tab-switching logic with a high-performance horizontal 
-paging system, providing a fluid, native "slide" feel across the app.
+Refined the application's navigation behavior and moved towards a more 
+consistent architectural standard across the commitment flow.
 
-- TabsBar: Added an animated sliding indicator (the blue bar) using Reanimated 
-  `withTiming` (180ms) for a quick, snappy snap that visually leads the page transition.
-- Dynamic Scaling: Implemented `onLayout` tracking in the `TabsBar` to 
-  automatically calculate indicator width and travel distance, ensuring 
-  perfect alignment on any device.
-- Presets Hub: Refactored the main Presets screen to use a horizontal paging 
-  container, linking the top bar selection to the scroll position.
-- Choose Screen: Integrated paging into the blocklist configuration flow, 
-  keeping the virtualized Apps list performant while adding slide 
-  transitions for Webs and AI tabs.
-- Scroll Sync: Implemented `onMomentumScrollEnd` to ensure manual swipe 
-  gestures keep the UI state and header titles perfectly in sync.
+- Transitions: Changed internal (create-commit) screen-to-screen movement 
+  to a 150ms "quick fade" for a snappy, high-performance feel.
+- Architecture: Migrated the main Presets screen to the ActionScreenLayout 
+  standard, aligning it with the rest of the application's design system.
+- Choose Screen: Moved the InlineAddBar from the fixed header into the 
+  paging pages. This ensures the "Add Website" bar slides in/out in perfect 
+  sync with the tab content.
+- Visual Fixes: Removed redundant horizontal padding in the Choose screen 
+  footer so the "Save" button perfectly matches the width on the Final screen.
+- UX Fallback: Added Bangalore City Center as a default coordinate for new 
+  users when adding their first location preset.

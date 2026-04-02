@@ -15,6 +15,8 @@ import { type LocationPreset, type DigitalPreset } from '@/stores/usePresetStore
 import { useAppStore } from '@/stores/useAppStore';
 import { LocationPresetSkeleton, DigitalPresetSkeleton } from "@/components/ui/skeletons/PresetCardSkeleton";
 
+import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS & STYLING
 // ─────────────────────────────────────────────────────────────────────────────
@@ -164,33 +166,27 @@ export default function PresetsScreen() {
   };
 
   return (
-    <UView className="flex-1 bg-black pt-2">
-      {/* ── Tab Navigation ── */}
-      <UView className="px-4">
-        <TabsBar 
-          tabs={PRESET_TABS} 
-          activeTab={activeTab} 
-          onChange={(key) => handleTabChange(key as Tab)} 
-        />
-      </UView>
-
-      {/**
-       * SLIDING TAB INTERFACE
-       * ───────────────────────────────────────────────────────────────────────
-       * We use a horizontal paging ScrollView as the root container for the 
-       * tab content. This provides the native "slide" feel requested.
-       * 
-       * Each child View is forced to the full SCREEN_WIDTH.
-       * Each tab maintains its own internal vertical ScrollView for independent
-       * vertical scrolling (important for lists of different lengths).
-       */}
+    <ActionScreenLayout
+      className="bg-black"
+      header={
+        <UView className="pt-2">
+          <TabsBar 
+            tabs={PRESET_TABS} 
+            activeTab={activeTab} 
+            onChange={(key) => handleTabChange(key as Tab)} 
+          />
+        </UView>
+      }
+      scrollable={false}
+      fullWidthContent={true}
+    >
       <ScrollView
         ref={horizontalScrollRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleMomentumScrollEnd}
-        style={{ flex: 1, marginTop: 8 }}
+        style={{ flex: 1 }}
       >
           {/* ──────────────────────────────────────────────────────────────────
               LOCATION TAB (Page 1)
@@ -352,7 +348,17 @@ export default function PresetsScreen() {
                 },
               });
             } else {
-              router.push("/(create-commit)/location-set");
+              // No previous history? Default to a common coordinate (Bangalore City Center) 
+              // for immediate visual feedback in the map editor.
+              router.push({
+                pathname: "/(edit-preset)/edit-location-preset",
+                params: {
+                  lat: "12.9716",
+                  lng: "77.5946",
+                  radius: "200",
+                  address: "Bangalore City Center",
+                },
+              });
             }
           } else if (activeTab === "blocks") {
             const latest = digitalPresets?.[0] as any;
@@ -378,7 +384,7 @@ export default function PresetsScreen() {
       >
         <MaterialCommunityIcons name="plus" size={32} color={COLORS.primary} />
       </UButton>
-    </UView>
+    </ActionScreenLayout>
   );
 }
 

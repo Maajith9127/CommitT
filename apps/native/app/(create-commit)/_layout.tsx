@@ -19,7 +19,8 @@ export default function CreateCommitLayout() {
   return (
     <Stack
       screenOptions={{
-        animation: "slide_from_right",
+        animation: "fade",
+        animationDuration: 150,
         presentation: "transparentModal",
         headerShown: false,
         headerShadowVisible: false,
