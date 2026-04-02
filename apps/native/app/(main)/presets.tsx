@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, Text, TouchableOpacity } from "react-native";
+import React, { useMemo, useState, useRef, useEffect } from "react";
+import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, Text, TouchableOpacity, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { withUniwind } from "uniwind";
 import { useQuery, useMutation } from "convex/react";
@@ -100,6 +100,42 @@ export default function PresetsScreen() {
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // ── Layout & Animation References ──
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const horizontalScrollRef = useRef<ScrollView>(null);
+
+  /**
+   * handleTabChange
+   * 
+   * Orchestrates the transition when a user taps a tab in the top bar.
+   * Uses programmatic scrolling to trigger the horizontal slide animation.
+   */
+  const handleTabChange = (key: Tab) => {
+    const index = PRESET_TABS.map(t => t.key).indexOf(key);
+    if (index !== -1) {
+      horizontalScrollRef.current?.scrollTo({
+        x: index * SCREEN_WIDTH,
+        animated: true
+      });
+      setActiveTab(key);
+    }
+  };
+
+  /**
+   * handleMomentumScrollEnd
+   * 
+   * Synchronizes the activeTab state with the physical scroll position 
+   * after a user-initiated swipe gesture.
+   */
+  const handleMomentumScrollEnd = (e: any) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / SCREEN_WIDTH);
+    const newTab = PRESET_TABS[index]?.key;
+    if (newTab && newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  };
 
   // Handlers
   const handleOpenMenu = (preset: LocationPreset | DigitalPreset, x: number, y: number) => {
@@ -134,16 +170,36 @@ export default function PresetsScreen() {
         <TabsBar 
           tabs={PRESET_TABS} 
           activeTab={activeTab} 
-          onChange={(key) => setActiveTab(key as Tab)} 
+          onChange={(key) => handleTabChange(key as Tab)} 
         />
       </UView>
 
-      <UScroll className="flex-1 mt-2" showsVerticalScrollIndicator={false}>
+      {/**
+       * SLIDING TAB INTERFACE
+       * ───────────────────────────────────────────────────────────────────────
+       * We use a horizontal paging ScrollView as the root container for the 
+       * tab content. This provides the native "slide" feel requested.
+       * 
+       * Each child View is forced to the full SCREEN_WIDTH.
+       * Each tab maintains its own internal vertical ScrollView for independent
+       * vertical scrolling (important for lists of different lengths).
+       */}
+      <ScrollView
+        ref={horizontalScrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        style={{ flex: 1, marginTop: 8 }}
+      >
           {/* ──────────────────────────────────────────────────────────────────
-              LOCATION TAB
+              LOCATION TAB (Page 1)
           ────────────────────────────────────────────────────────────────── */}
-          {activeTab === "location" && (
-            <UView>
+          <UScroll 
+            style={{ width: SCREEN_WIDTH }} 
+            showsVerticalScrollIndicator={false}
+          >
+              <UView className="pb-24">
                 {locations === undefined && (
                   <UView>
                     {[1, 2, 3].map((i) => (
@@ -168,14 +224,17 @@ export default function PresetsScreen() {
                     onMorePress={(x, y) => handleOpenMenu(preset as any, x, y)}
                   />
                 ))}
-            </UView>
-          )}
+              </UView>
+          </UScroll>
 
           {/* ──────────────────────────────────────────────────────────────────
-              BLOCKS TAB (Digital Presets)
+              BLOCKS TAB (Page 2)
           ────────────────────────────────────────────────────────────────── */}
-          {activeTab === "blocks" && (
-             <UView>
+          <UScroll 
+            style={{ width: SCREEN_WIDTH }} 
+            showsVerticalScrollIndicator={false}
+          >
+             <UView className="pb-24">
                 {digitalPresets === undefined && (
                   <UView>
                     {[1, 2, 3].map((i) => (
@@ -201,18 +260,21 @@ export default function PresetsScreen() {
                   />
                 ))}
             </UView>
-          )}
+          </UScroll>
 
           {/* ──────────────────────────────────────────────────────────────────
-              PHOTOS TAB
+              PHOTOS TAB (Page 3)
           ────────────────────────────────────────────────────────────────── */}
-          {activeTab === "photos" && (
+          <UScroll 
+            style={{ width: SCREEN_WIDTH }} 
+            showsVerticalScrollIndicator={false}
+          >
             <UView className="px-6 py-10 items-center justify-center">
                 <MaterialCommunityIcons name="image-multiple-outline" size={40} color="#333" />
                 <BodyText className="text-gray-500 mt-4">Reference photo presets coming soon.</BodyText>
             </UView>
-          )}
-      </UScroll>
+          </UScroll>
+      </ScrollView>
 
       {/* ── Global Context Modals ── */}
       <ActionMenu

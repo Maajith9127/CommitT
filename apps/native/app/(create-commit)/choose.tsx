@@ -24,8 +24,8 @@
  * @see components/ui/blocklist/ — Reusable UI components (TopBar, TabsBar, etc.)
  * @see components/ui/ActionScreenLayout.tsx — 3-zone layout (header/scroll/footer)
  */
-import { useState, useEffect, useMemo } from "react";
-import { View, ActivityIndicator, FlatList, Pressable } from "react-native";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { View, ActivityIndicator, FlatList, Pressable, ScrollView, useWindowDimensions } from "react-native";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
@@ -90,6 +90,42 @@ export default function ChooseScreen() {
   const [inlineText, setInlineText] = useState("");
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
 
+  // ── Layout & Animation References ──
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const horizontalScrollRef = useRef<ScrollView>(null);
+
+  /**
+   * handleTabChange
+   * 
+   * Triggers the horizontal slide when a user taps a tab.
+   */
+  const handleTabChange = (key: string) => {
+    const index = TABS.map(t => t.key).indexOf(key);
+    if (index !== -1) {
+      horizontalScrollRef.current?.scrollTo({
+        x: index * SCREEN_WIDTH,
+        animated: true
+      });
+      setActiveTab(key as Tab);
+      setSearchOpen(false);
+      setSearchText("");
+    }
+  };
+
+  /**
+   * handleMomentumScrollEnd
+   * 
+   * Syncs the activeTab state after a physical swipe.
+   */
+  const handleMomentumScrollEnd = (e: any) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / SCREEN_WIDTH);
+    const newTab = TABS[index]?.key as Tab;
+    if (newTab && newTab !== activeTab) {
+      setActiveTab(newTab);
+    }
+  };
+
   // ── High Performance Discovery State ──
   const discoveredApps = useAppStore((s: any) => s.apps);
 
@@ -124,11 +160,7 @@ export default function ChooseScreen() {
 
   // ── Event Handlers ──
 
-  const handleTabChange = (key: string) => {
-    setActiveTab(key as Tab);
-    setSearchOpen(false);
-    setSearchText("");
-  };
+
 
   /** Toggles selecting an app and IMMEDIATELY updates the store. */
   const toggleApp = (id: string) => {
@@ -245,61 +277,92 @@ export default function ChooseScreen() {
     <ActionScreenLayout
       className="pt-10"
       header={headerContent}
-      scrollable={activeTab !== "apps"} // Only apps tab needs high-performance virtualization
-      fullWidthContent={activeTab === "apps"} // Edge-to-edge separators for apps
+      scrollable={false} // We handle our own paging ScrollView below
+      fullWidthContent={true} // Allow horizontal paging to touch edges
       footer={
-        <PrimaryButton onPress={() => router.back()}>Save</PrimaryButton>
+        <UView style={{ paddingHorizontal: 16 }}>
+          <PrimaryButton onPress={() => router.back()}>Save</PrimaryButton>
+        </UView>
       }
     >
-      {/* ── Apps Tab: Loading State ── */}
-      {activeTab === "apps" && apps.length === 0 && isLoadingApps && (
-        <>
-          {Array.from({ length: 12 }).map((_, i) => (
-            <AppCardSkeleton key={i} />
-          ))}
-        </>
-      )}
+      {/**
+       * SLIDING TAB INTERFACE
+       * ───────────────────────────────────────────────────────────────────────
+       * Horizontal paging container to allow sliding between blocklist types.
+       */}
+      <ScrollView
+        ref={horizontalScrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
+        style={{ flex: 1 }}
+      >
+          {/* ──────────────────────────────────────────────────────────────────
+              APPS TAB (Page 1) - Virtualized for performance
+          ────────────────────────────────────────────────────────────────── */}
+          <UView style={{ width: SCREEN_WIDTH }}>
+              {apps.length === 0 && isLoadingApps && (
+                <UView className="px-4">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <AppCardSkeleton key={i} />
+                  ))}
+                </UView>
+              )}
 
-      {/* ── Apps Tab: Virtualized List ── */}
-      {activeTab === "apps" && (
-        <FlatList
-          data={filteredApps}
-          keyExtractor={(item: any) => item.id}
-          showsVerticalScrollIndicator={false}
-          initialNumToRender={10}
-          windowSize={5}
-          renderItem={({ item }: { item: any }) => (
-            <SelectableListItem
-              icon="cellphone"
-              imageUri={item.iconUri}
-              label={item.name}
-              selected={item.selected}
-              onToggle={() => toggleApp(item.id)}
-            />
-          )}
-        />
-      )}
+              <FlatList
+                data={filteredApps}
+                keyExtractor={(item: any) => item.id}
+                showsVerticalScrollIndicator={false}
+                initialNumToRender={10}
+                windowSize={5}
+                renderItem={({ item }: { item: any }) => (
+                  <SelectableListItem
+                    icon="cellphone"
+                    imageUri={item.iconUri}
+                    label={item.name}
+                    selected={item.selected}
+                    onToggle={() => toggleApp(item.id)}
+                  />
+                )}
+              />
+          </UView>
 
-      {/* ── Webs Tab ── */}
-      {activeTab === "webs" &&
-        webs.map((web: BlockItem) => (
-          <SelectableListItem
-            key={web.id}
-            icon="web"
-            label={web.name}
-            selected={web.selected}
-            onToggle={() => toggleWeb(web.id)}
-          />
-        ))}
+          {/* ──────────────────────────────────────────────────────────────────
+              WEBS TAB (Page 2)
+          ────────────────────────────────────────────────────────────────── */}
+          <ScrollView 
+            style={{ width: SCREEN_WIDTH }} 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+          >
+             <UView className="pb-10">
+                {webs.map((web: BlockItem) => (
+                  <SelectableListItem
+                    key={web.id}
+                    icon="web"
+                    label={web.name}
+                    selected={web.selected}
+                    onToggle={() => toggleWeb(web.id)}
+                  />
+                ))}
+            </UView>
+          </ScrollView>
 
-      {/* ── AI Tab (Placeholder) ── */}
-      {activeTab === "ai" && (
-        <UView className="py-10 items-center">
-          <FooterText className="text-gray-500 text-center">
-            AI-generated rules will appear here
-          </FooterText>
-        </UView>
-      )}
+          {/* ──────────────────────────────────────────────────────────────────
+              AI TAB (Page 3)
+          ────────────────────────────────────────────────────────────────── */}
+          <ScrollView 
+            style={{ width: SCREEN_WIDTH }} 
+            showsVerticalScrollIndicator={false}
+          >
+            <UView className="py-12 items-center px-6">
+              <FooterText className="text-gray-500 text-center">
+                AI-generated rules will appear here
+              </FooterText>
+            </UView>
+          </ScrollView>
+      </ScrollView>
 
       {/* ── History: Preset Picker Modal ── */}
       <DigitalPresetPickerModal
