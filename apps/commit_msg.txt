@@ -1,16 +1,8 @@
-refactor(native): isolate preset management into a dedicated route group
+feat(native): add AI tab to digital preset editor for feature parity
 
-Reorganized the route structure to decouple preset library management from
-the primary commitment creation flow. This ensures a distinct visual identity
-for editing presets and prevents route pollution in the create-commit stack.
+Updated the digital preset editor to match the main commitment creation
+flow by adding the AI-generated rules tab.
 
-- Established the `(edit-preset)` group with a dedicated `_layout.tsx`.
-- Implemented a smooth 'fade' transition for the entire preset management flow
-  to visually separate "Library Management" from "Active Flow".
-- Migrated the following screens to the new group:
-    - `edit-digital-preset.tsx`
-    - `edit-location-preset.tsx`
-    - `search-preset-location.tsx`
-- Refactored `presets.tsx` to point navigation to the new `/(edit-preset)` paths.
-- Updated root `app/_layout.tsx` stack to support the new navigation group.
-- Cleaned up redundant files from the `(create-commit)` directory.
+- add 'AI' to the Tab type and TabsBar configuration
+- implement context-aware placeholders and logic for the InlineAddBar
+- add the AI tab placeholder view to match choose.tsx

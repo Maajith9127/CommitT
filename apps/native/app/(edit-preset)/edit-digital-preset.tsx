@@ -27,7 +27,7 @@ import { COLORS } from "@/config/theme";
 
 const UView = withUniwind(View);
 
-type Tab = "apps" | "webs";
+type Tab = "apps" | "webs" | "ai";
 
 type BlockItem = {
   id: string;
@@ -151,14 +151,15 @@ export default function EditDigitalPresetScreen() {
         tabs={[
           { key: "apps", label: "Apps" },
           { key: "webs", label: "Webs" },
+          { key: "ai", label: "AI" },
         ]} 
         activeTab={activeTab} 
         onChange={(key) => setActiveTab(key as Tab)} 
       />
 
-      {activeTab === "webs" && (
+      {activeTab !== "apps" && (
         <InlineAddBar
-          placeholder="Add website URL"
+          placeholder={activeTab === "webs" ? "Add website URL" : "Describe what to block"}
           value={inlineText}
           onChange={setInlineText}
           onSubmit={handleAddInline}
@@ -217,6 +218,15 @@ export default function EditDigitalPresetScreen() {
             onToggle={() => toggleWeb(web.id)}
           />
         ))}
+
+      {/* ── AI Tab (Placeholder) ── */}
+      {activeTab === "ai" && (
+        <UView className="py-10 items-center">
+          <FooterText className="text-gray-500 text-center">
+            AI-generated rules will appear here
+          </FooterText>
+        </UView>
+      )}
 
       <ConfirmationModal
         visible={showSaveConfirm}
