@@ -1,11 +1,16 @@
-style(navigation): restore native slide transitions and full-screen layout
+refactor(native): isolate preset management into a dedicated route group
 
-Fixes the navigation regression in the create-commit flow to ensure consistent 
-branding and native-feel transitions.
+Reorganized the route structure to decouple preset library management from
+the primary commitment creation flow. This ensures a distinct visual identity
+for editing presets and prevents route pollution in the create-commit stack.
 
-- Removed explicit 'fade' animation override for (create-commit) in root _layout.tsx.
-- Re-enabled global 'slide_from_right' behavior for the commitment creation stack.
-- Removed 'transparentModal' presentation to eliminate the system-level 
-  border/overlay effect.
-- Enforced 'black' backgroundColor via contentStyle for a seamless, 
-  immersion-preserving transition.
+- Established the `(edit-preset)` group with a dedicated `_layout.tsx`.
+- Implemented a smooth 'fade' transition for the entire preset management flow
+  to visually separate "Library Management" from "Active Flow".
+- Migrated the following screens to the new group:
+    - `edit-digital-preset.tsx`
+    - `edit-location-preset.tsx`
+    - `search-preset-location.tsx`
+- Refactored `presets.tsx` to point navigation to the new `/(edit-preset)` paths.
+- Updated root `app/_layout.tsx` stack to support the new navigation group.
+- Cleaned up redundant files from the `(create-commit)` directory.

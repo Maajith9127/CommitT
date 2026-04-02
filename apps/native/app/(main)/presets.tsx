@@ -228,7 +228,7 @@ export default function PresetsScreen() {
               if (activePreset && 'lat' in activePreset) {
                 // Location Preset — navigate to the dedicated edit map page
                 router.push({
-                  pathname: "/(create-commit)/edit-location-preset",
+                  pathname: "/(edit-preset)/edit-location-preset",
                   params: {
                     presetId: activePreset._id,
                     lat: String(activePreset.lat),
@@ -240,7 +240,7 @@ export default function PresetsScreen() {
               } else if (activePreset && 'apps' in activePreset) {
                 // Digital Preset — navigate to the blocklist editor
                 router.push({
-                  pathname: "/(create-commit)/edit-digital-preset",
+                  pathname: "/(edit-preset)/edit-digital-preset",
                   params: {
                     presetId: activePreset._id,
                     apps: JSON.stringify((activePreset as any).apps),
@@ -281,7 +281,7 @@ export default function PresetsScreen() {
             if (latest) {
               // Seed with latest data but NO presetId -> will trigger CREATE
               router.push({
-                pathname: "/(create-commit)/edit-location-preset",
+                pathname: "/(edit-preset)/edit-location-preset",
                 params: {
                   lat: String(latest.lat),
                   lng: String(latest.lng),
@@ -296,7 +296,7 @@ export default function PresetsScreen() {
             const latest = digitalPresets?.[0] as any;
             if (latest) {
               router.push({
-                pathname: "/(create-commit)/edit-digital-preset",
+                pathname: "/(edit-preset)/edit-digital-preset",
                 params: {
                   apps: JSON.stringify(latest.apps),
                   websites: JSON.stringify(latest.websites),
@@ -305,7 +305,7 @@ export default function PresetsScreen() {
               });
             } else {
               router.push({
-                pathname: "/(create-commit)/edit-digital-preset",
+                pathname: "/(edit-preset)/edit-digital-preset",
                 params: { name: "New Blocklist" },
               });
             }

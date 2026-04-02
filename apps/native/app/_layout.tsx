@@ -34,7 +34,8 @@ function StackLayout() {
       }}
     >
       <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
-      <Stack.Screen name="(create-commit)" />
+      <Stack.Screen name="(create-commit)" options={{ animation: "slide_from_right", animationDuration: 200, headerShadowVisible: false, headerTransparent: true }} />
+      <Stack.Screen name="(edit-preset)" options={{ animation: "fade" }} />
       <Stack.Screen name="(penalties)" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
     </Stack>

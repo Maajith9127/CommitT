@@ -1,16 +1,16 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  EventDetailHeader — Title, Description & Status Badge                      ║
+ * ║  EventDetailHeader — Title, Description & Status Badge                       ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                             ║
- * ║  Renders the top section of the EventDetailModal:                           ║
- * ║  • Close (×) button                                                         ║
- * ║  • Event title + description                                                ║
- * ║  • Status badge pill (e.g., "PENDING", "VERIFIED")                          ║
- * ║                                                                             ║
- * ║  This is a PURE presentational component — no hooks, no state.              ║
+ * ║                                                                              ║
+ * ║  Renders the top section of the EventDetailModal:                            ║
+ * ║  • Close (×) button                                                          ║
+ * ║  • Event title + description                                                 ║
+ * ║  • Status badge pill (e.g., "PENDING", "VERIFIED")                           ║
+ * ║                                                                              ║
+ * ║  This is a PURE presentational component — no hooks, no state.               ║ 
  * ║  All data comes in via props from EventDetailModal.                          ║
- * ║                                                                             ║
+ * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 

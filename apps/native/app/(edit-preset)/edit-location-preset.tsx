@@ -61,7 +61,7 @@ const UButton = withUniwind(TouchableOpacity);
  * Expected search params passed from the Presets Hub when the user taps "Edit":
  *
  *   router.push({
- *     pathname: "/(create-commit)/edit-location-preset",
+ *     pathname: "/(edit-preset)/edit-location-preset",
  *     params: { presetId, lat, lng, radius, address },
  *   });
  *
@@ -89,15 +89,6 @@ type EditParams = {
  * Architecturally identical to `location-set.tsx` but operates on
  * `usePresetEditStore` (not `useTaskDraftStore`), and persists changes
  * via the `updateLocationPreset` Convex mutation.
- *
- * KEY DESIGN DECISIONS:
- * 1. Dedicated Store — `usePresetEditStore` bridges this page and the
- *    search sub-page without touching the commitment creation draft.
- * 2. Editable Address — The address field in the bottom panel is directly
- *    editable via a text input, giving users full control over naming.
- * 3. Same Map UX — Tap to fly, long-press to drop pin, GPS locate button.
- * 4. Optimistic Navigation — Router.back() fires immediately after save;
- *    Convex reactivity handles the Presets Hub refresh.
  */
 export default function EditLocationPresetScreen() {
   const router = useRouter();
@@ -217,7 +208,6 @@ export default function EditLocationPresetScreen() {
   // HANDLERS
   // ─────────────────────────────────────────────────────────────────────────
 
-  /** GPS locate: snap camera and pin to hardware coordinates. */
   const handleLocate = useCallback(async () => {
     if (isLocating) return;
     await requestLocation(async (coords) => {
@@ -228,21 +218,15 @@ export default function EditLocationPresetScreen() {
     });
   }, [isLocating, requestLocation]);
 
-  /** Radius slider update. */
   const handleRadiusChange = useCallback((val: number) => {
     setStoreRadius(Math.round(val));
   }, []);
 
-  /**
-   * Save Preset — Fires update or create mutation.
-   * Navigates back immediately.
-   */
   const handleSavePreset = useCallback(async () => {
     if (isSaving) return;
     setIsSaving(true);
     try {
       if (presetId) {
-        // Update existing
         await updatePreset({
           id: presetId,
           address: storeAddress,
@@ -251,7 +235,6 @@ export default function EditLocationPresetScreen() {
           radius: storeRadius,
         });
       } else {
-        // Create as new preset
         await createPreset({
           address: storeAddress,
           lat: storeLat,
@@ -266,19 +249,12 @@ export default function EditLocationPresetScreen() {
     }
   }, [isSaving, updatePreset, createPreset, presetId, storeAddress, storeLat, storeLng, storeRadius, router]);
 
-  // ── Platform Guard ──
   if (Platform.OS !== "android") {
     return <Text>Maps only supported on Android native builds.</Text>;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER TREE
-  // ─────────────────────────────────────────────────────────────────────────
-
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
-
-      {/* ── LAYER 1: NATIVE MAP INTERFACE ── */}
       <GoogleMaps.View
         ref={mapRef}
         style={{ flex: 1 }}
@@ -293,12 +269,7 @@ export default function EditLocationPresetScreen() {
           isMyLocationEnabled: hasPermission === true,
         }}
         onMapLoaded={() => setMapReady(true)}
-        onCameraMoveStarted={() => { 
-          isUserInteracting.current = true;
-        }}
-        onCameraMove={(e: any) => {
-          if (e?.cameraPosition?.coordinates) isUserInteracting.current = true;
-        }}
+        onCameraMoveStarted={() => { isUserInteracting.current = true; }}
         onCameraIdle={async () => {
           if (mapRef.current) {
             const pos = await mapRef.current.getCameraPosition();
@@ -312,9 +283,6 @@ export default function EditLocationPresetScreen() {
             isUserInteracting.current = false;
           }
         }}
-        onMapClick={(e: { coordinates: { latitude: number; longitude: number } }) => {
-          isUserInteracting.current = false;
-        }}
         onMapLongClick={(e: { coordinates: { latitude: number; longitude: number } }) => {
           setStoreLocation({
             latitude: e.coordinates.latitude,
@@ -324,10 +292,7 @@ export default function EditLocationPresetScreen() {
         }}
         circles={[
           {
-            center: {
-              latitude: storeLat,
-              longitude: storeLng,
-            },
+            center: { latitude: storeLat, longitude: storeLng },
             radius: storeRadius,
             color: "#4FA0FF40",
             lineColor: "#4FA0FF",
@@ -336,23 +301,15 @@ export default function EditLocationPresetScreen() {
         ]}
       />
 
-      {/* ── LAYER 2: FLOATING NAV BAR ── */}
       <LocationMapNavBar
-        onBack={() => {
-          Keyboard.dismiss();
-          router.back();
-        }}
-        onLocate={() => {
-          Keyboard.dismiss();
-          handleLocate();
-        }}
+        onBack={() => { Keyboard.dismiss(); router.back(); }}
+        onLocate={() => { Keyboard.dismiss(); handleLocate(); }}
         onSearch={() => {
           Keyboard.dismiss();
-          router.push("/(create-commit)/search-preset-location");
+          router.push("/(edit-preset)/search-preset-location");
         }}
       />
 
-      {/* ── LAYER 3: BOTTOM EDIT PANEL (slides up with keyboard) ── */}
       <Animated.View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0 }, animatedPanelStyle]}>
         <PresetEditPanel
           address={storeAddress}
@@ -362,17 +319,12 @@ export default function EditLocationPresetScreen() {
           onRadiusChange={handleRadiusChange}
           onSearchPress={() => {
             Keyboard.dismiss();
-            router.push("/(create-commit)/search-preset-location");
+            router.push("/(edit-preset)/search-preset-location");
           }}
           onCenterPress={() => {
             Keyboard.dismiss();
             isUserInteracting.current = false;
-            setCameraTarget((prev) => ({
-              ...prev,
-              latitude: storeLat,
-              longitude: storeLng,
-              zoom: 19,
-            }));
+            setCameraTarget((prev) => ({ ...prev, latitude: storeLat, longitude: storeLng, zoom: 19 }));
           }}
           onSave={handleSavePreset}
         />
@@ -381,15 +333,6 @@ export default function EditLocationPresetScreen() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PRESET EDIT PANEL (Bottom Sheet)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * PresetEditPanel
- *
- * A purpose-built bottom control panel for location preset editing.
- */
 function PresetEditPanel({
   address,
   radius,
@@ -413,13 +356,8 @@ function PresetEditPanel({
 
   return (
     <UView className="m-4 mb-8 rounded-3xl bg-[#1A1A1A] px-4 py-4">
-
-      {/* ── Location Name (Tap to edit) ── */}
       {isEditingName ? (
-        <UView 
-          className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-3 h-12"
-          style={{ width: '100%' }}
-        >
+        <UView className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-3 h-12">
           <Input
             value={address}
             onChangeText={onAddressChange}
@@ -428,10 +366,7 @@ function PresetEditPanel({
             className="flex-1 bg-transparent p-0 font-semibold text-white text-base"
             placeholder="Edit preset name..."
           />
-          <UButton 
-            onPress={() => Keyboard.dismiss()}
-            className="ml-2"
-          >
+          <UButton onPress={() => Keyboard.dismiss()} className="ml-2">
             <MaterialCommunityIcons name="close-circle" size={20} color="#666" />
           </UButton>
         </UView>
@@ -442,26 +377,17 @@ function PresetEditPanel({
               {address}
             </HeaderTitle>
           </UButton>
-        <UView className="flex-row items-center">
-          <UButton
-            onPress={() => setIsEditingName(true)}
-            className="ml-2"
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons name="pencil" size={20} color="white" />
-          </UButton>
-          <UButton
-            onPress={onSearchPress}
-            className="ml-2"
-            activeOpacity={0.7}
-          >
-             <MaterialCommunityIcons name="magnify" size={22} color="white" />
-          </UButton>
-        </UView>
+          <UView className="flex-row items-center">
+            <UButton onPress={() => setIsEditingName(true)} className="ml-2" activeOpacity={0.7}>
+              <MaterialCommunityIcons name="pencil" size={20} color="white" />
+            </UButton>
+            <UButton onPress={onSearchPress} className="ml-2" activeOpacity={0.7}>
+               <MaterialCommunityIcons name="magnify" size={22} color="white" />
+            </UButton>
+          </UView>
         </UView>
       )}
 
-      {/* ── Radius Slider ── */}
       <UView className="mt-4">
         <UView className="flex-row justify-between items-center">
           <HeaderTitle className="text-sm">Radius</HeaderTitle>
@@ -478,7 +404,6 @@ function PresetEditPanel({
         />
       </UView>
 
-      {/* ── Save Button ── */}
       <UView className="mt-4">
         <PrimaryButton onPress={onSave} disabled={isSaving}>
           {isSaving ? "Saving..." : "Save Preset"}
