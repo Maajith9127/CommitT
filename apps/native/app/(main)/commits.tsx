@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { View, FlatList, Pressable, Text, ScrollView } from "react-native";
+import { View, FlatList, Pressable, Text, ScrollView, LayoutAnimation, Platform, UIManager } from "react-native";
 import { useRouter } from "expo-router"; // Essential for navigation
 import { withUniwind } from "uniwind";
+import Animated, { FadeInUp, FadeOutUp, LinearTransition } from 'react-native-reanimated';
 
 // UI Components
 import { HeaderTitle, FooterText } from "@/components/ui/text";
@@ -28,6 +29,9 @@ import { DEFAULT_TASKS } from "@/data/defaults";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const UView = withUniwind(View);
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const COLORS = {
   primary: "#4FA0FF",
@@ -114,9 +118,23 @@ export default function CommitsScreen() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
+  const [isWarmupComplete, setIsWarmupComplete] = useState(false);
 
   // 5. Permission Observation (Debug Log)
-  const { permissions } = usePermissions();
+  const { permissions, isLoading: isPermissionsLoading } = usePermissions();
+
+  /** 
+   * Warmup Logic:
+   * Waits for 3 seconds before allowing the "Permissions Missing" card to appear.
+   * This prevents UI jank/flashing during the initial boot & audit.
+   */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsWarmupComplete(true);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     console.log("[DEBUG] Current Hardware Permissions Manifest:", JSON.stringify(permissions, null, 2));
   }, [permissions]);
@@ -134,7 +152,7 @@ export default function CommitsScreen() {
   const listData = useMemo<ListItem[]>(() => {
     const items: ListItem[] = [];
 
-    // Check for critical missing permissions
+    // Check for critical missing permissions (Only After Warmup)
     const isReady =
       permissions.location &&
       permissions.camera &&
@@ -144,7 +162,7 @@ export default function CommitsScreen() {
       permissions.accessibility &&
       permissions.battery;
 
-    if (!isReady) {
+    if (!isReady && isWarmupComplete && !isPermissionsLoading) {
       items.push({ type: "permission_missing" as const, subId: "permissions" });
     }
 
@@ -175,7 +193,13 @@ export default function CommitsScreen() {
     }
 
     return items;
-  }, [isLoading, hasTasks, sortedTasks, permissions]);
+  }, [isLoading, hasTasks, sortedTasks, permissions, isWarmupComplete, isPermissionsLoading]);
+
+  /** 
+   * Transition Logic:
+   * Reanimated `entering`/`exiting` props handle the internal card fade and slide.
+   * `layout={LinearTransition}` is also applied at the loop level.
+   */
 
   /**
    * Indices for sticky section headers.
@@ -257,17 +281,23 @@ export default function CommitsScreen() {
       switch (item.type) {
         case "permission_missing":
           return (
-            <UView className="bg-black px-4 pt-0 pb-0">
-              <ConditionCard
-                icon="alert-circle-outline"
-                title="Permissions Missing"
-                subtitle="CommitT enforcement is disabled. Tap to fix."
-                iconColor={COLORS.danger}
-                className="border-[3px] border-[#FF3B30] bg-[#1A1A1A]"
-                onPress={() => router.push("/(settings)/permissions")}
-                showArrow={true}
-              />
-            </UView>
+            <Animated.View 
+              entering={FadeInUp.springify().damping(20).stiffness(200).mass(0.8)}
+              exiting={FadeOutUp.duration(200)}
+              style={{ overflow: 'hidden' }}
+            >
+              <UView className="bg-black px-4 pt-0 pb-0">
+                <ConditionCard
+                  icon="alert-circle-outline"
+                  title="Permissions Missing"
+                  subtitle="CommitT enforcement is disabled. Tap to fix."
+                  iconColor={COLORS.danger}
+                  className="border-[3px] border-[#FF3B30] bg-[#1A1A1A]"
+                  onPress={() => router.push("/(settings)/permissions")}
+                  showArrow={true}
+                />
+              </UView>
+            </Animated.View>
           );
         case "quick":
           return (
@@ -341,9 +371,12 @@ export default function CommitsScreen() {
         contentContainerStyle={{ paddingBottom: LAYOUT.bottomPadding }}
       >
         {listData.map((item: ListItem) => (
-          <UView key={getItemKey(item)}>
+          <Animated.View 
+            key={getItemKey(item)}
+            layout={LinearTransition.springify().damping(22).stiffness(200).mass(0.5)}
+          >
             {renderItem({ item })}
-          </UView>
+          </Animated.View>
         ))}
       </ScrollView>
       

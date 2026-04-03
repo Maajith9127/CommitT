@@ -101,5 +101,7 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
 4.  **Offline SQLite**: `commit.db` mirrors the active Convex commitment states down to the native app, verifying rules physically during Airplane mode.
 5.  **Native Permission Engine (`usePermissions.ts`)**: Serves as the reactive source of truth for the app's hardware/OS permission state. 
     *   **Lifecycle-Aware**: Listens for `AppState` changes to automatically re-audit enforcers whenever the app is foregrounded.
-    *   **Deep OS Audits**: Offloads all system-deep queries (Accessibility, Overlay, and **Battery Optimization/Doze Mode**) to the `EnforcementModule` via the native bridge.
-    *   **Fail-Closed Dashboard**: Injects a high-visibility, reactive "Permissions Missing" block into the `CommitsScreen` if any of the 7 critical hardware gates are offline.
+    *   **Full 7-Gate Audit**: Performs high-speed, real-time audits of Accessibility, Overlay, Battery, **Location (Precise), Camera, Notifications, and Exact Alarms** via the native `EnforcementModule`.
+    *   **Fail-Closed & High-UX Dashboard**: Injects a high-performance, reactive "Permissions Missing" block into the `CommitsScreen`.
+        *   **Warmup Rule**: Employs a 3-second startup delay to prevent UI flashing and ensure a "quiet" boot.
+        *   **Kinetic Layout**: Utilizes Reanimated 3 spring transitions (snappy configuration) to slide the dashboard into view without blocking interaction.
