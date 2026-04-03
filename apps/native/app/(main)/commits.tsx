@@ -137,6 +137,7 @@ export default function CommitsScreen() {
     // Check for critical missing permissions
     const isReady =
       permissions.location &&
+      permissions.camera &&
       permissions.notifications &&
       permissions.alarms &&
       permissions.overlay &&
@@ -174,7 +175,7 @@ export default function CommitsScreen() {
     }
 
     return items;
-  }, [isLoading, hasTasks, sortedTasks]);
+  }, [isLoading, hasTasks, sortedTasks, permissions]);
 
   /**
    * Indices for sticky section headers.
@@ -325,7 +326,7 @@ export default function CommitsScreen() {
           return null;
       }
     },
-    [session, handleCreateNew, handleEditTask, openMenu, isLoading, router]
+    [session, handleCreateNew, handleEditTask, openMenu, isLoading, router, listData, permissions]
   );
 
   // ─────────────────────────────────────────────────────────────────────────

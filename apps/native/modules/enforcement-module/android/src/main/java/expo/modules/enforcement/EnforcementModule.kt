@@ -5,6 +5,10 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
+import android.content.pm.PackageManager
+import android.app.NotificationManager
+import android.app.AlarmManager
+import android.Manifest
 import android.provider.Settings
 import android.util.Log
 import expo.modules.kotlin.modules.Module
@@ -32,13 +36,29 @@ class EnforcementModule : Module() {
                 true
             }
 
+            val locationEnabled = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val cameraEnabled = context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            val notificationsEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.areNotificationsEnabled()
+            } else {
+                true 
+            }
+
+            val alarmsEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                alarmManager.canScheduleExactAlarms()
+            } else {
+                true
+            }
+
             mapOf(
                 "accessibility" to accessibilityEnabled,
                 "overlay" to overlayEnabled,
-                "location" to true, 
-                "camera" to true,   
-                "notifications" to true,
-                "alarms" to true,
+                "location" to locationEnabled,
+                "camera" to cameraEnabled,
+                "notifications" to notificationsEnabled,
+                "alarms" to alarmsEnabled,
                 "battery" to isBatteryOptimizationDisabled(context)
             )
         }

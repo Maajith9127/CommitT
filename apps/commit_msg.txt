@@ -1,6 +1,9 @@
-feat(native/enforcement): optimize back-navigation from system settings
+fix(native/enforcer): implement real-time permission auditing and UI reactivity
 
-- Added Intent.FLAG_ACTIVITY_CLEAR_TOP to all native setting navigation intents
-- Ensures user returns directly to the Commit app upon pressing back or swiping from Android system settings
-- Refactored Intent flags in EnforcementModule.kt to prioritize app-session persistence
-- Improved UX by creating a seamless circular navigation flow between the permissions UI and OS configuration pages
+- Replaces hardcoded 'true' values in EnforcementModule.kt with actual 
+  Android system audits for Location, Camera, Notifications, and Alarms.
+- Fixes Permission Card reactivity in CommitsScreen by adding 'permissions' 
+  and 'listData' to useMemo/useCallback dependency arrays.
+- Adds 'camera' to the critical enforcement readiness (isReady) check.
+- Ensures the UI correctly reflects permission revocation/granting upon 
+  app foregrounding.
