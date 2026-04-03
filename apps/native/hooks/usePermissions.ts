@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import { Platform, PermissionsAndroid } from "react-native";
+import { NativeModulesProxy, requireNativeModule } from "expo-modules-core";
 import * as Location from "expo-location";
 import * as ImagePicker from "expo-image-picker";
+
+// Safely require the Blocker module from the native side.
+// We do this outside the hook to keep it singleton-like.
+let BlockerModule: any = null;
+try {
+  BlockerModule = requireNativeModule("Blocker");
+} catch (e) {
+  console.warn("[usePermissions] Native Blocker module not found. Some checks will be skipped.");
+}
 
 export interface PermissionStates {
   camera: boolean;
@@ -55,13 +65,33 @@ export function usePermissions() {
         }
       }
 
-      // 4. Mocks for System-Deep Permissions
-      // These usually require Intent checking or specific native bridge methods
-      // for now we set them to false but keep them in the state for the UI.
-      const batteryGranted = false;
-      const alarmsGranted = true; // Assume true if we can schedule, logic varies by Android API level
-      const overlayGranted = false;
-      const accessibilityGranted = false;
+      // 4. System-Deep Permissions
+      let accessibilityGranted = false;
+      let overlayGranted = false;
+      let batteryGranted = false;
+      let alarmsGranted = true;
+
+      if (Platform.OS === "android") {
+        try {
+          console.log("[usePermissions] Blocker Module Found:", !!BlockerModule);
+          
+          if (BlockerModule) {
+            // Check Accessibility
+            if (typeof BlockerModule.isAccessibilityServiceEnabled === "function") {
+              accessibilityGranted = await BlockerModule.isAccessibilityServiceEnabled();
+              console.log("[usePermissions] Accessibility Native Result:", accessibilityGranted);
+            }
+
+            // Check Overlay (Appear on top)
+            if (typeof BlockerModule.isOverlayPermissionEnabled === "function") {
+              overlayGranted = await BlockerModule.isOverlayPermissionEnabled();
+              console.log("[usePermissions] Overlay Native Result:", overlayGranted);
+            }
+          }
+        } catch (e) {
+          console.error("[usePermissions] Native permission check failed:", e);
+        }
+      }
 
       setPermissions({
         location: locStatus === "granted",

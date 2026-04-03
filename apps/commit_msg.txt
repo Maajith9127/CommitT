@@ -1,1 +1,6 @@
-feat (redundant) : removed unnecessary files
+feat(native): integrate live accessibility auditing into usePermissions hook
+
+- Replaced static permission mocks with real-time native bridge calls
+- Switched to direct `requireNativeModule("Blocker")` for reliable module resolution
+- Added debug logging to commits.tsx to monitor hardware state changes
+- Synchronized hook with BlockerModule's isAccessibilityServiceEnabled check

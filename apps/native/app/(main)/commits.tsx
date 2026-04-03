@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { View, FlatList, Pressable, Text } from "react-native";
 import { useRouter } from "expo-router"; // Essential for navigation
 import { withUniwind } from "uniwind";
@@ -19,6 +19,7 @@ import { useTaskActions } from "@/hooks/commits/useTaskActions";
 import { useTaskSelection, AnchorPosition } from "@/hooks/commits/useTaskSelection";
 import { useAccountabilityPrefill } from "@/hooks/useAccountabilityPrefill";
 import { useAppDiscovery } from "@/hooks/useAppDiscovery";
+import { usePermissions } from "@/hooks/usePermissions";
 import { DEFAULT_TASKS } from "@/data/defaults";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,6 +112,12 @@ export default function CommitsScreen() {
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
+
+  // 5. Permission Observation (Debug Log)
+  const { permissions } = usePermissions();
+  useEffect(() => {
+    console.log("[DEBUG] Current Hardware Permissions Manifest:", JSON.stringify(permissions, null, 2));
+  }, [permissions]);
 
   // 4. Visual Layer (Skeleton logic moved to list render)
 
