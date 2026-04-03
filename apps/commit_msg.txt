@@ -1,7 +1,6 @@
-feat(security): implement deep-link navigation for all 7 hardware enforcers
+feat(native/enforcement): optimize back-navigation from system settings
 
-- Implemented direct Intent-based navigation for Camera, Location, Alarms, and Notifications in EnforcementModule (Kotlin)
-- Added robust Intent construction using fully-qualified android.provider.Settings constants
-- Integrated card-tap handlers in PermissionsPage.tsx to launch specific system settings pages
-- Implemented universal fallback to App Details settings for unsupported OS versions or OEM blocks
-- Added production-grade native logging (Logcat) and try-catch safety for activity execution
+- Added Intent.FLAG_ACTIVITY_CLEAR_TOP to all native setting navigation intents
+- Ensures user returns directly to the Commit app upon pressing back or swiping from Android system settings
+- Refactored Intent flags in EnforcementModule.kt to prioritize app-session persistence
+- Improved UX by creating a seamless circular navigation flow between the permissions UI and OS configuration pages

@@ -82,8 +82,11 @@ class EnforcementModule : Module() {
             }
             
             try {
+                // CLEAR_TOP + NEW_TASK is the best possible way to return to current app on back-press
                 finalIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                Log.d(TAG, "Starting activity with action: ${finalIntent.action}")
+                finalIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                
+                Log.d(TAG, "Starting activity with action: ${finalIntent.action} and flags: ${finalIntent.flags}")
                 context.startActivity(finalIntent)
             } catch (e: Exception) {
                 Log.e(TAG, "FAILED to start activity: ${e.message}")
