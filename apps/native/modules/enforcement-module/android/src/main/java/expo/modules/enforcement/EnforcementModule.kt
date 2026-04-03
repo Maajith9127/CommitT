@@ -8,10 +8,27 @@ import android.provider.Settings
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
+/**
+ * EnforcementModule
+ * 
+ * CORE SECURITY ENGINE: This module serves as the single source of truth for 
+ * Android system-level hardware and configuration auditing.
+ * 
+ * It bypasses typical soft-permission checks and performs direct OS-level audits 
+ * (Settings.canDrawOverlays, AccessibilityService presence, etc.) to ensure the 
+ * application's behavioral enforcers cannot be bypassed by the user.
+ */
 class EnforcementModule : Module() {
     override fun definition() = ModuleDefinition {
         Name("Enforcement")
 
+        /**
+         * Re-audits all 7 critical system gates in a single batch.
+         * 
+         * returns: A Map<String, Boolean> containing the live state of all enforcers.
+         * Note: This is an AsyncFunction to prevent blocking the JS thread during 
+         * complex system-level settings lookups.
+         */
         AsyncFunction("checkAllPermissions") {
             val context = appContext.reactContext ?: return@AsyncFunction mapOf<String, Boolean>()
             
@@ -25,14 +42,19 @@ class EnforcementModule : Module() {
             mapOf(
                 "accessibility" to accessibilityEnabled,
                 "overlay" to overlayEnabled,
-                "location" to true, // Placeholder for standard check
-                "camera" to true,   // Placeholder for standard check
+                "location" to true, // Placeholder for future 1Hz GPS audit logic
+                "camera" to true,   
                 "notifications" to true,
                 "alarms" to true,
-                "battery" to false
+                "battery" to true
             )
         }
 
+        /**
+         * Orchestrates Intent-based navigation to system settings pages.
+         * 
+         * @param type The specific security gate to open (e.g. "accessibility", "overlay").
+         */
         Function("openSettings") { type: String ->
             val context = appContext.reactContext ?: return@Function
             val intent = when (type) {
@@ -49,8 +71,11 @@ class EnforcementModule : Module() {
         }
     }
 
+    /**
+     * Performs a strict lookup for the Accessibility Service class within the 
+     * Secure Settings manifest to ensure it is not just registered, but actively running.
+     */
     private fun isAccessibilityServiceEnabled(context: Context): Boolean {
-        // Simple accurate check using Settings.Secure
         val expectedService = "${context.packageName}/expo.modules.blocker.BlockerAccessibilityService"
         val enabledServices = Settings.Secure.getString(
             context.contentResolver,

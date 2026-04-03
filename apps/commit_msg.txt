@@ -1,7 +1,7 @@
-feat(security): implement fail-closed hardware enforcement & live permission auditing
+feat(security): implement native lifecycle permission auditing & unified dashboard UI
 
-- Implemented Hardware Permission Gate in FinalScreen to block commitment creation if enforcers are offline
-- Added real-time "Permissions Missing" alert to CommitsScreen with high-visibility red border
-- Refactored PermissionsPage to consume live native bridge status (no longer hardcoded)
-- Standardized UI across permission/penalty cards with showArrow and consistent red styling
-- Optimized screen layouts to prioritize critical warning visibility at the top
+- Integrated AppState listener to usePermissions hook for real-time enforcer re-auditing on app focus
+- Refactored CommitsScreen from FlatList to unified ScrollView for natural scrolling physics
+- Optimized dashboard layout by minimizing vertical gaps between warning/verification cards
+- Synced permission warning border-thickness (3px) with penalty card design system
+- Documented EnforcementModule (Kotlin) and hooks with production-grade architectural JSDoc

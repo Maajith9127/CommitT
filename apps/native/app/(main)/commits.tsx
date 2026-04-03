@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { View, FlatList, Pressable, Text } from "react-native";
+import { View, FlatList, Pressable, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router"; // Essential for navigation
 import { withUniwind } from "uniwind";
 
@@ -255,13 +255,13 @@ export default function CommitsScreen() {
       switch (item.type) {
         case "permission_missing":
           return (
-            <UView className="bg-black px-4 pt-0 pb-2">
+            <UView className="bg-black px-4 pt-0 pb-0">
               <ConditionCard
                 icon="alert-circle-outline"
                 title="Permissions Missing"
                 subtitle="CommitT enforcement is disabled. Tap to fix."
                 iconColor={COLORS.danger}
-                className="border-2 border-[#FF3B30] bg-[#1A1A1A]"
+                className="border-[3px] border-[#FF3B30] bg-[#1A1A1A]"
                 onPress={() => router.push("/(settings)/permissions")}
                 showArrow={true}
               />
@@ -275,7 +275,7 @@ export default function CommitsScreen() {
           );
         case "schedules_title":
           return (
-            <UView className="bg-black px-4 py-2 pb-4">
+            <UView className="bg-black px-4 py-2 pb-1">
               <UView className="w-full flex-row items-center justify-between">
                 <HeaderTitle>CommitTs</HeaderTitle>
                 <AddButton onPress={() => session?.user?.id && handleCreateNew(session.user.id)} />
@@ -333,15 +333,17 @@ export default function CommitsScreen() {
 
   return (
     <UView className="flex-1 bg-black">
-      {/* 1. Main Content List */}
-      <FlatList
-        data={listData}
-        keyExtractor={getItemKey}
-        renderItem={renderItem}
-        stickyHeaderIndices={stickyHeaderIndices}
-        contentContainerStyle={{ paddingBottom: LAYOUT.bottomPadding }}
+      {/* 1. Main Content List (Unified Scroll Element) */}
+      <ScrollView
         showsVerticalScrollIndicator={false}
-      />
+        contentContainerStyle={{ paddingBottom: LAYOUT.bottomPadding }}
+      >
+        {listData.map((item: ListItem) => (
+          <UView key={getItemKey(item)}>
+            {renderItem({ item })}
+          </UView>
+        ))}
+      </ScrollView>
       
       {/* 2. Skeleton Overlay (Removed) */}
 
