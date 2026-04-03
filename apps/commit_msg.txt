@@ -1,16 +1,1 @@
-ui(native): refine navigation transitions and layout consistency
-
-Refined the application's navigation behavior and moved towards a more 
-consistent architectural standard across the commitment flow.
-
-- Transitions: Changed internal (create-commit) screen-to-screen movement 
-  to a 150ms "quick fade" for a snappy, high-performance feel.
-- Architecture: Migrated the main Presets screen to the ActionScreenLayout 
-  standard, aligning it with the rest of the application's design system.
-- Choose Screen: Moved the InlineAddBar from the fixed header into the 
-  paging pages. This ensures the "Add Website" bar slides in/out in perfect 
-  sync with the tab content.
-- Visual Fixes: Removed redundant horizontal padding in the Choose screen 
-  footer so the "Save" button perfectly matches the width on the Final screen.
-- UX Fallback: Added Bangalore City Center as a default coordinate for new 
-  users when adding their first location preset.
+feat (redundant) : removed unnecessary files
