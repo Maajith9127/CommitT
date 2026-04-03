@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -46,7 +47,7 @@ class EnforcementModule : Module() {
                 "camera" to true,   
                 "notifications" to true,
                 "alarms" to true,
-                "battery" to true
+                "battery" to isBatteryOptimizationDisabled(context)
             )
         }
 
@@ -61,6 +62,9 @@ class EnforcementModule : Module() {
                 "accessibility" -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
                 "overlay" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                     Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+                } else null
+                "battery" -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}"))
                 } else null
                 else -> null
             }
@@ -82,5 +86,19 @@ class EnforcementModule : Module() {
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
         ) ?: ""
         return enabledServices.contains(expectedService)
+    }
+
+    /**
+     * Checks if the app is currently on the "Whitelist" for Battery Optimization (Doze Mode).
+     * 
+     * returns: True if the app is IGNORED (unrestricted), False if it is optimized.
+     */
+    private fun isBatteryOptimizationDisabled(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            pm.isIgnoringBatteryOptimizations(context.packageName)
+        } else {
+            true
+        }
     }
 }

@@ -1,7 +1,6 @@
-feat(security): implement native lifecycle permission auditing & unified dashboard UI
+feat(security): implement native battery optimization audit & dashboard enforcement
 
-- Integrated AppState listener to usePermissions hook for real-time enforcer re-auditing on app focus
-- Refactored CommitsScreen from FlatList to unified ScrollView for natural scrolling physics
-- Optimized dashboard layout by minimizing vertical gaps between warning/verification cards
-- Synced permission warning border-thickness (3px) with penalty card design system
-- Documented EnforcementModule (Kotlin) and hooks with production-grade architectural JSDoc
+- Implemented PowerManager bridge in EnforcementModule (Kotlin) to audit "Ignore Battery Optimizations" status
+- Integrated battery status into the CommitsScreen dash alert manifest to trigger "Permissions Missing" block
+- Added direct Intent navigation for battery optimization settings in Enforcement native bridge
+- Synced hardware manifest with real-time audit logs for instant UI reactivity
