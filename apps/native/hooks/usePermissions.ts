@@ -1,17 +1,8 @@
 import { useState, useEffect } from "react";
 import { Platform, PermissionsAndroid } from "react-native";
-import { NativeModulesProxy, requireNativeModule } from "expo-modules-core";
 import * as Location from "expo-location";
 import * as ImagePicker from "expo-image-picker";
-
-// Safely require the Blocker module from the native side.
-// We do this outside the hook to keep it singleton-like.
-let BlockerModule: any = null;
-try {
-  BlockerModule = requireNativeModule("Blocker");
-} catch (e) {
-  console.warn("[usePermissions] Native Blocker module not found. Some checks will be skipped.");
-}
+import { Enforcement } from "@/modules/enforcement-module";
 
 export interface PermissionStates {
   camera: boolean;
@@ -47,60 +38,16 @@ export function usePermissions() {
   const checkPermissions = async () => {
     setIsLoading(true);
     try {
-      // 1. Location (Foreground)
-      const { status: locStatus } = await Location.getForegroundPermissionsAsync();
-      
-      // 2. Camera / Media Library
-      const { status: camStatus } = await ImagePicker.getMediaLibraryPermissionsAsync();
-
-      // 3. Notifications (Android 13+ check via PermissionsAndroid)
-      let notifGranted = false;
-      if (Platform.OS === "android") {
-        if (Number(Platform.Version) >= 33) {
-          // @ts-ignore - POST_NOTIFICATIONS exists in runtime but might be missing in older types
-          const granted = await PermissionsAndroid.check("android.permission.POST_NOTIFICATIONS");
-          notifGranted = granted;
-        } else {
-          notifGranted = true; // Older versions granted on install
-        }
-      }
-
-      // 4. System-Deep Permissions
-      let accessibilityGranted = false;
-      let overlayGranted = false;
-      let batteryGranted = false;
-      let alarmsGranted = true;
-
-      if (Platform.OS === "android") {
-        try {
-          console.log("[usePermissions] Blocker Module Found:", !!BlockerModule);
-          
-          if (BlockerModule) {
-            // Check Accessibility
-            if (typeof BlockerModule.isAccessibilityServiceEnabled === "function") {
-              accessibilityGranted = await BlockerModule.isAccessibilityServiceEnabled();
-              console.log("[usePermissions] Accessibility Native Result:", accessibilityGranted);
-            }
-
-            // Check Overlay (Appear on top)
-            if (typeof BlockerModule.isOverlayPermissionEnabled === "function") {
-              overlayGranted = await BlockerModule.isOverlayPermissionEnabled();
-              console.log("[usePermissions] Overlay Native Result:", overlayGranted);
-            }
-          }
-        } catch (e) {
-          console.error("[usePermissions] Native permission check failed:", e);
-        }
-      }
+      const results = await Enforcement.checkAllPermissions();
 
       setPermissions({
-        location: locStatus === "granted",
-        camera: camStatus === "granted",
-        notifications: notifGranted,
-        alarms: alarmsGranted,
-        battery: batteryGranted,
-        overlay: overlayGranted,
-        accessibility: accessibilityGranted,
+        location: results.location,
+        camera: results.camera,
+        notifications: results.notifications,
+        alarms: results.alarms,
+        battery: results.battery,
+        overlay: results.overlay,
+        accessibility: results.accessibility,
       });
     } catch (error) {
       console.error("[usePermissions] Error checking permission manifest:", error);

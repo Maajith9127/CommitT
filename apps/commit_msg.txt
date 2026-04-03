@@ -1,6 +1,7 @@
-feat(native): integrate live accessibility auditing into usePermissions hook
+feat(native): architect centralized EnforcementModule for permission auditing
 
-- Replaced static permission mocks with real-time native bridge calls
-- Switched to direct `requireNativeModule("Blocker")` for reliable module resolution
-- Added debug logging to commits.tsx to monitor hardware state changes
-- Synchronized hook with BlockerModule's isAccessibilityServiceEnabled check
+- Created `@modules/enforcement-module` to house all hardware/OS permission checks
+- Implemented real-time check for "Appear on Top" (Overlay) via Settings.canDrawOverlays
+- Centralized Accessibility Service status auditing into EnforcementModule.kt
+- Updated usePermissions hook to consume centralized enforcement manifest
+- Added build.gradle and expo-module config to ensure inclusion in Android builds
