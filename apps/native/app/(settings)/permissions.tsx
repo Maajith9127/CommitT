@@ -4,20 +4,24 @@ import { withUniwind } from "uniwind";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { FooterText, HeaderTitle } from "@/components/ui/index";
 
+import { usePermissions } from "@/hooks/usePermissions";
+
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 
 export default function PermissionsPage() {
-  // TEMP VALUES — replace later with real permission logic
-  const cameraGranted = false;
-  const locationGranted = false;
-  const notificationsGranted = false;
-  const alarmsGranted = false;
-  const batteryGranted = false;
-  const appearGranted = false;
-  const accessibilityGranted = false;
+  const { permissions, isLoading, refresh } = usePermissions();
 
-  const getColor = (granted: boolean) => (granted ? "#4FA0FF" : "#FF4D4D");
+  /** State-based color mapping: Fail-Closed is Red, Enforcement-Ready is Green. */
+  const getColor = (granted: boolean) => (granted ? "#4CD964" : "#FF3B30");
+
+  const cameraGranted = permissions.camera;
+  const locationGranted = permissions.location;
+  const notificationsGranted = permissions.notifications;
+  const alarmsGranted = permissions.alarms;
+  const batteryGranted = permissions.battery;
+  const appearGranted = permissions.overlay;
+  const accessibilityGranted = permissions.accessibility;
 
   return (
     <UScroll showsVerticalScrollIndicator={false} className="flex-1 bg-black px-5 pt-12">
@@ -26,11 +30,6 @@ export default function PermissionsPage() {
         <MaterialCommunityIcons name="cog-outline" size={100} color="#4FA0FF" />
 
         <HeaderTitle className="mt-4 text-3xl text-white">7 Permissions Needed</HeaderTitle>
-
-        <FooterText className="mt-3 px-4 text-center text-gray-400">
-          To ensure CommitT works properly, please enable these permissions. We do not store or
-          share any personal data.
-        </FooterText>
       </UView>
 
       {/* PERMISSIONS */}
@@ -41,6 +40,7 @@ export default function PermissionsPage() {
         iconColor={getColor(cameraGranted)}
         titleColor={getColor(cameraGranted)}
         className="bg-[#1A1A1A]"
+        showArrow={true}
       />
 
       <ConditionCard
@@ -50,6 +50,7 @@ export default function PermissionsPage() {
         iconColor={getColor(locationGranted)}
         titleColor={getColor(locationGranted)}
         className="bg-[#1A1A1A]"
+        showArrow={true}
       />
 
       <ConditionCard
@@ -59,6 +60,7 @@ export default function PermissionsPage() {
         iconColor={getColor(notificationsGranted)}
         titleColor={getColor(notificationsGranted)}
         className="bg-[#1A1A1A]"
+        showArrow={true}
       />
 
       <ConditionCard
@@ -68,6 +70,7 @@ export default function PermissionsPage() {
         iconColor={getColor(alarmsGranted)}
         titleColor={getColor(alarmsGranted)}
         className="bg-[#1A1A1A]"
+        showArrow={true}
       />
 
       <ConditionCard
@@ -77,6 +80,7 @@ export default function PermissionsPage() {
         iconColor={getColor(batteryGranted)}
         titleColor={getColor(batteryGranted)}
         className="bg-[#1A1A1A]"
+        showArrow={true}
       />
 
       <ConditionCard
@@ -86,6 +90,7 @@ export default function PermissionsPage() {
         iconColor={getColor(appearGranted)}
         titleColor={getColor(appearGranted)}
         className="bg-[#1A1A1A]"
+        showArrow={true}
       />
 
       <ConditionCard
@@ -95,6 +100,7 @@ export default function PermissionsPage() {
         iconColor={getColor(accessibilityGranted)}
         titleColor={getColor(accessibilityGranted)}
         className="bg-[#1A1A1A]"
+        showArrow={true}
       />
 
       <UView className="h-10" />

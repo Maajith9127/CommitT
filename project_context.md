@@ -8,6 +8,7 @@ This is the exact layout of the repository. Use this to instantly know where cod
 *   **`/modules/blocker-module/`** — Kotlin Android Accessibility Service for banning user apps and checking layout.
 *   **`/modules/scheduler-module/`** — Kotlin math and AlarmManager APIs to bypass Android Doze mode.
 *   **`/modules/app-lister-module/`** — Native extractor to pull icons of installed Android apps.
+*   **`/modules/enforcement-module/`** — Centralized native engine for deep-OS permission auditing (Accessibility, Overlay, etc.).
 *   **`/modules/alarm-module/`** — Direct bridge to trigger notifications.
 
 ### `apps/web/` (The Desktop Dashboard)
@@ -98,4 +99,4 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
 2.  **AlarmScheduler.kt**: Writes upcoming alarms into un-encrypted Device-Protected (DE) Storage so they can fire even before the user types their PIN into a freshly restarted phone.
 3.  **Hardware Execution Shield**: Located in `_layout.tsx`, this system halts execution if Root, Jailbreak, Mock Location providers, or Developer Options are detected on the host device.
 4.  **Offline SQLite**: `commit.db` mirrors the active Convex commitment states down to the native app, verifying rules physically during Airplane mode.
-5.  **Native Permission Engine (`usePermissions.ts`)**: Serves as the reactive source of truth for the app's hardware/OS permission state. It uses `requireNativeModule("Blocker")` to perform live audits of the Android Accessibility Service and other system-deep permissions, ensuring commitment creation is gated by real-time environment validation.
+5.  **Native Permission Engine (`usePermissions.ts`)**: Serves as the reactive source of truth for the app's hardware/OS permission state. It offloads all system-deep queries to the `EnforcementModule` via the `@modules/enforcement-module` bridge, providing live auditing for Accessibility services and "Appear on Top" (Overlay) permissions.

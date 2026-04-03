@@ -11,6 +11,7 @@ import { VerificationCard } from "@/components/ui/commits/VerificationCard";
 import { ActionMenu, ActionMenuItem } from "@/components/ui/commits/ActionMenu";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { CommitCardSkeleton } from '@/components/ui/skeletons/CommitCardSkeleton';
+import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 
 
 // Extracted Domain Logic Hooks
@@ -40,6 +41,7 @@ const LAYOUT = {
 
 /** Union type for all list item types */
 type ListItemType =
+  | "permission_missing"
   | "quick"
   | "schedules_title"
   | "task_item"
@@ -130,10 +132,24 @@ export default function CommitsScreen() {
    * Transforms raw tasks into a heterogeneous list for section rendering.
    */
   const listData = useMemo<ListItem[]>(() => {
-    const items: ListItem[] = [
+    const items: ListItem[] = [];
+
+    // Check for critical missing permissions
+    const isReady =
+      permissions.location &&
+      permissions.notifications &&
+      permissions.alarms &&
+      permissions.overlay &&
+      permissions.accessibility;
+
+    if (!isReady) {
+      items.push({ type: "permission_missing" as const, subId: "permissions" });
+    }
+
+    items.push(
       { type: "quick", subId: "quick" },
-      { type: "schedules_title", subId: "title" },
-    ];
+      { type: "schedules_title", subId: "title" }
+    );
 
     if (isLoading) {
       items.push({ type: "schedules_empty", subId: "loading" });
@@ -233,10 +249,27 @@ export default function CommitsScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: ListItem }) => {
+      // Check for permission presence to adjust layout spacing
+      const hasPermissionWarning = listData.some(i => i.type === "permission_missing");
+
       switch (item.type) {
+        case "permission_missing":
+          return (
+            <UView className="bg-black px-4 pt-0 pb-2">
+              <ConditionCard
+                icon="alert-circle-outline"
+                title="Permissions Missing"
+                subtitle="CommitT enforcement is disabled. Tap to fix."
+                iconColor={COLORS.danger}
+                className="border-2 border-[#FF3B30] bg-[#1A1A1A]"
+                onPress={() => router.push("/(settings)/permissions")}
+                showArrow={true}
+              />
+            </UView>
+          );
         case "quick":
           return (
-             <UView className="bg-black px-4 pb-2">
+             <UView className={`bg-black px-4 pb-2 ${hasPermissionWarning ? "pt-0" : "pt-4"}`}>
                 <VerificationCard className="mt-0" onPress={() => router.push("/verify")} />
             </UView>
           );

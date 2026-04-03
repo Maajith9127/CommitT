@@ -1,7 +1,7 @@
-feat(native): architect centralized EnforcementModule for permission auditing
+feat(security): implement fail-closed hardware enforcement & live permission auditing
 
-- Created `@modules/enforcement-module` to house all hardware/OS permission checks
-- Implemented real-time check for "Appear on Top" (Overlay) via Settings.canDrawOverlays
-- Centralized Accessibility Service status auditing into EnforcementModule.kt
-- Updated usePermissions hook to consume centralized enforcement manifest
-- Added build.gradle and expo-module config to ensure inclusion in Android builds
+- Implemented Hardware Permission Gate in FinalScreen to block commitment creation if enforcers are offline
+- Added real-time "Permissions Missing" alert to CommitsScreen with high-visibility red border
+- Refactored PermissionsPage to consume live native bridge status (no longer hardcoded)
+- Standardized UI across permission/penalty cards with showArrow and consistent red styling
+- Optimized screen layouts to prioritize critical warning visibility at the top

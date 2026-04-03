@@ -19,6 +19,7 @@ import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { validateTaskDraft } from "@/lib/validation/taskDraft";
 import { useCommitTask } from "@/hooks/useCommitTask";
 import { useAccountabilityPrefill } from "@/hooks/useAccountabilityPrefill";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 
 /** Metadata for a device-installed application resolved from native */
@@ -194,6 +195,9 @@ export default function FinalScreen() {
   const setConfig = useTaskDraftStore((state) => state.setConfig);
 
 
+  // Permissions logic
+  const { permissions } = usePermissions();
+
   // Mutations and DB handled by custom hook 
   const executeCommit = useCommitTask();
 
@@ -319,8 +323,25 @@ export default function FinalScreen() {
 
   /**
    * Validate the draft and show confirmation modal if valid.
+   * Also gates the submission behind the Hardware Permission Manifest.
    */
   const handleCommitPress = useCallback(() => {
+    // 1. HARDWARE PERMISSION GATE (Fail-Closed Security)
+    // We require all critical enforcers to be enabled before creating a binding commitment.
+    const isReady =
+      permissions.location &&
+      permissions.notifications &&
+      permissions.alarms &&
+      permissions.overlay &&
+      permissions.accessibility;
+
+    if (!isReady) {
+       console.warn("[final.tsx] Hardware Gate Intervention: Redirecting to permissions audit.");
+       router.push("/(settings)/permissions");
+       return;
+    }
+
+    // 2. LOGICAL VALIDATION
     const validation = validateTaskDraft(draft);
 
     if (!validation.valid) {
@@ -329,7 +350,7 @@ export default function FinalScreen() {
     }
 
     setConfirmModalVisible(true);
-  }, [draft]);
+  }, [draft, permissions, router]);
 
   /**
    * Submit the task to the backend via the centralized Triple-Write Architecture
