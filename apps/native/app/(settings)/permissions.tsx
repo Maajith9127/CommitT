@@ -5,6 +5,7 @@ import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { FooterText, HeaderTitle } from "@/components/ui/index";
 
 import { usePermissions } from "@/hooks/usePermissions";
+import { Enforcement } from "@/modules/enforcement-module";
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
@@ -14,6 +15,15 @@ export default function PermissionsPage() {
 
   /** State-based color mapping: Fail-Closed is Red, Enforcement-Ready is Green. */
   const getColor = (granted: boolean) => (granted ? "#4CD964" : "#FF3B30");
+
+  const handleOpenSettings = (type: string) => {
+    console.log(`[DEBUG] Attempting to open settings for: ${type}`);
+    if (isLoading) {
+      console.log("[DEBUG] Navigation blocked: permissions are currently loading.");
+      return;
+    }
+    Enforcement.openSettings(type);
+  };
 
   const cameraGranted = permissions.camera;
   const locationGranted = permissions.location;
@@ -41,6 +51,7 @@ export default function PermissionsPage() {
         titleColor={getColor(cameraGranted)}
         className="bg-[#1A1A1A]"
         showArrow={true}
+        onPress={() => handleOpenSettings("camera")}
       />
 
       <ConditionCard
@@ -51,6 +62,7 @@ export default function PermissionsPage() {
         titleColor={getColor(locationGranted)}
         className="bg-[#1A1A1A]"
         showArrow={true}
+        onPress={() => handleOpenSettings("location")}
       />
 
       <ConditionCard
@@ -61,6 +73,7 @@ export default function PermissionsPage() {
         titleColor={getColor(notificationsGranted)}
         className="bg-[#1A1A1A]"
         showArrow={true}
+        onPress={() => handleOpenSettings("notifications")}
       />
 
       <ConditionCard
@@ -71,6 +84,7 @@ export default function PermissionsPage() {
         titleColor={getColor(alarmsGranted)}
         className="bg-[#1A1A1A]"
         showArrow={true}
+        onPress={() => handleOpenSettings("alarms")}
       />
 
       <ConditionCard
@@ -81,6 +95,7 @@ export default function PermissionsPage() {
         titleColor={getColor(batteryGranted)}
         className="bg-[#1A1A1A]"
         showArrow={true}
+        onPress={() => handleOpenSettings("battery")}
       />
 
       <ConditionCard
@@ -91,6 +106,7 @@ export default function PermissionsPage() {
         titleColor={getColor(appearGranted)}
         className="bg-[#1A1A1A]"
         showArrow={true}
+        onPress={() => handleOpenSettings("overlay")}
       />
 
       <ConditionCard
@@ -101,6 +117,7 @@ export default function PermissionsPage() {
         titleColor={getColor(accessibilityGranted)}
         className="bg-[#1A1A1A]"
         showArrow={true}
+        onPress={() => handleOpenSettings("accessibility")}
       />
 
       <UView className="h-10" />

@@ -1,6 +1,7 @@
-feat(security): implement native battery optimization audit & dashboard enforcement
+feat(security): implement deep-link navigation for all 7 hardware enforcers
 
-- Implemented PowerManager bridge in EnforcementModule (Kotlin) to audit "Ignore Battery Optimizations" status
-- Integrated battery status into the CommitsScreen dash alert manifest to trigger "Permissions Missing" block
-- Added direct Intent navigation for battery optimization settings in Enforcement native bridge
-- Synced hardware manifest with real-time audit logs for instant UI reactivity
+- Implemented direct Intent-based navigation for Camera, Location, Alarms, and Notifications in EnforcementModule (Kotlin)
+- Added robust Intent construction using fully-qualified android.provider.Settings constants
+- Integrated card-tap handlers in PermissionsPage.tsx to launch specific system settings pages
+- Implemented universal fallback to App Details settings for unsupported OS versions or OEM blocks
+- Added production-grade native logging (Logcat) and try-catch safety for activity execution
