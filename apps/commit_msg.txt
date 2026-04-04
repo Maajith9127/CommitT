@@ -1,9 +1,1 @@
-feat(sync): implement resilient offline-first engine with ghost preservation
-
-Architected a production-grade Hydration Engine to maintain absolute data parity between Convex cloud storage, the local SQLite `commit.db`, and the Kotlin AlarmManager.
-
-- **Amnesia vs Warm Boot**: Deployed smart hydration bridging where the engine downloads full table snapshots on fresh installs but intelligently requests highly-optimized Deltas on standard launches.
-- **Fast-Path Initializer**: Upgraded local-db to execute a single atomic V11 schema rollout for fresh installs, safely bypassing legacy schema migrations.
-- **Identity Pointer Resolution**: Patched a critical API mapping failure in `delta.ts` (using `user.id` instead of `user._id`) that falsely reported zero synchronization drift.
-- **Ghost Instance Parity**: Implemented a PRAGMA bypass (`foreign_keys = OFF`) during payload ingestion. The sync engine now smoothly ingests orphaned instances from historical deletions without triggering SQLite's aggressive `ON DELETE CASCADE` protections, achieving identical behavior to UI drops and keeping the Calendar history perfect offline.
-- **Production Logging**: Stripped all non-conforming emojis across engine modules to meet firm Tier-1 logging standards.
+feat(arch): implement TripleWriteOrchestrator with Saga Pattern and Context Snapshotting
