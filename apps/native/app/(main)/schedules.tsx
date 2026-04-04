@@ -138,7 +138,13 @@ export default function SchedulesScreen() {
     });
   }, []);
 
-  // --- 4. PERSISTENCE WORKFLOW (THE "TRIPLE-WRITE") ---
+  // ─────────────────────────────────────────────────────────────────────────
+  // 4. PERSISTENCE WORKFLOW (THE "TRIPLE-WRITE")
+  // ─────────────────────────────────────────────────────────────────────────
+  // This function executes a critical three-step atomic synchronization:
+  // 1. Convex (Cloud): Validates overlaps and updates the master database.
+  // 2. SQLite (Local): Caches the updated instance for offline access.
+  // 3. Kotlin (Hardware): Reschedules the underlying Android AlarmManager.
 
   const executeEventUpdate = useCallback(async () => {
     if (!dragConfirm.event || !dragConfirm.newStart || !dragConfirm.newEnd) return;

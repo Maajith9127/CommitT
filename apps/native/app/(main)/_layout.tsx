@@ -192,8 +192,19 @@ export default function MainLayout() {
         <Tabs
           tabBar={(props) => <BottomTabBar {...props} />}
           screenOptions={{
-            headerShown: false, // Disabling Expo's default header since we use our custom sticky header above
-            freezeOnBlur: true, // Keeps inactive tabs mounted to prevent map re-initialization
+            // Disable default layout headers to prioritize our global sticky dynamic header
+            headerShown: false, 
+            
+            // ─────────────────────────────────────────────────────────────────
+            //  CRITICAL ARCHITECTURAL DECISION: freezeOnBlur
+            // ─────────────────────────────────────────────────────────────────
+            // Disabling `freezeOnBlur` is mandatory for screens utilizing `react-native-gesture-handler` 
+            // (e.g., CalendarKit's drag-and-drop mechanics). If set to true, React Native aggressively 
+            // suspends the component tree to save memory. This action forcefully severs Reanimated 
+            // listener bindings. Upon "thawing," native gestures fail to lock parent ScrollViews, 
+            // causing severe interaction bugs (e.g., events floating while the background scrolls).
+            freezeOnBlur: false, 
+            
             tabBarStyle: {
               backgroundColor: "#000000",
               borderTopWidth: 0,
