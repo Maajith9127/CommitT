@@ -23,6 +23,7 @@ import type * as api_instances_read from "../api/instances/read.js";
 import type * as api_instances_update from "../api/instances/update.js";
 import type * as api_instances_waivers from "../api/instances/waivers.js";
 import type * as api_notifications_read from "../api/notifications/read.js";
+import type * as api_sync_delta from "../api/sync/delta.js";
 import type * as config_constants from "../config/constants.js";
 import type * as config_enums from "../config/enums.js";
 import type * as core_commitments_conflictDetection from "../core/commitments/conflictDetection.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   "api/instances/update": typeof api_instances_update;
   "api/instances/waivers": typeof api_instances_waivers;
   "api/notifications/read": typeof api_notifications_read;
+  "api/sync/delta": typeof api_sync_delta;
   "config/constants": typeof config_constants;
   "config/enums": typeof config_enums;
   "core/commitments/conflictDetection": typeof core_commitments_conflictDetection;

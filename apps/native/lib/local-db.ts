@@ -35,13 +35,117 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     return;
   }
 
-  // ── Migration 0 → 1 (initial, may have old schema) ─────────────────────
+  // ── Prod-Level Architecture: The "Fast-Path" Complete Wipe Recovery ──
+  // Instead of running 11 fragmented migrations on a fresh install, if the 
+  // user is entirely new (or just wiped their storage), we instantly deploy 
+  // the fully comprehensive final unified schema as a single atomic transaction.
   if (currentVersion === 0) {
+    console.log('[LocalDB] Fast-Path Initialization: Executing Unified Schema V11...');
     await db.execAsync(`
       PRAGMA journal_mode = 'wal';
+      PRAGMA foreign_keys = OFF;
+      
+      DROP TABLE IF EXISTS blocked_websites;
+      DROP TABLE IF EXISTS blocked_apps;
+      DROP TABLE IF EXISTS alarm_overrides;
+      DROP TABLE IF EXISTS scheduled_alarms;
+      DROP TABLE IF EXISTS task_instances;
+      DROP TABLE IF EXISTS local_tasks;
       PRAGMA foreign_keys = ON;
+
+      CREATE TABLE local_tasks (
+        id TEXT PRIMARY KEY,
+        convex_id TEXT UNIQUE NOT NULL,
+        assigner_id TEXT NOT NULL,
+        assignee_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT NOT NULL,
+        visibility TEXT NOT NULL,
+        recurrence_json TEXT NOT NULL,
+        conditions_json TEXT NOT NULL,
+        config_json TEXT NOT NULL DEFAULT '{}',
+        penalty_json TEXT DEFAULT NULL,
+        penalty_waiver_json TEXT DEFAULT NULL,
+        strict_until INTEGER DEFAULT NULL,
+        strict_duration_days INTEGER DEFAULT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        synced_at INTEGER
+      );
+      CREATE INDEX idx_tasks_assignee ON local_tasks(assignee_id);
+      CREATE INDEX idx_tasks_assigner ON local_tasks(assigner_id);
+
+      CREATE TABLE task_instances (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        convex_id TEXT NOT NULL,
+        title TEXT DEFAULT '',
+        scheduled_timestamp INTEGER NOT NULL,
+        start_time INTEGER NOT NULL,
+        end_time INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending', 
+        config_json TEXT NOT NULL DEFAULT '{}',
+        checkpoints TEXT NOT NULL DEFAULT '[]',
+        penalty_json TEXT DEFAULT NULL,
+        conditions_json TEXT DEFAULT NULL,
+        penalty_waiver_json TEXT DEFAULT NULL,
+        is_manual_edit INTEGER DEFAULT 0,
+        strict_until INTEGER DEFAULT NULL,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX idx_task_instances_time ON task_instances(start_time, end_time);
+      CREATE INDEX idx_task_instances_task ON task_instances(task_id);
+
+      CREATE TABLE scheduled_alarms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        fire_at INTEGER NOT NULL,
+        instance_start INTEGER NOT NULL,
+        instance_end INTEGER NOT NULL,
+        pester_count INTEGER DEFAULT 0,
+        dismissed INTEGER DEFAULT 0,
+        os_alarm_id INTEGER,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX idx_alarm_fire ON scheduled_alarms(fire_at, dismissed);
+      CREATE INDEX idx_alarm_task ON scheduled_alarms(task_id);
+
+      CREATE TABLE alarm_overrides (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        original_start INTEGER NOT NULL,
+        new_start INTEGER,
+        new_end INTEGER,
+        cancelled INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        UNIQUE(task_id, original_start)
+      );
+      CREATE INDEX idx_override_task ON alarm_overrides(task_id);
+
+      CREATE TABLE blocked_apps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        package_name TEXT NOT NULL,
+        active_from INTEGER,
+        active_until INTEGER
+      );
+      CREATE INDEX idx_blocked_package ON blocked_apps(package_name, active_until);
+
+      CREATE TABLE blocked_websites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        domain TEXT NOT NULL,
+        active_from INTEGER,
+        active_until INTEGER
+      );
+      CREATE INDEX idx_blocked_domain ON blocked_websites(domain, active_until);
+
+      PRAGMA user_version = 11;
     `);
-    currentVersion = 1;
+    
+    currentVersion = 11;
+    console.log('[LocalDB] Fast-Path Initialization Complete.');
+    return; // Exit securely since we are already at max version
   }
 
   // ── Migration 1 → 2 (drop old tables, recreate with correct schema) ────
@@ -271,6 +375,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     await addColumn('task_instances', 'penalty_waiver_json', 'TEXT DEFAULT NULL');
 
     await db.execAsync(`PRAGMA user_version = 10`);
+    currentVersion = 10; // BUGFIX: Previously missing, causing continuous boots to skip migration 11
     console.log('[Migration] 9 → 10 Successful.');
   }
 

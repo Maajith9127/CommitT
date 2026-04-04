@@ -1,0 +1,90 @@
+import { useEffect, useState } from "react";
+import { useConvex } from "convex/react";
+import { useSQLiteContext } from "expo-sqlite";
+import { api } from "@commit/backend/convex/_generated/api";
+import { authClient } from "@/lib/auth-client";
+import { getLocalSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
+import { scheduleNextAlarm } from "@/modules/scheduler-module";
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * PROD-LEVEL HYDRATION HOOK
+ * ─────────────────────────────────────────────────────────────────────────────
+ * This hook sits at the absolute root of the application.
+ * The millisecond the user logs in (or boots the app while logged in), this 
+ * hook silently negotiates with Convex and SQLite.
+ * 
+ * If it detects a 'Wipe' (amnesia), it triggers a full state download.
+ * If it detects a 'Warm Boot', it does a silent delta patch in the background.
+ */
+export function useHydrationSync() {
+  const convex = useConvex();
+  const db = useSQLiteContext();
+  const { data: session } = authClient.useSession();
+  
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isFullyHydrated, setIsFullyHydrated] = useState(false);
+
+  useEffect(() => {
+    // 1. Authorization Gate: Never sync if user is completely logged out.
+    if (!session?.user?.id) {
+      setIsFullyHydrated(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    async function executeReconciliation() {
+      if (!isMounted) return;
+      setIsSyncing(true);
+
+      try {
+        // 2. Token Reconnaissance
+        const token = await getLocalSyncToken();
+        const isAmnesiaWipe = token === null;
+
+        if (isAmnesiaWipe) {
+            console.log('\n[HydrationSync] AMNESIA DETECTED! Local DB wiped. Forcing Full Storage Rebuild...');
+        } else {
+            console.log(`\n[HydrationSync] Warm Boot. Checking for Deltas since ${new Date(token).toLocaleTimeString()}...`);
+        }
+
+        // 3. The Cloud API Handshake
+        // We use an imperative query execution so it only runs EXACTLY ONCE per boot/auth cycle!
+        // Reactive useQuery would ping continuously.
+        const payload = await convex.query(api.api.sync.delta.getDeltaPayload, {
+          last_synced_at: token || undefined,
+        });
+
+        // 4. The Atomic Ingestor
+        // If there are literally no changes, we completely skip the heavy write to save battery!
+        if (payload.tasks.length > 0 || payload.instances.length > 0) {
+            console.log(`[HydrationSync] Downloaded ${payload.tasks.length} tasks and ${payload.instances.length} instances.`);
+            
+            await ingestDeltaPayload(db, payload);
+            
+            // 5. Hardware Re-Arm
+            console.log('[HydrationSync] Firing Signals to Kotlin Hardware Kernel...');
+            scheduleNextAlarm();
+            console.log('[HydrationSync] Hardware fully synchronized!');
+        } else {
+            console.log('[HydrationSync] Fully synchronized. Zero mutation drift detected.');
+        }
+
+      } catch (e) {
+        console.error('[HydrationSync] Synchronization Engine Catastrophic Failure:', e);
+      } finally {
+        if (isMounted) {
+            setIsSyncing(false);
+            setIsFullyHydrated(true);
+        }
+      }
+    }
+
+    executeReconciliation();
+
+    return () => { isMounted = false; };
+  }, [session?.user?.id, convex, db]);
+
+  return { isSyncing, isFullyHydrated, sessionStatus: !!session?.user?.id };
+}

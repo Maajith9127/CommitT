@@ -1,12 +1,9 @@
-fix(schedules): disable screen suspension to restore CalendarKit native gestures
+feat(sync): implement resilient offline-first engine with ghost preservation
 
-[Root Cause]
-React Native's `freezeOnBlur` capability inside the Tab Navigator was aggressively suspending the component tree when users navigated to the task creation stack. Upon "thawing," the `react-native-gesture-handler` instances inside `CalendarKit` severed their native bindings, resulting in broken scroll-locks and orphaned touch coordinates (events floating while the master ScrollView incorrectly scrolled).
+Architected a production-grade Hydration Engine to maintain absolute data parity between Convex cloud storage, the local SQLite `commit.db`, and the Kotlin AlarmManager.
 
-[Solution]
-- Explicitly disabled `freezeOnBlur` in `apps/native/app/(main)/_layout.tsx` to maintain continuous PanGesture hierarchy and Reanimated listener stability across navigation transitions.
-- Added production-level architectural comments detailing the strict requirement for disabled screen suspension when utilizing complex native drag-and-drop contexts. 
-- Documented the `executeEventUpdate` Triple-Write atomic sequence (Convex Sync -> SQLite Cache -> Kotlin Alarm Reschedule) in `schedules.tsx` to ensure downstream workflow maintainability.
-
-[Impact]
-Calendar drag-and-drop functionality remains perfectly fluid at 60fps regardless of forward or backward stack navigation pops, with no regression in layout performance.
+- **Amnesia vs Warm Boot**: Deployed smart hydration bridging where the engine downloads full table snapshots on fresh installs but intelligently requests highly-optimized Deltas on standard launches.
+- **Fast-Path Initializer**: Upgraded local-db to execute a single atomic V11 schema rollout for fresh installs, safely bypassing legacy schema migrations.
+- **Identity Pointer Resolution**: Patched a critical API mapping failure in `delta.ts` (using `user.id` instead of `user._id`) that falsely reported zero synchronization drift.
+- **Ghost Instance Parity**: Implemented a PRAGMA bypass (`foreign_keys = OFF`) during payload ingestion. The sync engine now smoothly ingests orphaned instances from historical deletions without triggering SQLite's aggressive `ON DELETE CASCADE` protections, achieving identical behavior to UI drops and keeping the Calendar history perfect offline.
+- **Production Logging**: Stripped all non-conforming emojis across engine modules to meet firm Tier-1 logging standards.

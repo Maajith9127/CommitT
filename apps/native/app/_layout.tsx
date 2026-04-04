@@ -14,8 +14,10 @@ import { authClient } from "@/lib/auth-client";
 import { LOCAL_DB_NAME, migrateDbIfNeeded } from "@/lib/local-db";
 import { env } from "@commit/env/native";
 import { showTasksToast } from "@/modules/alarm-module";
+import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useEffect } from "react";
+import { useHydrationSync } from "@/hooks/useHydrationSync";
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 const convex = new ConvexReactClient(convexUrl, {
@@ -368,6 +370,18 @@ function SecurityShield({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** 
+ * Invisible background Sync Engine.
+ * Sits actively at the absolute root of the UI, monitoring authentication
+ * and dispatching the Silent Fetch to rebuild SQLite when missing.
+ */
+function HydrationEngine() {
+  useHydrationSync(); // Runs invisibly, pushing to SQLite & Kotlin securely on the backend thread!
+  // In the future: We can add an 'isSyncing' full-screen blur here if we detect 
+  // a complete Amnesia wipe, to strictly gate the user out!
+  return null; 
+}
+
 export default function Layout() {
   useEffect(() => {
     // ── SYSTEM INITIALIZATION ──
@@ -380,11 +394,14 @@ export default function Layout() {
     <SecurityShield>
       <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
         <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
             <KeyboardProvider>
               <AppThemeProvider>
                 <HeroUINativeProvider>
-                  <StackLayout />
+                  <ThemeProvider value={{ ...DarkTheme, colors: { ...DarkTheme.colors, background: '#000000' } }}>
+                    <HydrationEngine />
+                    <StackLayout />
+                  </ThemeProvider>
                   <DbDebugFab />
                   <AlarmFab />
                 </HeroUINativeProvider>
