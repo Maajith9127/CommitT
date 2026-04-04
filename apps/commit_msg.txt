@@ -1,12 +1,1 @@
-feat(native/enforcer): high-performance permission auditing & snappy UI
-
-- Implemented real-time system audits for Location, Camera, Notifications, 
-  and Alarms in EnforcementModule.kt (replacing hardcoded values).
-- Added a 3-second 'warmup' delay to the permission warning card for a 
-  'quiet' startup experience.
-- Implemented high-performance Reanimated 3 spring transitions for the 
-  CommitsScreen layout.
-- Tuned spring mechanics (stiffness=200, low mass) for a high-velocity, 
-  snappy layout push effect.
-- Fixed UI reactivity in CommitsScreen by correctly handling State 
-  dependencies for the permission audit lifecycle.
+feat(checkpoint): checkpoint for rollback
