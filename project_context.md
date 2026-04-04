@@ -105,3 +105,16 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
     *   **Fail-Closed & High-UX Dashboard**: Injects a high-performance, reactive "Permissions Missing" block into the `CommitsScreen`.
         *   **Warmup Rule**: Employs a 3-second startup delay to prevent UI flashing and ensure a "quiet" boot.
         *   **Kinetic Layout**: Utilizes Reanimated 3 spring transitions (snappy configuration) to slide the dashboard into view without blocking interaction.
+
+---
+
+## Navigation & Performance Architecture
+
+1.  **"Reveal-Stack" Strategy (Pop-Centric)**:
+    *   **Context**: The `(main)` group (Dashboard, Calendar, Commits) is a high-cost layout due to native components like `CalendarKit` and `GoogleMaps`.
+    *   **The Golden Rule**: Once the `(main)` group is mounted, it should NEVER be unmounted during standard usage. Navigating to setup screens (like `(create-commit)`) MUST use `router.push()` to layer the new screen on top.
+    *   **The Return Pattern**: Returning to a previous screen (e.g., from `time-set` to `final` or `final` to `main`) MUST use `router.back()` or `router.dismissAll()`.
+    *   **The Result**: This prevents redundant instantiation of native components, eliminates 1-11s re-initialization delays, and correctly triggers "Slide Left" (Revealing) animations instead of "Slide Right" (Entering) animations.
+
+2.  **Native Draw Buffers**:
+    *   **Loading Skeleton**: To prevent UI jank during the first frame of heavy native components (like the Calendar), use a data-driven skeleton (e.g., `useSkeletonAnimation.ts`) that waits for data to arrive but adds a small (~250ms) "Native Draw Buffer" before fading out. This ensures the native grid is fully painted before the skeleton disappears.

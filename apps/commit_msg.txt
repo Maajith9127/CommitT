@@ -1,1 +1,7 @@
-feat(checkpoint): checkpoint for rollback
+perf(navigation): implement Reveal-Stack strategy for the creation flow
+
+- Migrated (create-commit) return paths from `router.push` to `router.back()`.
+- Optimized the navigation stack to prevent redundant instantiation of the (main) layout.
+- Resolved 11s CalendarKit initialization lag by revealing the existing background layout instead of pushing a new one.
+- Tightened skeleton animation timings (250ms buffer / 600ms fade) for a snappier, premium feel.
+- Standardized the "Slide Left" return animation across Time, Location, and App selection steps.

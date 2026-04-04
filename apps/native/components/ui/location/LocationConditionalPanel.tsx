@@ -96,7 +96,7 @@ export function LocationConditionPanel({
 
       {/* SAVE BUTTON */}
       <UView className="mt-4">
-        <PrimaryButton onPress={() => router.push("/(create-commit)/final")}>Save</PrimaryButton>
+        <PrimaryButton onPress={() => router.back()}>Save</PrimaryButton>
       </UView>
     </UView>
   );

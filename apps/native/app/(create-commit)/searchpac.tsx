@@ -76,7 +76,7 @@ export default function SearchPacScreen() {
 
         // Small delay so the user sees the 'tint' feedback before the screen slides away
         setTimeout(() => {
-          router.navigate("/(create-commit)/location-set");
+          router.back();
         }, 50);
       }
     } catch (error) {

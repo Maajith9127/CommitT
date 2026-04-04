@@ -268,7 +268,7 @@ export default function TimeSetScreen() {
         className="bg-black pt-20"
         footer={
           <PrimaryButton 
-            onPress={() => router.push("/(create-commit)/final")}
+            onPress={() => router.back()}
             disabled={!canSave}
             className={canSave ? "opacity-100" : "opacity-25"}
           >

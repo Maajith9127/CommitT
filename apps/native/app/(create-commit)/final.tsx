@@ -362,8 +362,8 @@ export default function FinalScreen() {
       const { success, error } = await executeCommit(draft, isEditMode);
 
       if (success) {
-        console.log('[final.tsx] Total Transaction Success. Navigating to timeline view.');
-        router.push("/(main)/commits");
+        console.log('[final.tsx] Total Transaction Success. Floating back to dashboard.');
+        router.back();
       } else {
         setErrorModal({ 
            visible: true, 
