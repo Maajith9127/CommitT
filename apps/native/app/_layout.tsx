@@ -38,11 +38,46 @@ function StackLayout() {
       <Stack.Screen name="(auth)" options={{ animation: "fade" }} />
       <Stack.Screen name="(create-commit)" options={{ animation: "slide_from_right", animationDuration: 200, headerShadowVisible: false, headerTransparent: true }} />
       <Stack.Screen name="(edit-preset)" options={{ animation: "fade" }} />
+      <Stack.Screen name="(dev)/chaos" options={{ animation: "slide_from_bottom", presentation: 'modal' }} />
       <Stack.Screen name="(penalties)" options={{ animation: "slide_from_right" }} />
       <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
     </Stack>
   );
 }
+
+import { useRouter } from 'expo-router';
+
+/** 🐜 Floating Chaos button — ONLY in __DEV__ */
+function ChaosFab() {
+  const router = useRouter();
+  if (!__DEV__) return null;
+  
+  return (
+    <Pressable
+      onPress={() => router.push('/(dev)/chaos')}
+      style={{
+        position: 'absolute',
+        bottom: 280,
+        right: 16,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: '#FF3B30',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      }}
+    >
+      <Text style={{ fontSize: 20 }}>🐛</Text>
+    </Pressable>
+  );
+}
+
 
 /** 🔍 Floating debug button — shows local DB contents */
 function DbDebugFab() {
@@ -391,25 +426,31 @@ export default function Layout() {
   }, []);
 
   return (
-    <SecurityShield>
-      <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
-        <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-          <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
-            <KeyboardProvider>
-              <AppThemeProvider>
-                <HeroUINativeProvider>
-                  <ThemeProvider value={{ ...DarkTheme, colors: { ...DarkTheme.colors, background: '#000000' } }}>
-                    <HydrationEngine />
-                    <StackLayout />
-                  </ThemeProvider>
-                  <DbDebugFab />
-                  <AlarmFab />
-                </HeroUINativeProvider>
-              </AppThemeProvider>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
-        </ConvexBetterAuthProvider>
-      </SQLiteProvider>
-    </SecurityShield>
+    <View style={{ flex: 1, backgroundColor: 'black' }}>
+      <SecurityShield>
+        <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
+          <ConvexBetterAuthProvider client={convex} authClient={authClient}>
+            <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
+              <KeyboardProvider>
+                <AppThemeProvider>
+                  <HeroUINativeProvider>
+                    <ThemeProvider value={{ ...DarkTheme, colors: { ...DarkTheme.colors, background: '#000000' } }}>
+                      <HydrationEngine />
+                      <StackLayout />
+                    </ThemeProvider>
+                    <DbDebugFab />
+                    <AlarmFab />
+                  </HeroUINativeProvider>
+                </AppThemeProvider>
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </ConvexBetterAuthProvider>
+        </SQLiteProvider>
+      </SecurityShield>
+      <ChaosFab />
+    </View>
   );
 }
+
+
+

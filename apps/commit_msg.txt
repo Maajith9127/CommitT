@@ -1,1 +1,8 @@
-feat(arch): implement TripleWriteOrchestrator with Saga Pattern and Context Snapshotting
+feat(sync): implement chaos-hardened Triple-Write Saga with Split-Brain healing
+
+Architected a production-grade Saga pattern to maintain absolute consistency across Convex, SQLite, and Android Hardware Alarms.
+
+- TripleWriteOrchestrator: Deployed a sequential transaction engine with built-in rollback (Compensating Transactions) for each layer.
+- Context Snapshotting: Implemented immutable freezing of user intent to prevent UI state drift during recovery phases.
+- Chaos Engineering: Built a dedicated 'Chaos Engine' control panel (`chaos.tsx`) with fault injection triggers to simulate hardware failures and network drops on-demand.
+- Split-Brain Recovery: Engineered a fail-safe detection for partial rollbacks. If a compensating delete fails, the system instantly triggers a silent rehydration sync to pull 'ghost' records into SQLite, achieving guaranteed Eventual Consistency.
