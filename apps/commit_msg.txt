@@ -1,8 +1,7 @@
-refactor(location): optimize and modularize the geofencing map logic
+perf(ui): upgrade CustomSwitch to Reanimated 3 with tactical haptics
 
-- Implemented Buffered Commit strategy for geofence radius updates (60fps feedback).
-- Memoized geofence visual calculations (Polygons/Circles) using `useMemo`.
-- Stabilized interaction handlers with `useCallback` to prevent UI jitter.
-- Refactored screen architecture into a clean 6-phase pipeline (State -> Sensors -> Visuals -> Handlers -> Render).
-- Added comprehensive production-grade documentation for the inverse geofencing logic.
-- Simplified Platform Guard and visual layer synchronization.
+- Refactored core CustomSwitch component to use Reanimated 3 for UI-thread animations.
+- Eliminated JS-bridge lag by replacing legacy Animated API (useNativeDriver: false).
+- Integrated Expo Haptics (Impact Medium) for premium tactile feedback.
+- Fixed Babel SyntaxError caused by malformed quote escaping in UI components.
+- Standardized spring physics (stiffness: 120, damping: 15) for unified tactile feel.

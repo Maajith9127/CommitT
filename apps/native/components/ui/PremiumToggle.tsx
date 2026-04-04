@@ -8,28 +8,18 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
-interface CustomSwitchProps {
-  value: boolean;
+/**
+ * PremiumToggle — A high-fidelity, kinetic toggle switch.
+ */
+export function PremiumToggle({ 
+  value, 
+  onValueChange, 
+  activeColor = "#4FA0FF" 
+}: { 
+  value: boolean; 
   onValueChange: (val: boolean) => void;
   activeColor?: string;
-  inactiveColor?: string;
-  thumbColor?: string;
-}
-
-/**
- * CustomSwitch — High-performance Reanimated 3 implementation.
- * 
- * REFACTOR NOTE: 
- * Migrated from legacy Animated API to Reanimated 3 to eliminate 
- * JS-thread jank. Added tactile haptics.
- */
-export function CustomSwitch({
-  value,
-  onValueChange,
-  activeColor = "#4FA0FF",
-  inactiveColor = "#3A3A3C",
-  thumbColor = "#FFFFFF",
-}: CustomSwitchProps) {
+}) {
   const progress = useSharedValue(value ? 1 : 0);
 
   useEffect(() => {
@@ -41,7 +31,7 @@ export function CustomSwitch({
   }, [value]);
 
   const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onValueChange(!value);
   };
 
@@ -49,7 +39,7 @@ export function CustomSwitch({
     const backgroundColor = interpolateColor(
       progress.value,
       [0, 1],
-      [inactiveColor, activeColor]
+      ["#3A3A3C", activeColor]
     );
     return { backgroundColor };
   });
@@ -65,7 +55,7 @@ export function CustomSwitch({
   return (
     <Pressable onPress={handlePress}>
       <Animated.View style={[styles.track, animatedTrackStyle]}>
-        <Animated.View style={[styles.thumb, { backgroundColor: thumbColor }, animatedThumbStyle]} />
+        <Animated.View style={[styles.thumb, animatedThumbStyle]} />
       </Animated.View>
     </Pressable>
   );
@@ -83,6 +73,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,

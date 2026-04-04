@@ -122,3 +122,8 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
     *   **Context**: High-frequency UI interactions (e.g., geofence radius sliders, real-time filters) should NEVER directly update a global Zustand store in real-time.
     *   **Logic**: Maintain a local kinetic state for the immediate visual layer (e.g., the map circle or numerical feedback) and only "commit" the final value to the global store on the interaction's completion event (e.g., `onSlidingComplete`).
     *   **The Result**: Drastically reduces re-render cycles in the parent navigation stack and provides a smooth 60fps interaction feel.
+
+4.  **UI Thread Isolation (Reanimated 3)**:
+    *   **Context**: Native UI components like `Switch` or `Slider` can stutter if the Javascript thread is busy with state updates (e.g., Zustand mutations).
+    *   **Logic**: Use `react-native-reanimated` for all interactive components. By offloading animation logic to the UI thread, components remain responsive (60fps) even during heavy background processing.
+    *   **Tactile Feedback**: Every interactive component (Toggles, Primary Buttons) must integrate `expo-haptics` (Impact Medium/Light) to provide a premium, hardware-like experience.
