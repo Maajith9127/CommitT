@@ -1,7 +1,8 @@
-perf(navigation): implement Reveal-Stack strategy for the creation flow
+refactor(location): optimize and modularize the geofencing map logic
 
-- Migrated (create-commit) return paths from `router.push` to `router.back()`.
-- Optimized the navigation stack to prevent redundant instantiation of the (main) layout.
-- Resolved 11s CalendarKit initialization lag by revealing the existing background layout instead of pushing a new one.
-- Tightened skeleton animation timings (250ms buffer / 600ms fade) for a snappier, premium feel.
-- Standardized the "Slide Left" return animation across Time, Location, and App selection steps.
+- Implemented Buffered Commit strategy for geofence radius updates (60fps feedback).
+- Memoized geofence visual calculations (Polygons/Circles) using `useMemo`.
+- Stabilized interaction handlers with `useCallback` to prevent UI jitter.
+- Refactored screen architecture into a clean 6-phase pipeline (State -> Sensors -> Visuals -> Handlers -> Render).
+- Added comprehensive production-grade documentation for the inverse geofencing logic.
+- Simplified Platform Guard and visual layer synchronization.

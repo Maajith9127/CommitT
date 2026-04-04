@@ -116,5 +116,9 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
     *   **The Return Pattern**: Returning to a previous screen (e.g., from `time-set` to `final` or `final` to `main`) MUST use `router.back()` or `router.dismissAll()`.
     *   **The Result**: This prevents redundant instantiation of native components, eliminates 1-11s re-initialization delays, and correctly triggers "Slide Left" (Revealing) animations instead of "Slide Right" (Entering) animations.
 
-2.  **Native Draw Buffers**:
     *   **Loading Skeleton**: To prevent UI jank during the first frame of heavy native components (like the Calendar), use a data-driven skeleton (e.g., `useSkeletonAnimation.ts`) that waits for data to arrive but adds a small (~250ms) "Native Draw Buffer" before fading out. This ensures the native grid is fully painted before the skeleton disappears.
+
+3.  **Buffered Commit Pattern**:
+    *   **Context**: High-frequency UI interactions (e.g., geofence radius sliders, real-time filters) should NEVER directly update a global Zustand store in real-time.
+    *   **Logic**: Maintain a local kinetic state for the immediate visual layer (e.g., the map circle or numerical feedback) and only "commit" the final value to the global store on the interaction's completion event (e.g., `onSlidingComplete`).
+    *   **The Result**: Drastically reduces re-render cycles in the parent navigation stack and provides a smooth 60fps interaction feel.

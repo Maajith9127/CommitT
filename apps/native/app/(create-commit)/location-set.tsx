@@ -1,5 +1,5 @@
 import { View, Platform, Text } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { GoogleMaps, GoogleMapsView } from "expo-maps";
 
@@ -8,19 +8,23 @@ import { LocationMapNavBar } from "@/components/ui/location/LocationMapNavBar";
 import { useLocation } from "@/hooks/useLocation";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MATHEMATICAL UTILITIES
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * ═════════════════════════════════════════════════════════════════════════════
+ * MATHEMATICAL LAYER: CIRCULAR GEOFENCING
+ * ═════════════════════════════════════════════════════════════════════════════
+ */
 
 /**
- * getCirclePoints
+ * Generates an array of GPS coordinates representing a circle.
  * 
- * Generates a perfect coordinate array for drawing circular polygons on Google Maps.
- * Why is this needed natively? 
- * While Google Maps natively supports drawing `Circles`, it does NOT support punching 
- * "holes" in polygons using a Circle. To achieve "Inverse Geofencing" (e.g., "Must be OUTSIDE the gym"),
- * we draw a massive red polygon over the entire Earth, but we need to cut a transparent 
- * hole precisely around the user's selected location. This function calculates that hole.
+ * DESIGN RATIONALE:
+ * Google Maps natively supports 'Circles', but specifically for "Inverse Geofencing" 
+ * (where the user must stay OUTSIDE a zone), we need to draw a 'Donut' polygon. 
+ * This function calculates the coordinates for the inner 'hole' of that donut.
+ *
+ * @param center - The lat/lng of the geofence center.
+ * @param radius - Radius in meters.
+ * @param points - Precision of the circle (default 60 for high-fidelity).
  */
 const getCirclePoints = (
   center: { latitude: number; longitude: number },
@@ -41,121 +45,126 @@ const getCirclePoints = (
   return coords;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// COMPONENT EXPORT
-// ─────────────────────────────────────────────────────────────────────────────
+// Corner bounds representing the entire world (used for punching inverse holes)
+const WORLD_BOUNDS = [
+  { latitude: 85, longitude: -179.9 },
+  { latitude: 85, longitude: 0 },
+  { latitude: 85, longitude: 179.9 },
+  { latitude: -85, longitude: 179.9 },
+  { latitude: -85, longitude: 0 },
+  { latitude: -85, longitude: -179.9 },
+  { latitude: 85, longitude: -179.9 },
+];
 
 /**
- * LocationSetScreen (`/app/(create-commit)/location-set.tsx`)
+ * ═════════════════════════════════════════════════════════════════════════════
+ * UI LAYER: LOCATION SETUP SCREEN
+ * ═════════════════════════════════════════════════════════════════════════════
  * 
- * A purely native map interface utilizing `expo-maps` (Google Maps View on Android).
- * 
- * ARCHITECTURE OVERVIEW:
- * 1. Global State Binding:
- *    We heavily utilize `useTaskDraftStore` not just for storing the final geofence boundary (`location`),
- *    but also for the `cameraTarget`. This ensures that if the user backs out to `final.tsx` and 
- *    returns here, the map's exact pan/zoom state is perfectly preserved.
- * 
- * 2. Interaction Flags (`isUserInteracting`):
- *    A critical `useRef` that prevents infinite render loops. If a user is physically dragging 
- *    the map, we block automated camera animations that might attempt to snap the map back.
- * 
- * 3. Native Layer Pre-requisites:
- *    This component will purposely crash/fallback on iOS simulators unless purely tested via Android, 
- *    as it requires direct Kotlin `MapView` bindings injected via Expo configuration.
+ * Handles the native coordinate selection for commitments. Supports standard 
+ * 'Entry' geofences and 'Hollowed' inverse geofences.
  */
 export default function LocationSetScreen() {
   const router = useRouter();
 
-  // 1. ZUSTAND GLOBAL STORES 
-  const conditions = useTaskDraftStore((s) => s.draft.conditions);
-  const setLocation = useTaskDraftStore((s) => s.setLocation);
-  const cameraTarget = useTaskDraftStore((s) => s.draft.cameraTarget);
-  const setCameraTarget = useTaskDraftStore((s) => s.setCameraTarget);
+  // --- 1. GLOBAL STATE BINDINGS ---
+  const conditions = useTaskDraftStore((s: any) => s.draft.conditions);
+  const setLocation = useTaskDraftStore((s: any) => s.setLocation);
+  const cameraTarget = useTaskDraftStore((s: any) => s.draft.cameraTarget);
+  const setCameraTarget = useTaskDraftStore((s: any) => s.setCameraTarget);
   
-  // Parse the explicitly selected geofence (if any)
-  const locationCondition = conditions.find((c: any) => c.metric_key === "location");
-  const location = locationCondition ? {
-    latitude: locationCondition.target.value.lat,
-    longitude: locationCondition.target.value.lng,
-    radius: locationCondition.target.value.radius,
-    address: locationCondition.target.value.address ?? "Selected Location",
-    isInverse: locationCondition.relation === "outside"
-  } : null;
+  // --- 2. LOCAL KINETIC STATE ---
+  // Memoized location state ensures UI doesn't flicker on minor draft updates
+  const location = useMemo(() => {
+    const cond = conditions.find((c: any) => c.metric_key === "location");
+    if (!cond) return null;
 
-  // 2. NATIVE MAP REFS & STATE
-  const mapRef = useRef<GoogleMapsView>(null);
+    return {
+      latitude: cond.target.value.lat,
+      longitude: cond.target.value.lng,
+      radius: cond.target.value.radius,
+      address: cond.target.value.address ?? "Selected Location",
+      isInverse: cond.relation === "outside"
+    };
+  }, [conditions]);
+
+  const [localRadius, setLocalRadius] = useState<number>(location?.radius ?? 20);
   const [mapReady, setMapReady] = useState(false);
-  
-  // 3. DEVICE PERMISSIONS & SENSORS
-  const { hasPermission, requestLocation, isLocating } = useLocation();
-
-  // 4. ANIMATION CONTROL FLAGS
+  const mapRef = useRef<GoogleMapsView>(null);
   const isUserInteracting = useRef(false);
 
-  // Set the fallback boot location. (Defaulting to Riyadh coordinates from previous sessions)
+  // Sync kinetic local radius with the store's "final" radius
+  useEffect(() => {
+    if (location?.radius) setLocalRadius(location.radius);
+  }, [location?.radius]);
+
+  // --- 3. HARDWARE & PERMISSIONS ---
+  const { hasPermission, requestLocation, isLocating } = useLocation();
+
+  // Initial boot position (Riyadh fallback)
   const initialPos = useRef({
     latitude: cameraTarget?.latitude ?? location?.latitude ?? 24.543232,
     longitude: cameraTarget?.longitude ?? location?.longitude ?? 46.5108992,
   }).current;
   const initialZoom = useRef(cameraTarget?.zoom ?? 19).current;
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // EFFECTS & HANDLERS
-  // ─────────────────────────────────────────────────────────────────────────
+  // --- 4. GEOFENCE VISUALS (MEMOIZED) ---
+  
+  const polygonsData = useMemo(() => {
+    if (!location?.isInverse) return [];
+    
+    return [{
+      coordinates: [
+        ...WORLD_BOUNDS,
+        ...getCirclePoints(
+          { latitude: location.latitude, longitude: location.longitude },
+          localRadius
+        ).reverse(),
+      ],
+      color: "#4FA0FF40",
+      lineWidth: 0,
+    }];
+  }, [location?.latitude, location?.longitude, location?.isInverse, localRadius]);
 
-  /**
-   * Smooth Camera Automation Effect
-   * Runs whenever the global `cameraTarget` changes, commanding the native map instance
-   * to smoothly fly to the new coordinates, provided the user isn't currently dragging it.
+  const circlesData = useMemo(() => {
+    if (!location) return [];
+
+    return [{
+      center: { latitude: location.latitude, longitude: location.longitude },
+      radius: localRadius,
+      color: location.isInverse ? "transparent" : "#4FA0FF40",
+      lineColor: "#4FA0FF",
+      lineWidth: 12,
+    }];
+  }, [location?.latitude, location?.longitude, location?.isInverse, localRadius]);
+
+  // --- 5. EVENT HANDLERS ---
+
+  /** 
+   * Orchestrates smooth flight to a specific camera position. 
    */
-  useEffect(() => {
-    if (cameraTarget?.latitude && cameraTarget?.longitude && mapReady && !isUserInteracting.current) {
-      const target = {
-        coordinates: {
-          latitude: cameraTarget.latitude,
-          longitude: cameraTarget.longitude,
-        },
-        zoom: cameraTarget.zoom ?? 19,
-        tilt: cameraTarget.tilt ?? 0,
-        bearing: cameraTarget.bearing ?? 0,
-      };
-
-      const animate = async () => {
-        try {
-          await mapRef.current?.setCameraPosition({ ...target, duration: 800 });
-        } catch (e) {
-          // Fallback to instantaneous snap if Native animation engine fails
-          try {
-            await mapRef.current?.setCameraPosition(target);
-          } catch (err) {}
-        }
-      };
-      animate();
+  const flyToTarget = useCallback(async (target: any) => {
+    if (!mapRef.current || isUserInteracting.current) return;
+    
+    try {
+      await mapRef.current.setCameraPosition({ ...target, duration: 800 });
+    } catch (e) {
+      // Hardware failsafe: Snap instantly
+      mapRef.current?.setCameraPosition(target); 
     }
-  }, [
-    cameraTarget?.latitude, 
-    cameraTarget?.longitude, 
-    cameraTarget?.zoom,
-    cameraTarget?.tilt,
-    cameraTarget?.bearing,
-    mapReady
-  ]);
+  }, []);
 
-  /**
-   * Hardware GPS Request
-   * Asks the OS for current hardware coordinates, locks the map interaction, 
-   * and snaps the camera directly to the user's location.
+  /** 
+   * Triggers hardware GPS location lookup. 
    */
-  const handleLocate = async () => {
+  const handleLocate = useCallback(async () => {
     if (isLocating) return;
 
     await requestLocation(async (coords) => {
       const newPos = { latitude: coords.latitude, longitude: coords.longitude };
+      isUserInteracting.current = false;
       
-      isUserInteracting.current = false; // Override any user drag
       setCameraTarget({ ...newPos, zoom: 19 });
-      
       setLocation({
         ...newPos,
         address: "Current Location",
@@ -163,153 +172,99 @@ export default function LocationSetScreen() {
         isInverse: false,
       });
     });
-  };
+  }, [isLocating, requestLocation, setCameraTarget, setLocation]);
 
-  // Failsafe boundary for unsupported platforms
+  /**
+   * Syncs camera location effect
+   */
+  useEffect(() => {
+    if (cameraTarget?.latitude && mapReady && !isUserInteracting.current) {
+      flyToTarget({
+        coordinates: { latitude: cameraTarget.latitude, longitude: cameraTarget.longitude },
+        zoom: cameraTarget.zoom ?? 19,
+        tilt: cameraTarget.tilt ?? 0,
+        bearing: cameraTarget.bearing ?? 0,
+      });
+    }
+  }, [cameraTarget, mapReady, flyToTarget]);
+
+  // --- 6. PLATFORM GUARD ---
   if (Platform.OS !== "android") {
-    return <Text>Maps only supported on Android native builds.</Text>;
+    return (
+      <View style={{ flex: 1, backgroundColor: "black", justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ color: "white" }}>Maps only supported on Android</Text>
+      </View>
+    );
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER TREE
-  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <View style={{ flex: 1, backgroundColor: "black" }}>
       
-      {/* --- LAYER 1: STRICT NATIVE MAP INTERFACE --- */}
+      {/* ──────────────────────────────────────────────────────────────────────
+          NATIVE GOOGLE MAPS INSTANCE
+          ────────────────────────────────────────────────────────────────────── */}
       <GoogleMaps.View
         ref={mapRef}
         style={{ flex: 1 }}
-        cameraPosition={{
-          coordinates: initialPos,
-          zoom: initialZoom,
+        cameraPosition={{ coordinates: initialPos, zoom: initialZoom }}
+        mapOptions={{ mapId: "7702036af0cdf4aa60ff733d" }}
+        uiSettings={{ myLocationButtonEnabled: false }}
+        properties={{ 
+          mapType: "HYBRID", 
+          isMyLocationEnabled: hasPermission === true 
         }}
-        mapOptions={{
-          mapId: "7702036af0cdf4aa60ff733d", // Cloud-styled dark map ID
-        }}
-        uiSettings={{
-          myLocationButtonEnabled: false, // We use our custom UI button instead
-        }}
-        properties={{
-          mapType: "HYBRID",
-          isMyLocationEnabled: hasPermission === true,
-        }}
-        onMapLoaded={() => {
-          setMapReady(true);
-        }}
-        onCameraMoveStarted={() => {
-           // User touched the map, lock automation to prevent fighting
-           isUserInteracting.current = true;
-        }}
-        onCameraMove={(e) => {
-           // Continuous pan tracking
-           if (e?.cameraPosition?.coordinates) {
-              isUserInteracting.current = true;
-           }
-        }}
+        
+        onMapLoaded={() => setMapReady(true)}
+        onCameraMoveStarted={() => { isUserInteracting.current = true; }}
+        
         onCameraIdle={async () => {
-           // Fired strictly when momentum scrolling completely stops
-           if (mapRef.current) {
-             const pos = await mapRef.current.getCameraPosition();
-             
-             // Sync final resting position back to global store
-             setCameraTarget({
-                latitude: pos.coordinates.latitude,
-                longitude: pos.coordinates.longitude,
-                zoom: pos.zoom,
-                tilt: pos.tilt,
-                bearing: pos.bearing
-             });
-             
-             // Unlock automated animations
-             isUserInteracting.current = false;
-           }
-        }}
-        onMapClick={(e: { coordinates: { latitude: number; longitude: number } }) => {
-          // Tapping the raw map acts as a command to fly there
-          isUserInteracting.current = false; 
+          if (!mapRef.current) return;
+          const pos = await mapRef.current.getCameraPosition();
+          
           setCameraTarget({
-            latitude: e.coordinates.latitude,
-            longitude: e.coordinates.longitude,
-            zoom: cameraTarget?.zoom ?? 19
+            latitude: pos.coordinates.latitude,
+            longitude: pos.coordinates.longitude,
+            zoom: pos.zoom,
+            tilt: pos.tilt,
+            bearing: pos.bearing
+          });
+          isUserInteracting.current = false;
+        }}
+
+        onMapClick={(e) => {
+          isUserInteracting.current = false; 
+          setCameraTarget({ ...e.coordinates, zoom: cameraTarget?.zoom ?? 19 });
+        }}
+
+        onMapLongClick={(e) => {
+          setLocation({
+            ...location,
+            ...e.coordinates,
+            radius: location?.radius ?? 20,
+            isInverse: location?.isInverse ?? false,
+            address: location?.address ?? "Selected Location",
           });
         }}
-        onMapLongClick={(e: { coordinates: { latitude: number; longitude: number } }) => {
-          // Long press actually DROPS a new geofence pin, 
-          // preserving the existing radius config if we are just moving an old pin.
-          if (location) {
-            setLocation({
-              ...location,
-              ...e.coordinates,
-            });
-          } else {
-            setLocation({
-              ...e.coordinates,
-              radius: 20,
-              isInverse: false,
-              address: "Selected Location",
-            });
-          }
-        }}
-        polygons={
-          // INVERSE GEOFENCING ROUTINE
-          location?.isInverse
-            ? [
-                {
-                  coordinates: [
-                    // Corner bounds of the entire map
-                    { latitude: 85, longitude: -179.9 },
-                    { latitude: 85, longitude: 0 },
-                    { latitude: 85, longitude: 179.9 },
-                    { latitude: -85, longitude: 179.9 },
-                    { latitude: -85, longitude: 0 },
-                    { latitude: -85, longitude: -179.9 },
-                    { latitude: 85, longitude: -179.9 },
-                    // Reversing the getCirclePoints sequence punches the 'hole' out
-                    ...getCirclePoints(
-                      { latitude: location.latitude, longitude: location.longitude },
-                      location.radius,
-                    ).reverse(),
-                  ],
-                  color: "#4FA0FF40", 
-                  lineWidth: 0,
-                },
-              ]
-            : []
-        }
-        circles={
-          // TRADITIONAL GEOFENCING ROUTINE
-          location
-            ? [
-                {
-                  center: {
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                  },
-                  radius: location.radius,
-                  // If inverse is active, the circle border remains visible but its core is completely hollow
-                  color: location.isInverse ? "transparent" : "#4FA0FF40",
-                  lineColor: "#4FA0FF",
-                  lineWidth: 12, // Thick strokes render beautifully on mobile
-                },
-              ]
-            : []
-        }
+
+        polygons={polygonsData}
+        circles={circlesData}
       />
 
-      {/* --- LAYER 2: FLOATING UI NAVIGATOR --- */}
+      {/* ──────────────────────────────────────────────────────────────────────
+          OVERLAY UI LAYES
+          ────────────────────────────────────────────────────────────────────── */}
+      
       <LocationMapNavBar
         onBack={() => router.back()}
         onLocate={handleLocate}
         onSearch={() => router.push("/(create-commit)/searchpac")}
       />
 
-      {/* --- LAYER 3: BOTTOM CONDITION SLIDER --- */}
       <LocationConditionPanel
+        localRadius={localRadius}
+        setLocalRadius={setLocalRadius}
         onSearchPress={() => router.push("/(create-commit)/searchpac")}
         onCenterPress={() => {
-          // Button to snap map directly BACK to the dropped pin if user is lost
           if (location) {
             isUserInteracting.current = false;
             setCameraTarget({ 
@@ -320,6 +275,7 @@ export default function LocationSetScreen() {
           }
         }}
       />
+
     </View>
   );
 }
