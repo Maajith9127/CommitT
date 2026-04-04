@@ -34,6 +34,8 @@ import { useCalendarStore } from '@/stores/useCalendarStore';
 import { useTaskActions } from '@/hooks/commits/useTaskActions';
 import { updateInstanceInLocalDb } from '@/lib/local-db-commits';
 import { scheduleNextAlarm } from '@/modules/scheduler-module';
+import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
+import { useChaosStore } from "@/stores/useChaosStore";
 import type { ActionMenuItem } from '@/components/ui/commits/ActionMenu';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -156,7 +158,7 @@ export function useEventDetail(): EventDetailState {
   const verifyMutation = useMutation(api.api.commitments.verify.default);
   const startWaiver = useMutation(api.api.instances.waivers.startSession);
   const updateInstance = useMutation(api.api.instances.update.update);
-  const { deleteInstance, setDraft, resetDraft } = useTaskActions();
+  const { deleteTask, deleteInstance, setDraft, resetDraft } = useTaskActions();
 
   // ── Derived: Display Status ──
   const displayStatus = (() => {
@@ -243,38 +245,68 @@ export function useEventDetail(): EventDetailState {
     if (!currentEvent?._id || verifyingMetric) return;
 
     setVerifyingMetric(metricKey);
-    try {
-      const result = await verifyMutation({
-        instanceId: currentEvent._id as any,
-        metricKey,
-        evidence,
-      });
-      console.log(`[EventDetailModal] ${metricKey} verification:`, result);
+    
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║  VERIFICATION SAGA                                                           ║
+    // ╠══════════════════════════════════════════════════════════════════════════════╣
+    // ║  We must ensure that if a task is 'Verified' (stopping the distress),       ║
+    // ║  the hardware alarm actually stops. If not, we roll back the verification.  ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    const contextSnapshot = { metricKey, evidence, instanceId: currentEvent._id };
+    const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
 
-      const status = (result as any).status;
-      const message = (result as any).message ?? 'Verification failed.';
-
-      setConditionStatuses((prev) => ({ ...prev, [metricKey]: status }));
-
-      // ── SYNC LOCAL CACHE ──
-      if (status === 'verified') {
-        try {
-          const updatedConditions = currentEvent.conditions.map((c: any) =>
-            c.metric_key === metricKey ? { ...c, status: 'verified' } : c
-          );
-
-          await updateInstanceInLocalDb(db, currentEvent._id, {
-            status: (result as any).instanceStatus,
-            conditions: updatedConditions,
+    orchestrator
+      .addStep(
+        "Cloud Verification (Convex)",
+        async (ctx) => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultCloudWrite) 
+             throw new Error("[CHAOS] Verification failed.");
+          const result = await verifyMutation({
+            instanceId: ctx.instanceId as any,
+            metricKey: ctx.metricKey,
+            evidence: ctx.evidence,
           });
-          scheduleNextAlarm();
-        } catch (localError) {
-          console.error("[EventDetailModal] Local Sync failed:", localError);
+          return { verificationResult: result };
+        },
+        async () => { /* Auto-Heal handles rollback */ }
+      )
+      .addStep(
+        "Disk Sync (Local SQLite)",
+        async (ctx, prev) => {
+           if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
+              throw new Error("[CHAOS] SQLite Sync Failed.");
+           const result = prev["Cloud Verification (Convex)"].verificationResult as any;
+           if (result.status === 'verified') {
+              const updatedConditions = currentEvent.conditions.map((c: any) =>
+                c.metric_key === ctx.metricKey ? { ...c, status: 'verified' } : c
+              );
+              await updateInstanceInLocalDb(db, ctx.instanceId, {
+                status: result.instanceStatus,
+                conditions: updatedConditions,
+              });
+           }
         }
-      }
+      )
+      .addStep(
+        "Hardware Sync (Silence Alarm)",
+        async () => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
+             throw new Error("[CHAOS] Alarm failed to silence.");
+          scheduleNextAlarm();
+        }
+      );
 
-      if (status !== 'verified') {
-        setFailureModal({ visible: true, title: message, message: '' });
+    try {
+      const exec = await orchestrator.execute();
+      if (exec.success) {
+        const result = (exec.results["Cloud Verification (Convex)"] as any).verificationResult;
+        setConditionStatuses((prev) => ({ ...prev, [metricKey]: result.status }));
+        if (result.status !== 'verified') {
+          setFailureModal({ visible: true, title: result.message || 'Verification failed.', message: '' });
+        }
+      } else {
+        setConditionStatuses((prev) => ({ ...prev, [metricKey]: 'failed' }));
+        setFailureModal({ visible: true, title: exec.error || "Synchronizer aborted.", message: '' });
       }
     } catch (error: any) {
       setConditionStatuses((prev) => ({ ...prev, [metricKey]: 'failed' }));
@@ -288,10 +320,10 @@ export function useEventDetail(): EventDetailState {
     if (selectedTaskId) {
       setIsDeleting(true);
       try {
-        const result = (await deleteInstance(selectedTaskId)) as any;
-        if (result && result.success === false) {
+        const result = await deleteTask(selectedTaskId);
+        if (!result.success) {
           setDeleteConfirmVisible(false);
-          setFailureModal({ visible: true, title: result.message || "Action failed.", message: '' });
+          setFailureModal({ visible: true, title: result.error || "Action failed.", message: '' });
           return;
         }
         setDeleteConfirmVisible(false);
@@ -303,32 +335,57 @@ export function useEventDetail(): EventDetailState {
         setIsDeleting(false);
       }
     }
-  }, [selectedTaskId, deleteInstance, handleClose]);
+  }, [selectedTaskId, deleteTask, handleClose]);
 
   const handleStartWaiver = useCallback(async () => {
     if (!currentEvent?._id) return;
     setIsStartingWaiver(true);
+
+    const contextSnapshot = { instanceId: currentEvent._id };
+    const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
+
+    orchestrator
+      .addStep(
+        "Cloud Waiver (Convex)",
+        async (ctx) => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultCloudWrite) 
+             throw new Error("[CHAOS] Waiver activation failed.");
+          const result = await startWaiver({ instanceId: ctx.instanceId });
+          if ((result as any)?.success === false) throw new Error((result as any).message || "Convex waiver rejected.");
+          return { waiverResult: result };
+        },
+        async () => { /* Auto-Heal */ }
+      )
+      .addStep(
+        "Disk Sync (Local SQLite)",
+        async (ctx) => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
+             throw new Error("[CHAOS] Local cache update failed.");
+          await updateInstanceInLocalDb(db, ctx.instanceId, {
+            status: 'waiver_active',
+            penalty_waiver: currentEvent.penalty_waiver,
+          });
+        }
+      )
+      .addStep(
+        "Hardware Sync (Postpone Alarm)",
+        async () => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
+             throw new Error("[CHAOS] Alarm delay failed.");
+          scheduleNextAlarm();
+        }
+      );
+
     try {
-      const result = (await startWaiver({ instanceId: currentEvent._id })) as any;
-
-      if (result && result.success === false) {
+      const exec = await orchestrator.execute();
+      if (exec.success) {
         setWaiverConfirmVisible(false);
-        setFailureModal({ visible: true, title: result.message || "Cannot start waiver.", message: '' });
-        return;
+        setWaiverModalVisible(true);
+      } else {
+        setWaiverConfirmVisible(false);
+        setFailureModal({ visible: true, title: exec.error || "Synchronizer aborted.", message: '' });
       }
-
-      if (result && (result as any).success !== false) {
-        await updateInstanceInLocalDb(db, currentEvent._id, {
-          status: 'waiver_active',
-          penalty_waiver: currentEvent.penalty_waiver,
-        });
-        scheduleNextAlarm();
-      }
-
-      setWaiverConfirmVisible(false);
-      setWaiverModalVisible(true);
     } catch (e: any) {
-      console.error("Failed to start waiver session", e);
       setWaiverConfirmVisible(false);
       setFailureModal({ visible: true, title: parseError(e), message: '' });
     } finally {
@@ -339,36 +396,55 @@ export function useEventDetail(): EventDetailState {
   const handleActivateStrict = useCallback(async () => {
     if (!currentEvent?._id) return;
     setIsLocking(true);
+
+    const contextSnapshot = { instanceId: currentEvent._id, end: currentEvent.end };
+    const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
+
+    orchestrator
+      .addStep(
+        "Cloud Lock (Convex Update)",
+        async (ctx) => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultCloudWrite) 
+             throw new Error("[CHAOS] Lock-in failed.");
+          const result = await updateInstance({
+            id: ctx.instanceId as any,
+            strict_until: ctx.end,
+            is_manual_edit: true,
+          });
+          if ((result as any)?.success === false) throw new Error((result as any).message || "Convex lock rejected.");
+        }
+      )
+      .addStep(
+        "Disk Sync (Local SQLite)",
+        async (ctx) => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
+             throw new Error("[CHAOS] SQLite lock failed.");
+          await updateInstanceInLocalDb(db, ctx.instanceId, {
+            strict_until: ctx.end,
+            is_manual_edit: true,
+          });
+        }
+      )
+      .addStep(
+        "Hardware Sync (Arm Kernel)",
+        async () => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
+             throw new Error("[CHAOS] Hardware arming failed.");
+          scheduleNextAlarm();
+        }
+      );
+
     try {
-      const result = (await updateInstance({
-        id: currentEvent._id as any,
-        strict_until: currentEvent.end,
-        is_manual_edit: true,
-      })) as any;
-
-      if (result && result.success === false) {
+      const exec = await orchestrator.execute();
+      if (exec.success) {
         setStrictConfirmVisible(false);
-        setFailureModal({ visible: true, title: result.message || "Lock activation failed.", message: '' });
-        return;
+      } else {
+        setStrictConfirmVisible(false);
+        setFailureModal({ visible: true, title: exec.error || "Synchronizer aborted.", message: '' });
       }
-
-      console.log("[STRICT_MODE] Instance successfully locked in the vault.");
-
-      try {
-        await updateInstanceInLocalDb(db, currentEvent._id, {
-          strict_until: currentEvent.end,
-          is_manual_edit: true,
-        });
-        scheduleNextAlarm();
-      } catch (localError) {
-        console.error("[STRICT_MODE] Local Sync failed:", localError);
-      }
-
-      setStrictConfirmVisible(false);
     } catch (e) {
       setStrictConfirmVisible(false);
       setFailureModal({ visible: true, title: parseError(e), message: '' });
-      console.error("[STRICT_MODE] Failed to activate lock:", e);
     } finally {
       setIsLocking(false);
     }

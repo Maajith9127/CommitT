@@ -19,6 +19,9 @@ import { useSQLiteContext } from "expo-sqlite";
 import { useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
 import { updateInstanceInLocalDb } from "@/lib/local-db-commits";
+import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
+import { useChaosStore } from "@/stores/useChaosStore";
+import { scheduleNextAlarm } from "@/modules/scheduler-module";
 
 const UView = withUniwind(View);
 
@@ -135,54 +138,96 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
   // ─── FINAL PERSISTENCE LOGIC ───────────────────────────────────────────────
   const processSave = async () => {
     setIsSaving(true);
+    
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║  BLOCKLIST UPDATE SAGA                                                       ║
+    // ╠══════════════════════════════════════════════════════════════════════════════╣
+    // ║  Updating the blocklist changes what the phone allows/blocks.               ║
+    // ║  If the hardware doesn't acknowledge the new list, we must not commit.      ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    const contextSnapshot = { 
+        instanceId: event._id,
+        appIds: localAppSelections,
+        websites: webs.filter(w => w.selected).map(w => w.name)
+    };
+    
+    const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
+
+    orchestrator
+      .addStep(
+        "Cloud Sync (Convex Blocklist)",
+        async (ctx) => {
+          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultCloudWrite) 
+             throw new Error("[CHAOS] Convex save failed.");
+
+          const newConditions = event.conditions.map((c: any) => {
+             if (c.metric_key === "digital_commitment") {
+               return {
+                 ...c,
+                 target: { ...c.target, value: { apps: ctx.appIds, websites: ctx.websites } }
+               };
+             }
+             return c;
+          });
+
+          const result = await updateConvexInstance({ 
+            id: ctx.instanceId, 
+            conditions: newConditions 
+          }) as any;
+
+          if (result.success === false && result.error === "STRICT_LOCK_ACTIVE") {
+            throw new Error(result.message || "Instance Locked");
+          }
+
+          if (!result.success) throw new Error(result.message || "Cloud sync refused");
+          
+          return { updatedConditions: newConditions };
+        },
+        async () => { /* Auto-Heal */ }
+      )
+      .addStep(
+        "Disk Sync (Local SQLite Blocklist)",
+        async (ctx, prev) => {
+            if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
+               throw new Error("[CHAOS] SQLite save failed.");
+            
+            const conditions = prev["Cloud Sync (Convex Blocklist)"].updatedConditions;
+            await updateInstanceInLocalDb(db, ctx.instanceId, { conditions });
+        }
+      )
+      .addStep(
+        "Hardware Sync (Re-enforce Apps)",
+        async () => {
+            if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
+               throw new Error("[CHAOS] Android enforcer failed to refresh.");
+            
+            // CRITICAL: Notify the Android Accessibility Service and Alarm module
+            // that the blocklist HAS changed.
+            scheduleNextAlarm();
+        }
+      );
+
     try {
-      const selectedAppIds = localAppSelections;
-      const selectedWebs = webs.filter(w => w.selected).map(w => w.name);
-
-      const newConditions = event.conditions.map((c: any) => {
-         if (c.metric_key === "digital_commitment") {
-           return {
-             ...c,
-             target: { ...c.target, value: { apps: selectedAppIds, websites: selectedWebs } }
-           };
-         }
-         return c;
-      });
-
-      // 1. SYNC TO CLOUD FIRST (Per request)
-      const result = await updateConvexInstance({ 
-        id: event._id, 
-        conditions: newConditions 
-      }) as any;
-
-      // Check if instance is locked (Strict Mode Violation)
-      if (result.success === false && result.error === "STRICT_LOCK_ACTIVE") {
-        setIsSaving(false);
+        const exec = await orchestrator.execute();
+        if (exec.success) {
+            setShowSaveConfirm(false);
+            onClose();
+        } else {
+            if (exec.error === "Instance Locked") {
+                setLockError({
+                  title: "Instance Locked",
+                  message: "This commitment is in its 'Strict Lock Zone' and cannot be edited."
+                });
+            } else {
+                Alert.alert("Interaction Aborted", exec.error || "Device synchronization failed.");
+            }
+            setShowSaveConfirm(false);
+        }
+    } catch (err: any) {
+        Alert.alert("System Failure", err.message || String(err));
         setShowSaveConfirm(false);
-        // Transition to Lock Error modal
-        setLockError({
-          title: "Instance Locked",
-          message: result.message || "This commitment is currently in its 'Strict Lock Zone' and cannot be edited until the lockout period ends."
-        });
-        return;
-      }
-
-      if (!result.success) {
-        throw new Error(result.message || "Sync failed");
-      }
-
-      // 2. SYNC TO LOCAL DEVICE IMMEDIATELY (For hardware enforcer)
-      await updateInstanceInLocalDb(db, event._id, { 
-        conditions: newConditions 
-      });
-
-      console.log("[BlocklistView] Instance updated successfully.");
-      setShowSaveConfirm(false);
-      onClose();
-    } catch (err) {
-      Alert.alert("Save Failed", String(err));
     } finally {
-      setIsSaving(false);
+        setIsSaving(false);
     }
   };
 

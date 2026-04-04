@@ -12,6 +12,9 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { updateInstanceInLocalDb } from '@/lib/local-db-commits';
 import { useSQLiteContext } from "expo-sqlite";
 import { Alert } from 'react-native';
+import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
+import { useChaosStore } from "@/stores/useChaosStore";
+import { scheduleNextAlarm } from '@/modules/scheduler-module';
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
@@ -96,50 +99,87 @@ export const LocationSection = React.memo(({
     const handleConfirmUpdate = async () => {
         if (!tempCoords) return;
         setIsUpdating(true);
-        try {
-            // ── DATA INTEGRITY STRATEGY ──
-            // We map over the LATEST event.conditions snapshot to ensure we don't
-            // accidentally revert other concurrently updated conditions (like apps/webs).
-            const newConditions = (event.conditions || []).map((c: any) => {
-                if (c.metric_key === 'location') {
-                    return {
-                        ...c,
-                        target: {
-                            ...c.target,
-                            value: {
-                                ...c.target.value,
-                                lat: tempCoords.latitude,
-                                lng: tempCoords.longitude,
-                                address: "Updated Location"
-                            }
-                        }
-                    };
-                }
-                return c;
-            });
 
-            // 1. CLOUD SYNC: Submit change to Convex logic layer
-            const result = await updateConvexInstance({
-                id: event._id,
-                conditions: newConditions
-            }) as any;
+        // ╔══════════════════════════════════════════════════════════════════════════════╗
+        // ║  LOCATION PIVOT SAGA                                                         ║
+        // ╠══════════════════════════════════════════════════════════════════════════════╣
+        // ║  Moving the map destination changes the geofencing requirements.            ║
+        // ║  If the hardware doesn't acknowledge the new coords, we roll back.         ║
+        // ╚══════════════════════════════════════════════════════════════════════════════╝
+        const contextSnapshot = { tempCoords, instanceId: event._id };
+        const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
 
-            if (result.success === false && result.error === "STRICT_LOCK_ACTIVE") {
-                Alert.alert("Commitment Locked", result.message);
-                setTempCoords(null);
-                setShowConfirm(false);
-                return;
+        orchestrator
+          .addStep(
+            "Cloud Sync (Convex Destination)",
+            async (ctx) => {
+              if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultCloudWrite) 
+                 throw new Error("[CHAOS] Convex update failed.");
+
+              const newConditions = (event.conditions || []).map((c: any) => {
+                  if (c.metric_key === 'location') {
+                      return {
+                          ...c,
+                          target: {
+                              ...c.target,
+                              value: {
+                                  ...c.target.value,
+                                  lat: ctx.tempCoords.latitude,
+                                  lng: ctx.tempCoords.longitude,
+                                  address: "Updated Location"
+                              }
+                          }
+                      };
+                  }
+                  return c;
+              });
+
+              const result = await updateConvexInstance({
+                  id: ctx.instanceId,
+                  conditions: newConditions
+              }) as any;
+
+              if (result.success === false && result.error === "STRICT_LOCK_ACTIVE") {
+                  throw new Error(result.message || "Commitment Locked");
+              }
+
+              if (!result.success) throw new Error(result.message || "Cloud sync refused");
+              
+              return { updatedConditions: newConditions };
+            },
+            async () => { /* Auto-Heal */ }
+          )
+          .addStep(
+            "Disk Sync (Local SQLite Destination)",
+            async (ctx, prev) => {
+                if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
+                   throw new Error("[CHAOS] SQLite update failed.");
+                
+                const conditions = prev["Cloud Sync (Convex Destination)"].updatedConditions;
+                await updateInstanceInLocalDb(db, ctx.instanceId, { conditions });
             }
+          )
+          .addStep(
+            "Hardware Sync (Re-scan Geofence)",
+            async () => {
+                if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
+                   throw new Error("[CHAOS] Alarm manager failed to pivot.");
+                
+                // CRITICAL: Tell Android that the coordinates changed so it 
+                // can update the radius-check immediately.
+                scheduleNextAlarm();
+            }
+          );
 
-            if (!result.success) throw new Error(result.message || "Sync failed");
-
-            // 2. VAULT SYNC: Persist to local hardware enforcer
-            await updateInstanceInLocalDb(db, event._id, { conditions: newConditions });
-
+        try {
+            const exec = await orchestrator.execute();
+            if (!exec.success) {
+                Alert.alert("Interaction Aborted", exec.error || "Device synchronization failed.");
+            }
             setTempCoords(null);
             setShowConfirm(false);
-        } catch (err) {
-            Alert.alert("Update Failed", String(err));
+        } catch (err: any) {
+            Alert.alert("System Failure", err.message || String(err));
             setTempCoords(null);
             setShowConfirm(false);
         } finally {

@@ -7,6 +7,8 @@ import { api } from '@commit/backend/convex/_generated/api';
 import { scheduleNextAlarm } from '@/modules/scheduler-module';
 import { updateSingleInstanceInLocalDb } from '@/lib/local-db-instances';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
+import { useChaosStore } from "@/stores/useChaosStore";
 import CalendarKit, { 
   CalendarBody, 
   CalendarHeader,
@@ -151,34 +153,99 @@ export default function SchedulesScreen() {
     
     setDragConfirm(prev => ({ ...prev, isLoading: true }));
     const instanceId = dragConfirm.event._id || dragConfirm.event.id;
+    const now = Date.now();
+
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║  TEMPORAL SHIFT SAGA (DRAG-TO-EDIT)                                          ║
+    // ╠══════════════════════════════════════════════════════════════════════════════╣
+    // ║  We capture a snapshot of the event before the shift. If hardware fails,     ║
+    // ║  we revert the cloud and local disk to the exact millisecond before.         ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    const contextSnapshot = {
+        id: instanceId,
+        newStart: new Date(dragConfirm.newStart).getTime(),
+        newEnd: new Date(dragConfirm.newEnd).getTime(),
+        oldStart: new Date(dragConfirm.event.start).getTime(),
+        oldEnd: new Date(dragConfirm.event.end).getTime(),
+    };
+
+    const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
+
+    orchestrator
+      .addStep(
+        "Cloud Sync (Convex Instance Update)",
+        async (ctx) => {
+          if (__DEV__ && useChaosStore.getState().faultCloudWrite) throw new Error("[CHAOS] Cloud Write Failed.");
+          
+          const result = await updateInstance({
+              id: ctx.id,
+              start: ctx.newStart,
+              end: ctx.newEnd,
+          });
+
+          if (!result.success) {
+            if (result.error === "OVERLAP_DETECTED") {
+               throw new Error("OVERLAP_DETECTED|" + result.message);
+            }
+            throw new Error(result.error || "Convex protocol error during shift.");
+          }
+          return { originalInstance: result.instance };
+        },
+        async (ctx) => {
+          // COMPENSATING: REVERT TO OLD TIME
+          if (__DEV__ && useChaosStore.getState().faultCloudUndo) throw new Error("[CHAOS] Rollback Network Failure.");
+          await updateInstance({
+              id: ctx.id,
+              start: ctx.oldStart,
+              end: ctx.oldEnd,
+          });
+        }
+      )
+      .addStep(
+        "Disk Sync (Local SQLite Cache)",
+        async (ctx, prev) => {
+          if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] Disk Write Failed.");
+          await updateSingleInstanceInLocalDb(db, prev["Cloud Sync (Convex Instance Update)"].originalInstance as any);
+        },
+        async (ctx) => {
+           // COMPENSATING: Local SQLite is resilient to partial drift; No manual undo needed 
+           // here because the next Hydration/Sync loop will heal the record based on the
+           // successful Cloud Rollback above.
+        }
+      )
+      .addStep(
+        "Hardware Sync (Android Alarms)",
+        async () => {
+          if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Hardware Alarm Fail.");
+          scheduleNextAlarm();
+        }
+      );
 
     try {
-        const result = await updateInstance({
-            id: instanceId,
-            start: new Date(dragConfirm.newStart).getTime(),
-            end: new Date(dragConfirm.newEnd).getTime(),
-        });
+        const execution = await orchestrator.execute();
 
-        if (result.success && result.instance) {
-            await updateSingleInstanceInLocalDb(db, result.instance as any);
-            try {
-              scheduleNextAlarm();
-            } catch (err) {}
+        if (execution.success) {
             setDragConfirm({ visible: false, isLoading: false });
             setSelectedCalendarEvent(undefined); 
-        } else if (result.error === "OVERLAP_DETECTED") {
-            setDragConfirm(prev => ({ 
-                ...prev, 
-                visible: true, 
-                isOverlapError: true,
-                overlapMessage: result.message,
-                isLoading: false, // Reset loading state on overlap error
-            }));
         } else {
-            setDragConfirm({ visible: false, isLoading: false });
+             // Handle Overlap Logic specifically
+             const [errorType, message] = (execution.error || "").split("|");
+             if (errorType === "OVERLAP_DETECTED") {
+                 setDragConfirm(prev => ({ 
+                    ...prev, 
+                    visible: true, 
+                    isOverlapError: true,
+                    overlapMessage: message,
+                    isLoading: false,
+                }));
+             } else {
+                Alert.alert("Temporal Shift Error", execution.error || "Synchronizer aborted.");
+                setDragConfirm({ visible: false, isLoading: false });
+             }
         }
-    } catch (error: any) {
-        Alert.alert("Sync Error", "Critical failure while reaching the server.");
+    } catch (criticalErr) {
+        console.error("[Schedules] Saga Panic:", criticalErr);
+        Alert.alert("System Panic", "Distributed transaction crashed before it could recover.");
         setDragConfirm({ visible: false });
     }
   }, [dragConfirm, updateInstance, db]);

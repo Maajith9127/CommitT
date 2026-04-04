@@ -36,6 +36,16 @@ export function useHydrationSync() {
 
     async function executeReconciliation() {
       if (!isMounted) return;
+      
+      // Resource Guard: Ensure the SQLite context hasn't been closed/invalidated
+      // during a hot-reload or unmount cycle before proceeding.
+      try {
+        await db.execAsync('PRAGMA user_version;'); 
+      } catch (resourceErr) {
+        console.warn('[HydrationSync] SQLite Resource not available yet. Skipping cycle.');
+        return;
+      }
+
       setIsSyncing(true);
 
       try {

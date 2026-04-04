@@ -99,12 +99,20 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
 2.  **AlarmScheduler.kt**: Writes upcoming alarms into un-encrypted Device-Protected (DE) Storage so they can fire even before the user types their PIN into a freshly restarted phone.
 3.  **Hardware Execution Shield**: Located in `_layout.tsx`, this system halts execution if Root, Jailbreak, Mock Location providers, or Developer Options are detected on the host device.
 4.  **Offline SQLite Synchronization Engine**: `commit.db` seamlessly mirrors dynamic Convex states locally, providing absolute resilience during offline use.
-    *   **Triple-Write Architecture (Saga Pattern)**: Operations flow securely from Convex (Cloud) → SQLite (Local) → Kotlin (Hardware Alarms).
-        *   We employ the **Saga Pattern with Eventual Consistency** rather than formal Distributed Locking (Two-Phase Commit, 2PC).
-        *   **The Split-Brain (TTL) Hazard**: Implementing 2PC with a Time-To-Live (TTL) on mobile is mathematically vulnerable to the "Two Generals' Problem". If the network drops exactly as the server ACKs the final commit, the server fulfills the commit but the phone aborts due to TTL expiration. This creates a catastrophic "Split-Brain": a physical Android alarm ringing that the cloud database insists does not exist.
-        *   **The Saga Solution**: We optimistically commit data sequentially, preserving the user's initial state in a frozen `ContextSnapshot`. If a downstream layer (e.g., Hardware) fails, the Orchestrator works backwards, executing "Compensating Transactions" (explicit DELETE commands) to undo the previous layers.
-        *   **Chaos Testing & Fault Injection**: We have implemented a production-grade fault injection layer (`useChaosStore.ts`) that allows developers to manually crash the execution or rollback phases (e.g., `faultHardware`, `faultCloudUndo`).
-        *   **Reconciliation & Split-Brain Healing**: If the network dies *during* a rollback (detected via `rollbackFailed`), leaving the cloud with a "Ghost Commitment", the `HydrationEngine` acts as the ultimate garbage collector. The system instantly detects the hazard and triggers a silent delta-sync to pull the ghost record down to SQLite, achieving Eventual Consistency in under 500ms.
+    *   **Saga Pattern vs 2PC**: We use the `TripleWriteOrchestrator` to manage a "Cloud ➔ Disk ➔ Hardware" Saga. This avoids the "Two Generals' Problem" and ensures that if the hardware step (Phase 3) fails, the app informs the user and triggers an automatic or manual rollback.
+    *   **Full Coverage Migration**: 100% of critical write paths have been migrated to the Saga Orchestrator:
+      - **Commitment Creation** (`useCommitTask.ts`)
+      - **Calendar Temporal Shifts** (`schedules.tsx`)
+      - **Task & Instance Deletion** (`useTaskActions.ts`)
+      - **Verification, Waivers, and Strict Mode** (`useEventDetail.ts`)
+      - **Geofence Destination Pivots** (`EventDetailLocation.tsx`)
+      - **Blocklist Configuration Updates** (`BlocklistView.tsx`)
+    *   **Split-Brain TTL Hazard**: The most dangerous window is the few milliseconds between Step 1 (Cloud) and Step 3 (Hardware). Our Orchestrator narrows this window and includes `rollbackFailed` detection.
+    *   **Eventual Consistency Safety Net**: If a compensating transaction (undo) fails, we rely on the `HydrationEngine`'s delta-sync to restore truth during the next app boot or foregrounding event.
+    *   **Chaos Engineering & Resilience Testing**:
+        - **Chaos Suite**: We have an in-app `(dev)/chaos.tsx` control panel managed by `useChaosStore.ts`.
+        - **Fault Points**: Granular injection points (`faultCloudWrite`, `faultDiskWrite`, `faultHardware`, `faultCloudUndo`) are embedded into the `TripleWriteOrchestrator` execution loop.
+        - **Production Safety**: The `ChaosFab` debug button is only rendered in `__DEV__` mode to prevent leakage to end-users.
     *   **Amnesia & Warm Boot Mechanics**: At launch, the `HydrationEngine` reads a SecureStore token. If blank (Amnesia), it downloads an absolute snapshot of active data and rebuilds local tables instantly ("Fast-Path"). If present (Warm), it requests only highly-optimized Deltas from Convex.
     *   **Immutable Transaction Ingestion (Ghost Handling)**: The engine ingests these Delta payloads directly into SQLite via `withTransactionAsync()`. It natively intercepts "Ghost Instances" (historical completion logs from tasks the user previously deleted) by temporarily suspending `PRAGMA foreign_keys = OFF`. This precisely mirrors UI-based deletions, allowing the local calendar state to correctly display historical tasks without triggering violent SQLite constraint violations (`ON DELETE CASCADE`).
 5.  **Native Permission Engine (`usePermissions.ts`)**: Serves as the reactive source of truth for the app's hardware/OS permission state. 

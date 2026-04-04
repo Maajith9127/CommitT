@@ -5,6 +5,8 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { api } from '@commit/backend/convex/_generated/api';
 import { useTaskDraftStore } from '@/stores/useTaskDraftStore';
 import { scheduleNextAlarm } from '@/modules/scheduler-module';
+import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
+import { useChaosStore } from "@/stores/useChaosStore";
 import type { Task } from './useTasks';
 
 /**
@@ -43,57 +45,62 @@ export function useTaskActions() {
     router.push("/(create-commit)/final");
   }, [setDraft, router]);
 
-  const deleteTask = useCallback(async (taskId: string) => {
-    // 1. Authoritative Cloud Delete
-    // This removes the commitment definition and clears the server-side temporal brain.
-    // NOTE: Convex's `cleanupFuture` already preserves `is_manual_edit` instances server-side.
-    await removeTaskMutation({ id: taskId as any });
+  const deleteTask = useCallback(async (taskId: string): Promise<{ success: boolean; error: string | null }> => {
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║  TASK DELETION SAGA                                                          ║
+    // ╠══════════════════════════════════════════════════════════════════════════════╣
+    // ║  Deleting a task is destructive. We must ensure the hardware alarm is        ║
+    // ║  cleared before we let the UI hide the task from the user.                   ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    const contextSnapshot = { taskId };
+    const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
 
-    // 2. Local Cache Cleanup (SQLite)
-    // ─────────────────────────────────────────────────────────────────────
-    // CRITICAL EDGE CASE: ON DELETE CASCADE would nuke ALL child instances,
-    // including manually edited ones the user customized. We handle this
-    // surgically to match the Convex backend's `cleanupFuture` behavior.
-    // ─────────────────────────────────────────────────────────────────────
-    try {
-      // Step A: Find the local task ID from the Convex ID
-      const taskRow = await db.getFirstAsync<{ id: string }>(
-        'SELECT id FROM local_tasks WHERE convex_id = ?',
-        [taskId]
+    orchestrator
+      .addStep(
+        "Cloud Eradication (Convex)",
+        async (ctx) => {
+          if (__DEV__ && useChaosStore.getState().faultCloudWrite) throw new Error("[CHAOS] Convex delete failed.");
+          const result = await removeTaskMutation({ id: ctx.taskId as any });
+          return { originalResult: result };
+        },
+        async () => {
+          // COMPENSATING: A 'Delete Rollback' is technically a 'Re-Create', but since 
+          // the source data is gone from the cloud, we rely on the Auto-Heal engine 
+          // (HydrationSync) to catch this Split-Brain state and restore the record.
+        }
+      )
+      .addStep(
+        "Disk Eradication (SQLite Cache)",
+        async (ctx) => {
+          if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] SQLite delete failed.");
+          
+          const taskRow = await db.getFirstAsync<{ id: string }>(
+            'SELECT id FROM local_tasks WHERE convex_id = ?',
+            [ctx.taskId]
+          );
+
+          if (taskRow) {
+            const localTaskId = taskRow.id;
+            await db.runAsync('DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0', [localTaskId]);
+            await db.execAsync('PRAGMA foreign_keys = OFF;');
+            await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [localTaskId]);
+            await db.execAsync('PRAGMA foreign_keys = ON;');
+          }
+        }
+      )
+      .addStep(
+        "Hardware Sync (Clear Alarms)",
+        async () => {
+          if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Android failed to clear alarm.");
+          scheduleNextAlarm();
+        }
       );
 
-      if (taskRow) {
-        const localTaskId = taskRow.id;
-
-        // Step B: Delete all instances that are NOT manually edited
-        // This preserves drag-and-drop rescheduled instances as historical proof.
-        await db.runAsync(
-          'DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0',
-          [localTaskId]
-        );
-
-        // Step C: Orphan any surviving edited instances so CASCADE doesn't kill them.
-        // We temporarily disable foreign keys, delete the parent, then re-enable.
-        await db.execAsync('PRAGMA foreign_keys = OFF;');
-        await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [localTaskId]);
-        await db.execAsync('PRAGMA foreign_keys = ON;');
-
-        console.log('[useTaskActions] Local DB cleanup complete. Edited instances preserved for:', taskId);
-      }
-    } catch (localError) {
-      console.error('[useTaskActions] Local DB delete failed (non-critical):', localError);
-      // Failsafe: re-enable foreign keys even if something breaks
-      try { await db.execAsync('PRAGMA foreign_keys = ON;'); } catch (_) {}
-    }
-
-    // 3. Hardware Alarm Sync
-    // CRITICAL: We re-trigger the scheduler AFTER local deletion to ensure
-    // it sees the updated database state when finding the next upcoming alarm.
     try {
-      scheduleNextAlarm();
-      console.log('[useTaskActions] Native alarms refreshed post-deletion sequence');
-    } catch (e) {
-      console.error('[useTaskActions] Native alarm refresh failed:', e);
+        const execution = await orchestrator.execute();
+        return { success: execution.success, error: execution.error };
+    } catch (e: any) {
+        return { success: false, error: e.message || "Deletion Engine crashed." };
     }
   }, [removeTaskMutation, db]);
 
@@ -108,32 +115,47 @@ export function useTaskActions() {
   }, []);
 
   // Delete Individual Instance
-  const deleteInstance = useCallback(async (instanceConvexId: string) => {
-    // 1. Authoritative Cloud Delete
-    const result = (await removeInstanceMutation({ id: instanceConvexId as any })) as any;
+  const deleteInstance = useCallback(async (instanceConvexId: string): Promise<{ success: boolean; error: string | null }> => {
+    // ╔══════════════════════════════════════════════════════════════════════════════╗
+    // ║  INSTANCE DELETION SAGA                                                      ║
+    // ╠══════════════════════════════════════════════════════════════════════════════╣
+    // ║  Even an individual instance deletion must be guaranteed by the hardware.    ║
+    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    const contextSnapshot = { instanceConvexId };
+    const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
 
-    if (result && result.success === false) {
-      console.warn('[useTaskActions] Cloud delete rejected:', result.error);
-      return result;
-    }
+    orchestrator
+      .addStep(
+        "Cloud Eradication (Convex Instance)",
+        async (ctx) => {
+          if (__DEV__ && useChaosStore.getState().faultCloudWrite) throw new Error("[CHAOS] Convex delete failed.");
+          const result = await removeInstanceMutation({ id: ctx.instanceConvexId as any });
+          if ((result as any)?.success === false) throw new Error((result as any).error || "Convex instance delete rejected.");
+          return { originalResult: result };
+        },
+        async () => { /* Rely on Auto-Heal if rollback fails */ }
+      )
+      .addStep(
+        "Disk Eradication (SQLite Instance Cache)",
+        async (ctx) => {
+          if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] SQLite delete failed.");
+          await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [ctx.instanceConvexId]);
+        }
+      )
+      .addStep(
+        "Hardware Sync (Clear Instance Alarm)",
+        async () => {
+          if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Android failed to clear individual alarm.");
+          scheduleNextAlarm();
+        }
+      );
 
-    // 2. Local Cache Cleanup
     try {
-      await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [instanceConvexId]);
-      console.log('[useTaskActions] Local SQLite instance deleted:', instanceConvexId);
-    } catch (e) {
-      console.error('[useTaskActions] SQLite instance delete failed:', e);
+        const execution = await orchestrator.execute();
+        return { success: execution.success, error: execution.error };
+    } catch (e: any) {
+        return { success: false, error: e.message || "Instance Deletion Engine crashed." };
     }
-
-    // 3. Hardware Alarm Sync
-    try {
-      scheduleNextAlarm();
-      console.log('[useTaskActions] Native alarms refreshed after instance deletion');
-    } catch (e) {
-      console.error('[useTaskActions] Native alarm refresh failed:', e);
-    }
-
-    return result ?? { success: true };
   }, [removeInstanceMutation, db]);
 
   return {
