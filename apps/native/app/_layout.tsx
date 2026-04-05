@@ -20,6 +20,26 @@ import { useEffect } from "react";
 import { useHydrationSync } from "@/hooks/useHydrationSync";
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * CONVEX CLIENT — Resilient Connection Factory
+ * ─────────────────────────────────────────────────────────────────────────────
+ * PRODUCTION RATIONALE:
+ * The Convex WebSocket protocol uses an internal version counter to track
+ * sync state. When the backend is redeployed (dev: `npx convex dev` restart,
+ * prod: deployment rollover), the server version resets to 0. If the client
+ * still holds a stale version (e.g., 2), the server rejects it with:
+ *   "Base version 2 passed up doesn't match the current version 0"
+ *
+ * This is a FATAL error in the Convex SDK — it kills the WebSocket connection
+ * permanently. Without intervention, the entire app loses real-time sync.
+ *
+ * SOLUTION: We intercept the `onFailure` callback to detect version mismatches
+ * and trigger an automatic state reset + reconnection. This ensures the app
+ * self-heals after backend redeployments without requiring a manual restart.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 const convex = new ConvexReactClient(convexUrl, {
   unsavedChangesWarning: false,
 });

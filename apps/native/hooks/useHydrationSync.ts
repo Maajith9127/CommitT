@@ -3,7 +3,7 @@ import { useConvex } from "convex/react";
 import { useSQLiteContext } from "expo-sqlite";
 import { api } from "@commit/backend/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
-import { getLocalSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
+import { getLocalSyncToken, ingestDeltaPayload, clearSyncToken } from "@/lib/sync-engine";
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
 
 /**
@@ -39,10 +39,17 @@ export function useHydrationSync() {
       
       // Resource Guard: Ensure the SQLite context hasn't been closed/invalidated
       // during a hot-reload or unmount cycle before proceeding.
+      // Also performs a lightweight corruption detection before attempting writes.
       try {
         await db.execAsync('PRAGMA user_version;'); 
-      } catch (resourceErr) {
-        console.warn('[HydrationSync] SQLite Resource not available yet. Skipping cycle.');
+      } catch (resourceErr: any) {
+        const errStr = String(resourceErr);
+        if (errStr.includes('malformed')) {
+          console.error('🚨 [HydrationSync] DATABASE CORRUPTION DETECTED on health check. Aborting sync.');
+          console.error('🚨 Recovery: Clear app data/cache and restart to trigger Amnesia rebuild.');
+        } else {
+          console.warn('[HydrationSync] SQLite Resource not available yet. Skipping cycle.');
+        }
         return;
       }
 
@@ -81,7 +88,37 @@ export function useHydrationSync() {
             console.log('[HydrationSync] Fully synchronized. Zero mutation drift detected.');
         }
 
-      } catch (e) {
+      } catch (e: any) {
+        const errorStr = String(e);
+
+        // ─────────────────────────────────────────────────────────────────────
+        // CONVEX VERSION MISMATCH RECOVERY
+        // ─────────────────────────────────────────────────────────────────────
+        // When the Convex backend is redeployed (dev: `npx convex dev` restart,
+        // prod: deployment rollover), its internal version counter resets to 0.
+        // The client may still hold a stale version, causing:
+        //   "Base version X passed up doesn't match the current version 0"
+        //
+        // RECOVERY STRATEGY:
+        // 1. Wipe the sync token → forces Amnesia mode on next attempt.
+        // 2. Wait for the Convex SDK to re-establish the WebSocket connection.
+        // 3. Retry the full sync automatically.
+        // ─────────────────────────────────────────────────────────────────────
+        if (errorStr.includes('Base version') && errorStr.includes("doesn't match")) {
+          console.warn('[HydrationSync] CONVEX VERSION MISMATCH detected. Backend was redeployed.');
+          console.warn('[HydrationSync] Wiping sync token and scheduling retry...');
+          
+          await clearSyncToken();
+          
+          // Retry after a short delay to let the WebSocket reconnect
+          if (isMounted) {
+            setTimeout(() => {
+              if (isMounted) executeReconciliation();
+            }, 2000);
+          }
+          return; // Exit this cycle, retry will handle it
+        }
+
         console.error('[HydrationSync] Synchronization Engine Catastrophic Failure:', e);
       } finally {
         if (isMounted) {

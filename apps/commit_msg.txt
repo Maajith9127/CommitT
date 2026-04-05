@@ -1,7 +1,31 @@
-style(native): refine EventDetail ActionMenu labels and add Help option
+arch(native): implement instance-dependent sqlite model and harden sync resilience
 
-Updated action menu items to be more concise and added a new help entry.
-- "Delete Commitment" -> "Delete"
-- "Activate Strict Mode" -> "Strict Mode"
-- "Duplicate As New" -> "Duplicate"
-- Added "Help" item with icon
+[PROBLEM]
+1. SQLite Corruption: Frequent "malformed disk image" errors caused by PRAGMA foreign_keys 
+   state leakage. SQLite ignores PRAGMA changes inside active transactions, causing 
+   silent failures during concurrent HydrationSync and User-triggered writes.
+2. Orphaned Instances: The Convex backend intentionally allows manually-edited instances 
+   to outlive their parent tasks. Our local SQLite schema strictly prohibited this via 
+   FOREIGN KEY constraints, causing crashes when ingesting surviving instances.
+3. Convex Protocol Mismatch: Backend redeployments (v2 -> v0) caused fatal WebSocket 
+   "Base version" mismatches, killing the sync pipeline.
+
+[SOLUTION]
+- Migrated Local DB to V12: Removed all FOREIGN KEY constraints across the schema. 
+  Instances are now treated as primary entities, allowing orphaned survivors to exist 
+  natively without "PRAGMA gymnastics."
+- Eliminated PRAGMA state toggling: Removed every `foreign_keys = OFF` toggle from 
+  the runtime write paths (SyncEngine, TaskActions, InstanceRepo). This removes 
+  the #1 race condition surface area for disk corruption.
+- Hardened Instance Repository: Rewrote update paths to utilize atomic transactions 
+  exclusively, supporting best-effort parent task resolution without strict gating.
+- Automated Convex Recovery: Added detection for "Base version mismatch" in 
+  HydrationSync. When detected, the engine wipes the local sync token (forcing 
+  Amnesia-mode full rebuild) and automatically schedules a retry.
+
+[FILES MODIFIED]
+- apps/native/lib/local-db.ts (Migration 11->12)
+- apps/native/lib/sync-engine.ts (Runtime cleanup)
+- apps/native/lib/local-db-instances.ts (Orphan support)
+- apps/native/hooks/useHydrationSync.ts (Resilience logic)
+- apps/native/hooks/commits/useTaskActions.ts (Simplification)

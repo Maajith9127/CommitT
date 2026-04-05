@@ -74,18 +74,24 @@ export function useTaskActions() {
         async (ctx) => {
           if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] SQLite delete failed.");
           
-          const taskRow = await db.getFirstAsync<{ id: string }>(
-            'SELECT id FROM local_tasks WHERE convex_id = ?',
-            [ctx.taskId]
-          );
+          // V12 INSTANCE-DEPENDENT ARCHITECTURE:
+          // No PRAGMA foreign_keys toggle needed. The schema has zero FK constraints,
+          // so deleting the parent task while manually-edited child instances survive
+          // is natively supported without any connection-state gymnastics.
+          await db.withTransactionAsync(async () => {
+            const taskRow = await db.getFirstAsync<{ id: string }>(
+              'SELECT id FROM local_tasks WHERE convex_id = ?',
+              [ctx.taskId]
+            );
 
-          if (taskRow) {
-            const localTaskId = taskRow.id;
-            await db.runAsync('DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0', [localTaskId]);
-            await db.execAsync('PRAGMA foreign_keys = OFF;');
-            await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [localTaskId]);
-            await db.execAsync('PRAGMA foreign_keys = ON;');
-          }
+            if (taskRow) {
+              const localTaskId = taskRow.id;
+              // Delete non-manual instances (manual-edit instances survive as orphans)
+              await db.runAsync('DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0', [localTaskId]);
+              // Delete parent task — orphaned instances are valid in V12
+              await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [localTaskId]);
+            }
+          });
         }
       )
       .addStep(

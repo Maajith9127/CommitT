@@ -107,8 +107,10 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
       - **Verification, Waivers, Strict Mode, & Help** (`useEventDetail.ts`): Orchestrates concise instance-level actions (Delete, Strict Mode, Duplicate, Help). **CRITICAL**: Must call `deleteInstance` for individual events to avoid Convex ID type mismatches (tasks vs taskInstances).
       - **Geofence Destination Pivots** (`EventDetailLocation.tsx`)
       - **Blocklist Configuration Updates** (`BlocklistView.tsx`)
-    *   **Split-Brain TTL Hazard**: The most dangerous window is the few milliseconds between Step 1 (Cloud) and Step 3 (Hardware). Our Orchestrator narrows this window and includes `rollbackFailed` detection.
-    *   **Eventual Consistency Safety Net**: If a compensating transaction (undo) fails, we rely on the `HydrationEngine`'s delta-sync to restore truth during the next app boot or foregrounding event.
+    *   **Instance-Dependent Architecture (V12)**: The local SQLite schema has ZERO foreign key constraints. 
+      - **Rationale**: The Convex backend intentionally preserves manually-edited instances after parent task deletion. Removing FK constraints allows the local cache to mirror this "Orphan" survival natively.
+      - **Corruption Prevention**: Removing FKs eliminated the need to toggle `PRAGMA foreign_keys` during writes. Since PRAGMA changes are ignored inside transactions, toggling them was the #1 cause of 'malformed disk image' race conditions.
+      - **Write Safety**: All writes now use clean `withTransactionAsync()` blocks without stateful connection-level PRAGMA gymnastics.
     *   **Chaos Engineering & Resilience Testing**:
         - **Chaos Suite**: We have an in-app `(dev)/chaos.tsx` control panel managed by `useChaosStore.ts`.
         - **Fault Points**: Granular injection points (`faultCloudWrite`, `faultDiskWrite`, `faultHardware`, `faultCloudUndo`) are embedded into the `TripleWriteOrchestrator` execution loop.

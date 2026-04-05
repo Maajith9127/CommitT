@@ -12,7 +12,7 @@ import { type SQLiteDatabase } from "expo-sqlite";
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema Version — bump this when you add migrations
 // ─────────────────────────────────────────────────────────────────────────────
-const DATABASE_VERSION = 11;
+const DATABASE_VERSION = 12;
 
 /**
  * Migration runner. Called by SQLiteProvider's `onInit` prop.
@@ -40,18 +40,41 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   // user is entirely new (or just wiped their storage), we instantly deploy 
   // the fully comprehensive final unified schema as a single atomic transaction.
   if (currentVersion === 0) {
-    console.log('[LocalDB] Fast-Path Initialization: Executing Unified Schema V11...');
+    console.log('[LocalDB] Fast-Path Initialization: Executing Unified Schema V12...');
     await db.execAsync(`
       PRAGMA journal_mode = 'wal';
-      PRAGMA foreign_keys = OFF;
-      
+
       DROP TABLE IF EXISTS blocked_websites;
       DROP TABLE IF EXISTS blocked_apps;
       DROP TABLE IF EXISTS alarm_overrides;
       DROP TABLE IF EXISTS scheduled_alarms;
       DROP TABLE IF EXISTS task_instances;
       DROP TABLE IF EXISTS local_tasks;
-      PRAGMA foreign_keys = ON;
+
+      -- ═══════════════════════════════════════════════════════════════════════
+      -- INSTANCE-DEPENDENT ARCHITECTURE (V12)
+      -- ═══════════════════════════════════════════════════════════════════════
+      -- NO FOREIGN KEY CONSTRAINTS.
+      --
+      -- RATIONALE: The local SQLite database is a CACHE of the Convex cloud,
+      -- which is the sole source of truth. The Convex backend intentionally
+      -- preserves manually-edited and strict-locked task instances even after
+      -- their parent task is deleted (see removeInternal in
+      -- core/commitments/service.ts). This means the local DB MUST support
+      -- orphaned instances — instances whose parent task no longer exists.
+      --
+      -- Previously, FOREIGN KEY constraints forced every write path to toggle
+      -- PRAGMA foreign_keys ON/OFF, which:
+      --   1. Cannot be changed inside a transaction (SQLite ignores it).
+      --   2. Creates race conditions when concurrent writers share a connection.
+      --   3. Was the ROOT CAUSE of 'database disk image is malformed' errors.
+      --
+      -- By removing FK constraints:
+      --   • All PRAGMA foreign_keys toggles are eliminated.
+      --   • Orphaned instances are first-class citizens.
+      --   • Write paths are simplified and race-free.
+      --   • Explicit DELETE statements handle cleanup (already in place).
+      -- ═══════════════════════════════════════════════════════════════════════
 
       CREATE TABLE local_tasks (
         id TEXT PRIMARY KEY,
@@ -77,13 +100,13 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
 
       CREATE TABLE task_instances (
         id TEXT PRIMARY KEY,
-        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        task_id TEXT NOT NULL,
         convex_id TEXT NOT NULL,
         title TEXT DEFAULT '',
         scheduled_timestamp INTEGER NOT NULL,
         start_time INTEGER NOT NULL,
         end_time INTEGER NOT NULL,
-        status TEXT DEFAULT 'pending', 
+        status TEXT DEFAULT 'pending',
         config_json TEXT NOT NULL DEFAULT '{}',
         checkpoints TEXT NOT NULL DEFAULT '[]',
         penalty_json TEXT DEFAULT NULL,
@@ -98,7 +121,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
 
       CREATE TABLE scheduled_alarms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        task_id TEXT NOT NULL,
         fire_at INTEGER NOT NULL,
         instance_start INTEGER NOT NULL,
         instance_end INTEGER NOT NULL,
@@ -112,7 +135,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
 
       CREATE TABLE alarm_overrides (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        task_id TEXT NOT NULL,
         original_start INTEGER NOT NULL,
         new_start INTEGER,
         new_end INTEGER,
@@ -124,7 +147,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
 
       CREATE TABLE blocked_apps (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        task_id TEXT NOT NULL,
         package_name TEXT NOT NULL,
         active_from INTEGER,
         active_until INTEGER
@@ -133,19 +156,19 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
 
       CREATE TABLE blocked_websites (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        task_id TEXT NOT NULL REFERENCES local_tasks(id) ON DELETE CASCADE,
+        task_id TEXT NOT NULL,
         domain TEXT NOT NULL,
         active_from INTEGER,
         active_until INTEGER
       );
       CREATE INDEX idx_blocked_domain ON blocked_websites(domain, active_until);
 
-      PRAGMA user_version = 11;
+      PRAGMA user_version = 12;
     `);
-    
-    currentVersion = 11;
-    console.log('[LocalDB] Fast-Path Initialization Complete.');
-    return; // Exit securely since we are already at max version
+
+    currentVersion = 12;
+    console.log('[LocalDB] Fast-Path Initialization Complete (Instance-Dependent V12).');
+    return;
   }
 
   // ── Migration 1 → 2 (drop old tables, recreate with correct schema) ────
@@ -404,6 +427,121 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     
     console.log('[Migration] 10 → 11 Successful.');
     currentVersion = 11;
+  }
+
+  // ── Migration 11 → 12 (INSTANCE-DEPENDENT ARCHITECTURE) ──
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CRITICAL ARCHITECTURAL SHIFT:
+  // Removes all FOREIGN KEY constraints from child tables.
+  //
+  // WHY: The Convex backend intentionally preserves manually-edited instances
+  // after parent task deletion. FK constraints forced PRAGMA foreign_keys
+  // toggles on every write, which:
+  //   1. Cannot be changed inside SQLite transactions (silently ignored).
+  //   2. Created race conditions between HydrationSync and user-triggered writes.
+  //   3. Was the ROOT CAUSE of 'database disk image is malformed' errors.
+  //
+  // HOW: SQLite doesn't support DROP CONSTRAINT. We must recreate tables.
+  // We use the official SQLite "12-step" table rebuild pattern:
+  //   1. Create new table without FK  →  2. Copy data  →  3. Drop old  →  4. Rename
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (currentVersion === 11) {
+    console.log('[Migration] Migrating from 11 to 12 (Instance-Dependent Architecture)...');
+
+    await db.execAsync(`
+      -- Disable FK enforcement for the rebuild process
+      PRAGMA foreign_keys = OFF;
+
+      -- ═══ REBUILD: task_instances (remove FK to local_tasks) ═══
+      CREATE TABLE task_instances_v12 (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        convex_id TEXT NOT NULL,
+        title TEXT DEFAULT '',
+        scheduled_timestamp INTEGER NOT NULL,
+        start_time INTEGER NOT NULL,
+        end_time INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending',
+        config_json TEXT NOT NULL DEFAULT '{}',
+        checkpoints TEXT NOT NULL DEFAULT '[]',
+        penalty_json TEXT DEFAULT NULL,
+        conditions_json TEXT DEFAULT NULL,
+        penalty_waiver_json TEXT DEFAULT NULL,
+        is_manual_edit INTEGER DEFAULT 0,
+        strict_until INTEGER DEFAULT NULL,
+        created_at INTEGER NOT NULL
+      );
+      INSERT INTO task_instances_v12 SELECT * FROM task_instances;
+      DROP TABLE task_instances;
+      ALTER TABLE task_instances_v12 RENAME TO task_instances;
+      CREATE INDEX IF NOT EXISTS idx_task_instances_time ON task_instances(start_time, end_time);
+      CREATE INDEX IF NOT EXISTS idx_task_instances_task ON task_instances(task_id);
+
+      -- ═══ REBUILD: scheduled_alarms (remove FK to local_tasks) ═══
+      CREATE TABLE scheduled_alarms_v12 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL,
+        fire_at INTEGER NOT NULL,
+        instance_start INTEGER NOT NULL,
+        instance_end INTEGER NOT NULL,
+        pester_count INTEGER DEFAULT 0,
+        dismissed INTEGER DEFAULT 0,
+        os_alarm_id INTEGER,
+        created_at INTEGER NOT NULL
+      );
+      INSERT INTO scheduled_alarms_v12 SELECT * FROM scheduled_alarms;
+      DROP TABLE scheduled_alarms;
+      ALTER TABLE scheduled_alarms_v12 RENAME TO scheduled_alarms;
+      CREATE INDEX IF NOT EXISTS idx_alarm_fire ON scheduled_alarms(fire_at, dismissed);
+      CREATE INDEX IF NOT EXISTS idx_alarm_task ON scheduled_alarms(task_id);
+
+      -- ═══ REBUILD: alarm_overrides (remove FK to local_tasks) ═══
+      CREATE TABLE alarm_overrides_v12 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL,
+        original_start INTEGER NOT NULL,
+        new_start INTEGER,
+        new_end INTEGER,
+        cancelled INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        UNIQUE(task_id, original_start)
+      );
+      INSERT INTO alarm_overrides_v12 SELECT * FROM alarm_overrides;
+      DROP TABLE alarm_overrides;
+      ALTER TABLE alarm_overrides_v12 RENAME TO alarm_overrides;
+      CREATE INDEX IF NOT EXISTS idx_override_task ON alarm_overrides(task_id);
+
+      -- ═══ REBUILD: blocked_apps (remove FK to local_tasks) ═══
+      CREATE TABLE blocked_apps_v12 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL,
+        package_name TEXT NOT NULL,
+        active_from INTEGER,
+        active_until INTEGER
+      );
+      INSERT INTO blocked_apps_v12 SELECT * FROM blocked_apps;
+      DROP TABLE blocked_apps;
+      ALTER TABLE blocked_apps_v12 RENAME TO blocked_apps;
+      CREATE INDEX IF NOT EXISTS idx_blocked_package ON blocked_apps(package_name, active_until);
+
+      -- ═══ REBUILD: blocked_websites (remove FK to local_tasks) ═══
+      CREATE TABLE blocked_websites_v12 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL,
+        domain TEXT NOT NULL,
+        active_from INTEGER,
+        active_until INTEGER
+      );
+      INSERT INTO blocked_websites_v12 SELECT * FROM blocked_websites;
+      DROP TABLE blocked_websites;
+      ALTER TABLE blocked_websites_v12 RENAME TO blocked_websites;
+      CREATE INDEX IF NOT EXISTS idx_blocked_domain ON blocked_websites(domain, active_until);
+
+      PRAGMA user_version = 12;
+    `);
+
+    console.log('[Migration] 11 → 12 Successful. FK constraints removed. Instance-Dependent Architecture active.');
+    currentVersion = 12;
   }
 }
 

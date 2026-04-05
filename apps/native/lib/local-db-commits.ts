@@ -39,39 +39,41 @@ export async function insertTaskToLocalDb(
   // ── 1. Create a highly robust local identification hash ──
   const localId = `local_${now}_${Math.random().toString(36).slice(2, 9)}`;
 
-  // ── 2. Persist the absolute Main Task Document ──
-  await db.runAsync(
-    `INSERT INTO local_tasks
-      (id, convex_id, assigner_id, assignee_id, title, description,
-       visibility, recurrence_json, conditions_json, config_json,
-       penalty_json, penalty_waiver_json,
-       strict_until, strict_duration_days,
-       created_at, updated_at, synced_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      localId,
-      remoteId,
-      draft.assigner_id,
-      draft.assignee_id,
-      draft.title,
-      draft.description,
-      draft.visibility,
-      JSON.stringify(draft.recurrence),
-      JSON.stringify(cleanedConditions),
-      JSON.stringify(draft.config),
-      penaltyOverride ? JSON.stringify(penaltyOverride) : (draft.penalty ? JSON.stringify(draft.penalty) : null),
-      draft.penalty_waiver ? JSON.stringify(draft.penalty_waiver) : null,
-      null, // Initial creation usually doesn't have strict mode set in draft
-      null,
-      now,
-      now,
-      now,
-    ]
-  );
-  console.log('[TaskRepository] Validated Local DB insert OK. convex_id:', remoteId);
+  // ── 2. ATOMIC TRANSACTION: Persist task + all instances as one unit ──
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(
+      `INSERT INTO local_tasks
+        (id, convex_id, assigner_id, assignee_id, title, description,
+         visibility, recurrence_json, conditions_json, config_json,
+         penalty_json, penalty_waiver_json,
+         strict_until, strict_duration_days,
+         created_at, updated_at, synced_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        localId,
+        remoteId,
+        draft.assigner_id,
+        draft.assignee_id,
+        draft.title,
+        draft.description,
+        draft.visibility,
+        JSON.stringify(draft.recurrence),
+        JSON.stringify(cleanedConditions),
+        JSON.stringify(draft.config),
+        penaltyOverride ? JSON.stringify(penaltyOverride) : (draft.penalty ? JSON.stringify(draft.penalty) : null),
+        draft.penalty_waiver ? JSON.stringify(draft.penalty_waiver) : null,
+        null,
+        null,
+        now,
+        now,
+        now,
+      ]
+    );
+    console.log('[TaskRepository] Validated Local DB insert OK. convex_id:', remoteId);
 
-  // ── 3. Propagate all newly projected future Checkpoints ──
-  await syncInstancesToLocalDb(db, localId, backendInstances, now);
+    // ── 3. Propagate all newly projected future Checkpoints ──
+    await syncInstancesToLocalDb(db, localId, backendInstances, now);
+  });
 }
 
 export async function updateTaskInLocalDb(
@@ -83,49 +85,51 @@ export async function updateTaskInLocalDb(
   backendInstances: any[],
   penaltyOverride?: TaskDraft["penalty"]
 ) {
-  // ── 1. Overwrite the Master Task Entity completely ──
-  await db.runAsync(
-    `UPDATE local_tasks SET
-      title = ?, description = ?, visibility = ?,
-      recurrence_json = ?, conditions_json = ?, config_json = ?,
-      penalty_json = ?, penalty_waiver_json = ?,
-      updated_at = ?, synced_at = ?
-    WHERE convex_id = ?`,
-    [
-      draft.title,
-      draft.description,
-      draft.visibility,
-      JSON.stringify(draft.recurrence),
-      JSON.stringify(cleanedConditions),
-      JSON.stringify(draft.config),
-      penaltyOverride ? JSON.stringify(penaltyOverride) : (draft.penalty ? JSON.stringify(draft.penalty) : null),
-      draft.penalty_waiver ? JSON.stringify(draft.penalty_waiver) : null,
-      now,
-      now,
-      remoteId,
-    ]
-  );
-  console.log('[TaskRepository] Validated Local DB update OK for task:', remoteId);
+  // ATOMIC TRANSACTION: Update task + purge stale instances + repopulate
+  await db.withTransactionAsync(async () => {
+    // ── 1. Overwrite the Master Task Entity completely ──
+    await db.runAsync(
+      `UPDATE local_tasks SET
+        title = ?, description = ?, visibility = ?,
+        recurrence_json = ?, conditions_json = ?, config_json = ?,
+        penalty_json = ?, penalty_waiver_json = ?,
+        updated_at = ?, synced_at = ?
+      WHERE convex_id = ?`,
+      [
+        draft.title,
+        draft.description,
+        draft.visibility,
+        JSON.stringify(draft.recurrence),
+        JSON.stringify(cleanedConditions),
+        JSON.stringify(draft.config),
+        penaltyOverride ? JSON.stringify(penaltyOverride) : (draft.penalty ? JSON.stringify(draft.penalty) : null),
+        draft.penalty_waiver ? JSON.stringify(draft.penalty_waiver) : null,
+        now,
+        now,
+        remoteId,
+      ]
+    );
+    console.log('[TaskRepository] Validated Local DB update OK for task:', remoteId);
 
-  // ── 2. Resolve the abstract Local ID from the Convex Key ──
-  const taskRow = await db.getFirstAsync<{ id: string }>(
-    "SELECT id FROM local_tasks WHERE convex_id = ?",
-    [remoteId]
-  );
+    // ── 2. Resolve the abstract Local ID from the Convex Key ──
+    const taskRow = await db.getFirstAsync<{ id: string }>(
+      "SELECT id FROM local_tasks WHERE convex_id = ?",
+      [remoteId]
+    );
 
-  // ── 3. Atomically overwrite the entire future schedule trajectory ──
-  if (taskRow) {
-    const localTaskId = taskRow.id;
-    
-    // Brutally purge the stale historical projections from ALL relevant tables
-    // to ensure no duplicates or orphaned blocking rules exist.
-    await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [localTaskId]);
-    await db.runAsync("DELETE FROM blocked_apps WHERE task_id = ?", [localTaskId]);
-    await db.runAsync("DELETE FROM blocked_websites WHERE task_id = ?", [localTaskId]);
-    
-    // Repopulate fully aligned with the newly edited timeframe constraints
-    await syncInstancesToLocalDb(db, localTaskId, backendInstances, now);
-  }
+    // ── 3. Atomically overwrite the entire future schedule trajectory ──
+    if (taskRow) {
+      const localTaskId = taskRow.id;
+      
+      // Purge stale projections from ALL relevant tables
+      await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [localTaskId]);
+      await db.runAsync("DELETE FROM blocked_apps WHERE task_id = ?", [localTaskId]);
+      await db.runAsync("DELETE FROM blocked_websites WHERE task_id = ?", [localTaskId]);
+      
+      // Repopulate fully aligned with the newly edited timeframe constraints
+      await syncInstancesToLocalDb(db, localTaskId, backendInstances, now);
+    }
+  });
 }
 
 /**
@@ -278,8 +282,18 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
     }
     console.log(`[TaskRepository] SQLite sync complete. Projected ${backendInstances.length} instances.`);
   } finally {
-    await instanceStatement.finalizeAsync();
-    await blockAppsStatement.finalizeAsync();
-    await blockWebStatement.finalizeAsync();
+    // CORRUPTION GUARD: Wrap each finalizeAsync in its own try/catch.
+    // If the database becomes corrupted mid-loop, the remaining finalize calls
+    // would throw 'NativeStatement.finalizeAsync rejected — disk image malformed',
+    // crashing the app. By isolating each, we ensure all 3 statements are cleaned up.
+    try { await instanceStatement.finalizeAsync(); } catch (e) {
+      console.warn('[TaskRepository] instanceStatement finalize failed:', e);
+    }
+    try { await blockAppsStatement.finalizeAsync(); } catch (e) {
+      console.warn('[TaskRepository] blockAppsStatement finalize failed:', e);
+    }
+    try { await blockWebStatement.finalizeAsync(); } catch (e) {
+      console.warn('[TaskRepository] blockWebStatement finalize failed:', e);
+    }
   }
 }
