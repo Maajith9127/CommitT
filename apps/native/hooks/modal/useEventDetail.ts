@@ -25,6 +25,7 @@ import { updateInstanceInLocalDb } from '@/lib/local-db-commits';
 import { scheduleNextAlarm } from '@/modules/scheduler-module';
 import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
 import { useChaosStore } from "@/stores/useChaosStore";
+import { Logger } from '@/lib/logger';
 import type { ActionMenuItem } from '@/components/ui/commits/ActionMenu';
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -188,6 +189,7 @@ export function useEventDetail(): EventDetailState {
 
     orchestrator
       .addStep("Cloud Verification", async (ctx) => {
+          Logger.info(`[VerifySaga] Step 1: Cloud Proof for ${ctx.instanceId} (${ctx.metricKey})`);
           if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultCloudWrite) 
              throw new Error("[CHAOS] Convex verification failure.");
           return await verifyMutation({
@@ -197,6 +199,7 @@ export function useEventDetail(): EventDetailState {
           });
       })
       .addStep("Disk Sync", async (ctx, prev) => {
+          Logger.info(`[VerifySaga] Step 2: Disk Cache Update for ${ctx.instanceId}`);
           if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
              throw new Error("[CHAOS] SQLite sync failure.");
           const result = prev["Cloud Verification"] as any;
@@ -208,12 +211,15 @@ export function useEventDetail(): EventDetailState {
                 status: result.instanceStatus,
                 conditions,
               });
+              Logger.info(`[VerifySaga] Disk marked verified for ${ctx.instanceId}`);
           }
       })
       .addStep("Hardware Silence", async () => {
+          Logger.info(`[VerifySaga] Step 3: Killing Hardware Alarm for ${context.instanceId}`);
           if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
              throw new Error("[CHAOS] Alarm manager failure.");
           scheduleNextAlarm();
+          Logger.info(`[VerifySaga] Saga Complete for ${context.instanceId}`);
       });
 
     try {
@@ -222,9 +228,11 @@ export function useEventDetail(): EventDetailState {
         const result = exec.results["Cloud Verification"] as any;
         setConditionStatuses((p) => ({ ...p, [metricKey]: result.status }));
       } else {
+        Logger.error(`[VerifySaga] Failed for ${currentEvent._id}`, exec.error);
         setFailureModal({ visible: true, title: exec.error || "Sync Aborted", message: '' });
       }
     } catch (err: any) {
+      Logger.error(`[VerifySaga] CRITICAL FAILURE for ${currentEvent._id}`, err);
       setFailureModal({ visible: true, title: parseError(err), message: '' });
     } finally {
       setVerifyingMetric(null);
@@ -269,17 +277,22 @@ export function useEventDetail(): EventDetailState {
       const result = (await startWaiverMutation({ instanceId: currentEvent._id })) as any;
       
       if (result && result.success === false) {
+        Logger.warn(`[WaiverAction] Cloud rejected waiver for ${currentEvent._id}: ${result.message}`);
         setWaiverConfirmVisible(false); // Dismiss confirm modal on failure
         setFailureModal({ visible: true, title: result.message || "Waiver Denied", message: '' });
         return;
       }
       
+      Logger.info(`[WaiverAction] Step 2: Marking Disk 'waived' for ${currentEvent._id}`);
       await updateInstanceInLocalDb(db, currentEvent._id, { status: 'waived' });
+      Logger.info(`[WaiverAction] Step 3: Updating Hardware Alarms for ${currentEvent._id}`);
       scheduleNextAlarm();
+      Logger.info(`[WaiverAction] Complete for ${currentEvent._id}`);
       
       setWaiverConfirmVisible(false);
       setWaiverModalVisible(true);
     } catch (err) {
+      Logger.error(`[WaiverAction] FAILURE for ${currentEvent?._id}`, err);
       setWaiverConfirmVisible(false);
       setFailureModal({ visible: true, title: parseError(err), message: '' });
     } finally {
@@ -300,13 +313,17 @@ export function useEventDetail(): EventDetailState {
 
     orchestrator
       .addStep("Cloud Lock", async (ctx) => {
+          Logger.info(`[StrictSaga] Step 1: Cloud Lock for ${ctx.instanceId}`);
           await updateInstanceMutation({ id: ctx.instanceId as any, strict_until: ctx.end, is_manual_edit: true });
       })
       .addStep("Disk Lock", async (ctx) => {
+          Logger.info(`[StrictSaga] Step 2: Disk Lock for ${ctx.instanceId}`);
           await updateInstanceInLocalDb(db, ctx.instanceId, { strict_until: ctx.end, is_manual_edit: true });
       })
       .addStep("Hardware Lock", async () => {
+          Logger.info(`[StrictSaga] Step 3: Hardware Kernel Arming for ${context.instanceId}`);
           scheduleNextAlarm();
+          Logger.info(`[StrictSaga] Saga Complete for ${context.instanceId}`);
       });
 
     try {
@@ -314,9 +331,11 @@ export function useEventDetail(): EventDetailState {
       if (exec.success) {
         setStrictConfirmVisible(false);
       } else {
+        Logger.error(`[StrictSaga] Failed for ${currentEvent._id}`, exec.error);
         setFailureModal({ visible: true, title: exec.error || "Lock Refused", message: '' });
       }
     } catch (err) {
+      Logger.error(`[StrictSaga] CRITICAL FAILURE for ${currentEvent._id}`, err);
       setFailureModal({ visible: true, title: parseError(err), message: '' });
     } finally {
       setIsLocking(false);

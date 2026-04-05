@@ -1,5 +1,6 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 import * as SecureStore from 'expo-secure-store';
+import { Logger } from './logger';
 
 const SYNC_TOKEN_KEY = 'commit_t_last_synced_at';
 
@@ -29,11 +30,7 @@ export interface DeltaPayload {
  * ─────────────────────────────────────────────────────────────────────────────
  */
 export async function ingestDeltaPayload(db: SQLiteDatabase, payload: DeltaPayload) {
-  console.log('[SyncEngine] Ingesting Delta Payload...', {
-    tasks: payload.tasks.length,
-    instances: payload.instances.length,
-    token: payload.sync_token,
-  });
+  Logger.info(`[SyncEngine] Ingesting Delta: ${payload.tasks.length} tasks, ${payload.instances.length} instances. Token: ${payload.sync_token}`);
 
   try {
     await db.withTransactionAsync(async () => {
@@ -98,11 +95,11 @@ export async function ingestDeltaPayload(db: SQLiteDatabase, payload: DeltaPaylo
       }
     });
   } catch (err: any) {
-    console.error('[SyncEngine] TRANSACTION FAILED — Rolling back atomically.', err);
+    Logger.error('[SyncEngine] TRANSACTION FAILED. Rolling back atomically.', err);
 
     if (String(err).includes('malformed')) {
-      console.error('🚨 [SyncEngine] DATABASE CORRUPTION DETECTED during ingestion.');
-      console.error('🚨 Recovery: Next boot will trigger Amnesia-mode full rebuild.');
+      Logger.error('🚨 [SyncEngine] DATABASE CORRUPTION DETECTED during ingestion.');
+      Logger.info('🚨 Recovery: Next boot will trigger Amnesia-mode full rebuild.');
     }
 
     throw err;
@@ -110,7 +107,7 @@ export async function ingestDeltaPayload(db: SQLiteDatabase, payload: DeltaPaylo
 
   // 3. Persist the Sync Token safely ONLY if transaction succeeded
   await SecureStore.setItemAsync(SYNC_TOKEN_KEY, payload.sync_token.toString());
-  console.log(`[SyncEngine] Sync Complete. Token ${payload.sync_token} locked in SecureStore.`);
+  Logger.info(`[SyncEngine] Sync Complete. Token ${payload.sync_token} locked.`);
 }
 
 /**

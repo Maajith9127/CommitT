@@ -18,6 +18,7 @@ import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useEffect } from "react";
 import { useHydrationSync } from "@/hooks/useHydrationSync";
+import { Logger } from "@/lib/logger";
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 
@@ -105,10 +106,15 @@ function DbDebugFab() {
   const [visible, setVisible] = useState(false);
   const [rows, setRows] = useState<any[]>([]);
   const [orphanedInstances, setOrphanedInstances] = useState<any[]>([]);
+  const [debugLogs, setDebugLogs] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'db' | 'logs'>('db');
 
   const inspect = async () => {
     try {
       const allTasks = await db.getAllAsync('SELECT * FROM local_tasks');
+      const logs = await Logger.getLogs();
+      setDebugLogs(logs);
+
       // @ts-ignore
       const enhancedTasks = await Promise.all(
         (allTasks as any[]).map(async (task) => {
@@ -162,17 +168,39 @@ function DbDebugFab() {
       </Pressable>
 
       <Modal visible={visible} animationType="slide" transparent>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', paddingTop: 60, padding: 16 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
-            <Text style={{ color: '#FF9500', fontSize: 18, fontWeight: 'bold' }}>
-              📦 local_tasks ({rows.length})
-            </Text>
-            <Pressable onPress={() => setVisible(false)}>
-              <Text style={{ color: '#FF3B30', fontSize: 16, fontWeight: 'bold' }}>Close ✕</Text>
-            </Pressable>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', paddingTop: 60, padding: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <View>
+              <Text style={{ color: '#FF9500', fontSize: 18, fontWeight: 'bold' }}>
+                🔍 Debug Inspector
+              </Text>
+              <Text style={{ color: '#666', fontSize: 12 }}>{viewMode === 'db' ? 'SQLite Cache' : 'Persistent Logs'}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <Pressable onPress={() => setViewMode(viewMode === 'db' ? 'logs' : 'db')}>
+                <Text style={{ color: '#4FA0FF', fontSize: 13, fontWeight: 'bold' }}>
+                  Switch to {viewMode === 'db' ? 'Logs' : 'DB'}
+                </Text>
+              </Pressable>
+              {viewMode === 'logs' && (
+                <Pressable onPress={async () => { await Logger.clear(); setDebugLogs('--- LOGS CLEARED ---'); }}>
+                  <Text style={{ color: '#FF9500', fontSize: 13, fontWeight: 'bold' }}>Clear</Text>
+                </Pressable>
+              )}
+              <Pressable onPress={() => setVisible(false)}>
+                <Text style={{ color: '#FF3B30', fontSize: 16, fontWeight: 'bold' }}>Close ✕</Text>
+              </Pressable>
+            </View>
           </View>
+
           <ScrollView style={{ flex: 1 }}>
-            {rows.length === 0 ? (
+            {viewMode === 'logs' ? (
+              <View style={{ backgroundColor: '#0a0a0a', padding: 12, borderRadius: 8, borderLeftWidth: 2, borderLeftColor: '#4FA0FF' }}>
+                <Text style={{ color: '#8BC34A', fontSize: 10, fontFamily: 'monospace' }}>
+                  {debugLogs}
+                </Text>
+              </View>
+            ) : rows.length === 0 ? (
               <Text style={{ color: '#888', fontSize: 14 }}>No rows in local_tasks</Text>
             ) : (
               rows.map((row: any, i: number) => {
@@ -447,8 +475,8 @@ export default function Layout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: 'black' }}>
-      <SecurityShield>
-        <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
+      <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
+        <SecurityShield>
           <ConvexBetterAuthProvider client={convex} authClient={authClient}>
             <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
               <KeyboardProvider>
@@ -465,8 +493,8 @@ export default function Layout() {
               </KeyboardProvider>
             </GestureHandlerRootView>
           </ConvexBetterAuthProvider>
-        </SQLiteProvider>
-      </SecurityShield>
+        </SecurityShield>
+      </SQLiteProvider>
       <ChaosFab />
     </View>
   );

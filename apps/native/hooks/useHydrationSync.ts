@@ -5,6 +5,7 @@ import { api } from "@commit/backend/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
 import { getLocalSyncToken, ingestDeltaPayload, clearSyncToken } from "@/lib/sync-engine";
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
+import { Logger } from "@/lib/logger";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -45,10 +46,9 @@ export function useHydrationSync() {
       } catch (resourceErr: any) {
         const errStr = String(resourceErr);
         if (errStr.includes('malformed')) {
-          console.error('🚨 [HydrationSync] DATABASE CORRUPTION DETECTED on health check. Aborting sync.');
-          console.error('🚨 Recovery: Clear app data/cache and restart to trigger Amnesia rebuild.');
+          Logger.error('🚨 [HydrationSync] DATABASE CORRUPTION DETECTED on health check. Aborting sync.');
         } else {
-          console.warn('[HydrationSync] SQLite Resource not available yet. Skipping cycle.');
+          Logger.warn('[HydrationSync] SQLite Resource not available yet. Skipping cycle.');
         }
         return;
       }
@@ -61,9 +61,9 @@ export function useHydrationSync() {
         const isAmnesiaWipe = token === null;
 
         if (isAmnesiaWipe) {
-            console.log('\n[HydrationSync] AMNESIA DETECTED! Local DB wiped. Forcing Full Storage Rebuild...');
+            Logger.info('[HydrationSync] AMNESIA DETECTED! Local DB wiped. Forcing Full Storage Rebuild...');
         } else {
-            console.log(`\n[HydrationSync] Warm Boot. Checking for Deltas since ${new Date(token).toLocaleTimeString()}...`);
+            Logger.info(`[HydrationSync] Warm Boot. Last sync: ${new Date(token).toLocaleTimeString()}`);
         }
 
         // 3. The Cloud API Handshake
@@ -76,16 +76,16 @@ export function useHydrationSync() {
         // 4. The Atomic Ingestor
         // If there are literally no changes, we completely skip the heavy write to save battery!
         if (payload.tasks.length > 0 || payload.instances.length > 0) {
-            console.log(`[HydrationSync] Downloaded ${payload.tasks.length} tasks and ${payload.instances.length} instances.`);
+            Logger.info(`[HydrationSync] Ingesting: ${payload.tasks.length} tasks, ${payload.instances.length} instances.`);
             
             await ingestDeltaPayload(db, payload);
             
             // 5. Hardware Re-Arm
-            console.log('[HydrationSync] Firing Signals to Kotlin Hardware Kernel...');
+            Logger.info('[HydrationSync] Firing Signals to Kotlin Hardware Kernel...');
             scheduleNextAlarm();
-            console.log('[HydrationSync] Hardware fully synchronized!');
+            Logger.info('[HydrationSync] Hardware fully synchronized!');
         } else {
-            console.log('[HydrationSync] Fully synchronized. Zero mutation drift detected.');
+            Logger.info('[HydrationSync] Fully synchronized. Zero mutation drift.');
         }
 
       } catch (e: any) {
@@ -105,8 +105,7 @@ export function useHydrationSync() {
         // 3. Retry the full sync automatically.
         // ─────────────────────────────────────────────────────────────────────
         if (errorStr.includes('Base version') && errorStr.includes("doesn't match")) {
-          console.warn('[HydrationSync] CONVEX VERSION MISMATCH detected. Backend was redeployed.');
-          console.warn('[HydrationSync] Wiping sync token and scheduling retry...');
+          Logger.warn('[HydrationSync] CONVEX VERSION MISMATCH. Backend redeployed. Wiping token...');
           
           await clearSyncToken();
           
@@ -119,7 +118,7 @@ export function useHydrationSync() {
           return; // Exit this cycle, retry will handle it
         }
 
-        console.error('[HydrationSync] Synchronization Engine Catastrophic Failure:', e);
+        Logger.error('[HydrationSync] Synchronization Engine Catastrophic Failure:', e);
       } finally {
         if (isMounted) {
             setIsSyncing(false);

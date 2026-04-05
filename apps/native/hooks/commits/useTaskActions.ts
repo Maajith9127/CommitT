@@ -7,6 +7,7 @@ import { useTaskDraftStore } from '@/stores/useTaskDraftStore';
 import { scheduleNextAlarm } from '@/modules/scheduler-module';
 import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
 import { useChaosStore } from "@/stores/useChaosStore";
+import { Logger } from "@/lib/logger";
 import type { Task } from './useTasks';
 
 /**
@@ -59,11 +60,13 @@ export function useTaskActions() {
       .addStep(
         "Cloud Eradication (Convex)",
         async (ctx) => {
+          Logger.info(`[TaskSaga] Step 1: Convex Eradication for ${ctx.taskId}`);
           if (__DEV__ && useChaosStore.getState().faultCloudWrite) throw new Error("[CHAOS] Convex delete failed.");
           const result = await removeTaskMutation({ id: ctx.taskId as any });
           return { originalResult: result };
         },
         async () => {
+          Logger.warn(`[TaskSaga] ROLLBACK triggered for Step 1: ${contextSnapshot.taskId}`);
           // COMPENSATING: A 'Delete Rollback' is technically a 'Re-Create', but since 
           // the source data is gone from the cloud, we rely on the Auto-Heal engine 
           // (HydrationSync) to catch this Split-Brain state and restore the record.
@@ -72,12 +75,9 @@ export function useTaskActions() {
       .addStep(
         "Disk Eradication (SQLite Cache)",
         async (ctx) => {
+          Logger.info(`[TaskSaga] Step 2: SQLite Disk Eradication for ${ctx.taskId}`);
           if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] SQLite delete failed.");
           
-          // V12 INSTANCE-DEPENDENT ARCHITECTURE:
-          // No PRAGMA foreign_keys toggle needed. The schema has zero FK constraints,
-          // so deleting the parent task while manually-edited child instances survive
-          // is natively supported without any connection-state gymnastics.
           await db.withTransactionAsync(async () => {
             const taskRow = await db.getFirstAsync<{ id: string }>(
               'SELECT id FROM local_tasks WHERE convex_id = ?',
@@ -86,10 +86,9 @@ export function useTaskActions() {
 
             if (taskRow) {
               const localTaskId = taskRow.id;
-              // Delete non-manual instances (manual-edit instances survive as orphans)
               await db.runAsync('DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0', [localTaskId]);
-              // Delete parent task — orphaned instances are valid in V12
               await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [localTaskId]);
+              Logger.info(`[TaskSaga] Disk purged for ${localTaskId}`);
             }
           });
         }
@@ -97,15 +96,19 @@ export function useTaskActions() {
       .addStep(
         "Hardware Sync (Clear Alarms)",
         async () => {
+          Logger.info(`[TaskSaga] Step 3: Hardware Sync for ${contextSnapshot.taskId}`);
           if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Android failed to clear alarm.");
           scheduleNextAlarm();
+          Logger.info(`[TaskSaga] Saga Complete for ${contextSnapshot.taskId}`);
         }
       );
 
     try {
         const execution = await orchestrator.execute();
+        if (!execution.success) Logger.error(`[TaskSaga] Execution Failed for ${taskId}`, execution.error);
         return { success: execution.success, error: execution.error };
     } catch (e: any) {
+        Logger.error(`[TaskSaga] CATASTROPHIC FAILURE for ${taskId}`, e);
         return { success: false, error: e.message || "Deletion Engine crashed." };
     }
   }, [removeTaskMutation, db]);
@@ -144,6 +147,7 @@ export function useTaskActions() {
       .addStep(
         "Disk Eradication (SQLite Instance Cache)",
         async (ctx) => {
+          Logger.info(`[InstanceSaga] Step 2: SQLite Disk Instance Eradication for ${ctx.instanceConvexId}`);
           if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] SQLite delete failed.");
           await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [ctx.instanceConvexId]);
         }
@@ -151,15 +155,19 @@ export function useTaskActions() {
       .addStep(
         "Hardware Sync (Clear Instance Alarm)",
         async () => {
+          Logger.info(`[InstanceSaga] Step 3: Hardware Alarm Sync for ${contextSnapshot.instanceConvexId}`);
           if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Android failed to clear individual alarm.");
           scheduleNextAlarm();
+          Logger.info(`[InstanceSaga] Saga Complete for ${contextSnapshot.instanceConvexId}`);
         }
       );
 
     try {
         const execution = await orchestrator.execute();
+        if (!execution.success) Logger.error(`[InstanceSaga] Execution Failed for ${instanceConvexId}`, execution.error);
         return { success: execution.success, error: execution.error };
     } catch (e: any) {
+        Logger.error(`[InstanceSaga] CATASTROPHIC FAILURE for ${instanceConvexId}`, e);
         return { success: false, error: e.message || "Instance Deletion Engine crashed." };
     }
   }, [removeInstanceMutation, db]);
