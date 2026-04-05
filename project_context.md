@@ -115,8 +115,10 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
         - **Chaos Suite**: We have an in-app `(dev)/chaos.tsx` control panel managed by `useChaosStore.ts`.
         - **Fault Points**: Granular injection points (`faultCloudWrite`, `faultDiskWrite`, `faultHardware`, `faultCloudUndo`) are embedded into the `TripleWriteOrchestrator` execution loop.
         - **Production Safety**: The `ChaosFab` debug button is only rendered in `__DEV__` mode to prevent leakage to end-users.
-    *   **Amnesia & Warm Boot Mechanics**: At launch, the `HydrationEngine` reads a SecureStore token. If blank (Amnesia), it downloads an absolute snapshot of active data and rebuilds local tables instantly ("Fast-Path"). If present (Warm), it requests only highly-optimized Deltas from Convex.
-    *   **Immutable Transaction Ingestion (Ghost Handling)**: The engine ingests these Delta payloads directly into SQLite via `withTransactionAsync()`. It natively intercepts "Ghost Instances" (historical completion logs from tasks the user previously deleted) by temporarily suspending `PRAGMA foreign_keys = OFF`. This precisely mirrors UI-based deletions, allowing the local calendar state to correctly display historical tasks without triggering violent SQLite constraint violations (`ON DELETE CASCADE`).
+    *   **Amnesia, Warm Boot, & Version Recovery**: 
+      - **Amnesia**: If the SecureStore token is missing, the engine performs a full re-hydration ("Fast-Path").
+      - **Deltas**: Normal operation uses highly-optimized JSON Deltas from Convex. Ingested via atomic `withTransactionAsync()` blocks.
+      - **Version Recovery**: If Convex returns a "Base version mismatch" (backend redeployed), the `HydrationEngine` automatically wipes the sync token, triggering an Amnesia rebuild on the next retry. This handles backend rollovers without requiring an app restart.
 5.  **Native Permission Engine (`usePermissions.ts`)**: Serves as the reactive source of truth for the app's hardware/OS permission state. 
     *   **Lifecycle-Aware**: Listens for `AppState` changes to automatically re-audit enforcers whenever the app is foregrounded.
     *   **Full 7-Gate Audit**: Performs high-speed, real-time audits of Accessibility, Overlay, Battery, **Location (Precise), Camera, Notifications, and Exact Alarms** via the native `EnforcementModule`.
