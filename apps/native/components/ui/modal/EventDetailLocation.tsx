@@ -52,7 +52,8 @@ export const LocationSection = React.memo(({
     locStatus = 'neutral',
     isLocVerifying = false,
     onVerifyLoc,
-    onStatusPress
+    onStatusPress,
+    onError
 }: { 
     event: any; 
     onMapTouchStart?: () => void; 
@@ -61,6 +62,7 @@ export const LocationSection = React.memo(({
     isLocVerifying?: boolean;
     onVerifyLoc?: (evidence: any) => void;
     onStatusPress?: () => void;
+    onError?: (message: string) => void;
 }) => {
     const locCondition = event?.conditions?.find((c: any) => c.metric_key === 'location');
     const { hasPermission, requestLocation, isLocating } = useLocation();
@@ -168,12 +170,12 @@ export const LocationSection = React.memo(({
         try {
             const exec = await orchestrator.execute();
             if (!exec.success) {
-                Alert.alert("Interaction Aborted", exec.error || "Device synchronization failed.");
+                onError?.(exec.error || "Device synchronization failed.");
             }
             setTempCoords(null);
             setShowConfirm(false);
         } catch (err: any) {
-            Alert.alert("System Failure", err.message || String(err));
+            onError?.(err.message || String(err));
             setTempCoords(null);
             setShowConfirm(false);
         } finally {

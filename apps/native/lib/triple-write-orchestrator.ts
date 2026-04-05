@@ -1,7 +1,11 @@
 import { Logger } from './logger';
 
+// ── Default Timeouts (ms) ────────────────────────────────────────────────────
+const DEFAULT_STEP_TIMEOUT_MS = 15_000; // 15 seconds
+
 export interface TransactionStep<TContext, TResult> {
   name: string;
+  timeoutMs: number;
   execute: (context: TContext, previousResults: Record<string, any>) => Promise<TResult>;
   compensate?: (context: TContext, result: TResult, previousResults: Record<string, any>) => Promise<void>;
 }
@@ -20,10 +24,32 @@ export class TripleWriteOrchestrator<TContext> {
   addStep<TResult>(
     name: string,
     execute: (context: TContext, previousResults: Record<string, any>) => Promise<TResult>,
-    compensate?: (context: TContext, result: TResult, previousResults: Record<string, any>) => Promise<void>
+    compensate?: (context: TContext, result: TResult, previousResults: Record<string, any>) => Promise<void>,
+    timeoutMs: number = DEFAULT_STEP_TIMEOUT_MS
   ) {
-    this.steps.push({ name, execute, compensate });
+    this.steps.push({ name, execute, compensate, timeoutMs });
     return this;
+  }
+
+  /**
+   * Wraps a step's execute() in a Promise.race against a timeout.
+   * If the step exceeds its deadline, a descriptive error is thrown
+   * and the orchestrator triggers the compensating rollback chain.
+   */
+  private executeWithTimeout<TResult>(
+    step: TransactionStep<TContext, TResult>,
+    previousResults: Record<string, any>
+  ): Promise<TResult> {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`"${step.name}" timed out after ${(step.timeoutMs / 1000).toFixed(0)}s. Check network or retry.`));
+      }, step.timeoutMs);
+    });
+
+    return Promise.race([
+      step.execute(this.contextSnapshot, previousResults),
+      timeoutPromise,
+    ]);
   }
 
   async execute(): Promise<{ success: boolean; error: string | null; results: Record<string, any>; rollbackFailed: boolean }> {
@@ -34,8 +60,8 @@ export class TripleWriteOrchestrator<TContext> {
 
     try {
       for (const step of this.steps) {
-        Logger.info(`[Saga:${this.sagaId}] Phase: ${step.name}`);
-        const result = await step.execute(this.contextSnapshot, stepResults);
+        Logger.info(`[Saga:${this.sagaId}] Phase: ${step.name} (timeout: ${step.timeoutMs}ms)`);
+        const result = await this.executeWithTimeout(step, stepResults);
         stepResults[step.name] = result;
         completedSteps.push({ step, result });
       }
@@ -44,7 +70,7 @@ export class TripleWriteOrchestrator<TContext> {
       return { success: true, error: null, results: stepResults, rollbackFailed: false };
 
     } catch (error: any) {
-      Logger.error(`[Saga:${this.sagaId}] FAILURE at phase "${this.steps[completedSteps.length]?.name || 'unknown'}":`, error);
+      Logger.warn(`[Saga:${this.sagaId}] FAILURE at phase "${this.steps[completedSteps.length]?.name || 'unknown'}": ${error?.message || error}`);
       
       const errorMessage = error instanceof Error ? error.message : String(error);
       let requiresHydrationReconciliation = false;

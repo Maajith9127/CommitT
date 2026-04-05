@@ -125,6 +125,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             isLocVerifying={state.verifyingMetric === 'location'}
             onVerifyLoc={(evidence: any) => state.handleVerifyCondition('location', evidence)}
             onStatusPress={() => state.handleStatusPress('location')}
+            onError={(msg: string) => state.setFailureModal({ visible: true, title: msg, message: '' })}
           />
 
           {/* ── Blocked Apps ── */}

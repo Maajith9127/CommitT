@@ -186,5 +186,16 @@ The **Waiver Initiation** flow (`handleStartWaiver`) was migrated away from a ma
 *   **Security**: Guarantees that the hardware alarm is only silenced/recalculated after both Convex (Cloud) and SQLite (Disk) are 100% confirmed as `waived`.
 *   **Forensics**: Provides explicit `[WaiverSaga]` logs for Steps 1-3, allowing developers to see exact failure points in the hardware sync chain.
 
-#### 5. Title-Only Failure Communication
-All failure and system error modals across the Event Detail flow have been updated to display the error message in the **title only**. This provides higher visibility for critical feedback and a cleaner, more modern interface for the alert system.
+#### 6. Saga Reliability: Per-Step Timeouts
+The `TripleWriteOrchestrator` has been hardened with a **15-second per-step timeout** to prevent the UI from hanging on slow network mutations (e.g., Convex cloud sync) or stalled hardware logic.
+*   **Mechanism**: Each saga phase races against a configurable deadline. If a step exceeds its timeout, a descriptive error (e.g., *"Cloud Sync timed out after 15s"*) is thrown, triggering the compensating rollback chain.
+*   **UX**: These errors are routed via a new `onError` prop in the Location module to the parent `ConfirmationModal`, displaying the timeout message in a high-visibility, title-only format.
+
+#### 7. Verification Sequence (Waiver Logic)
+The `verify.ts` backend sequence gate has been updated to treat `waiver_active` instances as "next actionable."
+*   **Fix**: Previously, the backend only queried for `pending` tasks, which made waiver-active tasks (bypass flows) look like the user was "skipping ahead." By including `waiver_active` in the chronological gate, users can now fulfill conditions during a bypass without sequence errors.
+
+#### 8. Business Logic: Expiry vs. Waiver Status
+As of April 2026, the backend maintains a **strict chronological deadline** for all verifications:
+*   **Hard Cap**: Any verification attempt made after the task's `end` time (the conclusion of the grace period) is rejected, **even if** the status is currently `waiver_active`.
+*   **Intent**: This ensures that while waivers provide a bypass *mechanism*, they do not grant an indefinite "infinite grace period" beyond the hard-coded session deadline.

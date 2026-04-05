@@ -72,16 +72,22 @@ export default authedMutation({
 
     // ── STEP 3: Sequence check ──────────────────────────────────────────────
     // Users must verify tasks in chronological order. We find the earliest
-    // pending instance (by start time) and reject if the user tries to skip ahead.
+    // pending or waiver_active instance (by start time) and reject if the 
+    // user tries to skip ahead. Waiver-active tasks are still verifiable.
     //
     // Index used: `by_assignee_start` → sorted by [assignee_id, start].
-    // We then filter for status === "pending" and take the first result.
-    const nextPending = await ctx.db
+    // We then filter for status in ["pending", "waiver_active"] and take the first result.
+    const nextActionable = await ctx.db
       .query("taskInstances")
       .withIndex("by_assignee_start", (q) =>
         q.eq("assignee_id", user._id)
       )
-      .filter((q) => q.eq(q.field("status"), "pending"))
+      .filter((q) => 
+        q.or(
+          q.eq(q.field("status"), "pending"),
+          q.eq(q.field("status"), "waiver_active")
+        )
+      )
       .first();
 
     // ─────────────────────────────────────────────────────────────────────────────
@@ -91,8 +97,8 @@ export default authedMutation({
     // This allows the user to click and verify either of them without the backend
     // screaming "This is not your next pending task!"
     // ─────────────────────────────────────────────────────────────────────────────
-    if (!nextPending || nextPending.start < instance.start) {
-      console.warn(`[verify] SEQUENCE: User skipped ahead! Next pending starts at ${nextPending?.start}, but this instance starts at ${instance.start}`);
+    if (!nextActionable || nextActionable.start < instance.start) {
+      console.warn(`[verify] SEQUENCE: User skipped ahead! Next actionable starts at ${nextActionable?.start}, but this instance starts at ${instance.start}`);
       return { success: false, status: "failed", message: "You cannot skip ahead! You have an older task that is still pending or active." };
     }
 
