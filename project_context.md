@@ -98,8 +98,15 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
 1.  **BlockerAccessibilityService.kt**: Analyzes active apps to ban restricted intents, halts uninstall attempts by kicking the user to the Lock Screen, and requires 1Hz GPS verification to prevent location spoofing.
 2.  **AlarmScheduler.kt**: Writes upcoming alarms into un-encrypted Device-Protected (DE) Storage so they can fire even before the user types their PIN into a freshly restarted phone.
 3.  **Hardware Execution Shield**: Located in `_layout.tsx`, this system halts execution if Root, Jailbreak, Mock Location providers, or Developer Options are detected on the host device.
-4.  **Offline SQLite Synchronization Engine**: `commit.db` seamlessly mirrors dynamic Convex states locally, providing absolute resilience during offline use.
-    *   **Saga Pattern vs 2PC**: We use the `TripleWriteOrchestrator` to manage a "Cloud ➔ Disk ➔ Hardware" Saga. This avoids the "Two Generals' Problem" and ensures that if the hardware step (Phase 3) fails, the app informs the user and triggers an automatic or manual rollback.
+4.  **Provider Hierarchy Stability (Release Fix)**: 
+    - **Architecture**: `SQLiteProvider` and `ConvexProvider` wrap `SecurityShield`. 
+    - **Rationale**: Since `SecurityShield` performs async hardware checks on `AppState` changes (Release mode), it could briefly unmount children. Keeping Providers as outermost anchors ensures the native DB connection and WebSocket remain "immortal" and never throw `NullPointerException` or `ConnectionClosed` errors during security re-renders.
+5.  **Offline SQLite Synchronization Engine**: `commit.db` seamlessly mirrors dynamic Convex states locally, providing absolute resilience during offline use.
+    *   **Saga Pattern (Triple-Write)**: Every critical write follows a "Cloud ➔ Disk ➔ Hardware" Saga managed by `TripleWriteOrchestrator`. 
+    *   **"Black Box" Forensics (Logger)**: 
+        - **Persistent Logging**: `lib/logger.ts` saves forensic data to `commit_debug.log` using `expo-file-system/legacy`.
+        - **Saga IDs**: Every transaction (e.g., `[Saga:AF72X]`) is assigned a unique ID to track its progress across all 3 layers in the logs.
+        - **Audit Trail**: Captures Phase starts, successes, failures, and "Compensating Rollbacks" (Undos). This allows for post-mortem analysis of "mystery" sync failures on physical devices.
     *   **Full Coverage Migration**: 100% of critical write paths have been migrated to the Saga Orchestrator:
       - **Commitment Creation** (`useCommitTask.ts`)
       - **Calendar Temporal Shifts** (`schedules.tsx`)
