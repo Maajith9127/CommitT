@@ -51,7 +51,8 @@ export const LocationSection = React.memo(({
     onMapTouchEnd,
     locStatus = 'neutral',
     isLocVerifying = false,
-    onVerifyLoc 
+    onVerifyLoc,
+    onStatusPress
 }: { 
     event: any; 
     onMapTouchStart?: () => void; 
@@ -59,6 +60,7 @@ export const LocationSection = React.memo(({
     locStatus?: string;
     isLocVerifying?: boolean;
     onVerifyLoc?: (evidence: any) => void;
+    onStatusPress?: () => void;
 }) => {
     const locCondition = event?.conditions?.find((c: any) => c.metric_key === 'location');
     const { hasPermission, requestLocation, isLocating } = useLocation();
@@ -100,12 +102,6 @@ export const LocationSection = React.memo(({
         if (!tempCoords) return;
         setIsUpdating(true);
 
-        // ╔══════════════════════════════════════════════════════════════════════════════╗
-        // ║  LOCATION PIVOT SAGA                                                         ║
-        // ╠══════════════════════════════════════════════════════════════════════════════╣
-        // ║  Moving the map destination changes the geofencing requirements.            ║
-        // ║  If the hardware doesn't acknowledge the new coords, we roll back.         ║
-        // ╚══════════════════════════════════════════════════════════════════════════════╝
         const contextSnapshot = { tempCoords, instanceId: event._id };
         const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
 
@@ -165,8 +161,6 @@ export const LocationSection = React.memo(({
                 if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
                    throw new Error("[CHAOS] Alarm manager failed to pivot.");
                 
-                // CRITICAL: Tell Android that the coordinates changed so it 
-                // can update the radius-check immediately.
                 scheduleNextAlarm();
             }
           );
@@ -205,17 +199,19 @@ export const LocationSection = React.memo(({
                     status={locStatus as any} 
                     isLoading={isLocVerifying || isLocating}
                     onPress={async () => {
-                        // Request GPS coordinates and pass them up as the evidence payload
-                        await requestLocation((coords) => {
-                            onVerifyLoc?.({ lat: coords.latitude, lng: coords.longitude });
-                        });
+                        if (locStatus === 'failed') {
+                            onStatusPress?.();
+                        } else {
+                            // Request GPS coordinates and pass them up as the evidence payload
+                            await requestLocation((coords) => {
+                                onVerifyLoc?.({ lat: coords.latitude, lng: coords.longitude });
+                            });
+                        }
                     }}
                 />
             </UView>
 
-            {/* Bottom Row: Map View 
-               onTouchStart/End tell the parent ScrollView to pause scrolling
-               while the user is panning the map. */}
+            {/* Bottom Row: Map View */}
             <View 
                 onTouchStart={onMapTouchStart}
                 onTouchEnd={onMapTouchEnd}
@@ -249,8 +245,6 @@ export const LocationSection = React.memo(({
                                     setTempCoords(e.coordinates);
                                     setShowConfirm(true);
                                 }}
-                                // If mapping an "Outside" constraint, draw the entire world
-                                // in semi-red, and punch out a transparent hole for the valid area!
                                 polygons={
                                     isInverse
                                     ? [
@@ -314,37 +308,14 @@ export const LocationSection = React.memo(({
         </UView>
     );
 }, (prev, next) => {
-    /**
-     * ── ARCHITECTURAL MEMOIZATION GUARD ──
-     * 
-     * WHY WE DO THIS:
-     * This component embeds a Google Map. We want to prevent the map from 'flickering'
-     * or re-initializing every second (due to the active timer in the parent modal).
-     * 
-     * THE DATA LOSS TRAP:
-     * If we only monitor 'lat' and 'lng', we create a "stale closure" bug. If the 
-     * user updates the app blocklist (digital_commitment), this component might 
-     * skip the re-render. If the user then pivots the location, they would be 
-     * mapping over an OLD snapshot of the conditions, effectively WIPING OUT 
-     * their digital edits.
-     * 
-     * THE SOLUTION:
-     * We trigger a re-render if the 'event' object identity changes (live updates) 
-     * or if the specific location/verification state explicitly changes.
-     */
     const prevLoc = prev.event?.conditions?.find((c: any) => c.metric_key === 'location')?.target?.value;
     const nextLoc = next.event?.conditions?.find((c: any) => c.metric_key === 'location')?.target?.value;
 
     return (
-        // ID check to ensure we're looking at the same task instance
         prev.event?._id === next.event?._id &&
-        // Context check: If the live object changed (e.g. apps saved), we MUST re-render 
-        // to refresh the base conditions for the location update closure.
         prev.event === next.event &&
-        // Standard verification state checks
         prev.locStatus === next.locStatus &&
         prev.isLocVerifying === next.isLocVerifying &&
-        // Detailed coordinates check
         prevLoc?.lat === nextLoc?.lat &&
         prevLoc?.lng === nextLoc?.lng &&
         prevLoc?.radius === nextLoc?.radius

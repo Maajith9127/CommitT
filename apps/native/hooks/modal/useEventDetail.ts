@@ -57,6 +57,7 @@ export interface EventDetailState {
   /** Lifecycle Handlers */
   handleClose: () => void;
   handleEditTask: () => void;
+  handleDuplicate: () => void;
 
   /** Orchestrated Actions (Deletes, Waivers, Strict Mode) */
   deleteConfirmVisible: boolean;
@@ -83,6 +84,8 @@ export interface EventDetailState {
   /** Blocklist State */
   blocklistModalVisible: boolean;
   setBlocklistModalVisible: (v: boolean) => void;
+  /** Individual Condition Status Tap Handler */
+  handleStatusPress: (metricKey: string) => void;
 }
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
@@ -142,7 +145,7 @@ export function useEventDetail(): EventDetailState {
   const verifyMutation = useMutation(api.api.commitments.verify.default);
   const startWaiverMutation = useMutation(api.api.instances.waivers.startSession);
   const updateInstanceMutation = useMutation(api.api.instances.update.update);
-  const { deleteTask, deleteInstance, setDraft, resetDraft } = useTaskActions();
+  const { deleteInstance, setDraft, resetDraft } = useTaskActions();
 
   // 4. DERIVED STATE & SYNC
   const handleClose = useCallback(() => {
@@ -152,10 +155,97 @@ export function useEventDetail(): EventDetailState {
 
   const displayStatus = useMemo(() => {
     if (!currentEvent) return "pending";
-    const conditions = currentEvent.conditions || [];
-    const allVerified = conditions.length > 0 && conditions.every((c: any) => c.status === "verified");
-    return allVerified ? "proceeded" : currentEvent.status;
+    const style = currentEvent.config?.verification_style;
+    const now = Date.now();
+
+    // 1. Just Show Up logic: If the first checkpoint is verified, status is 'proceeded'.
+    if (style === "just_show_up" && Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
+      const cp = currentEvent.checkpoints[0];
+      const statuses = cp.verification_status || {};
+      const keys = Object.keys(statuses);
+      
+      const allVerified = keys.length > 0 && keys.every(key => {
+        const s = statuses[key];
+        return s === "verified" || s === "applied" || s === "waived";
+      });
+
+      if (allVerified) return "proceeded";
+    }
+
+    // 2. Stay Throughout logic: Check missed threshold at end of task.
+    if (style === "stay_throughout" && Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
+      const isEnded = now > (currentEvent.end ?? 0);
+      
+      if (isEnded) {
+        const maxMisses = currentEvent.config?.max_misses_allowed ?? 0;
+        const missedCount = currentEvent.checkpoints.filter((cp: any) => {
+          const vs = cp.verification_status || {};
+          const keys = Object.keys(vs);
+          // A checkpoint is missed if it has no 'verified' entries
+          return keys.length === 0 || keys.every(k => vs[k] !== "verified");
+        }).length;
+
+        return missedCount <= maxMisses ? "proceeded" : "failed";
+      }
+    }
+
+    // Default: Fallback to the live backend status
+    return currentEvent.status;
   }, [currentEvent]);
+
+  /**
+   * resolvedConditionStatuses: The effective state of each proof section.
+   * Merges local optimistic UI status with the backend source of truth.
+   * For 'stay_throughout', it specifically reflects the MOST RECENT checkpoint status.
+   */
+  const resolvedConditionStatuses = useMemo(() => {
+    const base = { ...conditionStatuses };
+    if (!currentEvent) return base;
+
+    const style = currentEvent.config?.verification_style;
+    const now = Date.now();
+    
+    if (style === "just_show_up") {
+      // 1. First, strictly clean any 'failed' statuses from the base for just_show_up
+      // This prevents backend failures from showing as red symbols
+      Object.keys(base).forEach(k => {
+        if (base[k] === 'failed') base[k] = 'neutral';
+      });
+
+      if (Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
+        const vs = currentEvent.checkpoints[0].verification_status || {};
+        Object.keys(vs).forEach(key => {
+          if (vs[key] === "verified" || vs[key] === "applied" || vs[key] === "waived") {
+            base[key] = vs[key];
+          }
+          // Note: we intentionally ignore vs[key] === 'failed' to keep it neutral
+        });
+      }
+    } else if (style === "stay_throughout" && Array.isArray(currentEvent.checkpoints)) {
+      // Find the most recent started checkpoint (irrespective of if it has ended)
+      const lastStartedCp = [...currentEvent.checkpoints]
+        .reverse()
+        .find((cp: any) => now >= (cp.start ?? cp.scheduled_time));
+
+      if (lastStartedCp?.verification_status) {
+        const vs = lastStartedCp.verification_status;
+        Object.keys(vs).forEach(key => {
+          // If the last checkpoint failed or succeeded, reflect it specifically
+          if (vs[key] === "verified" || vs[key] === "failed") {
+            base[key] = vs[key];
+          }
+        });
+      }
+    } else if (Array.isArray(currentEvent.conditions)) {
+      currentEvent.conditions.forEach((c: any) => {
+        if (c.metric_key && (c.status === "verified" || c.status === "applied" || c.status === "waived")) {
+          base[c.metric_key] = c.status;
+        }
+      });
+    }
+
+    return base;
+  }, [currentEvent, conditionStatuses]);
 
   // Seed local condition statuses from live data
   useEffect(() => {
@@ -166,88 +256,65 @@ export function useEventDetail(): EventDetailState {
     }
     if (currentEvent && selectedTaskId !== seededTaskId) {
       const initial: Record<string, string> = {};
-      (currentEvent.conditions || []).forEach((c: any) => {
-        if (c.metric_key) initial[c.metric_key] = c.status;
-      });
+      const style = currentEvent.config?.verification_style;
+      
+      if (style === "just_show_up" && Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
+        const vs = currentEvent.checkpoints[0].verification_status || {};
+        Object.keys(vs).forEach(key => {
+          const s = (vs as any)[key];
+          initial[key] = (s === 'failed') ? 'neutral' : s;
+        });
+      } else if (Array.isArray(currentEvent.conditions)) {
+        currentEvent.conditions.forEach((c: any) => {
+          if (c.metric_key) {
+             initial[c.metric_key] = (style === "just_show_up" && c.status === "failed") ? "neutral" : c.status;
+          }
+        });
+      }
+      
       setConditionStatuses(initial);
       setSeededTaskId(selectedTaskId);
     }
   }, [isVisible, currentEvent, selectedTaskId, seededTaskId]);
 
-  // 5. ORCHESTRATED ACTIONS (SAGA PATTERN)
+  // 5. ORCHESTRATED ACTIONS
 
-  /**
-   * handleVerifyCondition: Atomic Proof Verification
-   * Syncs proof status to Cloud ➔ Disk ➔ Hardware (Alarm Silence).
-   */
   const handleVerifyCondition = useCallback(async (metricKey: string, evidence?: any) => {
     if (!currentEvent?._id || verifyingMetric) return;
     setVerifyingMetric(metricKey);
 
-    const context = { metricKey, evidence, instanceId: currentEvent._id };
-    const orchestrator = new TripleWriteOrchestrator(context);
-
-    orchestrator
-      .addStep("Cloud Verification", async (ctx) => {
-          Logger.info(`[VerifySaga] Step 1: Cloud Proof for ${ctx.instanceId} (${ctx.metricKey})`);
-          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultCloudWrite) 
-             throw new Error("[CHAOS] Convex verification failure.");
-          return await verifyMutation({
-            instanceId: ctx.instanceId as any,
-            metricKey: ctx.metricKey,
-            evidence: ctx.evidence,
-          });
-      })
-      .addStep("Disk Sync", async (ctx, prev) => {
-          Logger.info(`[VerifySaga] Step 2: Disk Cache Update for ${ctx.instanceId}`);
-          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
-             throw new Error("[CHAOS] SQLite sync failure.");
-          const result = prev["Cloud Verification"] as any;
-          if (result.status === 'verified') {
-              const conditions = currentEvent.conditions.map((c: any) =>
-                c.metric_key === ctx.metricKey ? { ...c, status: 'verified' } : c
-              );
-              await updateInstanceInLocalDb(db, ctx.instanceId, {
-                status: result.instanceStatus,
-                conditions,
-              });
-              Logger.info(`[VerifySaga] Disk marked verified for ${ctx.instanceId}`);
-          }
-      })
-      .addStep("Hardware Silence", async () => {
-          Logger.info(`[VerifySaga] Step 3: Killing Hardware Alarm for ${context.instanceId}`);
-          if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
-             throw new Error("[CHAOS] Alarm manager failure.");
-          scheduleNextAlarm();
-          Logger.info(`[VerifySaga] Saga Complete for ${context.instanceId}`);
-      });
-
     try {
-      const exec = await orchestrator.execute();
-      if (exec.success) {
-        const result = exec.results["Cloud Verification"] as any;
+      Logger.info(`[Verify] Calling Convex verify for ${currentEvent._id} (${metricKey})`);
+      const result = await verifyMutation({
+        instanceId: currentEvent._id as any,
+        metricKey,
+        evidence,
+      }) as any;
+
+      Logger.info(`[Verify] Result:`, result);
+
+      if (result.success) {
         setConditionStatuses((p) => ({ ...p, [metricKey]: result.status }));
       } else {
-        Logger.error(`[VerifySaga] Failed for ${currentEvent._id}`, exec.error);
-        setFailureModal({ visible: true, title: exec.error || "Sync Aborted", message: '' });
+        // Show the failure reason from the backend in the modal title only
+        setFailureModal({
+          visible: true,
+          title: result.message || "Verification condition not met.",
+          message: "",
+        });
       }
     } catch (err: any) {
-      Logger.error(`[VerifySaga] CRITICAL FAILURE for ${currentEvent._id}`, err);
-      setFailureModal({ visible: true, title: parseError(err), message: '' });
+      Logger.error(`[Verify] Error for ${currentEvent._id}`, err);
+      setFailureModal({
+        visible: true,
+        title: parseError(err),
+        message: "",
+      });
     } finally {
       setVerifyingMetric(null);
     }
-  }, [currentEvent, verifyingMetric, verifyMutation, db]);
+  }, [currentEvent, verifyingMetric, verifyMutation]);
 
-  /**
-   * confirmDelete: Atomic Instance Deletion
-   * ─────────────────────────────────────────────────────────────────────────────
-   * CRITICAL FIX: We use `deleteInstance` (api/instances/delete) instead of 
-   * `deleteTask` (api/commitments/delete). The EventDetailModal operates on
-   * individual task instances, NOT parent commitments. Passing a taskInstances 
-   * ID to commitments/delete caused a Server Error because Convex expected a 
-   * tasks table ID.
-   */
   const confirmDelete = useCallback(async () => {
     if (!selectedTaskId) return;
     setIsDeleting(true);
@@ -257,7 +324,7 @@ export function useEventDetail(): EventDetailState {
         setDeleteConfirmVisible(false);
         handleClose();
       } else {
-        setFailureModal({ visible: true, title: result.error || "Action Refused", message: '' });
+        setFailureModal({ visible: true, title: (result as any).error || "Action Refused", message: '' });
       }
     } catch (err) {
       setFailureModal({ visible: true, title: parseError(err), message: '' });
@@ -266,10 +333,6 @@ export function useEventDetail(): EventDetailState {
     }
   }, [selectedTaskId, deleteInstance, handleClose]);
 
-  /**
-   * handleStartWaiver: Simple Waiver Activation
-   * Non-saga because failure is non-destructive (e.g. task already fulfilled).
-   */
   const handleStartWaiver = useCallback(async () => {
     if (!currentEvent?._id) return;
     setIsStartingWaiver(true);
@@ -277,22 +340,17 @@ export function useEventDetail(): EventDetailState {
       const result = (await startWaiverMutation({ instanceId: currentEvent._id })) as any;
       
       if (result && result.success === false) {
-        Logger.warn(`[WaiverAction] Cloud rejected waiver for ${currentEvent._id}: ${result.message}`);
-        setWaiverConfirmVisible(false); // Dismiss confirm modal on failure
+        setWaiverConfirmVisible(false);
         setFailureModal({ visible: true, title: result.message || "Waiver Denied", message: '' });
         return;
       }
       
-      Logger.info(`[WaiverAction] Step 2: Marking Disk 'waived' for ${currentEvent._id}`);
       await updateInstanceInLocalDb(db, currentEvent._id, { status: 'waived' });
-      Logger.info(`[WaiverAction] Step 3: Updating Hardware Alarms for ${currentEvent._id}`);
       scheduleNextAlarm();
-      Logger.info(`[WaiverAction] Complete for ${currentEvent._id}`);
       
       setWaiverConfirmVisible(false);
       setWaiverModalVisible(true);
     } catch (err) {
-      Logger.error(`[WaiverAction] FAILURE for ${currentEvent?._id}`, err);
       setWaiverConfirmVisible(false);
       setFailureModal({ visible: true, title: parseError(err), message: '' });
     } finally {
@@ -300,10 +358,6 @@ export function useEventDetail(): EventDetailState {
     }
   }, [currentEvent, startWaiverMutation, db]);
 
-  /**
-   * handleActivateStrict: Atomic Strict Mode Lock
-   * Forces hardware kernel arming.
-   */
   const handleActivateStrict = useCallback(async () => {
     if (!currentEvent?._id) return;
     setIsLocking(true);
@@ -313,17 +367,13 @@ export function useEventDetail(): EventDetailState {
 
     orchestrator
       .addStep("Cloud Lock", async (ctx) => {
-          Logger.info(`[StrictSaga] Step 1: Cloud Lock for ${ctx.instanceId}`);
           await updateInstanceMutation({ id: ctx.instanceId as any, strict_until: ctx.end, is_manual_edit: true });
       })
       .addStep("Disk Lock", async (ctx) => {
-          Logger.info(`[StrictSaga] Step 2: Disk Lock for ${ctx.instanceId}`);
           await updateInstanceInLocalDb(db, ctx.instanceId, { strict_until: ctx.end, is_manual_edit: true });
       })
       .addStep("Hardware Lock", async () => {
-          Logger.info(`[StrictSaga] Step 3: Hardware Kernel Arming for ${context.instanceId}`);
           scheduleNextAlarm();
-          Logger.info(`[StrictSaga] Saga Complete for ${context.instanceId}`);
       });
 
     try {
@@ -331,20 +381,15 @@ export function useEventDetail(): EventDetailState {
       if (exec.success) {
         setStrictConfirmVisible(false);
       } else {
-        Logger.error(`[StrictSaga] Failed for ${currentEvent._id}`, exec.error);
         setFailureModal({ visible: true, title: exec.error || "Lock Refused", message: '' });
       }
     } catch (err) {
-      Logger.error(`[StrictSaga] CRITICAL FAILURE for ${currentEvent._id}`, err);
       setFailureModal({ visible: true, title: parseError(err), message: '' });
     } finally {
       setIsLocking(false);
     }
   }, [currentEvent, updateInstanceMutation, db]);
 
-  /**
-   * handleEditTask: Pivot to Creation flow
-   */
   const handleEditTask = useCallback(() => {
     if (currentEvent) {
       resetDraft();
@@ -354,40 +399,31 @@ export function useEventDetail(): EventDetailState {
     }
   }, [currentEvent, resetDraft, setDraft, handleClose, router]);
 
+  const handleDuplicate = useCallback(() => {
+    if (currentEvent) {
+      resetDraft();
+      setDraft({ ...currentEvent, _id: undefined, id: undefined });
+      handleClose();
+      router.push("/(create-commit)/final");
+    }
+  }, [currentEvent, resetDraft, setDraft, handleClose, router]);
+
+  const handleOpenMenu = useCallback((pos: { x: number; y: number }) => {
+    setMenuPosition(pos);
+    setMenuVisible(true);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setMenuVisible(false);
+  }, []);
+
   // 6. ACTION MENU CONFIGURATION
   const actionMenuItems: ActionMenuItem[] = useMemo(() => [
-    { 
-        icon: "delete-outline", 
-        label: "Delete", 
-        color: "#FF3B30", 
-        onPress: () => setDeleteConfirmVisible(true) 
-    },
-    { 
-        icon: "lock-outline", 
-        label: "Strict Mode", 
-        onPress: () => { setMenuVisible(false); setStrictConfirmVisible(true); } 
-    },
-    { 
-        icon: "content-copy", 
-        label: "Duplicate", 
-        onPress: () => {
-          if (!currentEvent) return;
-          resetDraft();
-          setDraft({ ...currentEvent, _id: undefined, id: undefined });
-          handleClose();
-          router.push("/(create-commit)/final");
-        } 
-    },
-    {
-        icon: "help-circle-outline",
-        label: "Help",
-        onPress: () => {
-          setMenuVisible(false);
-          // Placeholder for Help behavior
-          console.log("[ActionMenu] Help requested for event:", currentEvent?._id);
-        }
-    }
-  ], [currentEvent, resetDraft, setDraft, handleClose, router]);
+    { icon: "delete-outline", label: "Delete", color: "#FF3B30", onPress: () => setDeleteConfirmVisible(true) },
+    { icon: "lock-outline", label: "Strict Mode", onPress: () => { setMenuVisible(false); setStrictConfirmVisible(true); } },
+    { icon: "content-copy", label: "Duplicate", onPress: handleDuplicate },
+    { icon: "help-circle-outline", label: "Help", onPress: () => { setMenuVisible(false); console.log("[ActionMenu] Help requested"); } }
+  ], [handleDuplicate]);
 
   // 7. EXPORT
   return {
@@ -396,16 +432,17 @@ export function useEventDetail(): EventDetailState {
     displayStatus,
     scrollEnabled,
     setScrollEnabled,
-    conditionStatuses,
+    conditionStatuses: resolvedConditionStatuses,
     verifyingMetric,
     handleVerifyCondition,
     menuVisible,
     menuPosition,
     actionMenuItems,
-    handleOpenMenu: (pos) => { setMenuPosition(pos); setMenuVisible(true); },
-    closeMenu: () => setMenuVisible(false),
+    handleOpenMenu,
+    closeMenu,
     handleClose,
     handleEditTask,
+    handleDuplicate,
     deleteConfirmVisible,
     setDeleteConfirmVisible,
     confirmDelete,
@@ -424,5 +461,33 @@ export function useEventDetail(): EventDetailState {
     setBlocklistModalVisible,
     failureModal,
     setFailureModal,
+    handleStatusPress: (metricKey: string) => {
+      if (!currentEvent) return;
+      const style = currentEvent.config?.verification_style;
+      const now = Date.now();
+      
+      let relevantCp = null;
+      if (style === "just_show_up" && currentEvent.checkpoints?.[0]) {
+        relevantCp = currentEvent.checkpoints[0];
+      } else if (style === "stay_throughout" && currentEvent.checkpoints) {
+        relevantCp = [...currentEvent.checkpoints]
+          .reverse()
+          .find((cp: any) => now >= (cp.start ?? cp.scheduled_time));
+      }
+
+      if (relevantCp) {
+        const vs = relevantCp.verification_status || {};
+        if (vs[metricKey] === 'failed') {
+          // Check for specific reason in metadata, then fallback to general cp reason
+          const meta = relevantCp.vs_metadata?.[metricKey] || {};
+          const reason = meta.failure_reason || relevantCp.failure_reason || "Verification condition not met.";
+          setFailureModal({
+            visible: true,
+            title: reason,
+            message: ""
+          });
+        }
+      }
+    },
   };
 }

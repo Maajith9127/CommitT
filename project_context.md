@@ -159,3 +159,32 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
     *   **Context**: Using `freezeOnBlur: true` inside Tab or Stack navigators causes the Android/iOS native layers to suspend the active view hierarchy. When the screen thaws, `react-native-gesture-handler` (especially `PanGestureHandler` used in drag-and-drop) loses its bindings to the ScrollView, resulting in "floating" visual elements that fail to scroll lock or move proportionally.
     *   **Logic**: Always set `freezeOnBlur: false` on screens or navigators that rely on continuous native gesture tracking. Memory optimization should never compromise core interactive components.
     *   **Result**: Calendar events drag and snap smoothly without scrolling the background, regardless of back-and-forth navigation.
+
+---
+
+### Case Study: Verification UI Stabilization (April 2026)
+
+In April 2026, the verification UI under `apps/native/components/ui/modal/` underwent a major stabilization phase to resolve synchronization lag and improve user feedback across different task types.
+
+#### 1. Stable Hook Architecture
+The `useEventDetail` hook was refactored to serve as the unified orchestrator for the Event Detail Modal. It merges live Convex subscriptions with optimistic local state. 
+
+**Key Fix**: Resolved a critical `TypeError` by ensuring a complete and stable set of interaction handlers (`handleVerifyCondition`, `handleStatusPress`, `handleOpenMenu`, etc.) are always exported, preventing runtime crashes during state transitions.
+
+#### 2. Granular Failure Feedback
+A new "Retrospective Feedback" system was implemented. 
+*   **Mechanism**: The `handleStatusPress` method traverses the checkpoint history of a task instance to find the specifically active or most recent failure.
+*   **UX**: Tapping a "Failed" status icon (red reload/cross) now triggers a `ConfirmationModal` that displays the exact reason for failure (e.g., *"There are no active random check-ins for you right now"*).
+
+#### 3. Just Show Up "Neutral-on-Failure" Logic
+To improve the "Grace Period" experience, `just_show_up` tasks were given special UI logic: 
+*   **Behavior**: Unlike `stay_throughout`, a failure in a `just_show_up` task is displayed as **Neutral** (light blue circle) rather than a red error. 
+*   **Rationale**: This encourages the user to keep trying the check-in, allowing the backend `verify.ts` to provide the definitive "Grace Period Expired" or "Task Ended" feedback via the interactive modal title.
+
+#### 4. Simplified Verification Synchrony (Direct Call)
+The heavy-weight `TripleWriteOrchestrator` (Saga pattern) was removed from the `handleVerifyCondition` flow and replaced with a direct Convex `verifyMutation`. 
+*   **Reasoning**: Since verification state is managed as a single source of truth on the server via checkpoints, the multi-step Saga (Cloud → Disk → Hardware) was creating unnecessary complexity for simple check-ins. 
+*   **Architecture**: Sagas are now reserved for **structural** changes (Location Pivots, Deletions, Waivers) while **verification** remains a fast, atomic backend operation.
+
+#### 5. Title-Only Failure Communication
+All failure and system error modals have been updated to display the error message in the **title only**. This provides higher visibility for critical feedback and a cleaner, more modern interface for the alert system.
