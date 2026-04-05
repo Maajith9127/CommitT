@@ -1,1 +1,6 @@
-feat(native): stabilize verification UI with granular failure feedback and simplified check-in flow
+feat(native): harden waiver flows with Saga and implement universal neutral-on-failure verifications
+
+- Migrate `handleStartWaiver` to the `TripleWriteOrchestrator` Saga for atomic Cloud/Disk/Hardware sync and improved forensic logging.
+- Implement universal "failed-to-neutral" status conversion in `useEventDetail`, ensuring all failed verifications remain interactive and retryable.
+- Resolve `ReferenceError` in `EventDetailLocation.tsx` by correctly destructuring `onStatusPress`.
+- Standardize all verification failure modals to display error messages exclusively in the title for enhanced visibility and cleaner UX.

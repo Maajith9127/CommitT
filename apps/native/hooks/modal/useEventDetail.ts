@@ -205,22 +205,19 @@ export function useEventDetail(): EventDetailState {
     const style = currentEvent.config?.verification_style;
     const now = Date.now();
     
-    if (style === "just_show_up") {
-      // 1. First, strictly clean any 'failed' statuses from the base for just_show_up
-      // This prevents backend failures from showing as red symbols
-      Object.keys(base).forEach(k => {
-        if (base[k] === 'failed') base[k] = 'neutral';
-      });
+    // 1. Strictly clean any 'failed' statuses from the base for ALL styles
+    // This allows clicking the symbol to always trigger a fresh attempt/backend details.
+    Object.keys(base).forEach(k => {
+      if (base[k] === 'failed') base[k] = 'neutral';
+    });
 
-      if (Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
-        const vs = currentEvent.checkpoints[0].verification_status || {};
-        Object.keys(vs).forEach(key => {
-          if (vs[key] === "verified" || vs[key] === "applied" || vs[key] === "waived") {
-            base[key] = vs[key];
-          }
-          // Note: we intentionally ignore vs[key] === 'failed' to keep it neutral
-        });
-      }
+    if (style === "just_show_up" && Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
+      const vs = currentEvent.checkpoints[0].verification_status || {};
+      Object.keys(vs).forEach(key => {
+        if (vs[key] === "verified" || vs[key] === "applied" || vs[key] === "waived") {
+          base[key] = vs[key];
+        }
+      });
     } else if (style === "stay_throughout" && Array.isArray(currentEvent.checkpoints)) {
       // Find the most recent started checkpoint (irrespective of if it has ended)
       const lastStartedCp = [...currentEvent.checkpoints]
@@ -230,9 +227,9 @@ export function useEventDetail(): EventDetailState {
       if (lastStartedCp?.verification_status) {
         const vs = lastStartedCp.verification_status;
         Object.keys(vs).forEach(key => {
-          // If the last checkpoint failed or succeeded, reflect it specifically
-          if (vs[key] === "verified" || vs[key] === "failed") {
-            base[key] = vs[key];
+          // Successes are reflected, failures are left as 'neutral' (from base cleanup above)
+          if (vs[key] === "verified") {
+            base[key] = "verified";
           }
         });
       }
@@ -256,18 +253,12 @@ export function useEventDetail(): EventDetailState {
     }
     if (currentEvent && selectedTaskId !== seededTaskId) {
       const initial: Record<string, string> = {};
-      const style = currentEvent.config?.verification_style;
       
-      if (style === "just_show_up" && Array.isArray(currentEvent.checkpoints) && currentEvent.checkpoints.length > 0) {
-        const vs = currentEvent.checkpoints[0].verification_status || {};
-        Object.keys(vs).forEach(key => {
-          const s = (vs as any)[key];
-          initial[key] = (s === 'failed') ? 'neutral' : s;
-        });
-      } else if (Array.isArray(currentEvent.conditions)) {
+      if (Array.isArray(currentEvent.conditions)) {
         currentEvent.conditions.forEach((c: any) => {
           if (c.metric_key) {
-             initial[c.metric_key] = (style === "just_show_up" && c.status === "failed") ? "neutral" : c.status;
+             // Convert any 'failed' status to 'neutral' to ensure interactive retries
+             initial[c.metric_key] = (c.status === "failed") ? "neutral" : c.status;
           }
         });
       }
@@ -336,23 +327,48 @@ export function useEventDetail(): EventDetailState {
   const handleStartWaiver = useCallback(async () => {
     if (!currentEvent?._id) return;
     setIsStartingWaiver(true);
+
+    const context = { instanceId: currentEvent._id };
+    const orchestrator = new TripleWriteOrchestrator(context);
+
+    orchestrator
+      .addStep("Cloud Waiver Initiation", async (ctx) => {
+          Logger.info(`[WaiverSaga] Step 1: Initiating waiver session on Convex for ${ctx.instanceId}`);
+          const result = await startWaiverMutation({ instanceId: ctx.instanceId }) as any;
+          if (result && result.success === false) {
+             throw new Error(result.message || "Waiver initiation refused by server.");
+          }
+          return result;
+      })
+      .addStep("Disk Cache Update", async (ctx) => {
+          Logger.info(`[WaiverSaga] Step 2: Marking instance waived in local SQLite for ${ctx.instanceId}`);
+          await updateInstanceInLocalDb(db, ctx.instanceId, { status: 'waived' });
+      })
+      .addStep("Hardware Alarm Update", async () => {
+          Logger.info(`[WaiverSaga] Step 3: Recalculating hardware alarms via scheduler-module`);
+          scheduleNextAlarm();
+      });
+
     try {
-      const result = (await startWaiverMutation({ instanceId: currentEvent._id })) as any;
-      
-      if (result && result.success === false) {
+      const exec = await orchestrator.execute();
+      if (exec.success) {
         setWaiverConfirmVisible(false);
-        setFailureModal({ visible: true, title: result.message || "Waiver Denied", message: '' });
-        return;
+        setWaiverModalVisible(true);
+      } else {
+        setWaiverConfirmVisible(false);
+        setFailureModal({
+          visible: true,
+          title: exec.error || "Waiver Sync Failed",
+          message: "",
+        });
       }
-      
-      await updateInstanceInLocalDb(db, currentEvent._id, { status: 'waived' });
-      scheduleNextAlarm();
-      
-      setWaiverConfirmVisible(false);
-      setWaiverModalVisible(true);
-    } catch (err) {
-      setWaiverConfirmVisible(false);
-      setFailureModal({ visible: true, title: parseError(err), message: '' });
+    } catch (err: any) {
+      Logger.error(`[WaiverSaga] CRITICAL FAILURE for ${currentEvent._id}`, err);
+      setFailureModal({
+        visible: true,
+        title: parseError(err),
+        message: "",
+      });
     } finally {
       setIsStartingWaiver(false);
     }
