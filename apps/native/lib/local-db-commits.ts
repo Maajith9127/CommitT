@@ -2,6 +2,16 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 
 /**
+ * nukes all local data for testing / re-sync
+ */
+export async function nukeLocalDb(db: SQLiteDatabase) {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM local_tasks');
+    await db.runAsync('DELETE FROM task_instances');
+  });
+}
+
+/**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
  * ║  Local SQL Task Repository — The "Vault Guard"                               ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣

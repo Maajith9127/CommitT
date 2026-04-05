@@ -3,6 +3,8 @@ import { View, Text, Switch, ScrollView, TouchableOpacity } from 'react-native';
 import { useChaosStore } from '@/stores/useChaosStore';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSQLiteContext } from 'expo-sqlite';
+import { nukeLocalDb } from '@/lib/local-db-commits';
 
 /**
  * 🛠️ THE CHAOS ENGINE CONTROL PANEL
@@ -12,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
  * Watch the terminal to see the "Heal" process.
  */
 export default function ChaosScreen() {
+  const db = useSQLiteContext();
   const router = useRouter();
   const { 
     faultCloudWrite, faultDiskWrite, faultHardware, 
@@ -81,8 +84,18 @@ export default function ChaosScreen() {
       />
 
       <TouchableOpacity 
+        onPress={async () => {
+          await nukeLocalDb(db);
+          router.back();
+        }}
+        style={{ padding: 18, backgroundColor: '#FF3B30', borderRadius: 12, alignItems: 'center', marginTop: 30 }}
+      >
+        <Text style={{ color: '#FFF', fontWeight: 'bold' }}>☢️ NUKE LOCAL SQLITE</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
         onPress={resetAll}
-        style={{ padding: 18, backgroundColor: '#333', borderRadius: 12, alignItems: 'center', marginTop: 30, marginBottom: 100 }}
+        style={{ padding: 18, backgroundColor: '#333', borderRadius: 12, alignItems: 'center', marginTop: 15, marginBottom: 100 }}
       >
         <Text style={{ color: '#FFF', fontWeight: 'bold' }}>RESET ALL FAULTS</Text>
       </TouchableOpacity>

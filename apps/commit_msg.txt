@@ -1,8 +1,9 @@
-feat(sync): achieve 100% Saga coverage across all critical write paths
+fix(native): reroute EventDetailModal deletion to instance-scoped API
 
-- Migrate Creation (useCommitTask), Deletion (useTaskActions), and Status (useEventDetail) to TripleWriteOrchestrator.
-- Secure Location pivots (EventDetailLocation) and Blocklist updates (BlocklistView) with atomic Saga logic.
-- Implement 'Hardware-First' enforcement: force immediate Android alarm refresh after all manual edits.
-- Harden Hydration Engine against 'Closed Resource' errors during database hot-swaps.
-- Inject Chaos Testing fault points into all newly migrated Saga execution blocks.
-- Documented full Saga architecture and Split-Brain protection in project_context.md.
+Fixed a critical bug where attempting to delete an individual task occurrence 
+from the EventDetailModal triggered the parent 'commitments/delete' API instead 
+of the granular 'instances/delete' API. This caused Convex validation errors 
+due to Table ID mismatches (taskInstances vs tasks).
+
+- Updated useEventDetail hook to destructure and invoke 'deleteInstance'
+- Added architectural documentation to project_context.md clarifying deletion scopes
