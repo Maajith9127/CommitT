@@ -176,15 +176,15 @@ A new "Retrospective Feedback" system was implemented.
 *   **Mechanism**: The `handleStatusPress` method traverses the checkpoint history of a task instance to find the specifically active or most recent failure.
 *   **UX**: Tapping a "Failed" status icon (red reload/cross) now triggers a `ConfirmationModal` that displays the exact reason for failure (e.g., *"There are no active random check-ins for you right now"*).
 
-#### 3. Just Show Up "Neutral-on-Failure" Logic
-To improve the "Grace Period" experience, `just_show_up` tasks were given special UI logic: 
-*   **Behavior**: Unlike `stay_throughout`, a failure in a `just_show_up` task is displayed as **Neutral** (light blue circle) rather than a red error. 
-*   **Rationale**: This encourages the user to keep trying the check-in, allowing the backend `verify.ts` to provide the definitive "Grace Period Expired" or "Task Ended" feedback via the interactive modal title.
+#### 3. Universal "Neutral-on-Failure" UI logic
+To ensure verifications are always interactive and retryable, all condition styles—including `just_show_up` and `stay_throughout`—now share a unified status resolver:
+*   **Behavior**: Any verification marked as `failed` by the backend or a local timeout is displayed as **Neutral** (the light blue pointer icon). 
+*   **Rationale**: This ensures that a static "red reload" icon never blocks a user from attempting a fresh verification. Every pointer icon is interactive and triggers a live attempt/backend details via the interactive modal title.
 
-#### 4. Simplified Verification Synchrony (Direct Call)
-The heavy-weight `TripleWriteOrchestrator` (Saga pattern) was removed from the `handleVerifyCondition` flow and replaced with a direct Convex `verifyMutation`. 
-*   **Reasoning**: Since verification state is managed as a single source of truth on the server via checkpoints, the multi-step Saga (Cloud → Disk → Hardware) was creating unnecessary complexity for simple check-ins. 
-*   **Architecture**: Sagas are now reserved for **structural** changes (Location Pivots, Deletions, Waivers) while **verification** remains a fast, atomic backend operation.
+#### 4. Hardened Waiver Sync (Saga Migration)
+The **Waiver Initiation** flow (`handleStartWaiver`) was migrated away from a manual async chain to the formal `TripleWriteOrchestrator` Saga.
+*   **Security**: Guarantees that the hardware alarm is only silenced/recalculated after both Convex (Cloud) and SQLite (Disk) are 100% confirmed as `waived`.
+*   **Forensics**: Provides explicit `[WaiverSaga]` logs for Steps 1-3, allowing developers to see exact failure points in the hardware sync chain.
 
 #### 5. Title-Only Failure Communication
-All failure and system error modals have been updated to display the error message in the **title only**. This provides higher visibility for critical feedback and a cleaner, more modern interface for the alert system.
+All failure and system error modals across the Event Detail flow have been updated to display the error message in the **title only**. This provides higher visibility for critical feedback and a cleaner, more modern interface for the alert system.
