@@ -104,7 +104,7 @@ The system's core is the Convex backend, which enforces a strict pipeline for be
       - **Commitment Creation** (`useCommitTask.ts`)
       - **Calendar Temporal Shifts** (`schedules.tsx`)
       - **Task & Instance Deletion** (`useTaskActions.ts`): Differentiates between parent commitment removal (`deleteTask`) and individual temporal occurrence removal (`deleteInstance`). 
-      - **Verification, Waivers, and Strict Mode** (`useEventDetail.ts`): Orchestrates granular instance-level actions. **CRITICAL**: Must call `deleteInstance` for individual events to avoid Convex ID type mismatches (tasks vs taskInstances).
+      - **Verification, Waivers, Strict Mode, & Help** (`useEventDetail.ts`): Orchestrates concise instance-level actions (Delete, Strict Mode, Duplicate, Help). **CRITICAL**: Must call `deleteInstance` for individual events to avoid Convex ID type mismatches (tasks vs taskInstances).
       - **Geofence Destination Pivots** (`EventDetailLocation.tsx`)
       - **Blocklist Configuration Updates** (`BlocklistView.tsx`)
     *   **Split-Brain TTL Hazard**: The most dangerous window is the few milliseconds between Step 1 (Cloud) and Step 3 (Hardware). Our Orchestrator narrows this window and includes `rollbackFailed` detection.

@@ -339,18 +339,18 @@ export function useEventDetail(): EventDetailState {
   const actionMenuItems: ActionMenuItem[] = useMemo(() => [
     { 
         icon: "delete-outline", 
-        label: "Delete Commitment", 
+        label: "Delete", 
         color: "#FF3B30", 
         onPress: () => setDeleteConfirmVisible(true) 
     },
     { 
         icon: "lock-outline", 
-        label: "Activate Strict Mode", 
+        label: "Strict Mode", 
         onPress: () => { setMenuVisible(false); setStrictConfirmVisible(true); } 
     },
     { 
         icon: "content-copy", 
-        label: "Duplicate As New", 
+        label: "Duplicate", 
         onPress: () => {
           if (!currentEvent) return;
           resetDraft();
@@ -358,6 +358,15 @@ export function useEventDetail(): EventDetailState {
           handleClose();
           router.push("/(create-commit)/final");
         } 
+    },
+    {
+        icon: "help-circle-outline",
+        label: "Help",
+        onPress: () => {
+          setMenuVisible(false);
+          // Placeholder for Help behavior
+          console.log("[ActionMenu] Help requested for event:", currentEvent?._id);
+        }
     }
   ], [currentEvent, resetDraft, setDraft, handleClose, router]);
 
