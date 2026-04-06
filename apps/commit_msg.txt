@@ -1,1 +1,6 @@
-refactor(fileremoval): removed unnecessary files
+feat(validation): enable Passive Enforcement (Time + App Blocking) commitments
+
+- Updated 'Time + X' validation rules to recognize 'Digital Commitment' as a valid binding anchor.
+- Refactored validators across Frontend and Backend to use 'Binding Action' categories (Active Verification vs Passive Enforcement).
+- Leveraged existing backend 'Lightweight Protocol' to support auto-verified sessions for app-blocking only tasks.
+- Improved error messaging for better user feedback during the creation flow.

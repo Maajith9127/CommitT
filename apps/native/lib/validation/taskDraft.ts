@@ -34,15 +34,26 @@ export type ValidationErrorCode =
   | "PENALTY_WAIVER_MISMATCH";
 
 /**
- * Condition metric keys that qualify as "X" in the "Time + X" rule.
- * Time alone is not sufficient - must be paired with one of these.
+ * PRODUCTION RATIONALE: "The Binding Action Protocol"
+ * A commitment is valid only if it has a 'Binding Action'. 
+ * Binding Actions are split into:
+ * 1. ACTIVE VERIFICATIONS: User must perform an action (GPS, Photo, etc.)
+ * 2. PASSIVE ENFORCEMENTS: The System enforces a rule (App/Web Blocking).
+ * 
+ * Either one is sufficient to anchor a Time-based commitment.
  */
-const X_CONDITION_METRICS = [
+const ACTIVE_VERIFICATIONS = [
   "location",   // GPS-based location verification
   "partner",    // Partner/accountability buddy
   "picture",    // Photo verification  
   "video",      // Video verification
 ] as const;
+
+const PASSIVE_ENFORCEMENTS = [
+  "digital_commitment", // System-enforced App/Website blocking
+] as const;
+
+const BINDING_METRICS = [...ACTIVE_VERIFICATIONS, ...PASSIVE_ENFORCEMENTS] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Individual Validators
@@ -85,23 +96,23 @@ export function hasPartnerCondition(
 }
 
 /**
- * Checks if any "X" condition is present.
- * X conditions: location, partner, picture, video
+ * Checks if any "Binding Action" is present.
+ * Binding actions include active verifications and passive enforcements.
  */
 export function hasAnyXCondition(
   conditions: Condition[],
   assigneeId: string | null,
   assignerId: string | null
 ): boolean {
-  // Check condition-based X (location, picture, video)
-  const hasMetricX = X_CONDITION_METRICS.some((metric) =>
+  // Check condition-based anchors (location, photo, app-block, etc.)
+  const hasMetricBinding = BINDING_METRICS.some((metric) =>
     hasCondition(conditions, metric)
   );
 
   // Check partner (assignee-based)
   const hasPartner = hasPartnerCondition(assigneeId, assignerId);
 
-  return hasMetricX || hasPartner;
+  return hasMetricBinding || hasPartner;
 }
 
 /**
@@ -152,7 +163,7 @@ export function validateTimeXRule(
   if (!hasX) {
     return {
       valid: false,
-      error: "Time + X combination is required. Please add Location, Partner, Picture, or Video.",
+      error: "Commitment requires either a Verification (Location, Partner...) or an Enforcement (App Blocking).",
       errorCode: "TIME_REQUIRES_X_CONDITION",
     };
   }

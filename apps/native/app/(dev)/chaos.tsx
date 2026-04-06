@@ -7,7 +7,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { nukeLocalDb } from '@/lib/local-db-commits';
 
 /**
- * 🛠️ THE CHAOS ENGINE CONTROL PANEL
+ *  THE CHAOS ENGINE CONTROL PANEL
  * 
  * This screen is your God-Mode for testing the Saga Pattern.
  * Toggle these on, then go try to save a task. 

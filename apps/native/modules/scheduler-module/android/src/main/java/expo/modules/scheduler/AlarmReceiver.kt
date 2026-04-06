@@ -88,7 +88,7 @@ class AlarmReceiver : BroadcastReceiver() {
         try {
             Log.d(TAG, "[UI ELEVATION] Routing execution to foreground. Launching full-screen AlarmActivity...")
             
-            // 🚨 CRITICAL RESILIENCE FIX 🚨 
+            //  CRITICAL RESILIENCE FIX  
             // Before we even ATTEMPT to show the UI... calculate and guarantee the NEXT alarm.
             Log.i(TAG, "[RESILIENCE] Triggering immediate forward-propagation of the schedule chain.")
             AlarmScheduler.scheduleNextAlarm(context)

@@ -202,6 +202,24 @@ As of April 2026, the backend maintains a **strict chronological deadline** for 
 
 ---
 
+### Case Study: Passive Enforcement & Digital-Only Commitments (April 2026)
+
+To improve flexibility for "Focus Mode" users, the commitment engine was updated to support sessions that *only* require Time + App Blocking (no Location, Photo, or Partner verification).
+
+#### 1. The "Binding Action" Protocol
+The legacy "Time + X" hardcoded validation was refactored into a categorized registry. 
+*   **Active Verifications** (`location`, `partner`, `picture`, `video`): Require explicit user evidence submission.
+*   **Passive Enforcements** (`digital_commitment`): Defined as "System-Level Enforcements" that anchor the commitment without user interaction.
+*   **Rule**: A commitment is valid if it contains at least one **Binding Action** (Active OR Passive).
+
+#### 2. The "Lightweight Protocol" (Backend)
+For instances where `isDigitalOnly` is true (App Block present, but no Location required), the backend logic was optimized:
+*   **Skip Checkpoints**: Random 5-minute pings and notifications are suppressed to save battery and reduce friction.
+*   **Auto-Verified Status**: Since enforcement is handled passively by the Android OS (Accessibility Service), the `digital_commitment` condition is marked as `verified` at creation. 
+*   **Failure Logic**: These instances only transition to `failed` if an explicit "Bypass" or "Security Violation" signal is received from the device's native enforcers.
+
+---
+
 ### Case Study: Unified Identity & Duplication Resolution (April 2026)
 
 In April 2026, the synchronization pipeline underwent a high-stakes architectural refactor to resolve "Split-Brain" database duplication (where identical tasks/instances would appear multiple times in the UI and trigger duplicate hardware alarms).

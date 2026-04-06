@@ -13,7 +13,18 @@ export type ValidationResult =
   | { valid: false; error: string; errorCode: string };
 
 const MAX_TITLE_LENGTH = 100;
-const X_CONDITION_METRICS = ["location", "partner", "picture", "video"] as const;
+
+/**
+ * PRODUCTION RATIONALE: "The Binding Action Protocol"
+ * A commitment is valid only if it has a 'Binding Action'. 
+ * Binding Actions are split into:
+ * 1. ACTIVE VERIFICATIONS: User must perform an action (GPS, Photo, etc.)
+ * 2. PASSIVE ENFORCEMENTS: The System enforces a rule (App/Web Blocking).
+ */
+const ACTIVE_VERIFICATIONS = ["location", "partner", "picture", "video"] as const;
+const PASSIVE_ENFORCEMENTS = ["digital_commitment"] as const;
+
+const BINDING_METRICS = [...ACTIVE_VERIFICATIONS, ...PASSIVE_ENFORCEMENTS] as const;
 
 export function validateTitle(title: string | undefined): ValidationResult {
   const trimmed = title?.trim() ?? "";
@@ -57,13 +68,13 @@ export function validateTimeXRule(
   assigneeId: string,
   assignerId: string
 ): ValidationResult {
-  const hasMetricX = conditions.some((c) => X_CONDITION_METRICS.includes(c.metric_key as any));
+  const hasMetricBinding = conditions.some((c) => BINDING_METRICS.includes(c.metric_key as any));
   const hasPartner = Boolean(assigneeId && assigneeId !== assignerId);
 
-  if (!hasMetricX && !hasPartner) {
+  if (!hasMetricBinding && !hasPartner) {
     return {
       valid: false,
-      error: "Time + X combination required (Location, Partner, Picture, or Video)",
+      error: "Commitment requires either a Verification (Location, Partner...) or an Enforcement (App Block).",
       errorCode: "TIME_X_REQUIRED",
     };
   }
