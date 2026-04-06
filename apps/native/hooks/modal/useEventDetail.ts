@@ -340,12 +340,8 @@ export function useEventDetail(): EventDetailState {
           }
           return result;
       })
-      .addStep("Disk Cache Update", async (ctx) => {
-          Logger.info(`[WaiverSaga] Step 2: Marking instance waived in local SQLite for ${ctx.instanceId}`);
-          await updateInstanceInLocalDb(db, ctx.instanceId, { status: 'waived' });
-      })
       .addStep("Hardware Alarm Update", async () => {
-          Logger.info(`[WaiverSaga] Step 3: Recalculating hardware alarms via scheduler-module`);
+          Logger.info(`[WaiverSaga] Step 2: Recalculating hardware alarms via scheduler-module`);
           scheduleNextAlarm();
       });
 

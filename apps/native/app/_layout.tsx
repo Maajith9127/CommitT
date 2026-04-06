@@ -136,7 +136,15 @@ function DbDebugFab() {
       setRows(enhancedTasks);
       setOrphanedInstances(orphans as any[]);
       setVisible(true);
-      console.log(`📦 Local DB: ${enhancedTasks.length} tasks, ${(orphans as any[]).length} orphaned (preserved) instances`);
+      
+      // 🛠️ PRETTY LOGGING FOR DEBUGGING — JUST THE INSTANCES
+      const allInstances = enhancedTasks.flatMap((t: any) => t.instances || []).concat(orphans);
+      
+      console.log('─── 🗃️ ALL TASK INSTANCES (PRETTY) ───');
+      console.log(JSON.stringify(allInstances, null, 2));
+      console.log('──────────────────────────────────────');
+
+      console.log(`📦 Local DB Data: ${enhancedTasks.length} tasks, ${allInstances.length} instances total.`);
     } catch (e) {
       Alert.alert('DB Error', String(e));
     }
