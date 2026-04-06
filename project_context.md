@@ -199,3 +199,25 @@ The `verify.ts` backend sequence gate has been updated to treat `waiver_active` 
 As of April 2026, the backend maintains a **strict chronological deadline** for all verifications:
 *   **Hard Cap**: Any verification attempt made after the task's `end` time (the conclusion of the grace period) is rejected, **even if** the status is currently `waiver_active`.
 *   **Intent**: This ensures that while waivers provide a bypass *mechanism*, they do not grant an indefinite "infinite grace period" beyond the hard-coded session deadline.
+
+---
+
+### Case Study: Unified Identity & Duplication Resolution (April 2026)
+
+In April 2026, the synchronization pipeline underwent a high-stakes architectural refactor to resolve "Split-Brain" database duplication (where identical tasks/instances would appear multiple times in the UI and trigger duplicate hardware alarms).
+
+#### 1. Unified Identity Strategy
+We eliminated all local random ID generation (`local_...`, `inst_...`) for both tasks and instances.
+*   **Primary Key Alignment**: Both the **Saga Persistence Layer** and the **Sync Engine** now use the official Convex backend `_id` as the primary key (`id`) in all SQLite tables.
+*   **Atomic Upsert**: Migrated all insertion paths to `INSERT OR REPLACE`. This ensures that even if a write race occurs between a user action (Saga) and a background refresh (Hydration), SQLite performs an atomic merge rather than creating a duplicate row.
+
+#### 2. Manual Edit Shield
+To preserve user-generated verification data during schedule re-projections, we implemented a "Shield" pattern.
+*   **Mechanism**: All `DELETE` queries in the update and deletion sagas now include a `WHERE is_manual_edit = 0` filter.
+*   **Behavior**: When a task's schedule is recalculated (e.g., after an update or strict-mode activation), the system purges auto-generated instances but **deliberately preserves** any rows with manual modifications (verification overrides, custom times).
+
+#### 3. Structural Eradication
+The `deleteTask` saga was hardened to target the unified Convex ID across all auxiliary tables (`task_instances`, `blocked_apps`, `blocked_websites`). By targeting the unified ID, the system can now perform a "Clean Sweep" of all associated records in a single transaction, preventing orphaned "Ghost" instances from firing alarms after a container task is gone.
+
+#### 4. Leak Remediation
+Resolved a critical ID leak in `local-db-instances.ts` where manual updates were still generating legacy `inst_` random IDs. All instance update paths now correctly respect the Unified Identity protocol.

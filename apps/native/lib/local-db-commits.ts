@@ -17,12 +17,17 @@ export async function nukeLocalDb(db: SQLiteDatabase) {
  * ╠══════════════════════════════════════════════════════════════════════════════╣
  * ║                                                                              ║
  * ║  PURPOSE:                                                                    ║
- * ║  This file abstracts ALL raw SQLite queries away from the React UI.          ║
- * ║  By separating the SQL commands into a dedicated Repository pattern,         ║
- * ║  we achieve:                                                                 ║
- * ║  1. Zero React Native code logic tied directly to Database Syntax.           ║
- * ║  2. Extremely predictable testable data insertion paths.                     ║
- * ║  3. A robust Offline-First capability perfectly isolated.                    ║
+ * ║  This repository captures the Source of Truth from Convex (Cloud) and        ║
+ * ║  persists it to the local kernel (SQLite).                                   ║
+ * ║                                                                              ║
+ * ║  IDENTITY STRATEGY (UNIFIED IDENTITY):                                       ║
+ * ║  To prevent "Split-Brain" duplication, we use the official Convex _id as     ║
+ * ║  the local primary key ('id'). This ensures that the Triple-Write Saga and   ║
+ * ║  the Hydration Engine always target the same physical rows in the database.  ║
+ * ║                                                                              ║
+ * ║  WRITE STRATEGY:                                                             ║
+ * ║  Uses ATOMIC UPSERTS (INSERT OR REPLACE). This handles race conditions where ║
+ * ║  the Saga and the Sync Delta arrive at the phone simultaneously.             ║
  * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
@@ -36,13 +41,10 @@ export async function insertTaskToLocalDb(
   backendInstances: any[],
   penaltyOverride?: TaskDraft["penalty"]
 ) {
-  // ── 1. Create a highly robust local identification hash ──
-  const localId = `local_${now}_${Math.random().toString(36).slice(2, 9)}`;
-
-  // ── 2. ATOMIC TRANSACTION: Persist task + all instances as one unit ──
+  // ── 1. ATOMIC TRANSACTION: Persist task + all instances as one unit ──
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      `INSERT INTO local_tasks
+      `INSERT OR REPLACE INTO local_tasks
         (id, convex_id, assigner_id, assignee_id, title, description,
          visibility, recurrence_json, conditions_json, config_json,
          penalty_json, penalty_waiver_json,
@@ -50,8 +52,8 @@ export async function insertTaskToLocalDb(
          created_at, updated_at, synced_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        localId,
-        remoteId,
+        remoteId, // local ID is now identical to the Convex ID (Source of Truth)
+        remoteId, // duplicated in convex_id for legacy query compatibility
         draft.assigner_id,
         draft.assignee_id,
         draft.title,
@@ -69,10 +71,10 @@ export async function insertTaskToLocalDb(
         now,
       ]
     );
-    console.log('[TaskRepository] Validated Local DB insert OK. convex_id:', remoteId);
+    console.log('[TaskRepository] Unified Identity Upsert OK (Saga). ID:', remoteId);
 
-    // ── 3. Propagate all newly projected future Checkpoints ──
-    await syncInstancesToLocalDb(db, localId, backendInstances, now);
+    // ── 2. Propagate all newly projected future Checkpoints ──
+    await syncInstancesToLocalDb(db, remoteId, backendInstances, now);
   });
 }
 
@@ -85,16 +87,16 @@ export async function updateTaskInLocalDb(
   backendInstances: any[],
   penaltyOverride?: TaskDraft["penalty"]
 ) {
-  // ATOMIC TRANSACTION: Update task + purge stale instances + repopulate
+  // ATOMIC TRANSACTION: Update task + purge stale instances + repopulate trajectory
   await db.withTransactionAsync(async () => {
-    // ── 1. Overwrite the Master Task Entity completely ──
+    // ── 1. Overwrite the Master Task Entity completely (Uses Unified Primary Key) ──
     await db.runAsync(
       `UPDATE local_tasks SET
         title = ?, description = ?, visibility = ?,
         recurrence_json = ?, conditions_json = ?, config_json = ?,
         penalty_json = ?, penalty_waiver_json = ?,
         updated_at = ?, synced_at = ?
-      WHERE convex_id = ?`,
+      WHERE id = ?`, // Direct target via Unified Primary Key
       [
         draft.title,
         draft.description,
@@ -106,29 +108,22 @@ export async function updateTaskInLocalDb(
         draft.penalty_waiver ? JSON.stringify(draft.penalty_waiver) : null,
         now,
         now,
-        remoteId,
+        remoteId, // This is the Convex _id
       ]
     );
-    console.log('[TaskRepository] Validated Local DB update OK for task:', remoteId);
 
-    // ── 2. Resolve the abstract Local ID from the Convex Key ──
-    const taskRow = await db.getFirstAsync<{ id: string }>(
-      "SELECT id FROM local_tasks WHERE convex_id = ?",
-      [remoteId]
-    );
+    console.log('[TaskRepository] Unified Identity Sync: Task master rules updated.');
 
-    // ── 3. Atomically overwrite the entire future schedule trajectory ──
-    if (taskRow) {
-      const localTaskId = taskRow.id;
-      
-      // Purge stale projections from ALL relevant tables
-      await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [localTaskId]);
-      await db.runAsync("DELETE FROM blocked_apps WHERE task_id = ?", [localTaskId]);
-      await db.runAsync("DELETE FROM blocked_websites WHERE task_id = ?", [localTaskId]);
-      
-      // Repopulate fully aligned with the newly edited timeframe constraints
-      await syncInstancesToLocalDb(db, localTaskId, backendInstances, now);
-    }
+    // ── 2. Atomically overwrite the entire future schedule trajectory ──
+    // No lookup needed — remoteId is the task_id in the instance world.
+    // We protect manually edited instances from this purge.
+    await db.runAsync("DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0", [remoteId]);
+    await db.runAsync("DELETE FROM blocked_apps WHERE task_id = ?", [remoteId]);
+    await db.runAsync("DELETE FROM blocked_websites WHERE task_id = ?", [remoteId]);
+
+    // 3. Repopulate fully aligned with the newly edited timeframe constraints.
+    await syncInstancesToLocalDb(db, remoteId, backendInstances, now);
+    console.log('[TaskRepository] Unified Identity Sync: Overwritten instances successfully.');
   });
 }
 
@@ -151,25 +146,17 @@ export async function updateStrictModeInLocalDb(
       strict_until = ?,
       strict_duration_days = ?,
       updated_at = ?
-    WHERE convex_id = ?`,
+    WHERE id = ?`, // Direct target via Unified Primary Key
     [strictUntil, durationDays, now, taskId]
   );
 
-  // 2. Fetch the local task ID
-  const taskRow = await db.getFirstAsync<{ id: string }>(
-    "SELECT id FROM local_tasks WHERE convex_id = ?",
-    [taskId]
-  );
-
-  // 3. Update all upcoming instances to reflect the new strict_until date
-  if (taskRow) {
-    // For simplicity and correctness, we re-sync all instances returned by the mutation
-    // because strict_mode activation retroactively locks existing instances too.
-    await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [taskRow.id]);
-    await syncInstancesToLocalDb(db, taskRow.id, backendInstances, now);
-  }
+  // 2. Update all upcoming instances to reflect the new strict_until date.
+  // For simplicity and correctness, we re-sync all instances returned by the mutation
+  // because strict_mode activation retroactively locks existing instances too.
+  await db.runAsync("DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0", [taskId]);
+  await syncInstancesToLocalDb(db, taskId, backendInstances, now);
   
-  console.log(`[TaskRepository] Strict Mode Local Sync Complete for task: ${taskId}`);
+  console.log(`[TaskRepository] Unified Strict Mode Sync Complete: ${taskId}`);
 }
 
 /**
@@ -222,7 +209,7 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
 
   // 1. Prepare statements for batched insertion
   const instanceStatement = await db.prepareAsync(
-    `INSERT INTO task_instances 
+    `INSERT OR REPLACE INTO task_instances 
       (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, status, title,
        config_json, checkpoints, conditions_json, penalty_json, penalty_waiver_json,
        strict_until, is_manual_edit, created_at) 
@@ -241,12 +228,10 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
 
   try {
     for (const instance of backendInstances) {
-      const instanceId = `inst_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      
       // A. Insert the main instance 
       await instanceStatement.executeAsync([
-        instanceId,
-        localTaskId,
+        instance._id, // Official Convex ID as Primary Key
+        localTaskId,  // Linked to Unified Parent ID
         instance._id,
         instance.start,
         instance.start,
@@ -264,7 +249,6 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
       ]);
 
       // B. Project Digital Commitments (Blocked Apps & Websites) into dedicated tables
-      // This allows the native enforcer to query simple flat tables instead of parsing JSON.
       if (instance.conditions) {
         const digitalCond = instance.conditions.find((c: any) => c.metric_key === "digital_commitment");
         if (digitalCond?.target?.value) {
@@ -282,10 +266,6 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
     }
     console.log(`[TaskRepository] SQLite sync complete. Projected ${backendInstances.length} instances.`);
   } finally {
-    // CORRUPTION GUARD: Wrap each finalizeAsync in its own try/catch.
-    // If the database becomes corrupted mid-loop, the remaining finalize calls
-    // would throw 'NativeStatement.finalizeAsync rejected — disk image malformed',
-    // crashing the app. By isolating each, we ensure all 3 statements are cleaned up.
     try { await instanceStatement.finalizeAsync(); } catch (e) {
       console.warn('[TaskRepository] instanceStatement finalize failed:', e);
     }

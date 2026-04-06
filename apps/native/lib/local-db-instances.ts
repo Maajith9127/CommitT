@@ -10,17 +10,16 @@ import type { SQLiteDatabase } from 'expo-sqlite';
  * ║  the local SQLite cache. This is critical for the "Offline-First" calendar   ║
  * ║  experience and hardware-level alarm synchronization.                        ║
  * ║                                                                              ║
- * ║  STRATEGY:                                                                   ║
- * ║  We utilize a "Search-Clobber-Spawn" pattern. Instead of complex SQL patches, ║
- * ║  we identify the existing instance by Convex ID, purge the stale record, and ║
- * ║  re-insert a fresh, backend-hydrated version. This ensures zero data         ║
- * ║  stale-ness and perfectly aligned checkpoints.                               ║
- * ║                                                                              ║
- * ║  INSTANCE-DEPENDENT ARCHITECTURE (V12):                                       ║
- * ║  The schema has ZERO foreign key constraints. Instances are first-class       ║
- * ║  citizens that can exist with or without a parent task. This aligns with      ║
- * ║  the Convex backend's "instance survival" model where manually-edited and     ║
- * ║  strict-locked instances outlive their parent task deletion.                  ║
+ * *  IDENTITY STRATEGY (UNIFIED IDENTITY):                                       ║
+ *  To prevent "Split-Brain" duplication, we use the official Convex _id as      ║
+ *  the local primary key ('id'). This ensures that manual updates and the      ║
+ *  Hydration Engine always target the same physical rows.                      ║
+ *                                                                              ║
+ *  ORPHAN SURVIVAL:                                                            ║
+ *  The schema has ZERO foreign key constraints. Instances are first-class       ║
+ *  citizens that can exist with or without a parent task. This aligns with      ║
+ *  the Convex backend's "instance survival" model where manually-edited and     ║
+ *  strict-locked instances outlive their parent task deletion.                  ║
  * ║                                                                              ║
  * ║  No PRAGMA foreign_keys toggles are needed anywhere in this file.             ║
  * ║                                                                              ║
@@ -86,12 +85,10 @@ export async function updateSingleInstanceInLocalDb(
   // ─────────────────────────────────────────────────────────────────────────────
   try {
     await db.withTransactionAsync(async () => {
-      // Purge the old version (Search by Convex ID)
-      await db.runAsync("DELETE FROM task_instances WHERE convex_id = ?", [convexInstanceId]);
+      // Purge the old version (Search by Unified ID)
+      await db.runAsync("DELETE FROM task_instances WHERE id = ?", [convexInstanceId]);
 
-      // Insert the fresh version
-      const localInstanceId = `inst_${now}_${Math.random().toString(36).slice(2, 9)}`;
-      
+      // Insert the fresh version using the Unified Convex ID as the Primary Key
       await db.runAsync(
         `INSERT INTO task_instances 
           (id, task_id, convex_id, scheduled_timestamp, start_time, end_time, status, title,
@@ -99,7 +96,7 @@ export async function updateSingleInstanceInLocalDb(
            strict_until, is_manual_edit, created_at) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          localInstanceId,
+          convexInstanceId,
           localTaskId,
           convexInstanceId,
           convexInstance.start,
@@ -118,7 +115,7 @@ export async function updateSingleInstanceInLocalDb(
         ]
       );
 
-      console.log(`[InstanceRepository] Atomic Update Success. Local ID: ${localInstanceId}`);
+      console.log(`[InstanceRepository] Atomic Update Success. Unified ID: ${convexInstanceId}`);
     });
   } catch (error) {
     console.error(`[InstanceRepository] CATASTROPHIC_FAILURE during instance update:`, error);

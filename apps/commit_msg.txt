@@ -1,1 +1,21 @@
-feat(checkpoint): checkpoint to roll back to 
+refactor(sync): unify identity system and resolve split-brain duplication
+
+Architectural overhaul of the synchronization pipeline to eliminate local 
+SQLite duplication and orphaned records. Replaced the non-deterministic 
+random ID generation strategy with the official Convex backend ID as 
+the primary key across all persistence layers.
+
+Key Changes:
+- Identity Unification: Migrated local_tasks and task_instances to use 
+  official Convex IDs as the SQLite primary key ('id').
+- Atomic Upsert: Implemented 'INSERT OR REPLACE' logic across Saga and 
+  Hydration paths to ensure single-row consistency during write races.
+- Manual Edit Shield: Introduced a protection filter (is_manual_edit = 0) 
+  in PURGE/DELETE operations to preserve user-customized verification 
+  data during schedule re-projections.
+- Structural Eradication: Refactored deleteTask saga to perform broad-spectrum 
+  cleanups across auxiliary tables, preventing ghost hardware alarms.
+- Leak Remediation: Resolved an ID leak in updateSingleInstanceInLocalDb 
+  where manual updates were still spawning legacy 'inst_' orphans.
+
+Resolves: Split-Brain duplication and Orphaned Instance hazards.

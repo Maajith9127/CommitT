@@ -79,17 +79,13 @@ export function useTaskActions() {
           if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] SQLite delete failed.");
           
           await db.withTransactionAsync(async () => {
-            const taskRow = await db.getFirstAsync<{ id: string }>(
-              'SELECT id FROM local_tasks WHERE convex_id = ?',
-              [ctx.taskId]
-            );
-
-            if (taskRow) {
-              const localTaskId = taskRow.id;
-              await db.runAsync('DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0', [localTaskId]);
-              await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [localTaskId]);
-              Logger.info(`[TaskSaga] Disk purged for ${localTaskId}`);
-            }
+            // Nuke all auto-generated entities, but preserve manually edited ones.
+            await db.runAsync('DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0', [ctx.taskId]);
+            await db.runAsync('DELETE FROM blocked_apps WHERE task_id = ?', [ctx.taskId]);
+            await db.runAsync('DELETE FROM blocked_websites WHERE task_id = ?', [ctx.taskId]);
+            await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [ctx.taskId]);
+            await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [ctx.taskId]); // Double-tap for legacy rows
+            Logger.info(`[TaskSaga] Unified Disk Eradication complete for ${ctx.taskId}`);
           });
         }
       )
