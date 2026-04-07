@@ -25,7 +25,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
   } catch (e: any) {
     console.error("[LocalDB] FATAL: Initialization failed.", e);
     if (String(e).includes("malformed")) {
-      console.error("🚨 CRITICAL: Database disk image is malformed. Please wipe app data/cache and restart.");
+      console.error(" CRITICAL: Database disk image is malformed. Please wipe app data/cache and restart.");
     }
     throw e;
   }

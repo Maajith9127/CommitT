@@ -24,7 +24,13 @@ const MAX_TITLE_LENGTH = 100;
 const ACTIVE_VERIFICATIONS = ["location", "partner", "picture", "video"] as const;
 const PASSIVE_ENFORCEMENTS = ["digital_commitment"] as const;
 
-const BINDING_METRICS = [...ACTIVE_VERIFICATIONS, ...PASSIVE_ENFORCEMENTS] as const;
+/**
+ * PRODUCTION RATIONALE: "The Binding Metric Protocol"
+ * These metrics are considered 'Binding Actions' — specific enforcers that 
+ * anchor a time-based commitment. A commitment is valid ONLY if every 
+ * active time window is covered by at least one Binding Action.
+ */
+const BINDING_METRICS = ["location", "digital_commitment", "partner", "picture", "video"] as const;
 
 export function validateTitle(title: string | undefined): ValidationResult {
   const trimmed = title?.trim() ?? "";
@@ -63,15 +69,81 @@ export function validateRecurrence(recurrence: Recurrence): ValidationResult {
   return { valid: true };
 }
 
+/**
+ * Checks if a specific set of conditions contains at least one 
+ * valid Binding Action as defined in the protocol.
+ */
+export function hasBindingAction(conditions: Condition[]): boolean {
+  return conditions.some((c) => (BINDING_METRICS as unknown as string[]).includes(c.metric_key));
+}
+
+/**
+ * Validates the "Hierarchical Binding" rule.
+ * 
+ * PRODUCTION RATIONALE: "The Total Override Strategy"
+ * To prevent unexpected overlapping rules, if a slot defines ANY of its own conditions,
+ * it completely supersedes the global Root conditions for that window.
+ * 
+ * Every slot in the commitment schedule MUST be covered by a Binding Action, 
+ * either inherited from the Root OR explicitly defined in a Slot Override.
+ */
+export function validateHierarchicalBinding(
+  globalConditions: Condition[],
+  recurrence: Recurrence,
+  assigneeId: string,
+  assignerId: string
+): ValidationResult {
+  const { time_windows } = recurrence;
+
+  // 1. PARTNER SAFETY NET: If the task is bound to a partner account,
+  // the entire task is valid regardless of specific hardware enforcers.
+  const hasPartner = Boolean(assigneeId && assigneeId !== assignerId);
+  if (hasPartner) return { valid: true };
+
+  // 2. GLOBAL BINDING STATE: Pre-calculate if the Root level is "Armed"
+  const isRootArmed = hasBindingAction(globalConditions);
+
+  // 3. RECURSIVE SCAN: Ensure 100% coverage across all time windows
+  for (let i = 0; i < time_windows.length; i++) {
+    const slot = time_windows[i];
+    const slotConditions = slot.conditions || [];
+
+    // CASE A: The slot has specifically assigned conditions (Override Mode)
+    if (slotConditions.length > 0) {
+      if (!hasBindingAction(slotConditions)) {
+        return {
+          valid: false,
+          error: `Time slot #${i + 1} has a custom override but is missing a required Binding Action (Location or App Block).`,
+          errorCode: "TIME_X_REQUIRED",
+        };
+      }
+    } 
+    // CASE B: The slot is empty (Inheritance Mode)
+    else {
+      // If the slot is empty, it MUST inherit an armed state from the Root
+      if (!isRootArmed) {
+        return {
+          valid: false,
+          error: `Time slot #${i + 1} has no enforcer (no local override and no global condition).`,
+          errorCode: "TIME_X_REQUIRED",
+        };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+/** Legacy support (wrapper for new hierarchical check) */
 export function validateTimeXRule(
   conditions: Condition[],
   assigneeId: string,
   assignerId: string
 ): ValidationResult {
-  const hasMetricBinding = conditions.some((c) => BINDING_METRICS.includes(c.metric_key as any));
   const hasPartner = Boolean(assigneeId && assigneeId !== assignerId);
-
-  if (!hasMetricBinding && !hasPartner) {
+  if (hasPartner) return { valid: true };
+  
+  if (!hasBindingAction(conditions)) {
     return {
       valid: false,
       error: "Commitment requires either a Verification (Location, Partner...) or an Enforcement (App Block).",
@@ -223,8 +295,8 @@ export function validateCommitment(input: {
   const recurRes = validateRecurrence(input.recurrence);
   if (!recurRes.valid) return recurRes;
 
-  const xRes = validateTimeXRule(input.conditions, input.assignee_id, input.assigner_id);
-  if (!xRes.valid) return xRes;
+  const bindingRes = validateHierarchicalBinding(input.conditions, input.recurrence, input.assignee_id, input.assigner_id);
+  if (!bindingRes.valid) return bindingRes;
 
   // Validate Coupled Accountability: Both must be present OR both absent
   const hasPenalty = Boolean(input.penalty);

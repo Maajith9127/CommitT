@@ -274,6 +274,9 @@ export default function FinalScreen() {
 
   /**
    * Check if a specific condition type is currently selected/configured.
+   * NOTE: We only check the Root level here to ensure the Carousel correctly 
+   * reflects the GLOBAL state of the commitment. Granular slot-level coverage 
+   * is handled by the validator.
    */
   const isConditionSelected = useCallback(
     (conditionTitle: string): boolean => {
@@ -284,6 +287,10 @@ export default function FinalScreen() {
           return draft.conditions.some((c: StoreCondition) => c.metric_key === "location");
         case "Partner":
           return Boolean(draft.assignee_id && draft.assignee_id !== draft.assigner_id);
+        case "Picture":
+          return draft.conditions.some((c: StoreCondition) => c.metric_key === "picture");
+        case "Video":
+          return draft.conditions.some((c: StoreCondition) => c.metric_key === "video");
         default:
           return false;
       }

@@ -239,3 +239,25 @@ The `deleteTask` saga was hardened to target the unified Convex ID across all au
 
 #### 4. Leak Remediation
 Resolved a critical ID leak in `local-db-instances.ts` where manual updates were still generating legacy `inst_` random IDs. All instance update paths now correctly respect the Unified Identity protocol.
+
+---
+
+### Case Study: Granular Time-Slot Validation & "Sparse Master" Mode (April 2026)
+
+In April 2026, the commitment engine was refactored to support **Hierarchical Binding Validation**. This allows users to define specific enforcers (Location, App Blocking) for individual time slots, even if the top-level (Global) task conditions are empty.
+
+#### 1. The "Hierarchical Binding" Protocol
+Validation now recursively scans the entire commitment schedule to ensure 100% coverage.
+*   **Safety Rule**: Every time slot MUST be "Armed" by at least one **Binding Action** (Location, Partner, Photo, Video, or App Block).
+*   **Sparse Master Mode**: A task is valid if all individual slots are protected, even if `task.conditions` is an empty array.
+
+#### 2. The "Total Override" Strategy
+To prevent accidental rule overlap and ensure predictable enforcement, the backend and frontend now follow a "Total Override" logic during instance generation:
+*   **Behavior**: If a time slot defines **ANY** custom condition, it completely supersedes the root conditions for that window.
+*   **Rationale**: This ensures that if you set a specific App Block for a morning session, the system won't unexpectedly enforce a global Location rule from the root, providing a "Clean Slate" for the slot.
+
+#### 3. UI/UX Decoupling (Global Status)
+The final commitment screen's carousel (`final.tsx`) was deliberately decoupled from the hierarchical validator.
+*   **UI State**: The Carousel cards (Location, Partner, etc.) only reflect **Global (Root)** configurations.
+*   **Validator State**: The "Commit" button remains active if the granular slots are safe, even if the global cards appear "Unselected."
+*   **Intent**: This prevents confusing users with "Highlighted" cards that point to empty global configuration screens while still allowing the advanced "Sparse" power-user flow.

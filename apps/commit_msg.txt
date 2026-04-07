@@ -1,6 +1,7 @@
-feat(validation): enable Passive Enforcement (Time + App Blocking) commitments
+refactor(core): implement hierarchical binding validation for slot-specific overrides
 
-- Updated 'Time + X' validation rules to recognize 'Digital Commitment' as a valid binding anchor.
-- Refactored validators across Frontend and Backend to use 'Binding Action' categories (Active Verification vs Passive Enforcement).
-- Leveraged existing backend 'Lightweight Protocol' to support auto-verified sessions for app-blocking only tasks.
-- Improved error messaging for better user feedback during the creation flow.
+- [Architectural] Implemented the "Binding Action Protocol" across frontend & backend.
+- [Validation] Added recursive schedule scanning to allow "Sparse Master" mode (validating tasks that have empty global conditions but protected time slots).
+- [Logic] Enforced "Total Override" strategy: slot-specific conditions now completely supersede root conditions for that window to ensure clean enforcement states.
+- [UI/UX] Decoupled final screen carousel state from granular validation to maintain "Global-Only" visibility while keeping the "Commit" flow active for valid sparse schedules.
+- [Reliability] Standardized enforcer registries and resolved TypeScript readonly includes mismatches in local validation libraries.

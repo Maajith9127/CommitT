@@ -53,7 +53,13 @@ const PASSIVE_ENFORCEMENTS = [
   "digital_commitment", // System-enforced App/Website blocking
 ] as const;
 
-const BINDING_METRICS = [...ACTIVE_VERIFICATIONS, ...PASSIVE_ENFORCEMENTS] as const;
+/**
+ * PRODUCTION RATIONALE: "The Binding Metric Protocol"
+ * These metrics are considered 'Binding Actions' — specific enforcers that 
+ * anchor a time-based commitment. A commitment is valid ONLY if every 
+ * active time window is covered by at least one Binding Action.
+ */
+const BINDING_METRICS = ["location", "digital_commitment", "partner", "picture", "video"] as const;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Individual Validators
@@ -96,8 +102,18 @@ export function hasPartnerCondition(
 }
 
 /**
- * Checks if any "Binding Action" is present.
- * Binding actions include active verifications and passive enforcements.
+ * Checks if a specific set of conditions contains at least one 
+ * valid Binding Action as defined in the protocol.
+ */
+export function hasBindingAction(conditions: Condition[]): boolean {
+  return conditions.some((c) => (BINDING_METRICS as unknown as string[]).indexOf(c.metric_key) !== -1);
+}
+
+/**
+ * Checks if any "Binding Action" is present at the Task level.
+ * 
+ * NOTE: This is kept for backwards compatibility and high-level checks, 
+ * but `validateHierarchicalBinding` should be used for full schedule integrity.
  */
 export function hasAnyXCondition(
   conditions: Condition[],
@@ -105,9 +121,7 @@ export function hasAnyXCondition(
   assignerId: string | null
 ): boolean {
   // Check condition-based anchors (location, photo, app-block, etc.)
-  const hasMetricBinding = BINDING_METRICS.some((metric) =>
-    hasCondition(conditions, metric)
-  );
+  const hasMetricBinding = hasBindingAction(conditions);
 
   // Check partner (assignee-based)
   const hasPartner = hasPartnerCondition(assigneeId, assignerId);
@@ -138,34 +152,54 @@ export function validateTimeRequired(recurrence: Recurrence): ValidationResult {
 }
 
 /**
- * Validates the "Time + X" rule.
- * Time condition must be paired with at least one X condition.
- *
- * Note: This assumes time is already validated as present.
- * Call validateTimeRequired first.
- *
- * @example
- * // Only time → invalid
- * validateTimeXRule([{ metric_key: "time", ... }], null, null)
- * // → { valid: false, error: "...", errorCode: "TIME_REQUIRES_X_CONDITION" }
- *
- * // Time + location → valid
- * validateTimeXRule([{ metric_key: "time" }, { metric_key: "location" }], null, null)
- * // → { valid: true }
+ * Validates the "Hierarchical Binding" rule.
+ * 
+ * PRODUCTION RATIONALE: "The Total Override Strategy"
+ * To prevent unexpected overlapping rules, if a slot defines ANY of its own conditions,
+ * it completely supersedes the global Root conditions for that window.
+ * 
+ * Every slot in the commitment schedule MUST be covered by a Binding Action, 
+ * either inherited from the Root OR explicitly defined in a Slot Override.
  */
-export function validateTimeXRule(
-  conditions: Condition[],
-  assigneeId: string | null,
-  assignerId: string | null
-): ValidationResult {
-  const hasX = hasAnyXCondition(conditions, assigneeId, assignerId);
+export function validateHierarchicalBinding(draft: TaskDraft): ValidationResult {
+  const { recurrence, conditions: rootConditions, assignee_id, assigner_id } = draft;
+  const { time_windows } = recurrence;
 
-  if (!hasX) {
-    return {
-      valid: false,
-      error: "Commitment requires either a Verification (Location, Partner...) or an Enforcement (App Blocking).",
-      errorCode: "TIME_REQUIRES_X_CONDITION",
-    };
+  // 1. PARTNER SAFETY NET: If the task is bound to a partner account,
+  // the entire task is valid regardless of specific hardware enforcers.
+  if (hasPartnerCondition(assignee_id, assigner_id)) {
+    return { valid: true };
+  }
+
+  // 2. GLOBAL BINDING STATE: Pre-calculate if the Root level is "Armed"
+  const isRootArmed = hasBindingAction(rootConditions);
+
+  // 3. RECURSIVE SCAN: Ensure 100% coverage across all time windows
+  for (let i = 0; i < time_windows.length; i++) {
+    const slot = time_windows[i];
+    const slotConditions = slot.conditions || [];
+
+    // CASE A: The slot has specifically assigned conditions (Override Mode)
+    if (slotConditions.length > 0) {
+      if (!hasBindingAction(slotConditions)) {
+        return {
+          valid: false,
+          error: `Time slot #${i + 1} has custom overrides but is missing a required Binding Action (Location or App Block).`,
+          errorCode: "TIME_REQUIRES_X_CONDITION",
+        };
+      }
+    } 
+    // CASE B: The slot is empty (Inheritance Mode)
+    else {
+      // If the slot is empty, it MUST inherit an armed state from the Root
+      if (!isRootArmed) {
+        return {
+          valid: false,
+          error: `Time slot #${i + 1} has no enforcer. Add a Location/App Block to this slot, or set a Global rule.`,
+          errorCode: "TIME_REQUIRES_X_CONDITION",
+        };
+      }
+    }
   }
 
   return { valid: true };
@@ -224,14 +258,11 @@ export function validateTaskDraft(draft: TaskDraft): ValidationResult {
     return timeCheck;
   }
 
-  // Check 3: Time + X rule (time must be paired with at least one X condition)
-  const timeXCheck = validateTimeXRule(
-    draft.conditions,
-    draft.assignee_id,
-    draft.assigner_id
-  );
-  if (!timeXCheck.valid) {
-    return timeXCheck;
+  // Check 3: Hierarchical Binding (Time Slots + X-Conditions)
+  // Ensures 100% schedule coverage while allowing granular overrides.
+  const bindingCheck = validateHierarchicalBinding(draft);
+  if (!bindingCheck.valid) {
+    return bindingCheck;
   }
 
   // Check 4: Penalty-Waiver Coupling
