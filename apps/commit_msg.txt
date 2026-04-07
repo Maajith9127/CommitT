@@ -1,10 +1,8 @@
-feat(native/editor): implement high-fidelity Rule Preset editor
+feat(presets): 📐 implement high-fidelity 3-tiered rule manifest
 
-- Create 'edit-rule-preset.tsx' using the ActionScreenLayout 3-zone architecture.
-- Replicate 1:1 logical and visual parity with 'final.tsx' for Alarms, Commitment Style, and Waiver configurations.
-- Implement flagship Hero UI: centered 75px 'format-list-checks' icon with the standardized Dark Gray 'rounded-4xl' Input capsule.
-- Standardize typography using the 'HeaderTitle' and 'BodyText' components from the UI library.
-- Refine header ergonomics: implemented a borderless, lowered top-bar (pt-10) with edge-to-edge content alignment.
-- Optimize layout density: tuned vertical section gaps to 'mb-5' for a premium, structured configuration experience.
-- Integrate the 'SelectionSheet' picker system for all behavioral DNA properties (Grace Period, Alarms, Intensity).
-- Enable cross-navigation from the Presets management hub into the dedicated Rule Editor.
+- Redesigns the 'RulePresetCard' to use a structured, 3-row manifest (Type, Alarms, Penalty Waiver).
+- Synchronizes the preset data structure with the official Convex production schema (config/penalty_waiver).
+- Adopts the obsidian-grey Badge-style from 'EventDetailHeader' for all behavioral status indicators.
+- Implements the 'Heading -> Badge Grid -> Breathing Space' rhythm for maximum data scannability.
+- Fixes the 'NAN HRS' bug in the waiver deadline calculation with robust fallback checks.
+- Refines vertical spacing between the card header and the behavioral specification for a unified 'System Readout' look.

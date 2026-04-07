@@ -273,40 +273,46 @@ export default function PresetsScreen() {
                 {/* MOCK DATA: Rule presets for UI verification */}
                 <RulePresetCard 
                   preset={{
-                    name: "Deep Strategy (Strict)",
-                    verification_style: "stay_throughout",
-                    intensity: "strict",
-                    usage_count: 24,
-                    grace_period_minutes: 2,
-                    alarms: { interval_minutes: 5, lead_time_minutes: 15 }
+                    title: "Casual Arrival",
+                    usage_count: 8,
+                    config: {
+                      verification_style: "just_show_up",
+                      grace_period_minutes: 10,
+                      alarms: { interval_minutes: 0, lead_time_minutes: 5 }
+                    }
                   }}
                   onMorePress={(x, y) => handleOpenMenu({
-                    name: "Deep Strategy (Strict)",
-                    _id: "mock_1",
-                    verification_style: "stay_throughout",
-                    intensity: "strict",
-                    usage_count: 24,
-                    grace_period_minutes: 2,
-                    alarms: { interval_minutes: 5, lead_time_minutes: 15 }
+                    title: "Casual Arrival",
+                    _id: "mock_rule_1",
+                    config: {
+                      verification_style: "just_show_up",
+                      grace_period_minutes: 10,
+                      alarms: { interval_minutes: 0, lead_time_minutes: 5 }
+                    }
                   } as any, x, y)}
                 />
                 <RulePresetCard 
                   preset={{
-                    name: "Casual Arrive",
-                    verification_style: "just_show_up",
-                    intensity: "relaxed",
-                    usage_count: 8,
-                    grace_period_minutes: 10,
-                    alarms: { interval_minutes: 0, lead_time_minutes: 5 }
+                    title: "Strict Focus",
+                    usage_count: 24,
+                    intensity: "strict",
+                    config: {
+                      verification_style: "stay_throughout",
+                      grace_period_minutes: 5,
+                      alarms: { interval_minutes: 2, lead_time_minutes: 15 },
+                    },
+                    penalty_waiver: { deadline_minutes: 600 } // 10h
                   }}
                   onMorePress={(x, y) => handleOpenMenu({
-                    name: "Casual Arrive",
-                    _id: "mock_2",
-                    verification_style: "just_show_up",
-                    intensity: "relaxed",
-                    usage_count: 8,
-                    grace_period_minutes: 10,
-                    alarms: { interval_minutes: 0, lead_time_minutes: 5 }
+                    title: "Strict Focus",
+                    _id: "mock_rule_2",
+                    intensity: "strict",
+                    config: {
+                      verification_style: "stay_throughout",
+                      grace_period_minutes: 5,
+                      alarms: { interval_minutes: 2, lead_time_minutes: 15 },
+                    },
+                    penalty_waiver: { deadline_minutes: 600 }
                   } as any, x, y)}
                 />
             </UView>
@@ -630,7 +636,7 @@ function RulePresetCard({
   preset: any;
   onMorePress: (x: number, y: number) => void;
 }) {
-  const isStay = preset.verification_style === "stay_throughout";
+  const isStay = preset.config?.verification_style === "stay_throughout";
   const intensityColor = preset.intensity === "strict" ? COLORS.danger : COLORS.primary;
 
   return (
@@ -644,10 +650,10 @@ function RulePresetCard({
         />
         <UView className="flex-1 mr-4 overflow-hidden">
           <Text className="text-white text-base" numberOfLines={1}>
-            {preset.name}
+            {preset.title || preset.name}
           </Text>
           <BodyText className="text-gray-400 text-sm mt-1">
-            {isStay ? "Continuous Guard" : "Arrival Check"} · Used {preset.usage_count}x
+            {isStay ? "Continuous Guard" : "Arrival Check"} · Used {preset.usage_count || 0}x
           </BodyText>
         </UView>
 
@@ -661,29 +667,71 @@ function RulePresetCard({
         </UView>
       </UView>
 
-      {/* ── Rule DNA Gallery (Aligned to the same pl-11 as App Icons) ── */}
-      <UView className="pl-11">
-        <ScrollView
-          horizontal
-          nestedScrollEnabled={true}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', paddingRight: 40 }}
-        >
-          <UView className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg mr-2 flex-row items-center">
-            <MaterialCommunityIcons name="alarm" size={12} color="#9CA3AF" style={{ marginRight: 6 }} />
-            <BodyText className="text-gray-300 text-xs">{preset.alarms.lead_time_minutes}m Lead</BodyText>
+      {/* ── Rule DNA Subheaded Manifest (Aligned to pl-11) ── */}
+      <UView className="pl-11 mt-1">
+        
+        {/* Module 1: Type */}
+        <UView className="mb-6">
+          <BodyText className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-2">Type</BodyText>
+          <UView className="flex-row flex-wrap gap-2">
+            <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
+              <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+                {preset.config?.verification_style === 'stay_throughout' ? "Stay Throughout" : "Just Show Up"}
+              </BodyText>
+            </UView>
+            {preset.config?.verification_style === 'stay_throughout' && (
+              <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+                  Max Miss: {preset.max_missed_checkins || 3}
+                </BodyText>
+              </UView>
+            )}
+            <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
+              <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+                {preset.intensity || "Moderate"}
+              </BodyText>
+            </UView>
           </UView>
+        </UView>
 
-          <UView className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg mr-2 flex-row items-center">
-            <MaterialCommunityIcons name="timer-outline" size={12} color="#9CA3AF" style={{ marginRight: 6 }} />
-            <BodyText className="text-gray-300 text-xs">{preset.grace_period_minutes}m Grace</BodyText>
+        {/* Module 2: Alarms */}
+        <UView className="mb-6">
+          <BodyText className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-2">Alarms</BodyText>
+          <UView className="flex-row flex-wrap gap-2">
+            <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
+              <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+                {preset.config?.alarms?.lead_time_minutes || 0} mins before
+              </BodyText>
+            </UView>
+            {preset.config?.alarms?.interval_minutes > 0 && (
+              <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+                  every {preset.config?.alarms?.interval_minutes} mins
+                </BodyText>
+              </UView>
+            )}
           </UView>
+        </UView>
 
-          <UView className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg mr-2 flex-row items-center">
-              <MaterialCommunityIcons name="gauge" size={12} color={intensityColor} style={{ marginRight: 6 }} />
-              <BodyText className="text-gray-300 text-xs capitalize">{preset.intensity}</BodyText>
+        {/* Module 3: Penalty Waiver */}
+        <UView className="mb-2">
+          <BodyText className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-2">Penalty Waiver</BodyText>
+          <UView className="flex-row flex-wrap gap-2">
+            <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
+              <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+                {preset.penalty_waiver?.deadline_hours || (preset.penalty_waiver?.deadline_minutes ? Math.floor(preset.penalty_waiver.deadline_minutes / 60) : 0)} HRS
+              </BodyText>
+            </UView>
+            {preset.penalty_waiver?.allow_early !== false && (
+              <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+                  pre waiver allowed
+                </BodyText>
+              </UView>
+            )}
           </UView>
-        </ScrollView>
+        </UView>
+
       </UView>
     </UView>
   );
