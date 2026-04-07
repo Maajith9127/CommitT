@@ -35,11 +35,12 @@ const COLORS = {
   textSecondary: "#9CA3AF",
 };
 
-type Tab = "location" | "blocks" | "photos";
+type Tab = "location" | "blocks" | "rules" | "photos";
 
 const PRESET_TABS: { key: Tab; label: string }[] = [
   { key: "location", label: "Location" },
   { key: "blocks", label: "Blocks" },
+  { key: "rules", label: "Rules" },
   { key: "photos", label: "Photos" },
 ];
 
@@ -153,9 +154,12 @@ export default function PresetsScreen() {
       if ('lat' in activePreset) {
         // It's a LocationPreset
         await deleteLocationPreset({ id: activePreset._id });
-      } else {
+      } else if ('apps' in activePreset) {
         // It's a DigitalPreset
         await deleteDigitalPreset({ id: activePreset._id });
+      } else if ('verification_style' in activePreset) {
+        // It's a RulePreset (Mutation connection coming soon)
+        console.log("[Presets] Deleting Rule Preset:", activePreset._id);
       }
       setShowDeleteConfirm(false);
     } catch (error) {
@@ -259,7 +263,57 @@ export default function PresetsScreen() {
           </UScroll>
 
           {/* ──────────────────────────────────────────────────────────────────
-              PHOTOS TAB (Page 3)
+              RULES TAB (Page 3)
+          ────────────────────────────────────────────────────────────────── */}
+          <UScroll 
+            style={{ width: SCREEN_WIDTH }} 
+            showsVerticalScrollIndicator={false}
+          >
+             <UView className="pb-24">
+                {/* MOCK DATA: Rule presets for UI verification */}
+                <RulePresetCard 
+                  preset={{
+                    name: "Deep Strategy (Strict)",
+                    verification_style: "stay_throughout",
+                    intensity: "strict",
+                    usage_count: 24,
+                    grace_period_minutes: 2,
+                    alarms: { interval_minutes: 5, lead_time_minutes: 15 }
+                  }}
+                  onMorePress={(x, y) => handleOpenMenu({
+                    name: "Deep Strategy (Strict)",
+                    _id: "mock_1",
+                    verification_style: "stay_throughout",
+                    intensity: "strict",
+                    usage_count: 24,
+                    grace_period_minutes: 2,
+                    alarms: { interval_minutes: 5, lead_time_minutes: 15 }
+                  } as any, x, y)}
+                />
+                <RulePresetCard 
+                  preset={{
+                    name: "Casual Arrive",
+                    verification_style: "just_show_up",
+                    intensity: "relaxed",
+                    usage_count: 8,
+                    grace_period_minutes: 10,
+                    alarms: { interval_minutes: 0, lead_time_minutes: 5 }
+                  }}
+                  onMorePress={(x, y) => handleOpenMenu({
+                    name: "Casual Arrive",
+                    _id: "mock_2",
+                    verification_style: "just_show_up",
+                    intensity: "relaxed",
+                    usage_count: 8,
+                    grace_period_minutes: 10,
+                    alarms: { interval_minutes: 0, lead_time_minutes: 5 }
+                  } as any, x, y)}
+                />
+            </UView>
+          </UScroll>
+
+          {/* ──────────────────────────────────────────────────────────────────
+              PHOTOS TAB (Page 4)
           ────────────────────────────────────────────────────────────────── */}
           <UScroll 
             style={{ width: SCREEN_WIDTH }} 
@@ -306,6 +360,10 @@ export default function PresetsScreen() {
                     name: (activePreset as any).name || "Blocklist",
                   },
                 });
+              } else if (activePreset && 'verification_style' in activePreset) {
+                // Rule Preset — navigate to the protocol editor (Coming Soon)
+                console.log("[Presets] Navigating to Edit Rule:", activePreset._id);
+                // router.push({ pathname: "/(edit-preset)/edit-rule-preset", params: { presetId: activePreset._id } });
               }
             },
           },
@@ -363,7 +421,7 @@ export default function PresetsScreen() {
           } else if (activeTab === "blocks") {
             const latest = digitalPresets?.[0] as any;
             if (latest) {
-              router.push({
+               router.push({
                 pathname: "/(edit-preset)/edit-digital-preset",
                 params: {
                   apps: JSON.stringify(latest.apps),
@@ -377,6 +435,9 @@ export default function PresetsScreen() {
                 params: { name: "New Blocklist" },
               });
             }
+          } else if (activeTab === "rules") {
+             // Navigate to Rule Creator
+             console.log("[Presets] Rule Creator Tapped");
           }
         }}
         className="absolute bottom-8 right-6 h-14 w-14 items-center justify-center rounded-full bg-[#1A1A1A] shadow-lg shadow-black/50 border border-white/10"
@@ -517,6 +578,7 @@ function DigitalPresetCard({
       <UView className="pl-11">
         <ScrollView
           horizontal
+          nestedScrollEnabled={true}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ flexDirection: 'row', alignItems: 'center' }}
         >
@@ -540,6 +602,77 @@ function DigitalPresetCard({
               </Text>
             </UView>
           ))}
+        </ScrollView>
+      </UView>
+    </UView>
+  );
+}
+/**
+ * RulePresetCard
+ * 
+ * Renders a configuration preset (Stay/Arrive logic + Alarm rhythm + Grace Period).
+ * Matches the unified 'All-in-One' container layout of the Digital preset.
+ */
+function RulePresetCard({
+  preset,
+  onMorePress,
+}: {
+  preset: any;
+  onMorePress: (x: number, y: number) => void;
+}) {
+  const isStay = preset.verification_style === "stay_throughout";
+  const intensityColor = preset.intensity === "strict" ? COLORS.danger : COLORS.primary;
+
+  return (
+    <UView className="border-b border-white/10 p-6">
+      <UView className="flex-row items-center mb-4">
+        <MaterialCommunityIcons
+          name="format-list-checks"
+          size={28}
+          color={COLORS.textSecondary}
+          style={{ marginRight: 16 }}
+        />
+        <UView className="flex-1 mr-4 overflow-hidden">
+          <Text className="text-white text-base" numberOfLines={1}>
+            {preset.name}
+          </Text>
+          <BodyText className="text-gray-400 text-sm mt-1">
+            {isStay ? "Continuous Guard" : "Arrival Check"} · Used {preset.usage_count}x
+          </BodyText>
+        </UView>
+
+        <UView 
+          className="relative"
+          onTouchStart={(event: any) => {
+            onMorePress(event.nativeEvent.pageX, event.nativeEvent.pageY);
+          }}
+        >
+          <VerificationStatusCircle status="dots" onPress={() => {}} />
+        </UView>
+      </UView>
+
+      {/* ── Rule DNA Gallery (Aligned to the same pl-11 as App Icons) ── */}
+      <UView className="pl-11">
+        <ScrollView
+          horizontal
+          nestedScrollEnabled={true}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', paddingRight: 40 }}
+        >
+          <UView className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg mr-2 flex-row items-center">
+            <MaterialCommunityIcons name="alarm" size={12} color="#9CA3AF" style={{ marginRight: 6 }} />
+            <BodyText className="text-gray-300 text-xs">{preset.alarms.lead_time_minutes}m Lead</BodyText>
+          </UView>
+
+          <UView className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg mr-2 flex-row items-center">
+            <MaterialCommunityIcons name="timer-outline" size={12} color="#9CA3AF" style={{ marginRight: 6 }} />
+            <BodyText className="text-gray-300 text-xs">{preset.grace_period_minutes}m Grace</BodyText>
+          </UView>
+
+          <UView className="bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg mr-2 flex-row items-center">
+              <MaterialCommunityIcons name="gauge" size={12} color={intensityColor} style={{ marginRight: 6 }} />
+              <BodyText className="text-gray-300 text-xs capitalize">{preset.intensity}</BodyText>
+          </UView>
         </ScrollView>
       </UView>
     </UView>

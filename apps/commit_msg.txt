@@ -1,7 +1,10 @@
-refactor(core): implement hierarchical binding validation for slot-specific overrides
+feat(native/presets): implement hierarchical validation and rule-preset architecture
 
-- [Architectural] Implemented the "Binding Action Protocol" across frontend & backend.
-- [Validation] Added recursive schedule scanning to allow "Sparse Master" mode (validating tasks that have empty global conditions but protected time slots).
-- [Logic] Enforced "Total Override" strategy: slot-specific conditions now completely supersede root conditions for that window to ensure clean enforcement states.
-- [UI/UX] Decoupled final screen carousel state from granular validation to maintain "Global-Only" visibility while keeping the "Commit" flow active for valid sparse schedules.
-- [Reliability] Standardized enforcer registries and resolved TypeScript readonly includes mismatches in local validation libraries.
+- Refactor validation engine (Frontend/Backend) to support 'Hierarchical Binding', allowing per-slot overrides for locations, apps, and protocols.
+- Introduce 'Sparse Master' mode: tasks can now have empty root settings if every individual time slot is 'armed' with a valid binding action.
+- Implement 'Rules' tab in Presets screen with a unified, high-contrast UI matching the 'Blocks' card architecture.
+- Integrate 'format-list-checks' as the standardized visual DNA for all rule-based protocol presets.
+- Fix nested horizontal scroll conflicts between the main preset pager and inner app/rule galleries using `nestedScrollEnabled`.
+- Update 'final.tsx' to support hierarchical awareness while maintaining a clean, global-only visibility in the condition carousel.
+- Synchronize Rule Action Menus (Edit/Delete) with coordinate-based popup positioning.
+- Resolve ES5 compatibility issues and TypeScript 'readonly' array mismatches across taskDraft validation.
