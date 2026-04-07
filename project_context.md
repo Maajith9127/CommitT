@@ -246,6 +246,19 @@ Resolved a critical ID leak in `local-db-instances.ts` where manual updates were
 
 In April 2026, the commitment engine was refactored to support **Hierarchical Binding Validation**. This allows users to define specific enforcers (Location, App Blocking) for individual time slots, even if the top-level (Global) task conditions are empty.
 
+### 3. Hierarchical Validation & "Sparse Master" Mode
+**Strategy:** Total Override (Slot > Root)
+- **Binding Protocol**: A task is valid if *every* individual time window contains at least one "Binding Action" (Location, Block, or Rule).
+- **Sparse Master**: The user can leave the "Root/Global" settings empty if every slot is individually "Armed."
+- **Enforcement**: In conflict (e.g., Slot-Location vs Root-Location), the Slot-Location completely supersedes the Root to prevent side-effects.
+
+### 4. "Rules" Preset Architecture (Behavioral DNA)
+**Pattern:** Unified All-in-One Container
+- **Visual Anchor**: `format-list-checks` (MaterialCommunityIcons).
+- **Bundle**: Combines `Protocol` (Arrive/Stay), `Grace Period`, `Intensity`, and `Alarm Rhythm/Lead`.
+- **UI Logic**: Aligned `pl-11` content gallery matching the Digital/Blocklist gallery.
+- **Nested Scrolling**: Inner galleries use `nestedScrollEnabled={true}` and right-padding buffers to prevent main-pager gesture conflicts.
+
 #### 1. The "Hierarchical Binding" Protocol
 Validation now recursively scans the entire commitment schedule to ensure 100% coverage.
 *   **Safety Rule**: Every time slot MUST be "Armed" by at least one **Binding Action** (Location, Partner, Photo, Video, or App Block).

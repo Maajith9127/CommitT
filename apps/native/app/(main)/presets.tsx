@@ -361,9 +361,19 @@ export default function PresetsScreen() {
                   },
                 });
               } else if (activePreset && 'verification_style' in activePreset) {
-                // Rule Preset — navigate to the protocol editor (Coming Soon)
-                console.log("[Presets] Navigating to Edit Rule:", activePreset._id);
-                // router.push({ pathname: "/(edit-preset)/edit-rule-preset", params: { presetId: activePreset._id } });
+                // Rule Preset — navigate to the protocol editor
+                router.push({ 
+                  pathname: "/(edit-preset)/edit-rule-preset", 
+                  params: { 
+                    presetId: activePreset._id,
+                    name: (activePreset as any).name || "New Rule",
+                    style: (activePreset as any).verification_style,
+                    intensity: (activePreset as any).intensity,
+                    grace: (activePreset as any).grace_period_minutes?.toString() || "5",
+                    lead: (activePreset as any).alarms?.lead_time_minutes?.toString() || "10",
+                    interval: (activePreset as any).alarms?.interval_minutes?.toString() || "0"
+                  } 
+                });
               }
             },
           },

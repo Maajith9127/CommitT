@@ -1,10 +1,10 @@
-feat(native/presets): implement hierarchical validation and rule-preset architecture
+feat(native/editor): implement high-fidelity Rule Preset editor
 
-- Refactor validation engine (Frontend/Backend) to support 'Hierarchical Binding', allowing per-slot overrides for locations, apps, and protocols.
-- Introduce 'Sparse Master' mode: tasks can now have empty root settings if every individual time slot is 'armed' with a valid binding action.
-- Implement 'Rules' tab in Presets screen with a unified, high-contrast UI matching the 'Blocks' card architecture.
-- Integrate 'format-list-checks' as the standardized visual DNA for all rule-based protocol presets.
-- Fix nested horizontal scroll conflicts between the main preset pager and inner app/rule galleries using `nestedScrollEnabled`.
-- Update 'final.tsx' to support hierarchical awareness while maintaining a clean, global-only visibility in the condition carousel.
-- Synchronize Rule Action Menus (Edit/Delete) with coordinate-based popup positioning.
-- Resolve ES5 compatibility issues and TypeScript 'readonly' array mismatches across taskDraft validation.
+- Create 'edit-rule-preset.tsx' using the ActionScreenLayout 3-zone architecture.
+- Replicate 1:1 logical and visual parity with 'final.tsx' for Alarms, Commitment Style, and Waiver configurations.
+- Implement flagship Hero UI: centered 75px 'format-list-checks' icon with the standardized Dark Gray 'rounded-4xl' Input capsule.
+- Standardize typography using the 'HeaderTitle' and 'BodyText' components from the UI library.
+- Refine header ergonomics: implemented a borderless, lowered top-bar (pt-10) with edge-to-edge content alignment.
+- Optimize layout density: tuned vertical section gaps to 'mb-5' for a premium, structured configuration experience.
+- Integrate the 'SelectionSheet' picker system for all behavioral DNA properties (Grace Period, Alarms, Intensity).
+- Enable cross-navigation from the Presets management hub into the dedicated Rule Editor.
