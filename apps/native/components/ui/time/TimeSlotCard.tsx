@@ -26,6 +26,8 @@ export type TimeSlotCardProps = {
   /** List of blocked app IDs to display icons for */
   appIds?: string[] | null;
   onRulePress?: () => void;
+  ruleLabel?: string | null;
+  ruleSubLabel?: string | null;
   key?: any;
 };
 
@@ -55,6 +57,8 @@ export function TimeSlotCard({
   digitalSubLabel,
   appIds,
   onRulePress,
+  ruleLabel,
+  ruleSubLabel,
 }: TimeSlotCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -112,6 +116,7 @@ export function TimeSlotCard({
 
   const hasLocation = !!locationLabel;
   const hasDigital = !!digitalLabel;
+  const hasRule = !!ruleLabel;
 
   return (
     <UView className="mb-3 w-full rounded-3xl bg-[#1A1A1A] overflow-hidden">
@@ -231,9 +236,14 @@ export function TimeSlotCard({
                 style={{ marginRight: 16 }} 
               />
               <UView className="flex-1">
-                <BodyText className="mt-0 text-gray-400 text-sm">Rules</BodyText>
-                <BodyText className="text-gray-500 text-base mt-0.5">
-                  Tap to set
+                <UView className="flex-row items-center justify-between">
+                  <BodyText className="mt-0 text-gray-400 text-sm">Rules</BodyText>
+                  {ruleSubLabel && (
+                    <BodyText className="text-[10px] text-blue-400/80 font-bold uppercase tracking-wider">{ruleSubLabel}</BodyText>
+                  )}
+                </UView>
+                <BodyText className={`text-base mt-0.5 ${hasRule ? 'text-white' : 'text-gray-500'}`} numberOfLines={1}>
+                  {ruleLabel || "Tap to set"}
                 </BodyText>
               </UView>
             </UPressable>

@@ -16,6 +16,8 @@ export interface GeneratedSlot {
   startTime: number;
   endTime: number;
   conditions?: any[];
+  ruleId?: string;
+  config?: any;
 }
 
 /**
@@ -80,6 +82,8 @@ export function generateTimeSlots(
       startTime: nextSlot.startTime,
       endTime: nextSlot.endTime,
       conditions: nextSlot.timeWindow.conditions,
+      ruleId: nextSlot.timeWindow.ruleId,
+      config: nextSlot.timeWindow.config,
     });
 
     // Decrement count

@@ -22,28 +22,6 @@ export const ConditionsSchema = v.array(v.object({
   }),
 }));
 
-/** Defines how often a task repeats (e.g., "Every 2 days from 9am-5pm") */
-export const RecurrenceSchema = v.object({
-  type: recurrenceTypeEnum,                // "daily", "weekly", etc.
-  interval: v.number(),                    // e.g. "Every 2 days"
-  days_of_week: v.optional(v.array(v.number())), // 0-6 for Mon-Sun
-  
-  // Specific time slots when the task MUST be done
-  time_windows: v.array(v.object({
-    start: v.number(),                     // Seconds from midnight
-    end: v.number(),                       // Seconds from midnight
-    // Slot-specific overrides: If provided, these take precedence over global conditions
-    conditions: v.optional(ConditionsSchema),
-  })),
-  
-  // When does the recurrence verify?
-  ends: v.optional(v.object({
-    type: recurrenceEndsTypeEnum,
-    count: v.optional(v.number()),
-    date: v.optional(v.number()),
-  })),
-});
-
 /** Defines the verification and alarm settings (the "rules" for the backend) */
 export const ConfigSchema = v.object({
     verification_style: verificationStyleEnum,
@@ -58,6 +36,30 @@ export const ConfigSchema = v.object({
       max_missed_checkins: v.number(),
     })),
   });
+
+/** Defines how often a task repeats (e.g., "Every 2 days from 9am-5pm") */
+export const RecurrenceSchema = v.object({
+  type: recurrenceTypeEnum,                // "daily", "weekly", etc.
+  interval: v.number(),                    // e.g. "Every 2 days"
+  days_of_week: v.optional(v.array(v.number())), // 0-6 for Mon-Sun
+  
+  // Specific time slots when the task MUST be done
+  time_windows: v.array(v.object({
+    start: v.number(),                     // Seconds from midnight
+    end: v.number(),                       // Seconds from midnight
+    // Slot-specific overrides: If provided, these take precedence over global conditions
+    conditions: v.optional(ConditionsSchema),
+    ruleId: v.optional(v.string()),
+    config: v.optional(ConfigSchema),
+  })),
+  
+  // When does the recurrence verify?
+  ends: v.optional(v.object({
+    type: recurrenceEndsTypeEnum,
+    count: v.optional(v.number()),
+    date: v.optional(v.number()),
+  })),
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PENALTY & WAIVER — Structural Validators for the Accountability Contract

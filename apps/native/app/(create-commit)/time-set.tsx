@@ -95,6 +95,7 @@ export default function TimeSetScreen() {
   const removeTimeWindow = useTaskDraftStore((s) => s.removeTimeWindow);
   const setSlotLocation = useTaskDraftStore((s) => s.setSlotLocation);
   const setSlotBlocklist = useTaskDraftStore((s) => s.setSlotBlocklist);
+  const setSlotRule = useTaskDraftStore((s) => s.setSlotRule);
 
   // Get time slots directly from recurrence.time_windows
   const timeSlots: TimeSlot[] = draft.recurrence.time_windows;
@@ -229,6 +230,25 @@ export default function TimeSetScreen() {
       });
     }
   }
+  
+  /**
+   * Handles behavioral rule preset selection (or null for deselect).
+   */
+  function handleRuleSelected(preset: any) {
+    if (contextSlotIndex === null) return;
+    
+    if (preset === null) {
+      console.log(`[TimeSet] Behavioral rule detached from slot ${contextSlotIndex}`);
+      setSlotRule(contextSlotIndex, null);
+    } else {
+      console.log(`[TimeSet] Rule attached to slot ${contextSlotIndex}:`, preset.title || preset.name);
+      setSlotRule(contextSlotIndex, {
+        id: preset._id,
+        name: preset.title || preset.name,
+        config: preset.config,
+      });
+    }
+  }
 
   function handleToggleRepeat() {
     const hasDays = draft.recurrence.days_of_week && draft.recurrence.days_of_week.length > 0;
@@ -264,6 +284,8 @@ export default function TimeSetScreen() {
 
   const currentDigitalCond = currentConditions.find((c: any) => c.metric_key === "digital_commitment");
   const selectedDigitalId = (currentDigitalCond?.target?.value as any)?.id || null;
+
+  const selectedRuleId = (currentSlot as any)?.ruleId || null;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Render
@@ -355,6 +377,8 @@ export default function TimeSetScreen() {
                 onRulePress={() => handleOpenRulePicker(index)}
                 locationLabel={locationLabel}
                 digitalLabel={appBlockLabel}
+                ruleLabel={slot.ruleName || null}
+                ruleSubLabel={slot.ruleConfig?.stay_throughout_config?.intensity || (slot.ruleConfig?.verification_style === "just_show_up" ? "Arrival" : null)}
                 appIds={digitalCondition?.target?.value?.apps || null}
               />
             );
@@ -414,7 +438,8 @@ export default function TimeSetScreen() {
           setRulePickerVisible(false);
           setContextSlotIndex(null);
         }}
-        onSelect={() => {}} /* Placeholder */
+        onSelect={handleRuleSelected}
+        selectedId={selectedRuleId}
       />
     </>
   );

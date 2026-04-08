@@ -314,7 +314,8 @@ async function generateSeries(
       recurrence: task.recurrence,
       // Priority: Slot Conditions > Global Task Conditions
       conditions: mergeConditions(task.conditions, slot.conditions),
-      config: task.config,
+      // Priority: Slot Config > Global Task Config
+      config: slot.config ?? task.config,
       penalty: task.penalty,                 // Snapshot from master task rules at generation time
       penalty_waiver: task.penalty_waiver,   // Snapshot from master task rules at generation time
       task_strict_until: task.strict_until,

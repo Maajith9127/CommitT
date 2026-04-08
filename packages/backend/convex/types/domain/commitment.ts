@@ -9,6 +9,8 @@ export interface TimeWindow {
   start: number; // seconds from midnight
   end: number;   // seconds from midnight
   conditions?: Condition[];
+  ruleId?: string;
+  config?: any;
 }
 
 export interface Recurrence {

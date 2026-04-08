@@ -238,12 +238,22 @@ export function useCommitTask() {
           async (ctx) => {
             if (__DEV__ && useChaosStore.getState().faultCloudWrite) throw new Error("[CHAOS EVENT] Cloud Write artificially crashed!");
             if (ctx.isEditMode) {
+              const mappedRecurrence = {
+                ...ctx.draft.recurrence,
+                time_windows: ctx.draft.recurrence.time_windows.map(w => ({
+                  start: w.start,
+                  end: w.end,
+                  conditions: w.conditions,
+                  ruleId: w.ruleId,
+                  config: w.ruleConfig,
+                }))
+              };
               const result = await updateTask({
                 id: ctx.draft.id as Id<"tasks">,
                 title: ctx.draft.title,
                 description: ctx.draft.description,
                 visibility: ctx.draft.visibility,
-                recurrence: ctx.draft.recurrence,
+                recurrence: mappedRecurrence,
                 conditions: ctx.cleanedConditions,
                 config: ctx.draft.config,
                 penalty: ctx.cleanedPenalty,
@@ -252,12 +262,22 @@ export function useCommitTask() {
               if (!result.success) throw new Error(result.error?.message || "Convex Core Logic denied protocol.");
               return { taskId: ctx.draft.id, instances: result.instances || [] };
             } else {
+              const mappedRecurrence = {
+                ...ctx.draft.recurrence,
+                time_windows: ctx.draft.recurrence.time_windows.map(w => ({
+                  start: w.start,
+                  end: w.end,
+                  conditions: w.conditions,
+                  ruleId: w.ruleId,
+                  config: w.ruleConfig,
+                }))
+              };
               const result = await createTask({
                 assignee_id: ctx.draft.assignee_id,
                 title: ctx.draft.title,
                 description: ctx.draft.description,
                 visibility: ctx.draft.visibility,
-                recurrence: ctx.draft.recurrence,
+                recurrence: mappedRecurrence,
                 conditions: ctx.cleanedConditions,
                 config: ctx.draft.config,
                 penalty: ctx.cleanedPenalty,
