@@ -245,6 +245,7 @@ export function useCommitTask() {
                   end: w.end,
                   conditions: w.conditions,
                   ruleId: w.ruleId,
+                  ruleName: w.ruleName,
                   config: w.ruleConfig,
                 }))
               };
@@ -269,6 +270,7 @@ export function useCommitTask() {
                   end: w.end,
                   conditions: w.conditions,
                   ruleId: w.ruleId,
+                  ruleName: w.ruleName,
                   config: w.ruleConfig,
                 }))
               };

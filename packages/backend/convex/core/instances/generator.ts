@@ -17,6 +17,7 @@ export interface GeneratedSlot {
   endTime: number;
   conditions?: any[];
   ruleId?: string;
+  ruleName?: string;
   config?: any;
 }
 
@@ -83,6 +84,7 @@ export function generateTimeSlots(
       endTime: nextSlot.endTime,
       conditions: nextSlot.timeWindow.conditions,
       ruleId: nextSlot.timeWindow.ruleId,
+      ruleName: nextSlot.timeWindow.ruleName,
       config: nextSlot.timeWindow.config,
     });
 

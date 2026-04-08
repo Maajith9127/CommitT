@@ -83,6 +83,7 @@ export default defineSchema({
           }),
         }))),
         ruleId: v.optional(v.string()),
+        ruleName: v.optional(v.string()),
         config: v.optional(v.object({
           verification_style: verificationStyleEnum,
           grace_period_minutes: v.optional(v.number()),
@@ -204,6 +205,7 @@ export default defineSchema({
           }),
         }))),
         ruleId: v.optional(v.string()),
+        ruleName: v.optional(v.string()),
         config: v.optional(v.object({
           verification_style: verificationStyleEnum,
           grace_period_minutes: v.optional(v.number()),

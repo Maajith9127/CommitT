@@ -10,6 +10,7 @@ export interface TimeWindow {
   end: number;   // seconds from midnight
   conditions?: Condition[];
   ruleId?: string;
+  ruleName?: string;
   config?: any;
 }
 
