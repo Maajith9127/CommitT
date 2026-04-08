@@ -216,6 +216,24 @@ export function TimeSlotCard({
               </UView>
             </UPressable>
 
+            {/* ── Rules Row ── */}
+            <UPressable 
+              className="flex-row items-center px-4 py-3 border-b border-white/20"
+            >
+              <MaterialCommunityIcons 
+                name="format-list-checks" 
+                size={28} 
+                color="#9CA3AF" 
+                style={{ marginRight: 16 }} 
+              />
+              <UView className="flex-1">
+                <BodyText className="mt-0 text-gray-400 text-sm">Rules</BodyText>
+                <BodyText className="text-gray-500 text-base mt-0.5">
+                  Tap to set
+                </BodyText>
+              </UView>
+            </UPressable>
+
             {/* ── Delete Slot Action ── */}
             <UPressable 
               onPress={onRemove}

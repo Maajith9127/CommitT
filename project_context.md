@@ -258,6 +258,7 @@ In April 2026, the commitment engine was refactored to support **Hierarchical Bi
 - **Bundle**: Combines `Protocol` (Arrive/Stay), `Grace Period`, `Intensity`, and `Alarm Rhythm/Lead`.
 - **UI Logic**: Aligned `pl-11` content gallery matching the Digital/Blocklist gallery.
 - **Nested Scrolling**: Inner galleries use `nestedScrollEnabled={true}` and right-padding buffers to prevent main-pager gesture conflicts.
+- **TimeSlot Integration**: Added a dedicated "Rules" row to the `TimeSlotCard` expanded drawer, providing a consistent visual entry point for slot-specific behavioral overrides alongside Location and App Blocking.
 
 #### 1. The "Hierarchical Binding" Protocol
 Validation now recursively scans the entire commitment schedule to ensure 100% coverage.
