@@ -10,6 +10,7 @@ import { View, ScrollView, Pressable, Text } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useQuery, useMutation } from 'convex/react';
+import { useRouter } from 'expo-router';
 import { api } from '@commit/backend/convex/_generated/api';
 
 import { BaseDrawerModal } from './BaseDrawerModal';
@@ -42,6 +43,7 @@ export function RulePresetPickerModal({
   onSelect,
   selectedId,
 }: RulePresetPickerModalProps) {
+  const router = useRouter();
   const rulePresets = useQuery(api.api.commitments.presets.getRecommendedRules, { limit: 20 });
   const [activePreset, setActivePreset] = React.useState<any>(null);
   const [menuVisible, setMenuVisible] = React.useState(false);
@@ -129,7 +131,24 @@ export function RulePresetPickerModal({
             label: "Edit",
             onPress: () => {
               setMenuVisible(false);
-              // Navigation to edit handled soon
+              if (activePreset && activePreset.config) {
+                const config = activePreset.config;
+                const stayConfig = config.stay_throughout_config;
+                
+                router.push({ 
+                  pathname: "/(edit-preset)/edit-rule-preset", 
+                  params: { 
+                    presetId: activePreset._id,
+                    name: activePreset.title || activePreset.name || "Edit Rule",
+                    style: config.verification_style,
+                    intensity: stayConfig?.intensity || "moderate",
+                    grace: config.grace_period_minutes?.toString() || "5",
+                    lead: config.alarms?.lead_time_minutes?.toString() || "10",
+                    interval: config.alarms?.interval_minutes?.toString() || "0",
+                    maxMissed: stayConfig?.max_missed_checkins?.toString() || "1",
+                  } 
+                });
+              }
             },
           },
           {
@@ -246,11 +265,13 @@ function RulePresetCard({
                 </BodyText>
               </UView>
             )}
-            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
-                {preset.config?.grace_period_minutes || 0}m Grace
-              </BodyText>
-            </UView>
+            {!isStay && (
+              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+                  {preset.config?.grace_period_minutes || 0}m Grace
+                </BodyText>
+              </UView>
+            )}
           </UView>
         </UView>
 
@@ -272,26 +293,6 @@ function RulePresetCard({
             )}
           </UView>
         </UView>
-
-        {/* Module 3: Penalty Waiver */}
-        <UView className="mb-2">
-          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Penalty Waiver</BodyText>
-          <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
-                {preset.penalty_waiver?.deadline_hours || (preset.penalty_waiver?.deadline_minutes ? Math.floor(preset.penalty_waiver.deadline_minutes / 60) : 0)} HRS
-              </BodyText>
-            </UView>
-            {preset.penalty_waiver?.allow_early !== false && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
-                  pre waiver allowed
-                </BodyText>
-              </UView>
-            )}
-          </UView>
-        </UView>
-
       </UView>
     </UPressable>
   );

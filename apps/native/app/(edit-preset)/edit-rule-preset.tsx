@@ -111,23 +111,16 @@ export default function EditRulePresetScreen() {
         } : undefined
       };
 
-      const penalty_waiver = {
-        deadline_minutes: parseInt(params.waiverDeadline as string) || 600,
-        allow_early: true,
-      };
-
       if (params.presetId) {
         await updateRulePreset({
           id: params.presetId as any,
           name,
           config,
-          penalty_waiver,
         });
       } else {
         await createRulePreset({
           name,
           config,
-          penalty_waiver,
         });
       }
       
@@ -254,23 +247,7 @@ export default function EditRulePresetScreen() {
     }
   ], [lead, interval, sound]);
 
-  /** Schema for Waiver settings */
-  const waiverSettingsItems = React.useMemo(() => [
-    {
-      id: "waiverDeadline",
-      title: "Waiver Deadline",
-      type: "select" as const,
-      selectValue: `${Math.floor(600 / 60)} hours`,
-      onPress: () => {} // Placeholder
-    },
-    {
-      id: "allowEarlyWaiver",
-      title: "Allow Early Waiver",
-      type: "toggle" as const,
-      value: false,
-      onValueChange: (v: boolean) => {} // Placeholder
-    }
-  ], []);
+
 
   return (
     <>
@@ -333,14 +310,7 @@ export default function EditRulePresetScreen() {
             items={alarmSettingsItems}
           />
 
-          {/* Section: Waiver Rules */}
-          <View className="mt-2 mb-2">
-              <HeaderTitle>Waiver Rules</HeaderTitle>
-          </View>
-          <SettingsToggleCard
-            className="mb-12"
-            items={waiverSettingsItems}
-          />
+
         </View>
       </ActionScreenLayout>
 

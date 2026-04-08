@@ -1,8 +1,1 @@
-feat(native/backend): integrate full persistence loop for Rule DNA presets
-
-- Implemented `behavioralRulePresets` table in Convex with optimized multi-indices for userId and popularity.
-- Crafted robust CRUD mutations (`createRulePreset`, `updateRulePreset`, `deleteRulePreset`) with strict ownership validation and schema parity.
-- Transitioned Presets Hub to live backend subscriptions, replacing legacy mock-data fragments.
-- Enhanced `RulePresetCard` visual hierarchy with responsive badge scaling (px-4/12px) and conditional intensity rendering.
-- Integrated safety-first `ConfirmationModal` in the rule editor with system-consistent danger themes (#FF3B30).
-- Resolved backend type-assertion blockers for nested configuration enums to ensure deployment stability.
+refactor: remove penalty waiver system and streamline behavioral rule UI

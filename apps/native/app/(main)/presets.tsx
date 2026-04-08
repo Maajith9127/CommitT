@@ -708,25 +708,6 @@ function RulePresetCard({
           </UView>
         </UView>
 
-        {/* Module 3: Penalty Waiver */}
-        <UView className="mb-2">
-          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Penalty Waiver</BodyText>
-          <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
-                {preset.penalty_waiver?.deadline_hours || (preset.penalty_waiver?.deadline_minutes ? Math.floor(preset.penalty_waiver.deadline_minutes / 60) : 0)} HRS
-              </BodyText>
-            </UView>
-            {preset.penalty_waiver?.allow_early !== false && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
-                  pre waiver allowed
-                </BodyText>
-              </UView>
-            )}
-          </UView>
-        </UView>
-
       </UView>
     </UView>
   );
