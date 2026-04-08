@@ -667,25 +667,27 @@ function RulePresetCard({
                 {preset.config?.verification_style === 'stay_throughout' ? "Stay Throughout" : "Just Show Up"}
               </BodyText>
             </UView>
-            {preset.config?.verification_style === 'stay_throughout' && (
+            {isStay && (
               <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
                 <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
-                  Max Miss: {preset.max_missed_checkins || 3}
+                  Max Miss: {preset.config?.stay_throughout_config?.max_missed_checkins || 3}
                 </BodyText>
               </UView>
             )}
-            {preset.config?.verification_style === 'stay_throughout' && (
+            {isStay && (
               <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
                 <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
-                  {preset.intensity || "Moderate"}
+                  {preset.config?.stay_throughout_config?.intensity || "Moderate"}
                 </BodyText>
               </UView>
             )}
-            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
-                {preset.config?.grace_period_minutes || 0}m Grace
-              </BodyText>
-            </UView>
+            {!isStay && (
+              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+                  {preset.config?.grace_period_minutes || 0}m Grace
+                </BodyText>
+              </UView>
+            )}
           </UView>
         </UView>
 

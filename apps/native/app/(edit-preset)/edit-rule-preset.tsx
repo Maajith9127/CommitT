@@ -193,6 +193,7 @@ export default function EditRulePresetScreen() {
       id: "grace",
       title: "Grace Period",
       type: "select" as const,
+      hidden: style === "stay_throughout",
       selectValue: `${grace} mins`,
       onPress: () => setPicker({
         visible: true,
@@ -202,7 +203,7 @@ export default function EditRulePresetScreen() {
         onSelect: (v: any) => setGrace(v),
       })
     }
-  ], [style, intensity, maxMissed, grace]);
+  ].filter(item => !(item as any).hidden), [style, intensity, maxMissed, grace]);
 
   /** Schema for Alarm settings */
   const alarmSettingsItems = React.useMemo(() => [

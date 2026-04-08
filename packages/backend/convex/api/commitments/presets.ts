@@ -337,13 +337,19 @@ export const createRulePreset = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Unauthorized");
 
+    const sanitizedConfig = {
+      ...args.config,
+      // Rule: Stay Throughout ignores grace, Just Show Up ignores stay_config
+      grace_period_minutes: args.config.verification_style === "stay_throughout" ? 0 : args.config.grace_period_minutes,
+      stay_throughout_config: args.config.verification_style === "just_show_up" ? undefined : args.config.stay_throughout_config,
+    };
+
     const id = await ctx.db.insert("behavioralRulePresets", {
       userId: identity.subject,
       name: args.name,
-      config: args.config as any,
-      penalty_waiver: args.penalty_waiver,
-      usage_count: 0,
+      config: sanitizedConfig as any,
       last_used_at: Date.now(),
+      usage_count: 0,
     });
 
     return { success: true, id };
@@ -381,10 +387,16 @@ export const updateRulePreset = mutation({
       throw new Error("Unauthorized: Preset not found or access denied.");
     }
 
+    const sanitizedConfig = {
+      ...args.config,
+      // Rule: Stay Throughout ignores grace, Just Show Up ignores stay_config
+      grace_period_minutes: args.config.verification_style === "stay_throughout" ? 0 : args.config.grace_period_minutes,
+      stay_throughout_config: args.config.verification_style === "just_show_up" ? undefined : args.config.stay_throughout_config,
+    };
+
     await ctx.db.patch(args.id, {
       name: args.name,
-      config: args.config as any,
-      penalty_waiver: args.penalty_waiver,
+      config: sanitizedConfig as any,
       last_used_at: Date.now(),
     });
 
