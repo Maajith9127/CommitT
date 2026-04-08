@@ -9,6 +9,8 @@ import React from 'react';
 import { View, ScrollView, Pressable, Text } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '@commit/backend/convex/_generated/api';
 
 import { BaseDrawerModal } from './BaseDrawerModal';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -27,42 +29,6 @@ const COLORS = {
   textSecondary: "#9CA3AF",
 };
 
-// ── Dummy Data ──────────────────────────────────────────────────────────────
-const MOCK_RULES = [
-  {
-    _id: "mock_rule_1",
-    title: "Casual Arrival",
-    usage_count: 8,
-    config: {
-      verification_style: "just_show_up",
-      grace_period_minutes: 10,
-      alarms: { interval_minutes: 0, lead_time_minutes: 5 }
-    }
-  },
-  {
-    _id: "mock_rule_2",
-    title: "Strict Focus",
-    usage_count: 24,
-    intensity: "strict",
-    config: {
-      verification_style: "stay_throughout",
-      grace_period_minutes: 5,
-      alarms: { interval_minutes: 2, lead_time_minutes: 15 },
-    },
-    penalty_waiver: { deadline_minutes: 600 } // 10h
-  },
-  {
-    _id: "mock_rule_3",
-    title: "Standard Guard",
-    usage_count: 12,
-    config: {
-      verification_style: "stay_throughout",
-      grace_period_minutes: 15,
-      alarms: { interval_minutes: 0, lead_time_minutes: 10 }
-    }
-  }
-];
-
 export interface RulePresetPickerModalProps {
   visible: boolean;
   onClose: () => void;
@@ -76,6 +42,7 @@ export function RulePresetPickerModal({
   onSelect,
   selectedId,
 }: RulePresetPickerModalProps) {
+  const rulePresets = useQuery(api.api.commitments.presets.getRecommendedRules, { limit: 20 });
   const [activePreset, setActivePreset] = React.useState<any>(null);
   const [menuVisible, setMenuVisible] = React.useState(false);
   const [menuPosition, setMenuPosition] = React.useState({ x: 0, y: 0 });
@@ -119,7 +86,19 @@ export function RulePresetPickerModal({
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {MOCK_RULES.map((preset) => (
+        {rulePresets === undefined && (
+          <UView className="p-10 items-center justify-center">
+             <BodyText className="text-gray-500">Loading Presets...</BodyText>
+          </UView>
+        )}
+
+        {rulePresets !== undefined && rulePresets.length === 0 && (
+          <UView className="p-10 items-center justify-center">
+             <BodyText className="text-gray-500">No behavioral rules saved yet.</BodyText>
+          </UView>
+        )}
+
+        {rulePresets?.map((preset) => (
           <RulePresetCard
             key={preset._id}
             preset={preset}
@@ -246,23 +225,30 @@ function RulePresetCard({
         
         {/* Module 1: Type */}
         <UView className="mb-6">
-          <BodyText className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-2">Type</BodyText>
+          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Type</BodyText>
           <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
                 {isStay ? "Stay Throughout" : "Just Show Up"}
               </BodyText>
             </UView>
             {isStay && (
-              <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
                   Max Miss: {preset.max_missed_checkins || 3}
                 </BodyText>
               </UView>
             )}
-            <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
-                {preset.intensity || "Moderate"}
+            {isStay && (
+              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+                  {preset.intensity || "Moderate"}
+                </BodyText>
+              </UView>
+            )}
+            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+                {preset.config?.grace_period_minutes || 0}m Grace
               </BodyText>
             </UView>
           </UView>
@@ -270,16 +256,16 @@ function RulePresetCard({
 
         {/* Module 2: Alarms */}
         <UView className="mb-6">
-          <BodyText className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-2">Alarms</BodyText>
+          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Alarms</BodyText>
           <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
                 {preset.config?.alarms?.lead_time_minutes || 0} mins before
               </BodyText>
             </UView>
             {preset.config?.alarms?.interval_minutes > 0 && (
-              <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
                   every {preset.config.alarms.interval_minutes} mins
                 </BodyText>
               </UView>
@@ -289,16 +275,16 @@ function RulePresetCard({
 
         {/* Module 3: Penalty Waiver */}
         <UView className="mb-2">
-          <BodyText className="text-gray-500 text-[9px] font-bold uppercase tracking-widest mb-2">Penalty Waiver</BodyText>
+          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Penalty Waiver</BodyText>
           <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
                 {preset.penalty_waiver?.deadline_hours || (preset.penalty_waiver?.deadline_minutes ? Math.floor(preset.penalty_waiver.deadline_minutes / 60) : 0)} HRS
               </BodyText>
             </UView>
             {preset.penalty_waiver?.allow_early !== false && (
-              <UView className="px-3 py-1 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[10px] font-bold uppercase">
+              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
+                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
                   pre waiver allowed
                 </BodyText>
               </UView>
