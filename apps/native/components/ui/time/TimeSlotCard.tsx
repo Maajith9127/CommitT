@@ -25,6 +25,8 @@ export type TimeSlotCardProps = {
   digitalSubLabel?: string | null;
   /** List of blocked app IDs to display icons for */
   appIds?: string[] | null;
+  onRulePress?: () => void;
+  key?: any;
 };
 
 const UView = withUniwind(View);
@@ -52,6 +54,7 @@ export function TimeSlotCard({
   locationSubLabel,
   digitalSubLabel,
   appIds,
+  onRulePress,
 }: TimeSlotCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -218,6 +221,7 @@ export function TimeSlotCard({
 
             {/* ── Rules Row ── */}
             <UPressable 
+              onPress={onRulePress}
               className="flex-row items-center px-4 py-3 border-b border-white/20"
             >
               <MaterialCommunityIcons 

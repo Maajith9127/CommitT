@@ -29,6 +29,7 @@ import { TimeSlotCard } from "@/components/ui/time/TimeSlotCard";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { LocationPresetPickerModal } from "@/components/ui/modal/LocationPresetPickerModal";
 import { DigitalPresetPickerModal } from "@/components/ui/modal/DigitalPresetPickerModal";
+import { RulePresetPickerModal } from "@/components/ui/modal/RulePresetPickerModal";
 
 // State & Utilities
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
@@ -85,6 +86,7 @@ export default function TimeSetScreen() {
   const [contextSlotIndex, setContextSlotIndex] = useState<number | null>(null);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
   const [digitalPickerVisible, setDigitalPickerVisible] = useState(false);
+  const [rulePickerVisible, setRulePickerVisible] = useState(false);
 
   // Zustand selectors
   const draft = useTaskDraftStore((s) => s.draft);
@@ -179,6 +181,12 @@ export default function TimeSetScreen() {
     console.log(`[TimeSet] Opening Digital Picker for slot ${slotIndex}`);
     setContextSlotIndex(slotIndex);
     setDigitalPickerVisible(true);
+  }
+
+  function handleOpenRulePicker(slotIndex: number) {
+    console.log(`[TimeSet] Opening Rule Picker for slot ${slotIndex}`);
+    setContextSlotIndex(slotIndex);
+    setRulePickerVisible(true);
   }
 
   /**
@@ -344,6 +352,7 @@ export default function TimeSetScreen() {
                 onPress={() => handleEditSlot(index)}
                 onLocationPress={() => handleOpenLocationPicker(index)}
                 onDigitalPress={() => handleOpenDigitalPicker(index)}
+                onRulePress={() => handleOpenRulePicker(index)}
                 locationLabel={locationLabel}
                 digitalLabel={appBlockLabel}
                 appIds={digitalCondition?.target?.value?.apps || null}
@@ -397,6 +406,15 @@ export default function TimeSetScreen() {
         }}
         onSelect={handleDigitalSelected}
         selectedId={selectedDigitalId}
+      />
+
+      <RulePresetPickerModal
+        visible={rulePickerVisible}
+        onClose={() => {
+          setRulePickerVisible(false);
+          setContextSlotIndex(null);
+        }}
+        onSelect={() => {}} /* Placeholder */
       />
     </>
   );

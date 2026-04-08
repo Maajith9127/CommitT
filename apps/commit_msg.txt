@@ -1,10 +1,6 @@
-feat(native): integrate Behavioral Rules UI into TimeSlotCard
+feat(native): implement Rule DNA picker and wire to time slots
 
-Implemented a new 'Rules' configuration row within the expanded drawer of the TimeSlotCard component. This establishes the visual entry point for slot-specific behavioral DNA overrides, ensuring consistency with the existing Location and App Block configuration rows.
-
-Key Changes:
-- Added interactive Rules row to the TimeSlotCard expanded state.
-- Utilized 'format-list-checks' iconography to match the Presets DNA design language.
-- Updated project_context.md to reflect the successful integration of hierarchical rule binding UI.
-
-Co-authored-by: Antigravity <ai-assistant@commit.t>
+- Created RulePresetPickerModal with high-fidelity behavioral manifest UI.
+- Wired modal visibility and 'onRulePress' handlers across TimeSlotCard and time-set screens.
+- Fixed JSX syntax errors and restored BodyText truncation support.
+- Populated picker with mock Rule DNA (Type, Alarms, Waivers) for immediate verification.
