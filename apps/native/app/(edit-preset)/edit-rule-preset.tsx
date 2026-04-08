@@ -64,7 +64,10 @@ export default function EditRulePresetScreen() {
   const [name, setName] = React.useState(params.name as string || "New Rule");
   const [style, setStyle] = React.useState(params.style as string || "just_show_up");
   const [intensity, setIntensity] = React.useState(params.intensity as string || "moderate");
-  const [maxMissed, setMaxMissed] = React.useState(parseInt(params.maxMissed as string) || 1);
+  const [maxMissed, setMaxMissed] = React.useState(() => {
+    const val = params.maxMissed;
+    return val !== undefined ? parseInt(val as string) : 1;
+  });
   const [grace, setGrace] = React.useState(parseInt(params.grace as string) || 5);
   const [lead, setLead] = React.useState(parseInt(params.lead as string) || 10);
   const [interval, setInterval] = React.useState(parseInt(params.interval as string) || 0);

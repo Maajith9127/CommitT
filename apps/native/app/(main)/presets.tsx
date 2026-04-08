@@ -347,12 +347,12 @@ export default function PresetsScreen() {
                   params: { 
                     presetId: activePreset._id,
                     name: (activePreset as any).title || (activePreset as any).name || "New Rule",
-                    style: (activePreset as any).config?.verification_style,
-                    intensity: (activePreset as any).intensity || "moderate",
-                    grace: (activePreset as any).config?.grace_period_minutes?.toString() || "5",
-                    lead: (activePreset as any).config?.alarms?.lead_time_minutes?.toString() || "10",
-                    interval: (activePreset as any).config?.alarms?.interval_minutes?.toString() || "0",
-                    maxMissed: (activePreset as any).max_missed_checkins?.toString() || "1",
+                    style: activePreset.config?.verification_style,
+                    intensity: activePreset.config?.stay_throughout_config?.intensity || "moderate",
+                    grace: activePreset.config?.grace_period_minutes?.toString() || "5",
+                    lead: activePreset.config?.alarms?.lead_time_minutes?.toString() || "10",
+                    interval: activePreset.config?.alarms?.interval_minutes?.toString() || "0",
+                    maxMissed: activePreset.config?.stay_throughout_config?.max_missed_checkins?.toString() ?? "1",
                     waiverDeadline: (activePreset as any).penalty_waiver?.deadline_minutes?.toString() || "600"
                   } 
                 });

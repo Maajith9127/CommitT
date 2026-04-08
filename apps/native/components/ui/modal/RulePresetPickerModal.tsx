@@ -145,7 +145,7 @@ export function RulePresetPickerModal({
                     grace: config.grace_period_minutes?.toString() || "5",
                     lead: config.alarms?.lead_time_minutes?.toString() || "10",
                     interval: config.alarms?.interval_minutes?.toString() || "0",
-                    maxMissed: stayConfig?.max_missed_checkins?.toString() || "1",
+                    maxMissed: stayConfig?.max_missed_checkins?.toString() ?? "1",
                   } 
                 });
               }
