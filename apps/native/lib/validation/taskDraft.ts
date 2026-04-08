@@ -31,7 +31,8 @@ export type ValidationErrorCode =
   | "TITLE_REQUIRED"
   | "TIME_REQUIRED"
   | "TIME_REQUIRES_X_CONDITION"
-  | "PENALTY_WAIVER_MISMATCH";
+  | "PENALTY_WAIVER_MISMATCH"
+  | "BEHAVIORAL_RULE_REQUIRED";
 
 /**
  * PRODUCTION RATIONALE: "The Binding Action Protocol"
@@ -171,15 +172,17 @@ export function validateHierarchicalBinding(draft: TaskDraft): ValidationResult 
     return { valid: true };
   }
 
-  // 2. GLOBAL BINDING STATE: Pre-calculate if the Root level is "Armed"
+  // 2. GLOBAL BINDING STATE
   const isRootArmed = hasBindingAction(rootConditions);
+  const hasRootLocation = hasCondition(rootConditions, "location");
 
-  // 3. RECURSIVE SCAN: Ensure 100% coverage across all time windows
+  // 3. RECURSIVE SCAN: Ensure 100% schedule coverage + behavioral rule integrity
   for (let i = 0; i < time_windows.length; i++) {
     const slot = time_windows[i];
     const slotConditions = slot.conditions || [];
+    const hasSlotLocation = hasCondition(slotConditions, "location");
 
-    // CASE A: The slot has specifically assigned conditions (Override Mode)
+    // RULE 1: Schedule Coverage (Must have some Binding Action)
     if (slotConditions.length > 0) {
       if (!hasBindingAction(slotConditions)) {
         return {
@@ -188,15 +191,24 @@ export function validateHierarchicalBinding(draft: TaskDraft): ValidationResult 
           errorCode: "TIME_REQUIRES_X_CONDITION",
         };
       }
-    } 
-    // CASE B: The slot is empty (Inheritance Mode)
-    else {
-      // If the slot is empty, it MUST inherit an armed state from the Root
+    } else {
       if (!isRootArmed) {
         return {
           valid: false,
           error: `Time slot #${i + 1} has no enforcer. Add a Location/App Block to this slot, or set a Global rule.`,
           errorCode: "TIME_REQUIRES_X_CONDITION",
+        };
+      }
+    }
+
+    // RULE 2: Behavioral Rule Integrity (Location REQUIRES a Behavioral Protocol)
+    const isLocationEnabled = hasSlotLocation || (slotConditions.length === 0 && hasRootLocation);
+    if (isLocationEnabled) {
+      if (!slot.ruleId) {
+        return {
+          valid: false,
+          error: `Time slot #${i + 1} requires a Behavioral Rule (e.g. Stay Throughout) because it has a Location condition.`,
+          errorCode: "BEHAVIORAL_RULE_REQUIRED",
         };
       }
     }

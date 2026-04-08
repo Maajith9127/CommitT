@@ -13,7 +13,11 @@ type ConvexTask = Doc<"tasks">;
 
 // Re-export Convex types for use elsewhere
 export type Recurrence = ConvexTask["recurrence"];
-export type TimeWindow = Recurrence["time_windows"][number];
+export type TimeWindow = Recurrence["time_windows"][number] & {
+  ruleId?: string;
+  ruleName?: string;
+  ruleConfig?: any;
+};
 export type RecurrenceType = Recurrence["type"];
 export type RecurrenceEnds = NonNullable<Recurrence["ends"]>;
 
@@ -145,6 +149,7 @@ type TaskDraftStore = {
   // slot-specific conditions
   setSlotLocation: (index: number, location: { latitude: number; longitude: number; radius: number; address: string; isInverse: boolean; id?: string } | null) => void;
   setSlotBlocklist: (index: number, updates: { apps?: string[]; websites?: string[]; id?: string }) => void;
+  setSlotRule: (index: number, rule: { id: string; name: string; config: any } | null) => void;
 };
 
 const createEmptyDraft = (): TaskDraft => ({
@@ -770,6 +775,30 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
         },
         false,
         "draft/setSlotBlocklist"
+      ),
+      
+    setSlotRule: (index: number, rule: { id: string; name: string; config: any } | null) =>
+      set(
+        (state: TaskDraftStore) => {
+          const windows = [...state.draft.recurrence.time_windows];
+          if (!windows[index]) return state;
+
+          windows[index] = { 
+            ...windows[index], 
+            ruleId: rule?.id,
+            ruleName: rule?.name,
+            ruleConfig: rule?.config 
+          };
+
+          return { 
+            draft: { 
+              ...state.draft, 
+              recurrence: { ...state.draft.recurrence, time_windows: windows } 
+            } 
+          };
+        },
+        false,
+        "draft/setSlotRule"
       ),
   }))
 );
