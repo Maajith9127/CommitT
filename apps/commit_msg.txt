@@ -1,1 +1,21 @@
-refactor: remove penalty waiver system and streamline behavioral rule UI
+feat(commitment): implement vertical persistence for behavioral rule names and refine selection UX
+
+Summary:
+Integrated `ruleName` across the entire commitment lifecycle—from frontend draft state to backend persistence and instance generation—ensuring selected behavioral rule labels ("Gym Logic", "New Rule") persist across sessions. Refined the rule selection interaction model to support drawer-style persistence and explicit manual dismissal.
+
+Backend & Persistence:
+- Schema: Added `ruleName: v.optional(v.string())` to `time_windows` in both `tasks` and `taskInstances` tables.
+- Validators: Updated `RecurrenceSchema` in `validators.ts` to enforce structural integrity for the incoming rule name payload.
+- Domain Types: Updated `TimeWindow` and `GeneratedSlot` interfaces to include `ruleName`.
+- Instance Engine: Modified `generator.ts` and `service.ts` to snapshot the `ruleName` from the parent task's recurrence windows into individual occurrences during series generation.
+
+Frontend & Data Flow:
+- Hooks: Updated `useCommitTask.ts` orchestrator to map `ruleName` from the Zustand draft to the Convex API payload.
+- UI (Time-Set): Wired `TimeSlotCard` to display `ruleName` as the primary rule label.
+- Interaction: Disabled auto-closing of the Rule Picker modal to allow for a more deliberate browsing and selection workflow.
+
+UX/UI Refinements (RulePresetPickerModal):
+- Reset visual state by removing background highlights on selected cards for a cleaner, flatter list aesthetic.
+- Refactored Card Interaction: Card taps now intelligently toggle state—deselecting active rules immediately or opening the Action Menu for unselected ones.
+- Dynamic Action Menu: Implemented context-aware menu labels ("Select" vs "Deselect") and icons based on the current selection state.
+- Structural Cleanup: Unified all touch interactions through the root card container and synchronized the `VerificationStatusCircle` indicators.

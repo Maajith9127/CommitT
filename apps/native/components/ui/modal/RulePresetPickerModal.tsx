@@ -117,8 +117,8 @@ export function RulePresetPickerModal({
         anchorPosition={menuPosition}
         items={[
           {
-            icon: "check-circle-outline",
-            label: "Select",
+            icon: activePreset?._id === selectedId ? "close-circle-outline" : "check-circle-outline",
+            label: activePreset?._id === selectedId ? "Deselect" : "Select",
             onPress: () => {
               if (activePreset) {
                 handleSelect(activePreset);
@@ -205,7 +205,13 @@ function RulePresetCard({
   
   return (
     <UPressable 
-      onPress={onSelect}
+      onPress={(e: any) => {
+        if (isSelected) {
+          onSelect();
+        } else {
+          onMorePress(e.nativeEvent.pageX, e.nativeEvent.pageY);
+        }
+      }}
       className="border-b border-white/10 p-6"
     >
       <UView className="flex-row items-center mb-4">
@@ -223,20 +229,10 @@ function RulePresetCard({
             {isStay ? "Continuous Guard" : "Arrival Check"} · Used {preset.usage_count || 0}x
           </BodyText>
         </UView>
-
-        <UView 
-          className="relative"
-          onTouchStart={(e: any) => {
-            if (!isSelected) {
-              onMorePress(e.nativeEvent.pageX, e.nativeEvent.pageY);
-            }
-          }}
-        >
-          <VerificationStatusCircle
-            status={isSelected ? "verified" : "dots"}
-            onPress={isSelected ? onSelect : undefined}
-          />
-        </UView>
+        
+        <VerificationStatusCircle
+          status={isSelected ? "verified" : "dots"}
+        />
       </UView>
 
       {/* ── Rule DNA Subheaded Manifest (Aligned to pl-11) ── */}
