@@ -1,6 +1,6 @@
-feat(native): implement Rule DNA picker and wire to time slots
+feat(native): integrate ActionMenu and ConfirmationModal into Rule DNA picker
 
-- Created RulePresetPickerModal with high-fidelity behavioral manifest UI.
-- Wired modal visibility and 'onRulePress' handlers across TimeSlotCard and time-set screens.
-- Fixed JSX syntax errors and restored BodyText truncation support.
-- Populated picker with mock Rule DNA (Type, Alarms, Waivers) for immediate verification.
+- Added ActionMenu support to RulePresetPickerModal for Select, Edit, and Delete operations.
+- Implemented ConfirmationModal for rule deletion safety.
+- Wired local state to handle dynamic menu positioning based on user touch events.
+- Synchronized card interaction logic with verified/selection states.

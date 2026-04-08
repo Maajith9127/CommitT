@@ -11,8 +11,10 @@ import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { BaseDrawerModal } from './BaseDrawerModal';
+import { ConfirmationModal } from './ConfirmationModal';
 import { HeaderTitle, BodyText } from '@/components/ui/text';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
+import { ActionMenu } from '@/components/ui/commits/ActionMenu';
 
 // ── Uniwind primitives ──────────────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -74,6 +76,25 @@ export function RulePresetPickerModal({
   onSelect,
   selectedId,
 }: RulePresetPickerModalProps) {
+  const [activePreset, setActivePreset] = React.useState<any>(null);
+  const [menuVisible, setMenuVisible] = React.useState(false);
+  const [menuPosition, setMenuPosition] = React.useState({ x: 0, y: 0 });
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  function handleSelect(preset: any) {
+    if (selectedId === preset._id) {
+      onSelect(null);
+    } else {
+      onSelect(preset);
+    }
+  }
+
+  function handleMorePress(preset: any, x: number, y: number) {
+    setActivePreset(preset);
+    setMenuPosition({ x, y });
+    setMenuVisible(true);
+  }
   return (
     <BaseDrawerModal visible={visible} onClose={onClose} height="78%">
       {/* ── Header ── */}
@@ -103,10 +124,63 @@ export function RulePresetPickerModal({
             key={preset._id}
             preset={preset}
             isSelected={selectedId === preset._id}
-            onSelect={() => onSelect(preset)}
+            onSelect={() => handleSelect(preset)}
+            onMorePress={(x, y) => handleMorePress(preset, x, y)}
           />
         ))}
       </UScroll>
+
+      <ActionMenu
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        anchorPosition={menuPosition}
+        items={[
+          {
+            icon: "check-circle-outline",
+            label: "Select",
+            onPress: () => {
+              if (activePreset) {
+                handleSelect(activePreset);
+                setMenuVisible(false);
+              }
+            },
+          },
+          {
+            icon: "pencil-outline",
+            label: "Edit",
+            onPress: () => {
+              setMenuVisible(false);
+              // Navigation to edit handled soon
+            },
+          },
+          {
+            icon: "delete-outline",
+            label: "Delete",
+            color: COLORS.danger,
+            onPress: () => {
+              setMenuVisible(false);
+              setShowDeleteConfirm(true);
+            },
+          },
+        ]}
+      />
+
+      <ConfirmationModal
+        visible={showDeleteConfirm}
+        title="Delete this rule preset?"
+        confirmText="Delete"
+        confirmColor={COLORS.danger}
+        isLoading={isDeleting}
+        onConfirm={async () => {
+          setIsDeleting(true);
+          // Mutation handled soon
+          setTimeout(() => {
+            setIsDeleting(false);
+            setShowDeleteConfirm(false);
+          }, 800);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </BaseDrawerModal>
   );
 }
@@ -121,10 +195,12 @@ function RulePresetCard({
   preset,
   isSelected,
   onSelect,
+  onMorePress,
 }: {
   preset: any;
   isSelected: boolean;
   onSelect: () => void;
+  onMorePress: (x: number, y: number) => void;
   key?: string | number;
 }) {
   const isStay = preset.config?.verification_style === "stay_throughout";
@@ -150,10 +226,19 @@ function RulePresetCard({
           </BodyText>
         </UView>
 
-        <VerificationStatusCircle
-          status={isSelected ? "verified" : "dots"}
-          onPress={onSelect}
-        />
+        <UView 
+          className="relative"
+          onTouchStart={(e: any) => {
+            if (!isSelected) {
+              onMorePress(e.nativeEvent.pageX, e.nativeEvent.pageY);
+            }
+          }}
+        >
+          <VerificationStatusCircle
+            status={isSelected ? "verified" : "dots"}
+            onPress={isSelected ? onSelect : undefined}
+          />
+        </UView>
       </UView>
 
       {/* ── Rule DNA Subheaded Manifest (Aligned to pl-11) ── */}
