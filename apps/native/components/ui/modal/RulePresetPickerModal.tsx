@@ -206,7 +206,7 @@ function RulePresetCard({
   return (
     <UPressable 
       onPress={onSelect}
-      className={`border-b border-white/10 p-6 ${isSelected ? 'bg-white/5' : ''}`}
+      className="border-b border-white/10 p-6"
     >
       <UView className="flex-row items-center mb-4">
         <MaterialCommunityIcons
