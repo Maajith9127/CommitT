@@ -426,4 +426,31 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_recency", ["userId", "last_used_at"])
     .index("by_userId_popularity", ["userId", "usage_count"]),
+
+  behavioralRulePresets: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    config: v.object({
+      verification_style: verificationStyleEnum,
+      grace_period_minutes: v.number(),
+      alarms: v.object({
+        lead_time_minutes: v.number(),
+        interval_minutes: v.number(),
+        sound_key: v.string(),
+      }),
+      stay_throughout_config: v.optional(v.object({
+        intensity: intensityEnum,
+        max_missed_checkins: v.number(),
+      })),
+    }),
+    penalty_waiver: v.optional(v.object({
+      deadline_minutes: v.number(),
+      allow_early: v.optional(v.boolean()),
+    })),
+    last_used_at: v.number(),
+    usage_count: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_recency", ["userId", "last_used_at"])
+    .index("by_userId_popularity", ["userId", "usage_count"]),
 });

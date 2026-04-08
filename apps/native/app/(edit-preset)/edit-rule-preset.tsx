@@ -7,6 +7,9 @@ import { ActionScreenLayout } from '@/components/ui/ActionScreenLayout';
 import { PrimaryButton, Input } from '@/components/ui';
 import { SettingsToggleCard } from "@/components/ui/commits/SettingsToggleCard";
 import { SelectionSheet, type SelectionOption } from "@/components/ui/modal/SelectionSheet";
+import { useMutation } from 'convex/react';
+import { api } from '@commit/backend/convex/_generated/api';
+import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
 
 /** Selection options for advanced settings (Mirrored from final.tsx) */
 const SETTINGS_OPTIONS = {
@@ -53,18 +56,22 @@ const SETTINGS_OPTIONS = {
 export default function EditRulePresetScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  
+  const createRulePreset = useMutation(api.api.commitments.presets.createRulePreset);
+  const updateRulePreset = useMutation(api.api.commitments.presets.updateRulePreset);
 
   // ── State ──
   const [name, setName] = React.useState(params.name as string || "New Rule");
   const [style, setStyle] = React.useState(params.style as string || "just_show_up");
   const [intensity, setIntensity] = React.useState(params.intensity as string || "moderate");
-  const [maxMissed, setMaxMissed] = React.useState(1);
+  const [maxMissed, setMaxMissed] = React.useState(parseInt(params.maxMissed as string) || 1);
   const [grace, setGrace] = React.useState(parseInt(params.grace as string) || 5);
   const [lead, setLead] = React.useState(parseInt(params.lead as string) || 10);
   const [interval, setInterval] = React.useState(parseInt(params.interval as string) || 0);
-  const [sound, setSound] = React.useState("Default");
+  const [sound, setSound] = React.useState(params.sound as string || "Default");
 
   const [isSaving, setIsSaving] = React.useState(false);
+  const [showConfirm, setShowConfirm] = React.useState(false);
   
   // ── Picker State ──
   const [picker, setPicker] = React.useState<{
@@ -81,16 +88,54 @@ export default function EditRulePresetScreen() {
     onSelect: () => {},
   });
 
-  const handleSave = async () => {
+  /**
+   * executeSave
+   * 
+   * Triggers the actual database mutations. 
+   * Callee: Confirmation Modal "Confirm" action.
+   */
+  const executeSave = async () => {
     setIsSaving(true);
     try {
-      console.log("[EditRule] Saving Rule:", { name, style, intensity, grace, lead, interval });
-      setTimeout(() => {
-        setIsSaving(false);
-        router.back();
-      }, 800);
+      const config = {
+        verification_style: style,
+        grace_period_minutes: grace,
+        alarms: {
+          lead_time_minutes: lead,
+          interval_minutes: interval,
+          sound_key: sound,
+        },
+        stay_throughout_config: style === "stay_throughout" ? {
+          intensity,
+          max_missed_checkins: maxMissed,
+        } : undefined
+      };
+
+      const penalty_waiver = {
+        deadline_minutes: parseInt(params.waiverDeadline as string) || 600,
+        allow_early: true,
+      };
+
+      if (params.presetId) {
+        await updateRulePreset({
+          id: params.presetId as any,
+          name,
+          config,
+          penalty_waiver,
+        });
+      } else {
+        await createRulePreset({
+          name,
+          config,
+          penalty_waiver,
+        });
+      }
+      
+      setShowConfirm(false);
+      router.back();
     } catch (error) {
       console.error("[EditRule] Save failed:", error);
+    } finally {
       setIsSaving(false);
     }
   };
@@ -245,10 +290,10 @@ export default function EditRulePresetScreen() {
         footer={
           <View className="px-4">
             <PrimaryButton 
-              onPress={handleSave} 
+              onPress={() => setShowConfirm(true)} 
               disabled={isSaving}
             >
-              {isSaving ? "..." : "Save"}
+              Save
             </PrimaryButton>
           </View>
         }
@@ -310,6 +355,17 @@ export default function EditRulePresetScreen() {
           setPicker((prev) => ({ ...prev, visible: false }));
         }}
         onClose={() => setPicker((prev) => ({ ...prev, visible: false }))}
+      />
+
+      {/* Modal: Save Confirmation */}
+      <ConfirmationModal
+        visible={showConfirm}
+        title={params.presetId ? "Update This Rule?" : "Save New Rule?"}
+        confirmText="Confirm"
+        cancelColor="#FF3B30"
+        isLoading={isSaving}
+        onConfirm={executeSave}
+        onCancel={() => setShowConfirm(false)}
       />
     </>
   );

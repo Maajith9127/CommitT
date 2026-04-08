@@ -278,3 +278,116 @@ export const incrementDigitalUsage = mutation({
     });
   },
 });
+
+/**
+ * PRODUCTION RATIONALE: "Expressive Behavioral DNA"
+ */
+export const getRecommendedRules = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    return await ctx.db
+      .query("behavioralRulePresets")
+      .withIndex("by_userId_popularity", (q) => q.eq("userId", identity.subject))
+      .order("desc") 
+      .take(args.limit ?? 10);
+  },
+});
+
+export const deleteRulePreset = mutation({
+  args: { id: v.id("behavioralRulePresets") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing || existing.userId !== identity.subject) {
+      throw new Error("Unauthorized");
+    }
+
+    await ctx.db.delete(args.id);
+    return { success: true };
+  },
+});
+
+export const createRulePreset = mutation({
+  args: {
+    name: v.string(),
+    config: v.object({
+      verification_style: v.string(),
+      grace_period_minutes: v.number(),
+      alarms: v.object({
+        lead_time_minutes: v.number(),
+        interval_minutes: v.number(),
+        sound_key: v.string(),
+      }),
+      stay_throughout_config: v.optional(v.object({
+        intensity: v.string(),
+        max_missed_checkins: v.number(),
+      })),
+    }),
+    penalty_waiver: v.optional(v.object({
+      deadline_minutes: v.number(),
+      allow_early: v.optional(v.boolean()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const id = await ctx.db.insert("behavioralRulePresets", {
+      userId: identity.subject,
+      name: args.name,
+      config: args.config as any,
+      penalty_waiver: args.penalty_waiver,
+      usage_count: 0,
+      last_used_at: Date.now(),
+    });
+
+    return { success: true, id };
+  },
+});
+
+export const updateRulePreset = mutation({
+  args: {
+    id: v.id("behavioralRulePresets"),
+    name: v.string(),
+    config: v.object({
+      verification_style: v.string(),
+      grace_period_minutes: v.number(),
+      alarms: v.object({
+        lead_time_minutes: v.number(),
+        interval_minutes: v.number(),
+        sound_key: v.string(),
+      }),
+      stay_throughout_config: v.optional(v.object({
+        intensity: v.string(),
+        max_missed_checkins: v.number(),
+      })),
+    }),
+    penalty_waiver: v.optional(v.object({
+      deadline_minutes: v.number(),
+      allow_early: v.optional(v.boolean()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    const existing = await ctx.db.get(args.id);
+    if (!existing || existing.userId !== identity.subject) {
+      throw new Error("Unauthorized: Preset not found or access denied.");
+    }
+
+    await ctx.db.patch(args.id, {
+      name: args.name,
+      config: args.config as any,
+      penalty_waiver: args.penalty_waiver,
+      last_used_at: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
