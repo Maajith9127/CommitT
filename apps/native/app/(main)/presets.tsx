@@ -366,18 +366,20 @@ export default function PresetsScreen() {
                     name: (activePreset as any).name || "Blocklist",
                   },
                 });
-              } else if (activePreset && 'verification_style' in activePreset) {
+              } else if (activePreset && 'config' in activePreset) {
                 // Rule Preset — navigate to the protocol editor
                 router.push({ 
                   pathname: "/(edit-preset)/edit-rule-preset", 
                   params: { 
                     presetId: activePreset._id,
-                    name: (activePreset as any).name || "New Rule",
-                    style: (activePreset as any).verification_style,
-                    intensity: (activePreset as any).intensity,
-                    grace: (activePreset as any).grace_period_minutes?.toString() || "5",
-                    lead: (activePreset as any).alarms?.lead_time_minutes?.toString() || "10",
-                    interval: (activePreset as any).alarms?.interval_minutes?.toString() || "0"
+                    name: (activePreset as any).title || (activePreset as any).name || "New Rule",
+                    style: (activePreset as any).config?.verification_style,
+                    intensity: (activePreset as any).intensity || "moderate",
+                    grace: (activePreset as any).config?.grace_period_minutes?.toString() || "5",
+                    lead: (activePreset as any).config?.alarms?.lead_time_minutes?.toString() || "10",
+                    interval: (activePreset as any).config?.alarms?.interval_minutes?.toString() || "0",
+                    maxMissed: (activePreset as any).max_missed_checkins?.toString() || "1",
+                    waiverDeadline: (activePreset as any).penalty_waiver?.deadline_minutes?.toString() || "600"
                   } 
                 });
               }

@@ -1,6 +1,7 @@
-feat(native): integrate ActionMenu and ConfirmationModal into Rule DNA picker
+feat(native): implement behavioral rule preset editor and resolve navigation
 
-- Added ActionMenu support to RulePresetPickerModal for Select, Edit, and Delete operations.
-- Implemented ConfirmationModal for rule deletion safety.
-- Wired local state to handle dynamic menu positioning based on user touch events.
-- Synchronized card interaction logic with verified/selection states.
+- Implemented `edit-rule-preset.tsx` with full state management for Protocol (Arrive/Stay), Alarms (Lead/Frequency), and Waiver Goovernance.
+- Refactored `ActionMenu` navigation logic in `presets.tsx` to correctly detect Rule presets via the `config` property.
+- Enhanced navigation payload to include comprehensive behavioral DNA parameters (intensity, maxMissed, waiverDeadline).
+- Optimized header layout in the editor with increased top-padding for improved visual hierarchy.
+- Resolved TypeScript implicit-any lint errors in selection sheet handlers.

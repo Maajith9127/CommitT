@@ -232,7 +232,7 @@ export default function EditRulePresetScreen() {
       <ActionScreenLayout
         className="bg-black"
         header={
-          <View className="pt-10">
+          <View className="pt-16">
             <View className="px-4 pb-4 flex-row items-center justify-between">
               <TouchableOpacity onPress={() => router.back()} className="h-10 w-10 items-center justify-center">
                 <MaterialCommunityIcons name="chevron-left" size={24} color="#666" />
