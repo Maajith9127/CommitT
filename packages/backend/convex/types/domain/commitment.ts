@@ -12,7 +12,10 @@ export interface TimeWindow {
   ruleId?: string;
   /** UI label for the behavioral rule (e.g. "T-rex", "Deep Work") */
   ruleName?: string;
+  /** Per-slot behavioral rules (alarms, grace periods, etc.) */
   config?: any;
+  /** Duplicate field for frontend/Zustand store parity */
+  ruleConfig?: any;
 }
 
 export interface Recurrence {

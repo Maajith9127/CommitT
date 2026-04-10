@@ -1,14 +1,18 @@
-feat(native/blocker): escalate settings tampering to hardware screen lock
+fix: resolve slot-specific behavioral rule persistence bug
 
-- Implement `escalateToDeviceLock` helper to manage severe security violations.
-- Orchestrate a two-factor neutralization sequence: executes a hardware 
-  `GLOBAL_ACTION_LOCK_SCREEN` to instantly turn off the device display, 
-  followed by enqueueing the `BlockerOverlayActivity`.
-- Refactor `performDeepSecurityAudit` to route all critical settings bypass
-  attempts (Time Travel, Dev Options, Accessibility, Factory Reset) through 
-  the new escalation protocol.
-- Add architectural comments detailing the psychological and technical design 
-  decisions behind hardware-level context breaks versus UI-level overlays.
+Stabilized the full data lifecycle for per-slot behavioral settings 
+(alarms, grace periods, etc.) by aligning the frontend store with 
+the backend schema and persistence orchestration.
 
-Impact: Severely limits circumvention opportunities by actively breaking the 
-user's flow at the OS level upon detection of malicious navigation intents.
+Key changes:
+- Schema: Added 'ruleConfig' to the 'time_windows' definition for 
+  both 'tasks' and 'taskInstances' in Convex.
+- API: Updated 'RecurrenceSchema' validators to permit 'ruleConfig' 
+  during commitment creation and updates.
+- Orchestration: Fixed 'useCommitTask' hook to explicitly serialize 
+  and send 'ruleConfig' in the payload, ensuring it reaches the database.
+- Hydration: Implemented an auto-hydration fallback in 'useTaskDraftStore' 
+  to reconstruct 'ruleConfig' from 'config' when loading existing tasks.
+
+This eliminates the "blank UI" bug where slot-specific rules disappeared 
+after saving or reloading a commitment.

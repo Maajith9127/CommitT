@@ -99,6 +99,19 @@ export default defineSchema({
             max_missed_checkins: v.number(),
           })),
         })),
+        ruleConfig: v.optional(v.object({
+          verification_style: verificationStyleEnum,
+          grace_period_minutes: v.optional(v.number()),
+          alarms: v.object({
+            lead_time_minutes: v.number(),
+            interval_minutes: v.number(),
+            sound_key: v.string(),
+          }),
+          stay_throughout_config: v.optional(v.object({
+            intensity: intensityEnum,
+            max_missed_checkins: v.number(),
+          })),
+        })),
       })),
       ends: v.optional(v.object({
         type: recurrenceEndsTypeEnum,
@@ -212,6 +225,19 @@ export default defineSchema({
         // the original preset title is changed later.
         ruleName: v.optional(v.string()),
         config: v.optional(v.object({
+          verification_style: verificationStyleEnum,
+          grace_period_minutes: v.optional(v.number()),
+          alarms: v.object({
+            lead_time_minutes: v.number(),
+            interval_minutes: v.number(),
+            sound_key: v.string(),
+          }),
+          stay_throughout_config: v.optional(v.object({
+            intensity: intensityEnum,
+            max_missed_checkins: v.number(),
+          })),
+        })),
+        ruleConfig: v.optional(v.object({
           verification_style: verificationStyleEnum,
           grace_period_minutes: v.optional(v.number()),
           alarms: v.object({

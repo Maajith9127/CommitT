@@ -565,8 +565,22 @@ export const useTaskDraftStore = create<TaskDraftStore>()(
             ? newDraft.conditions.map((c) => ({ ...c, id: c.id || nanoid() }))
             : state.draft.conditions;
 
+          // Auto-Hydration: If recurrence exists, ensure slot-level 'ruleConfig' is populated
+          // from the database 'config' field if missing. This prevents UI data loss
+          // for legacy tasks or during schema transitions.
+          let recurrence = newDraft.recurrence || state.draft.recurrence;
+          if (recurrence?.time_windows) {
+            recurrence = {
+              ...recurrence,
+              time_windows: recurrence.time_windows.map((w: any) => ({
+                ...w,
+                ruleConfig: w.ruleConfig || w.config,
+              }))
+            };
+          }
+
           return {
-            draft: { ...state.draft, ...newDraft, conditions },
+            draft: { ...state.draft, ...newDraft, recurrence, conditions },
           };
         },
         false,

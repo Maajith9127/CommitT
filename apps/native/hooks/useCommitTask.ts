@@ -249,6 +249,7 @@ export function useCommitTask() {
                   // This ensures the custom rule name (e.g., 'T-rex') is persisted.
                   ruleName: w.ruleName,
                   config: w.ruleConfig,
+                  ruleConfig: w.ruleConfig,
                 }))
               };
               const result = await updateTask({
@@ -275,6 +276,7 @@ export function useCommitTask() {
                   // Synchronizing frontend draft labels with backend persistence schema.
                   ruleName: w.ruleName,
                   config: w.ruleConfig,
+                  ruleConfig: w.ruleConfig,
                 }))
               };
               const result = await createTask({

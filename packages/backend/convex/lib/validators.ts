@@ -54,6 +54,7 @@ export const RecurrenceSchema = v.object({
     // Captured at the boundary to simplify frontend rendering of existing slots.
     ruleName: v.optional(v.string()),
     config: v.optional(ConfigSchema),
+    ruleConfig: v.optional(ConfigSchema),
   })),
   
   // When does the recurrence verify?
