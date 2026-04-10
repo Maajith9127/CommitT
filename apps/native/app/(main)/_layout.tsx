@@ -213,7 +213,14 @@ export default function MainLayout() {
           sceneContainerStyle={{ backgroundColor: "#000000" }}
         >
             <Tabs.Screen name="commits" />
-            <Tabs.Screen name="schedules" />
+            <Tabs.Screen 
+              name="schedules" 
+              options={{ 
+                // Pre-loads the CalendarKit UI in the background during app startup
+                // for instantaneous transitions, bypassing the regular skeleton loader.
+                lazy: false 
+              }} 
+            />
             <Tabs.Screen name="presets" />
             <Tabs.Screen name="notifications" />
             <Tabs.Screen name="profile" />
