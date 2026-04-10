@@ -50,6 +50,8 @@ export const RecurrenceSchema = v.object({
     // Slot-specific overrides: If provided, these take precedence over global conditions
     conditions: v.optional(ConditionsSchema),
     ruleId: v.optional(v.string()),
+    // Human-readable rule identifier (e.g., "Gym Logic") for UI display.
+    // Captured at the boundary to simplify frontend rendering of existing slots.
     ruleName: v.optional(v.string()),
     config: v.optional(ConfigSchema),
   })),

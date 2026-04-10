@@ -102,15 +102,15 @@ export default function EditLocationPresetScreen() {
   const initialAddress = params.address ?? "Selected Location";
 
   // ── Bridge Store (shared with search-preset-location) ──
-  const storeAddress = usePresetEditStore((s) => s.address);
-  const storeLat = usePresetEditStore((s) => s.latitude);
-  const storeLng = usePresetEditStore((s) => s.longitude);
-  const storeRadius = usePresetEditStore((s) => s.radius);
-  const setStoreLocation = usePresetEditStore((s) => s.setLocation);
-  const setStoreAddress = usePresetEditStore((s) => s.setAddress);
-  const setStoreRadius = usePresetEditStore((s) => s.setRadius);
-  const hydrate = usePresetEditStore((s) => s.hydrate);
-  const resetStore = usePresetEditStore((s) => s.reset);
+  const storeAddress = usePresetEditStore((s: any) => s.address);
+  const storeLat = usePresetEditStore((s: any) => s.latitude);
+  const storeLng = usePresetEditStore((s: any) => s.longitude);
+  const storeRadius = usePresetEditStore((s: any) => s.radius);
+  const setStoreLocation = usePresetEditStore((s: any) => s.setLocation);
+  const setStoreAddress = usePresetEditStore((s: any) => s.setAddress);
+  const setStoreRadius = usePresetEditStore((s: any) => s.setRadius);
+  const hydrate = usePresetEditStore((s: any) => s.hydrate);
+  const resetStore = usePresetEditStore((s: any) => s.reset);
 
   // ── Hydrate store on first mount ──
   const hasHydrated = useRef(false);
@@ -178,9 +178,40 @@ export default function EditLocationPresetScreen() {
   }));
 
   // ─────────────────────────────────────────────────────────────────────────
-  // CAMERA AUTOMATION
+  // CAMERA AUTOMATION & EXTERNAL SYNC
   // ─────────────────────────────────────────────────────────────────────────
 
+  /**
+   * Effect: Sync External Store Updates -> Map Camera
+   * 
+   * When the user selects a location from the separate Search page, the 
+   * `usePresetEditStore` is updated. This effect detects when the store 
+   * coordinates deviate from the current map camera position and forces 
+   * a re-centering.
+   */
+  useEffect(() => {
+    const latDiff = Math.abs((cameraTarget.latitude ?? 0) - storeLat);
+    const lngDiff = Math.abs((cameraTarget.longitude ?? 0) - storeLng);
+    
+    // Use a small epsilon (0.0001) to detect intentional shifts (like search results)
+    // while ignoring tiny floating point drifts during manual panning.
+    // We only trigger if the user isn't currently dragging the map.
+    if ((latDiff > 0.0001 || lngDiff > 0.0001) && !isUserInteracting.current) {
+      setCameraTarget((prev: any) => ({
+        ...prev,
+        latitude: storeLat,
+        longitude: storeLng,
+        zoom: 19, // Reset zoom to a consistent "Detail" level for new searches
+      }));
+    }
+  }, [storeLat, storeLng]);
+
+  /**
+   * Effect: Animate Camera to Target
+   * 
+   * Reactively moves the Google Maps camera whenever the `cameraTarget` state 
+   * changes. Uses a high-performance 800ms transition for a premium feel.
+   */
   useEffect(() => {
     if (cameraTarget.latitude && cameraTarget.longitude && mapReady && !isUserInteracting.current) {
       const target = {
@@ -196,7 +227,8 @@ export default function EditLocationPresetScreen() {
       const animate = async () => {
         try {
           await mapRef.current?.setCameraPosition({ ...target, duration: 800 });
-        } catch {
+        } catch (err) {
+          // Fallback to instant jump if animation fails (e.g. low memory/background)
           try { await mapRef.current?.setCameraPosition(target); } catch {}
         }
       };

@@ -83,6 +83,8 @@ export default defineSchema({
           }),
         }))),
         ruleId: v.optional(v.string()),
+        // Behavioral Rule Label: Stored directly in the window for high-speed UI retrieval
+        // without requiring heavy relational joins or foreign key Lookups.
         ruleName: v.optional(v.string()),
         config: v.optional(v.object({
           verification_style: verificationStyleEnum,
@@ -205,6 +207,9 @@ export default defineSchema({
           }),
         }))),
         ruleId: v.optional(v.string()),
+        // Immutable Snapshot: The rule name is captured at generation time.
+        // This ensures the verification audit trail remains accurate even if
+        // the original preset title is changed later.
         ruleName: v.optional(v.string()),
         config: v.optional(v.object({
           verification_style: verificationStyleEnum,

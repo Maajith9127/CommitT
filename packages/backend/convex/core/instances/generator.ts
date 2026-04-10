@@ -17,6 +17,7 @@ export interface GeneratedSlot {
   endTime: number;
   conditions?: any[];
   ruleId?: string;
+  // Snapshot of the rule name for historical audit trails
   ruleName?: string;
   config?: any;
 }
@@ -84,6 +85,7 @@ export function generateTimeSlots(
       endTime: nextSlot.endTime,
       conditions: nextSlot.timeWindow.conditions,
       ruleId: nextSlot.timeWindow.ruleId,
+      // Pass-through the rule name during series expansion
       ruleName: nextSlot.timeWindow.ruleName,
       config: nextSlot.timeWindow.config,
     });

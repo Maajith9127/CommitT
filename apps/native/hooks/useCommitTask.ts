@@ -245,6 +245,8 @@ export function useCommitTask() {
                   end: w.end,
                   conditions: w.conditions,
                   ruleId: w.ruleId,
+                  // Explicit mapping of the behavioral rule label to the backend payload.
+                  // This ensures the custom rule name (e.g., 'T-rex') is persisted.
                   ruleName: w.ruleName,
                   config: w.ruleConfig,
                 }))
@@ -270,6 +272,7 @@ export function useCommitTask() {
                   end: w.end,
                   conditions: w.conditions,
                   ruleId: w.ruleId,
+                  // Synchronizing frontend draft labels with backend persistence schema.
                   ruleName: w.ruleName,
                   config: w.ruleConfig,
                 }))

@@ -10,6 +10,7 @@ export interface TimeWindow {
   end: number;   // seconds from midnight
   conditions?: Condition[];
   ruleId?: string;
+  /** UI label for the behavioral rule (e.g. "T-rex", "Deep Work") */
   ruleName?: string;
   config?: any;
 }

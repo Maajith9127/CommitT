@@ -51,6 +51,12 @@ export function RulePresetPickerModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
+  /**
+   * Selection Orchestration:
+   * Toggling selection state directly without auto-closing the modal.
+   * This allows users to review their choice or pivot to a different rule
+   * without the friction of reopening the drawer.
+   */
   function handleSelect(preset: any) {
     if (selectedId === preset._id) {
       onSelect(null);
@@ -206,6 +212,13 @@ function RulePresetCard({
   return (
     <UPressable 
       onPress={(e: any) => {
+        /**
+         * PRODUCTION RATIONALE: "Menu-First Interaction"
+         * Tapping an UNSELECTED card opens the Action Menu for deliberation.
+         * Tapping a SELECTED card immediately toggles it off.
+         * This prevents 'accidental selection' and keeps the interaction 
+         * lifecycle explicitly in the user's control.
+         */
         if (isSelected) {
           onSelect();
         } else {
