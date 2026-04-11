@@ -73,7 +73,8 @@ export async function armAccountabilityContract(
 ) {
   if (!instance.penalty || !instance.penalty_waiver) return;
 
-  const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
+  // const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
+  const deadlineMs = 5 * 1000; // HARDCODED: 5 seconds for testing
   const expiresAt = baseTime + deadlineMs;
 
   // Cleanup existing jobs to prevent duplicate enforcement (Safety Guard)
