@@ -12,6 +12,7 @@ export type SettingsItem = {
   id: string;
   title: string;
   type?: "toggle" | "select";
+  icon?: any;
   value?: boolean;
   onValueChange?: (val: boolean) => void;
   selectValue?: string;
@@ -36,9 +37,14 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
               disabled={item.disabled}
               className={`flex-row items-center justify-between px-5 py-4 pt-5 pb-5 ${item.disabled ? 'opacity-50' : ''}`}
             >
-              <HeaderTitle className="text-lg text-white">
-                {item.title}
-              </HeaderTitle>
+              <UView className="flex-row items-center">
+                {item.icon && (
+                  <MaterialCommunityIcons name={item.icon} size={26} color="#4FA0FF" style={{ marginRight: 14 }} />
+                )}
+                <HeaderTitle className="text-lg text-white">
+                  {item.title}
+                </HeaderTitle>
+              </UView>
               <UView className="flex-row items-center">
                 <FooterText className="mr-1 text-[#A0A0A5] text-[16px]">{item.selectValue}</FooterText>
                 <MaterialCommunityIcons name="chevron-right" size={24} color="#666666" />
@@ -46,9 +52,14 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
             </UButton>
           ) : (
             <UView className="flex-row items-center justify-between px-5 py-4 pt-5 pb-5">
-              <HeaderTitle className="text-lg text-white">
-                {item.title}
-              </HeaderTitle>
+              <UView className="flex-row items-center">
+                {item.icon && (
+                  <MaterialCommunityIcons name={item.icon} size={26} color="#4FA0FF" style={{ marginRight: 14 }} />
+                )}
+                <HeaderTitle className="text-lg text-white">
+                  {item.title}
+                </HeaderTitle>
+              </UView>
               <CustomSwitch
                 value={item.value || false}
                 onValueChange={item.onValueChange || (() => {})}

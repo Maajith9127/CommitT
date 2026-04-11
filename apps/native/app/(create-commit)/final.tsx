@@ -402,6 +402,7 @@ export default function FinalScreen() {
       id: "showUp",
       title: "Just Show Up",
       type: "toggle" as const,
+      icon: "account-check-outline",
       value: draft.config.verification_style === "just_show_up",
       onValueChange: (v: boolean) => {
         if (v) setConfig({ verification_style: "just_show_up" });
@@ -411,6 +412,7 @@ export default function FinalScreen() {
       id: "stayThroughout",
       title: "Stay Throughout",
       type: "toggle" as const,
+      icon: "timer-sand",
       value: draft.config.verification_style === "stay_throughout",
       onValueChange: (v: boolean) => {
         if (v) {
@@ -428,6 +430,7 @@ export default function FinalScreen() {
       id: "intensity",
       title: "Check-In Intensity",
       type: "select" as const,
+      icon: "speedometer",
       disabled: draft.config.verification_style !== "stay_throughout",
       selectValue: draft.config.verification_style === "stay_throughout" 
         ? (draft.config.stay_throughout_config?.intensity ? draft.config.stay_throughout_config.intensity.charAt(0).toUpperCase() + draft.config.stay_throughout_config.intensity.slice(1) : "Relaxed")
@@ -452,6 +455,7 @@ export default function FinalScreen() {
       id: "maxMissedCheckins",
       title: "Max Missed Check-ins",
       type: "select" as const,
+      icon: "alert-circle-outline",
       disabled: draft.config.verification_style !== "stay_throughout",
       selectValue: draft.config.verification_style === "stay_throughout" 
         ? `${draft.config.stay_throughout_config?.max_missed_checkins ?? 1}`
@@ -476,7 +480,8 @@ export default function FinalScreen() {
       id: "grace",
       title: "Grace Period",
       type: "select" as const,
-      selectValue: `${draft.config.grace_period_minutes} mins`,
+      icon: "clock-fast",
+      selectValue: `${draft.config.grace_period_minutes}m`,
       onPress: () => setPicker({
         visible: true,
         title: "Grace Period",
@@ -495,7 +500,8 @@ export default function FinalScreen() {
       id: "alarmLeadTime",
       title: "Start Alarming",
       type: "select" as const,
-      selectValue: `${draft.config.alarms.lead_time_minutes} mins before`,
+      icon: "bell-ring-outline",
+      selectValue: `-${draft.config.alarms.lead_time_minutes}m`,
       onPress: () => setPicker({
         visible: true,
         title: "Start Alarming",
@@ -508,7 +514,8 @@ export default function FinalScreen() {
       id: "alarmInterval",
       title: "Alarm Frequency",
       type: "select" as const,
-      selectValue: `Every ${draft.config.alarms.interval_minutes} mins`,
+      icon: "update",
+      selectValue: `${draft.config.alarms.interval_minutes}m`,
       onPress: () => setPicker({
         visible: true,
         title: "Alarm Frequency",
@@ -521,6 +528,7 @@ export default function FinalScreen() {
       id: "alarmSound",
       title: "Alarm Music",
       type: "select" as const,
+      icon: "music-note-outline",
       selectValue: draft.config.alarms.sound_key,
       onPress: () => setPicker({
         visible: true,
@@ -540,10 +548,11 @@ export default function FinalScreen() {
       id: "waiverDeadline",
       title: "Waiver Deadline",
       type: "select" as const,
+      icon: "calendar-clock-outline",
       selectValue: draft.penalty_waiver?.deadline_minutes 
         ? (draft.penalty_waiver.deadline_minutes >= 1440 
-          ? `${Math.floor(draft.penalty_waiver.deadline_minutes / 1440)} days` 
-          : `${Math.floor(draft.penalty_waiver.deadline_minutes / 60)} hours`)
+          ? `${Math.floor(draft.penalty_waiver.deadline_minutes / 1440)}d` 
+          : `${Math.floor(draft.penalty_waiver.deadline_minutes / 60)}h`)
         : "Set deadline",
       onPress: () => setPicker({
         visible: true,
@@ -562,6 +571,7 @@ export default function FinalScreen() {
       id: "allowEarlyWaiver",
       title: "Allow Early Waiver",
       type: "toggle" as const,
+      icon: "fast-forward-outline",
       value: draft.penalty_waiver?.config?.allow_early ?? false,
       onValueChange: (v: boolean) => setDraft({
         penalty_waiver: {

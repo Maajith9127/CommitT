@@ -1,15 +1,13 @@
-refactor(native/enforcement): implement strict background location auditing
+feat(native/ui): overhaul Profile and Configuration Menus
 
-Hardens the location permission oracle to require mandatory 'Allow all the 
-time' (ACCESS_BACKGROUND_LOCATION) on Android 10+ devices.
-
-Previously, the auditor would return 'true' if only foreground location 
-was granted, leading to a UI lie where the dashboard showed a green 
-status while the background enforcement engine was actually starving 
-of GPS data. 
-
-Changes:
-- Added API-level gated check for ACCESS_BACKGROUND_LOCATION.
-- Integrated [STRICT ENFORCEMENT PROTOCOL] documentation in native source.
-- Validates that both Fine and Background permissions are physically granted 
-  before returning a ready status to the frontend.
+- Migrated `profile.tsx` to utilize `SettingsToggleCard` for a sleek, list-based 
+  navigation layout mimicking native iOS/Android settings panels.
+- Dynamically hooked `profile.tsx` top-section to the active `authClient` Google 
+  Sign-In session to natively render the user's fetched avatar, name, and email.
+- Upgraded the `SettingsToggleCard` engine to natively support `@expo/vector-icons`, 
+  automatically rendering material icons beside headings when provided in the config array.
+- Injected contextual material icons into all 10+ configuration rows in `final.tsx` 
+  (Just Show Up, Grace Period, Alarms, Waivers).
+- Optimized layout sizing in `final.tsx` by introducing compact value strings 
+  (e.g., "-30m", "5m", "12h") instead of verbose text to naturally prevent UI 
+  collisions on smaller mobile screens.
