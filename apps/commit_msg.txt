@@ -1,13 +1,21 @@
-feat(native/ui): overhaul Profile and Configuration Menus
+fix(native/blocker): resolve cyclic false-positive location blocks
 
-- Migrated `profile.tsx` to utilize `SettingsToggleCard` for a sleek, list-based 
-  navigation layout mimicking native iOS/Android settings panels.
-- Dynamically hooked `profile.tsx` top-section to the active `authClient` Google 
-  Sign-In session to natively render the user's fetched avatar, name, and email.
-- Upgraded the `SettingsToggleCard` engine to natively support `@expo/vector-icons`, 
-  automatically rendering material icons beside headings when provided in the config array.
-- Injected contextual material icons into all 10+ configuration rows in `final.tsx` 
-  (Just Show Up, Grace Period, Alarms, Waivers).
-- Optimized layout sizing in `final.tsx` by introducing compact value strings 
-  (e.g., "-30m", "5m", "12h") instead of verbose text to naturally prevent UI 
-  collisions on smaller mobile screens.
+Calibrated the GPS staleness threshold to align with Android's background 
+location throttling logic. 
+
+Problem:
+Android OS restricts background GPS updates to roughly 20-second (20,000ms) 
+intervals. Our enforcement engine had a strict 10,000ms staleness threshold. 
+This caused a "logic loop" where users were incorrectly blocked for 
+~10 seconds of every 20-second cycle because the app considered the 
+location data "stale" before the next OS update arrived.
+
+Solution:
+- Increased `LOCATION_STALENESS_THRESHOLD_MS` from 10s to 30s.
+- This threshold accounts for the 20s background polling rate plus a 
+  10s hardware/processing buffer.
+- Added [STALENESS CALIBRATION PROTOCOL] documentation to the Kotlin 
+  source to ensure future maintainers understand the OS-level constraints.
+
+This maintains our "Fail-Closed" security posture while eliminating 
+annoying service interruptions during normal background tracking.
