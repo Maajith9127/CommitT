@@ -1,11 +1,15 @@
-feat(native/blocker): add background location permission to enforcer manifest
+refactor(native/enforcement): implement strict background location auditing
 
-Resolves the "False Positive" block issue where the enforcement engine would
-trigger the blocker UI when the app was closed or the screen was off. 
+Hardens the location permission oracle to require mandatory 'Allow all the 
+time' (ACCESS_BACKGROUND_LOCATION) on Android 10+ devices.
 
-By adding ACCESS_BACKGROUND_LOCATION, the BlockerAccessibilityService can now 
-maintain its 1Hz GPS stream in the background, preventing the Fail-Closed 
-logic from triggering due to "Null" or stale location data when the device 
-is locked.
+Previously, the auditor would return 'true' if only foreground location 
+was granted, leading to a UI lie where the dashboard showed a green 
+status while the background enforcement engine was actually starving 
+of GPS data. 
 
-BC: Users must now grant "Allow all the time" in Android system settings.
+Changes:
+- Added API-level gated check for ACCESS_BACKGROUND_LOCATION.
+- Integrated [STRICT ENFORCEMENT PROTOCOL] documentation in native source.
+- Validates that both Fine and Background permissions are physically granted 
+  before returning a ready status to the frontend.

@@ -36,7 +36,17 @@ class EnforcementModule : Module() {
                 true
             }
 
-            val locationEnabled = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            // [STRICT ENFORCEMENT PROTOCOL]: Location audits require highly-available GPS streams.
+            // On Android 10+ (API 29), "Allow while using" (ACCESS_FINE_LOCATION alone) is insufficient
+            // because the OS will terminate the accessibility service's background GPS stream, resulting
+            // in a fail-closed sequence. The user MUST grant "Allow all the time" (ACCESS_BACKGROUND_LOCATION).
+            val locationEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val hasFine = context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                val hasBackground = context.checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+                hasFine && hasBackground
+            } else {
+                context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            }
             val cameraEnabled = context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
             val notificationsEnabled = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
