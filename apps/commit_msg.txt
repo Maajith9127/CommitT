@@ -1,18 +1,11 @@
-fix: resolve slot-specific behavioral rule persistence bug
+feat(native/blocker): add background location permission to enforcer manifest
 
-Stabilized the full data lifecycle for per-slot behavioral settings 
-(alarms, grace periods, etc.) by aligning the frontend store with 
-the backend schema and persistence orchestration.
+Resolves the "False Positive" block issue where the enforcement engine would
+trigger the blocker UI when the app was closed or the screen was off. 
 
-Key changes:
-- Schema: Added 'ruleConfig' to the 'time_windows' definition for 
-  both 'tasks' and 'taskInstances' in Convex.
-- API: Updated 'RecurrenceSchema' validators to permit 'ruleConfig' 
-  during commitment creation and updates.
-- Orchestration: Fixed 'useCommitTask' hook to explicitly serialize 
-  and send 'ruleConfig' in the payload, ensuring it reaches the database.
-- Hydration: Implemented an auto-hydration fallback in 'useTaskDraftStore' 
-  to reconstruct 'ruleConfig' from 'config' when loading existing tasks.
+By adding ACCESS_BACKGROUND_LOCATION, the BlockerAccessibilityService can now 
+maintain its 1Hz GPS stream in the background, preventing the Fail-Closed 
+logic from triggering due to "Null" or stale location data when the device 
+is locked.
 
-This eliminates the "blank UI" bug where slot-specific rules disappeared 
-after saving or reloading a commitment.
+BC: Users must now grant "Allow all the time" in Android system settings.
