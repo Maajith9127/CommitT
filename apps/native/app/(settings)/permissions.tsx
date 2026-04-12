@@ -32,6 +32,7 @@ export default function PermissionsPage() {
   const batteryGranted = permissions.battery;
   const appearGranted = permissions.overlay;
   const accessibilityGranted = permissions.accessibility;
+  const adminGranted = false; // Step 1: UI Placeholder only
 
   return (
     <UScroll showsVerticalScrollIndicator={false} className="flex-1 bg-black px-5 pt-12">
@@ -39,7 +40,7 @@ export default function PermissionsPage() {
       <UView className="mb-10 items-center">
         <MaterialCommunityIcons name="cog-outline" size={100} color="#4FA0FF" />
 
-        <HeaderTitle className="mt-4 text-3xl text-white">7 Permissions Needed</HeaderTitle>
+        <HeaderTitle className="mt-4 text-3xl text-white">8 Permissions Needed</HeaderTitle>
       </UView>
 
       {/* PERMISSIONS */}
@@ -118,6 +119,17 @@ export default function PermissionsPage() {
         className="bg-[#1A1A1A]"
         showArrow={true}
         onPress={() => handleOpenSettings("accessibility")}
+      />
+
+      <ConditionCard
+        icon="gavel"
+        title="Device Admin"
+        subtitle="Required to block any bypass attempt to remove the app."
+        iconColor={getColor(adminGranted)}
+        titleColor={getColor(adminGranted)}
+        className="bg-[#1A1A1A]"
+        showArrow={true}
+        onPress={() => handleOpenSettings("admin")}
       />
 
       <UView className="h-10" />

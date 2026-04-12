@@ -11,6 +11,8 @@ import android.app.AlarmManager
 import android.Manifest
 import android.provider.Settings
 import android.util.Log
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -104,6 +106,40 @@ class EnforcementModule : Module() {
                         data = Uri.parse("package:${context.packageName}")
                     }
                 } else null
+                
+                // Jump directly to the 'Device admin apps' system list
+                "admin" -> {
+                    Log.d(TAG, "Navigating directly to CommitT Admin Activation")
+                    
+                    // Direct Activation Screen for our specific receiver
+                    val intentDirect = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                        val adminName = ComponentName("com.mono.commit", "expo.modules.blocker.BlockerDeviceAdminReceiver")
+                        putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminName)
+                        putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Enables anti-removal protection for your commitments.")
+                    }
+                    
+                    // Fallback 1: The List you saw in Screenshot 2
+                    val intentList = Intent("android.settings.DEVICE_ADMIN_SETTINGS")
+                    
+                    // Fallback 2: The 'More Security' page you saw in Screenshot 1
+                    val intentSecurity = Intent(Settings.ACTION_SECURITY_SETTINGS)
+
+                    when {
+                        intentDirect.resolveActivity(context.packageManager) != null -> {
+                            Log.d(TAG, "Selected: Direct Activation")
+                            intentDirect
+                        }
+                        intentList.resolveActivity(context.packageManager) != null -> {
+                            Log.d(TAG, "Selected: Admin List")
+                            intentList
+                        }
+                        else -> {
+                            Log.w(TAG, "Falling back to Security Settings")
+                            intentSecurity
+                        }
+                    }
+                }
+                
                 else -> null
             }
             
