@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { View, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
-import { FooterText } from "@/components/ui/text";
+import { HeaderTitle } from "@/components/ui/text";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 const UView = withUniwind(View);
@@ -82,11 +82,11 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
             <Ionicons 
               name={isFocused ? iconFilled : icon} 
               size={26} 
-              color={isFocused ? "#4FA0FF" : "#9CA3AF"} 
+              color={isFocused ? "#4FA0FF" : "#FFFFFF"} 
             />
-            <FooterText className={isFocused ? "text-[#4FA0FF]" : "text-gray-400"}>
+            <HeaderTitle className={`text-xs mt-1 ${isFocused ? "text-[#4FA0FF]" : "text-white"}`}>
               {label}
-            </FooterText>
+            </HeaderTitle>
           </UButton>
         );
       })}

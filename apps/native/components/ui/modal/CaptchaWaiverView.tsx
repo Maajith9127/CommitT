@@ -10,6 +10,8 @@ import { useMutation } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import { formatRelativeDuration } from '@/lib/time';
 
+import { ConfirmationModal } from './ConfirmationModal';
+
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
 
@@ -174,9 +176,13 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
         setErrorTitle(result.message || "Incorrect solution");
         setErrorVisible(true);
       }
-    } catch (e) {
-      console.error("[CaptchaWaiver] Submit error:", e);
-      setErrorTitle("Verification failed. Please check your connection.");
+    } catch (e: any) {
+      const errString = String(e?.message || e);
+      const cleanError = errString.includes("Server Error") || errString.includes("No active waiver")
+         ? "Session Expired or Already Waived." 
+         : errString.replace(/\[.*?\]\s*/g, '');
+      
+      setErrorTitle(cleanError);
       setErrorVisible(true);
     } finally {
       setIsSubmitting(false);
@@ -364,39 +370,21 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
         </UView>
       </AnimatedReanimated.View>
 
-      {/* In-Page Error Overlay (Fixes Keyboard Dismissal on Failure) */}
-      {errorVisible && (
-        <UView 
-          style={{ 
-            position: 'absolute', 
-            top: 0, left: 0, right: 0, bottom: 0, 
-            backgroundColor: 'rgba(0,0,0,0.6)', 
-            justifyContent: 'center', 
-            alignItems: 'center',
-            paddingHorizontal: 30,
-            zIndex: 1000 
-          }}
-        >
-          <UView className="w-full rounded-3xl bg-[#252525] p-6 shadow-2xl">
-            <HeaderTitle className="text-center text-lg font-bold text-white mb-6">
-              {errorTitle}
-            </HeaderTitle>
-            
-            <UPressable 
-              onPress={() => {
-                setErrorVisible(false);
-                // Refs aren't lost, so focus is lightning fast
-                inputRef.current?.focus();
-              }}
-              className="mt-2"
-            >
-              <BodyText className="text-center text-[#4FA0FF] font-black text-base uppercase tracking-widest">
-                Try again
-              </BodyText>
-            </UPressable>
-          </UView>
-        </UView>
-      )}
+      {/* In-Page Error Overlay (Replaced with standard ConfirmationModal) */}
+      <ConfirmationModal
+        visible={errorVisible}
+        title={errorTitle}
+        confirmText="Try again"
+        confirmColor="#4FA0FF"
+        singleButton={true}
+        onConfirm={() => {
+            setErrorVisible(false);
+            if (!isClosing.current) {
+               setTimeout(() => inputRef.current?.focus(), 150);
+            }
+        }}
+        onCancel={() => setErrorVisible(false)}
+      />
     </UView>
     </ScrollView>
   );

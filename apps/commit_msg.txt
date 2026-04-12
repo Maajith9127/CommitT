@@ -1,15 +1,22 @@
-refactor(core/commitments): enforce strict slot overrides and disable autonomous preset harvest
+feat(ui/ux): harden accountability guards and unify design system typography
 
-This commit addresses two critical edge cases in the commitment creation pipeline, 
-focusing on data integrity and Preset Vault hygiene.
+Implemented a robust, state-based security layer for commitment deletion and 
+standardized typography Across the Presets Hub and Navigation layers.
 
-1. Implement "Complete Override Policy" in Frontend Validation
-- Updated `taskDraft.ts` to smartly handle Behavioral Rule inheritance.
-- Empty time slots now safely inherit the global `verification_style`.
-- If a slot contains custom conditions (e.g. a localized GPS limit), it now strictly severs global inheritance and requires an explicit slot-level `ruleId`. This prevents mismatched structural behavior rules from bleeding into custom slots.
+Accountability & Deletion Security:
+- Hardened `deleteInstance` logic to prevent deletion during 'pending', 'proceeding', 
+  'waiver_active', or 'penalized' states when Strict Mode is active.
+- Integrated `ConfirmationModal` into the deletion and calendar-resize flows 
+  to provide friendly "Vault Active" feedback with dynamic unlock timestamps.
+- Silenced system-level logging for expected `STRICT_LOCK_ACTIVE` constraints to 
+  reduce console noise during valid domain-logic blocks.
+- Polished `CaptchaWaiverView` error handling, mapping expired sessions to 
+  clean UI messages instead of raw server errors.
 
-2. Deprecate Autonomous Harvesting in Backend Service
-- Disabled the `harvestConditionPresets` background loop within the `createInternal` and `updateInternal` Convex services.
-- Locations and Digital Blocks are no longer silently pushed to the user's Preset Library on every commit save.
-- Added [ARCHITECTURE SHIFT] commentary to document that Preset creation is now an explicit, user-driven action via the Preset Hub to prevent database clutter.
-- Verified that the `refreshAccountabilityIdentity` engine (Smart Pre-fill) remains fully operational.
+Typography & Design System:
+- Refactored `presets.tsx` to replace raw React Native text with centralized 
+  `HeaderTitle`, `BodyText`, and `FooterText` components.
+- Adjusted Preset Card typography: increased title sizing to `text-lg` and 
+  standardized subtexts for better information hierarchy.
+- Updated `BottomBar.tsx` to use `HeaderTitle` for tab labels with a high-contrast 
+  color palette (Brand Blue for focused state, Pure White for inactive state).

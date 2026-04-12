@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from "react";
-import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, Text, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, ScrollView, ActivityIndicator, Image, Pressable, ImageErrorEventData, NativeSyntheticEvent, TouchableOpacity, useWindowDimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { withUniwind } from "uniwind";
 import { useQuery, useMutation } from "convex/react";
@@ -7,7 +7,7 @@ import { api } from "@commit/backend/convex/_generated/api";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { TabsBar } from "@/components/ui/blocklist";
-import { BodyText } from "@/components/ui/text";
+import { BodyText, HeaderTitle, FooterText } from "@/components/ui/text";
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 import { ActionMenu } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
@@ -480,12 +480,12 @@ function LocationPresetCard({
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1 mr-4 overflow-hidden">
-          <BodyText className="text-white text-base" numberOfLines={1}>
+          <HeaderTitle className="text-lg">
             {preset.address || "Unnamed Location"}
-          </BodyText>
-          <BodyText className="text-gray-400 text-sm mt-1">
+          </HeaderTitle>
+          <FooterText className="text-sm">
             Within {preset.radius}m · Used {preset.usage_count}x
-          </BodyText>
+          </FooterText>
         </UView>
 
         <UView 
@@ -562,10 +562,10 @@ function DigitalPresetCard({
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1">
-          <BodyText className="text-white text-base">{displayName}</BodyText>
-          <BodyText className="text-gray-400 text-sm mt-1">
+          <HeaderTitle className="text-lg">{displayName}</HeaderTitle>
+          <FooterText className="text-sm">
             Used {preset.usage_count}x
-          </BodyText>
+          </FooterText>
         </UView>
 
         <UView 
@@ -601,9 +601,9 @@ function DigitalPresetCard({
                   <MaterialCommunityIcons name="apps" size={20} color="#666" />
                 </UView>
               )}
-              <Text style={{ color: '#6B7280', fontSize: 10, marginTop: 4, maxWidth: 64 }} numberOfLines={1}>
+              <BodyText className="text-[#6B7280] text-[10px] mt-1 max-w-[64px] text-center" numberOfLines={1}>
                 {app.name}
-              </Text>
+              </BodyText>
             </UView>
           ))}
         </ScrollView>
@@ -637,12 +637,12 @@ function RulePresetCard({
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1 mr-4 overflow-hidden">
-          <Text className="text-white text-base" numberOfLines={1}>
+          <HeaderTitle className="text-lg">
             {preset.title || preset.name}
-          </Text>
-          <BodyText className="text-gray-400 text-sm mt-1">
+          </HeaderTitle>
+          <FooterText className="text-sm">
             {isStay ? "Continuous Guard" : "Arrival Check"} · Used {preset.usage_count || 0}x
-          </BodyText>
+          </FooterText>
         </UView>
 
         <UView 
