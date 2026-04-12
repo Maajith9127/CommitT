@@ -374,15 +374,21 @@ export function useEventDetail(): EventDetailState {
     if (!currentEvent?._id) return;
     setIsLocking(true);
     
-    const context = { instanceId: currentEvent._id, end: currentEvent.end };
+    const STRICT_MODE_BUFFER_MS = 30000;
+    const strictUntilWithBuffer = currentEvent.end + STRICT_MODE_BUFFER_MS;
+    
+    const context = { instanceId: currentEvent._id, strictUntil: strictUntilWithBuffer };
     const orchestrator = new TripleWriteOrchestrator(context);
 
     orchestrator
       .addStep("Cloud Lock", async (ctx) => {
-          await updateInstanceMutation({ id: ctx.instanceId as any, strict_until: ctx.end, is_manual_edit: true });
+          // [DISTRIBUTED SYSTEMS PATTERN: Lease Extension]
+          // The 30s buffer ensures Convex has adequate time to independently execute
+          // the 'runVerification' heartbeat before the UI officially un-freezes.
+          await updateInstanceMutation({ id: ctx.instanceId as any, strict_until: ctx.strictUntil, is_manual_edit: true });
       })
       .addStep("Disk Lock", async (ctx) => {
-          await updateInstanceInLocalDb(db, ctx.instanceId, { strict_until: ctx.end, is_manual_edit: true });
+          await updateInstanceInLocalDb(db, ctx.instanceId, { strict_until: ctx.strictUntil, is_manual_edit: true });
       })
       .addStep("Hardware Lock", async () => {
           scheduleNextAlarm();

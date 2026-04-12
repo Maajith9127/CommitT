@@ -73,8 +73,7 @@ export async function armAccountabilityContract(
 ) {
   if (!instance.penalty || !instance.penalty_waiver) return;
 
-  // const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
-  const deadlineMs = 5 * 1000; // HARDCODED: 5 seconds for testing
+  const deadlineMs = instance.penalty_waiver.deadline_minutes * 60 * 1000;
   const expiresAt = baseTime + deadlineMs;
 
   // Cleanup existing jobs to prevent duplicate enforcement (Safety Guard)
@@ -92,7 +91,12 @@ export async function armAccountabilityContract(
   // Deploy the Challenge Vault
   const challenges = await initializeWaiverChallenges(ctx, instance);
 
-  await ctx.db.patch(instance._id, {
+  // [DISTRIBUTED SYSTEMS PATTERN: Dynamic Lease Extension]
+  // If the instance was protected by the Steel Vault, we MUST dynamically extend 
+  // the Vault's lock-duration to cover the entire penalty session + 30s buffer. 
+  // Otherwise, the user could simply delete the event and cheat the penalty 
+  // once the original time-lock expires mid-session.
+  const patchData: any = {
     status: "waiver_active",
     enforcement_job_id: enforcementJobId,
     waiver_state: {
@@ -101,7 +105,14 @@ export async function armAccountabilityContract(
       expires_at: expiresAt,
       challenges, 
     }
-  });
+  };
+
+  if (instance.strict_until) {
+    const STRICT_MODE_BUFFER_MS = 30000;
+    patchData.strict_until = expiresAt + STRICT_MODE_BUFFER_MS;
+  }
+
+  await ctx.db.patch(instance._id, patchData);
 
   console.log(`[armAccountabilityContract] Accountability Armed for ${instance._id}. Expiration: ${new Date(expiresAt).toISOString()}`);
 }

@@ -350,12 +350,17 @@ export async function activateStrictModeInternal(
     .collect();
 
   let lockedCount = 0;
+  const STRICT_MODE_BUFFER_MS = 30000;
+
   for (const inst of instances) {
     // We only lock instances that BEGIN before the strict window expires.
     // If a task starts on Day 6 and Strict Mode is for 7 days, it gets locked.
     if (inst.start < strictUntil && inst.status === "pending") {
+      // [DISTRIBUTED SYSTEMS PATTERN: Lease Extension]
+      // 30s buffer provides a safe execution window for the Verification Heartbeat 
+      // preventing UI race conditions before 'waiver_active' grabs state control.
       await ctx.db.patch(inst._id, {
-        strict_until: inst.end, // Lock until the specific slot is completed
+        strict_until: inst.end + STRICT_MODE_BUFFER_MS, 
         is_manual_edit: true,   // Protect from generic rescheduling purges
       });
       lockedCount++;

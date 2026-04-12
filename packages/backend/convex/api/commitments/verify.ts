@@ -91,7 +91,7 @@ export default authedMutation({
       .first();
 
     // ─────────────────────────────────────────────────────────────────────────────
-    // 🔥 THE GHOST DUPLICATE / OVERLAP FIX:
+    //  THE GHOST DUPLICATE / OVERLAP FIX:
     // We relaxed the strict `instanceId` match. If two tasks somehow overlap or run
     // at the EXACT same millisecond, they effectively tie for "first place". 
     // This allows the user to click and verify either of them without the backend
