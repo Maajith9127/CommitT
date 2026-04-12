@@ -1,22 +1,16 @@
-feat(ui/ux): harden accountability guards and unify design system typography
+feat(navigation): implement native ripples and map contextual header icons
 
-Implemented a robust, state-based security layer for commitment deletion and 
-standardized typography Across the Presets Hub and Navigation layers.
+This commit focuses on standardizing interactive navigation feedback and polishing layout metadata across the main application views.
 
-Accountability & Deletion Security:
-- Hardened `deleteInstance` logic to prevent deletion during 'pending', 'proceeding', 
-  'waiver_active', or 'penalized' states when Strict Mode is active.
-- Integrated `ConfirmationModal` into the deletion and calendar-resize flows 
-  to provide friendly "Vault Active" feedback with dynamic unlock timestamps.
-- Silenced system-level logging for expected `STRICT_LOCK_ACTIVE` constraints to 
-  reduce console noise during valid domain-logic blocks.
-- Polished `CaptchaWaiverView` error handling, mapping expired sessions to 
-  clean UI messages instead of raw server errors.
+Navigation & Interactions:
+- Refactored `BottomBar.tsx` to use React Native's `Pressable` API instead of `TouchableOpacity`.
+- Implemented a high-visibility, native `android_ripple` (opacity 0.4, borderless) on bottom tab icons for immediate tactile feedback.
 
-Typography & Design System:
-- Refactored `presets.tsx` to replace raw React Native text with centralized 
-  `HeaderTitle`, `BodyText`, and `FooterText` components.
-- Adjusted Preset Card typography: increased title sizing to `text-lg` and 
-  standardized subtexts for better information hierarchy.
-- Updated `BottomBar.tsx` to use `HeaderTitle` for tab labels with a high-contrast 
-  color palette (Brand Blue for focused state, Pure White for inactive state).
+Header Contextualization:
+- Updated the `getHeaderConfig` in `(main)/_layout.tsx` to render screen-specific Material Icons.
+- The `Presets` tab now displays the `tune` icon.
+- The `Profile` tab now displays the `account-outline` icon.
+
+Layout Refinements:
+- Tightened vertical rhythm in `profile.tsx` by removing excessive `mb-4` margin layers around the 'Account' and 'Customize' sections.
+- Reduced the primary identity block margin (`mb-10` -> `mb-6`), successfully anchoring the scrollable content closer to the top avatar circle.

@@ -99,7 +99,7 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* ── USER IDENTITY OVERVIEW ── */}
-      <UView className="items-center mb-10 mt-2">
+      <UView className="items-center mb-6 mt-2">
         <UView className="w-28 h-28 rounded-full bg-[#1A1A1A] items-center justify-center border-2 border-[#333] overflow-hidden mb-4">
           {user?.image ? (
             <Image source={{ uri: user.image }} style={{ width: '100%', height: '100%' }} />
@@ -116,21 +116,21 @@ export default function ProfileScreen() {
       </UView>
 
       {/* ── ACCOUNT SECTION ── */}
-      <UView className="mb-4">
-        <HeaderTitle className="mb-4 text-2xl font-bold text-white">Account</HeaderTitle>
+      <UView className="mb-1">
+        <HeaderTitle className="mb-2 text-2xl font-bold text-white">Account</HeaderTitle>
       </UView>
       <SettingsToggleCard
-        className="mb-8"
+        className="mb-6"
         // @ts-ignore - Ignoring strict type checking in case the component signature has a slightly different property set for select items
         items={accountItems}
       />
 
       {/* ── CUSTOMIZE SECTION ── */}
-      <UView className="mb-4">
-        <HeaderTitle className="mb-4 text-2xl font-bold text-white">Customize</HeaderTitle>
+      <UView className="mb-1">
+        <HeaderTitle className="mb-2 text-2xl font-bold text-white">Customize</HeaderTitle>
       </UView>
       <SettingsToggleCard
-        className="mb-8"
+        className="mb-6"
         // @ts-ignore
         items={customizeItems}
       />

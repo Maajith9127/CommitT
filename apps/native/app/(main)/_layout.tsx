@@ -138,9 +138,9 @@ export default function MainLayout() {
     }
     
     if (pathname.includes("/calendar")) return { title: "Calendar", icon };
-    if (pathname.includes("/presets")) return { title: "Presets", icon };
+    if (pathname.includes("/presets")) return { title: "Presets", icon: "tune" };
     if (pathname.includes("/notifications")) return { title: "Alerts", icon: "bell-ring-outline" };
-    if (pathname.includes("/profile")) return { title: "Profile", icon };
+    if (pathname.includes("/profile")) return { title: "Profile", icon: "account-outline" };
     
     // Fallback default is the main Commits screen
     return { title: "CommitTs", icon };
