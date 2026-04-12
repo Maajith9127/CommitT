@@ -1,9 +1,9 @@
-feat: implement robust Samsung-optimized 'Purge & Lock' neutralization sequence
+feat(security): integrate full Android Device Administrator enforcement
 
-- Refactored escalation logic to perform a 3-phase security sequence:
-  1. Instant zoom-out to Recent Apps tray (GLOBAL_ACTION_RECENTS).
-  2. Programmatic click of "Close all" button via recursive accessibility node scanning.
-  3. Delayed hardware screen lock (3500ms) to ensure full background purge.
-- Added intelligent parent-traversal click logic to handle OEM-specific button containers.
-- Implemented a 5-second escalation cooldown to prevent loops during UI transitions.
-- Optimized for Samsung OneUI "Close all" semantics with broad fuzzy-matching fallbacks.
+Implemented an 8-tier hardware security gate by integrating Device Administrator privileges to prevent unauthorized app removal.
+
+- Native (Android): Registered 'BlockerDeviceAdminReceiver' and implemented 'isAdminActive' check in EnforcementModule.kt.
+- Native (Samsung/OneUI): Optimized settings redirect to target the 'Device Admin Apps' list directly via explicit ComponentName intent.
+- Hook (usePermissions): Integrated 'admin' status into the reactive auditing engine.
+- UI (Permissions): Added a new interactive permission card for Device Admin with real-time state synchronization.
+- Enforcement: Hardened the 'Commit' gate in final.tsx and the main dashboard warning to strictly require Admin activation before allowing users to bind new commitments.

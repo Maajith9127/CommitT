@@ -160,7 +160,8 @@ export default function CommitsScreen() {
       permissions.alarms &&
       permissions.overlay &&
       permissions.accessibility &&
-      permissions.battery;
+      permissions.battery &&
+      permissions.admin;
 
     if (!isReady && isWarmupComplete && !isPermissionsLoading) {
       items.push({ type: "permission_missing" as const, subId: "permissions" });

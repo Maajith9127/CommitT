@@ -340,7 +340,9 @@ export default function FinalScreen() {
       permissions.notifications &&
       permissions.alarms &&
       permissions.overlay &&
-      permissions.accessibility;
+      permissions.accessibility &&
+      permissions.battery &&
+      permissions.admin;
 
     if (!isReady) {
        console.warn("[final.tsx] Hardware Gate Intervention: Redirecting to permissions audit.");
