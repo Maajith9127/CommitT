@@ -1,19 +1,9 @@
-feat(ui): synchronize and upscale configuration iconography
+feat(ui): render waived events in success green on schedules
 
-Synchronized the visual language between the commitment creation flow 
-and the rule preset editor while standardizing icon metrics across the app.
+Updated the calendar event mapping logic to treat the 'waived' status 
+as a resolved success state.
 
-Structural & Visual Updates:
-- Upscaled global setting icons from 26px to 30px in `SettingsToggleCard` 
-  and `ConfigSection` to achieve 1:1 parity with primary ConditionCards.
-- Unified iconography in `edit-rule-preset.tsx` to match the creation flow, 
-  adding previously missing icons for Verification Style and Alarm settings.
-- Standardized left-column alignment with a 42px "Icon Slot" (30px icon + 
-  12px margin), ensuring perfect vertical rhythm across all detail rows.
-- Renamed "Commitment Style" to "Commitment Type" for terminology 
-  consistency across the application.
-- Synchronized label formatting to use consistent shorthand (e.g., "-15m" 
-  and "Every 2m") across all configuration screens.
-
-This ensures a high-fidelity, premium feeling where every setting row 
-carries the same visual weight and alignment regardless of the context.
+- Modified `useCalendarEvents.ts` to map `waived` instances to the same 
+  success green (`#4CD964`) used for verified completions.
+- Improves at-a-glance feedback by clearly distinguishing between 
+  penalized (red) and successfully cleared (green) commitments.

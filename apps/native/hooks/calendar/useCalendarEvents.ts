@@ -47,7 +47,7 @@ export function useCalendarEvents() {
 
       // Determine the calendar block color based on effective status
       let eventColor = taskColorMap.get(inst.task_id) || TASK_COLORS[0];
-      if (effectiveStatus === "proceeded") {
+      if (effectiveStatus === "proceeded" || effectiveStatus === "waived") {
         eventColor = "#4CD964"; // success green
       } else if (effectiveStatus === "failed" || effectiveStatus === "penalized") {
         eventColor = "#FF3B30"; // danger red
