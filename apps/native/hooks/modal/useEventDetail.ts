@@ -309,20 +309,43 @@ export function useEventDetail(): EventDetailState {
   const confirmDelete = useCallback(async () => {
     if (!selectedTaskId) return;
     setIsDeleting(true);
+
+    const handleStrictError = () => {
+       const strictUntil = currentEvent?.strict_until;
+       let lockedTime = 'its end time';
+       if (strictUntil) {
+           const d = new Date(strictUntil);
+           const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+           const h = d.getHours() % 12 || 12;
+           const mn = d.getMinutes().toString().padStart(2, '0');
+           const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+           lockedTime = `${h}:${mn} ${ampm}, ${m} ${d.getDate()}`;
+       }
+       setFailureModal({ visible: true, title: `Vault is Active.\nCannot be deleted until ${lockedTime}.`, message: '' });
+    };
+
     try {
       const result = await deleteInstance(selectedTaskId);
       if (result.success) {
         setDeleteConfirmVisible(false);
         handleClose();
       } else {
-        setFailureModal({ visible: true, title: (result as any).error || "Action Refused", message: '' });
+        if (String((result as any).error).includes('STRICT_LOCK_ACTIVE')) {
+            handleStrictError();
+        } else {
+            setFailureModal({ visible: true, title: (result as any).error || "Action Refused", message: '' });
+        }
       }
-    } catch (err) {
-      setFailureModal({ visible: true, title: parseError(err), message: '' });
+    } catch (err: any) {
+      if (String(err?.message || err).includes('STRICT_LOCK_ACTIVE')) {
+          handleStrictError();
+      } else {
+          setFailureModal({ visible: true, title: parseError(err), message: '' });
+      }
     } finally {
       setIsDeleting(false);
     }
-  }, [selectedTaskId, deleteInstance, handleClose]);
+  }, [selectedTaskId, deleteInstance, handleClose, currentEvent]);
 
   const handleStartWaiver = useCallback(async () => {
     if (!currentEvent?._id) return;

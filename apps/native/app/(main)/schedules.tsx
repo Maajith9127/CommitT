@@ -238,6 +238,19 @@ export default function SchedulesScreen() {
                     overlapMessage: message,
                     isLoading: false,
                 }));
+             } else if (String(execution.error).includes('STRICT_LOCK_ACTIVE')) {
+                 const strictUntil = dragConfirm.event?.strict_until || dragConfirm.event?.originalData?.strict_until;
+                 const lockedTime = strictUntil 
+                     ? dayjs(strictUntil).format('h:mm A, MMM D') 
+                     : 'its end time';
+
+                 setDragConfirm(prev => ({ 
+                    ...prev, 
+                    visible: true, 
+                    isOverlapError: true, // Triggers singleButton mode
+                    overlapMessage: `Vault is Active. Cannot be modified until ${lockedTime}.`,
+                    isLoading: false,
+                }));
              } else {
                 Alert.alert("Temporal Shift Error", execution.error || "Synchronizer aborted.");
                 setDragConfirm({ visible: false, isLoading: false });

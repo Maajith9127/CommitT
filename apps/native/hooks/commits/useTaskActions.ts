@@ -160,10 +160,16 @@ export function useTaskActions() {
 
     try {
         const execution = await orchestrator.execute();
-        if (!execution.success) Logger.error(`[InstanceSaga] Execution Failed for ${instanceConvexId}`, execution.error);
+        if (!execution.success) {
+            if (!String(execution.error).includes('STRICT_LOCK_ACTIVE')) {
+                Logger.error(`[InstanceSaga] Execution Failed for ${instanceConvexId}`, execution.error);
+            }
+        }
         return { success: execution.success, error: execution.error };
     } catch (e: any) {
-        Logger.error(`[InstanceSaga] CATASTROPHIC FAILURE for ${instanceConvexId}`, e);
+        if (!String(e.message).includes('STRICT_LOCK_ACTIVE')) {
+            Logger.error(`[InstanceSaga] CATASTROPHIC FAILURE for ${instanceConvexId}`, e);
+        }
         return { success: false, error: e.message || "Instance Deletion Engine crashed." };
     }
   }, [removeInstanceMutation, db]);
