@@ -1,16 +1,18 @@
-feat(navigation): implement native ripples and map contextual header icons
+fix(sync): implement background resilience and SQLite self-healing
 
-This commit focuses on standardizing interactive navigation feedback and polishing layout metadata across the main application views.
+Resolved critical 'ERR_ACCESS_CLOSED_RESOURCE' failures and Convex WebSocket 
+timeouts observed in production release builds caused by aggressive Android 
+resource reclamation.
 
-Navigation & Interactions:
-- Refactored `BottomBar.tsx` to use React Native's `Pressable` API instead of `TouchableOpacity`.
-- Implemented a high-visibility, native `android_ripple` (opacity 0.4, borderless) on bottom tab icons for immediate tactile feedback.
+Resilience Architecture:
+- Implemented `AppState` foreground detection to automatically trigger state 
+  reconciliation whenever the user returns to the application.
+- Engineered a robust SQLite health-check loop that retries connection probes 
+  up to 3 times with a 1.5s delay to survive OS-level handle invalidation.
+- Introduced a 10-second debounce guard and a mutex-based execution lock 
+  (`isSyncingRef`) to prevent redundant sync cycles and race conditions.
+- Enhanced version mismatch recovery logic to force a clean handshake 
+  immediately following backend redeployments.
 
-Header Contextualization:
-- Updated the `getHeaderConfig` in `(main)/_layout.tsx` to render screen-specific Material Icons.
-- The `Presets` tab now displays the `tune` icon.
-- The `Profile` tab now displays the `account-outline` icon.
-
-Layout Refinements:
-- Tightened vertical rhythm in `profile.tsx` by removing excessive `mb-4` margin layers around the 'Account' and 'Customize' sections.
-- Reduced the primary identity block margin (`mb-10` -> `mb-6`), successfully anchoring the scrollable content closer to the top avatar circle.
+This architecture ensures the local-cloud bridge remains consistent even after 
+prolonged backgrounding or OS-level memory pressure.

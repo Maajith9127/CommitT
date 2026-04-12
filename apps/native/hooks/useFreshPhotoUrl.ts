@@ -4,7 +4,7 @@ import { api } from "@commit/backend/convex/_generated/api";
 
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  useFreshPhotoUrl — The "Auto-Refill" Logic                                 ║
+ * ║  useFreshPhotoUrl — The "Auto-Refill" Logic                                  ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
  * ║                                                                              ║
  * ║  PROBLEM: Convex Storage URLs (signed URLs) expire after 1 hour by default.  ║
@@ -14,8 +14,8 @@ import { api } from "@commit/backend/convex/_generated/api";
  * ║  SOLUTION: This hook acts as a reactive gateway.                             ║
  * ║  1. It takes a `storageId` and an optional (possibly expired) `photoUrl`.    ║
  * ║  2. If the `photoUrl` is missing or we're in a fresh session, it calls       ║
- * ║     `getTempUrl` to fetch a new valid 1-hour token.                         ║
- * ║  3. It returns the fresh URL for immediate rendering in `<Image />`.        ║
+ * ║     `getTempUrl` to fetch a new valid 1-hour token.                          ║
+ * ║  3. It returns the fresh URL for immediate rendering in `<Image />`.         ║
  * ║                                                                              ║
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */

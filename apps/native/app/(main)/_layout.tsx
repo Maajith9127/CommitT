@@ -15,6 +15,7 @@ import { EventDetailModal } from "@/components/ui/modal/EventDetailModal";
 import { useUpcomingVerification } from "@/hooks/commits/useUpcomingVerification";
 import { useState } from "react";
 import dayjs from "dayjs";
+import { Logger } from "@/lib/logger";
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);

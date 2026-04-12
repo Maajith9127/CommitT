@@ -143,8 +143,11 @@ function DbDebugFab() {
       console.log('─── 🗃️ ALL TASK INSTANCES (PRETTY) ───');
       console.log(JSON.stringify(allInstances, null, 2));
       console.log('──────────────────────────────────────');
-
       console.log(`📦 Local DB Data: ${enhancedTasks.length} tasks, ${allInstances.length} instances total.`);
+
+      console.log('\n\n=== PERSISTENT LOGS START ===');
+      console.log(logs);
+      console.log('=== PERSISTENT LOGS END ===\n\n');
     } catch (e) {
       Alert.alert('DB Error', String(e));
     }
