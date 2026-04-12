@@ -388,12 +388,20 @@ export const BlocklistSection = ({ event, onPress }: { event: any; onPress?: () 
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONFIG SECTION — Behavioral DNA
+// CONFIG SECTION — Behavioral DNA Layer
 // ─────────────────────────────────────────────────────────────────────────────
-// Renders the commitment's operational configuration (verification style,
-// alarm schedule, grace period) as standard InfoSection rows at the bottom
-// of the EventDetailModal. This keeps the Time section focused purely on
-// temporal data while surfacing the "How" of the commitment here.
+// Renders the commitment's underlying operational configuration (verification 
+// style, alarm schedule, and grace period) as a distinct set of rows.
+//
+// DESIGN PHILOSOPHY:
+//   This section surfaces the "Protocol" or "DNA" of the commitment. By using 
+//   a horizontal 'Label-Right-Value-Left' pattern, we maintain high density 
+//   without vertical clutter. 
+//
+// ALIGNMENT NOTE:
+//   All icons are set to size 28 with a 12px margin. This satisfies the 40px 
+//   standardized left-column "Slot" established by the Hero Clock in the 
+//   neighboring Time section, ensuring perfect vertical alignment across components.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const ConfigSection = ({ event }: { event: any }) => {
@@ -431,27 +439,9 @@ export const ConfigSection = ({ event }: { event: any }) => {
         </UView>
       )}
 
-      {/* Alarm Configuration */}
-      {alarms && (
-        <UView className="flex-row items-center justify-between mb-6">
-          <UView className="flex-row items-center flex-1">
-            <MaterialCommunityIcons
-              name="alarm"
-              size={28}
-              color="#9CA3AF"
-              style={{ marginRight: 12 }}
-            />
-            <BodyText className="text-gray-300 text-base">Alarm</BodyText>
-          </UView>
-          <BodyText className="text-white text-base">
-            Every {alarms.interval_minutes}m • {alarms.lead_time_minutes}m lead
-          </BodyText>
-        </UView>
-      )}
-
       {/* Grace Period */}
       {graceMinutes > 0 && (
-        <UView className="flex-row items-center justify-between mb-2">
+        <UView className="flex-row items-center justify-between mb-6">
           <UView className="flex-row items-center flex-1">
             <MaterialCommunityIcons
               name="timer-sand"
@@ -463,6 +453,24 @@ export const ConfigSection = ({ event }: { event: any }) => {
           </UView>
           <BodyText className="text-white text-base">
             {graceMinutes}m buffer
+          </BodyText>
+        </UView>
+      )}
+
+      {/* Alarm Schedule */}
+      {alarms && (
+        <UView className="flex-row items-center justify-between mb-2">
+          <UView className="flex-row items-center flex-1">
+            <MaterialCommunityIcons
+              name="alarm"
+              size={28}
+              color="#9CA3AF"
+              style={{ marginRight: 12 }}
+            />
+            <BodyText className="text-gray-300 text-base">Alarm</BodyText>
+          </UView>
+          <BodyText className="text-white text-base">
+            Every {alarms.interval_minutes}m • {alarms.lead_time_minutes}m lead
           </BodyText>
         </UView>
       )}

@@ -106,7 +106,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
           nestedScrollEnabled={true}
           scrollEnabled={state.scrollEnabled}
         >
-          {/* ── Time Window (Live Timer) ── */}
+          {/* ── PRIMARY METADATA BLOCK (When → How → Where) ── */}
           <EventDetailTime
             start={state.currentEvent.start}
             end={state.currentEvent.end}
@@ -116,10 +116,10 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             strictUntil={state.currentEvent.strict_until}
           />
 
-          {/* ── Behavioral Config (Type, Alarms, Grace) ── */}
+          {/* Verification Protocol (Behavioral DNA) */}
           <ConfigSection event={state.currentEvent} />
 
-          {/* ── GPS Location (embedded Google Map) ── */}
+          {/* Navigation / Spatial Context */}
           <LocationSection
             event={state.currentEvent}
             onMapTouchStart={() => state.setScrollEnabled(false)}

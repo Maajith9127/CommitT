@@ -225,6 +225,12 @@ export function EventDetailTime({
         />
         <BodyText className="text-gray-300 text-base">India Standard Time</BodyText>
       </UView>
+      {/* ── Secondary Metadata ──────────────────────────────────────────────────
+           Note: Behavioral metadata (Alarms, Verify Style, Grace) is handled 
+           by the ConfigSection at the modal level to prevent vertical bloat 
+           in the live timer area. Only 'Strict Until' remains as it is 
+           temporally reactive. 
+           ────────────────────────────────────────────────────────────────── */}
 
       {/* Strict Mode Lock State */}
       {strictUntil && strictUntil > Date.now() && (
