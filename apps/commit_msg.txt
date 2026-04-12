@@ -1,21 +1,9 @@
-security(native): neutralize App Info and management bypass vectors
+feat: implement robust Samsung-optimized 'Purge & Lock' neutralization sequence
 
-Hardened the enforcement engine by closing a critical bypass vector 
-where users could Force Stop or Uninstall the application through 
-the Android system settings.
-
-Security Architecture Updates:
-- Implemented "App Management Detection" as Check #1 in the 5-tier 
-  Deep Security Audit within `BlockerAccessibilityService`.
-- Added heuristic detection for the co-occurrence of the "commit" 
-  identity alongside dangerous management lexicons (e.g., 'Force Stop', 
-  'Uninstall', 'Clear Data', 'Permissions').
-- Standardized the response for management tampering to use 
-  `escalateToDeviceLock`, performing a hardware-level neutralization 
-  by locking the OS and queuing the blocker overlay.
-- Renumbered and documented the audit sequence (App Info → 
-  Accessibility → Time Travel → Dev Tools → Device Admin) to maintain 
-  a scalable, maintainable security manifest.
-
-This ensures the "vault" remains truly restricted even if a user attempts 
-to use system-level tools to kill the background enforcement process.
+- Refactored escalation logic to perform a 3-phase security sequence:
+  1. Instant zoom-out to Recent Apps tray (GLOBAL_ACTION_RECENTS).
+  2. Programmatic click of "Close all" button via recursive accessibility node scanning.
+  3. Delayed hardware screen lock (3500ms) to ensure full background purge.
+- Added intelligent parent-traversal click logic to handle OEM-specific button containers.
+- Implemented a 5-second escalation cooldown to prevent loops during UI transitions.
+- Optimized for Samsung OneUI "Close all" semantics with broad fuzzy-matching fallbacks.
