@@ -133,8 +133,13 @@ export async function createInternal(ctx: MutationCtx, args: CreateArgs) {
   // ═══════════════════════════════════════════════════════════════════════
   // 5. ATOMIC PRESET HARVEST — Building the Habit Library
   // ═══════════════════════════════════════════════════════════════════════
+  // [ARCHITECTURE SHIFT] 
+  // Autonomous condition harvesting (locations & digital blocks) has been 
+  // suspended natively at the backend level. To maintain a clean, high-signal 
+  // Preset Library, creation & mutation of condition presets must now happen 
+  // explicitly via user-intent at the Dedicated Preset Hub.
   await refreshAccountabilityIdentity(ctx, args.assignee_id, args.penalty, args.penalty_waiver);
-  await harvestConditionPresets(ctx, args.assignee_id, args.conditions);
+  // await harvestConditionPresets(ctx, args.assignee_id, args.conditions);
 
   return { taskId };
 }
@@ -247,8 +252,11 @@ export async function updateInternal(ctx: MutationCtx, args: UpdateArgs) {
   // ═══════════════════════════════════════════════════════════════════════
   // 7. ATOMIC PRESET REFRESH — Update Habit Library
   // ═══════════════════════════════════════════════════════════════════════
+  // [ARCHITECTURE SHIFT]
+  // Background harvesting of conditions during mutations has been suspended 
+  // to prevent accidental pollution of the global Preset Vault.
   await refreshAccountabilityIdentity(ctx, existingTask.assignee_id, updates.penalty ?? existingTask.penalty, updates.penalty_waiver ?? existingTask.penalty_waiver);
-  await harvestConditionPresets(ctx, existingTask.assignee_id, updates.conditions ?? existingTask.conditions);
+  // await harvestConditionPresets(ctx, existingTask.assignee_id, updates.conditions ?? existingTask.conditions);
 }
 
 /**

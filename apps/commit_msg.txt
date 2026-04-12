@@ -1,21 +1,15 @@
-fix(native/blocker): resolve cyclic false-positive location blocks
+refactor(core/commitments): enforce strict slot overrides and disable autonomous preset harvest
 
-Calibrated the GPS staleness threshold to align with Android's background 
-location throttling logic. 
+This commit addresses two critical edge cases in the commitment creation pipeline, 
+focusing on data integrity and Preset Vault hygiene.
 
-Problem:
-Android OS restricts background GPS updates to roughly 20-second (20,000ms) 
-intervals. Our enforcement engine had a strict 10,000ms staleness threshold. 
-This caused a "logic loop" where users were incorrectly blocked for 
-~10 seconds of every 20-second cycle because the app considered the 
-location data "stale" before the next OS update arrived.
+1. Implement "Complete Override Policy" in Frontend Validation
+- Updated `taskDraft.ts` to smartly handle Behavioral Rule inheritance.
+- Empty time slots now safely inherit the global `verification_style`.
+- If a slot contains custom conditions (e.g. a localized GPS limit), it now strictly severs global inheritance and requires an explicit slot-level `ruleId`. This prevents mismatched structural behavior rules from bleeding into custom slots.
 
-Solution:
-- Increased `LOCATION_STALENESS_THRESHOLD_MS` from 10s to 30s.
-- This threshold accounts for the 20s background polling rate plus a 
-  10s hardware/processing buffer.
-- Added [STALENESS CALIBRATION PROTOCOL] documentation to the Kotlin 
-  source to ensure future maintainers understand the OS-level constraints.
-
-This maintains our "Fail-Closed" security posture while eliminating 
-annoying service interruptions during normal background tracking.
+2. Deprecate Autonomous Harvesting in Backend Service
+- Disabled the `harvestConditionPresets` background loop within the `createInternal` and `updateInternal` Convex services.
+- Locations and Digital Blocks are no longer silently pushed to the user's Preset Library on every commit save.
+- Added [ARCHITECTURE SHIFT] commentary to document that Preset creation is now an explicit, user-driven action via the Preset Hub to prevent database clutter.
+- Verified that the `refreshAccountabilityIdentity` engine (Smart Pre-fill) remains fully operational.

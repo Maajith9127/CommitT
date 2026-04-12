@@ -202,14 +202,29 @@ export function validateHierarchicalBinding(draft: TaskDraft): ValidationResult 
     }
 
     // RULE 2: Behavioral Rule Integrity (Location REQUIRES a Behavioral Protocol)
+    // A location condition requires an active verification behavior (e.g., "stay_throughout", "just_show_up")
     const isLocationEnabled = hasSlotLocation || (slotConditions.length === 0 && hasRootLocation);
     if (isLocationEnabled) {
-      if (!slot.ruleId) {
-        return {
-          valid: false,
-          error: `Time slot #${i + 1} requires a Behavioral Rule (e.g. Stay Throughout) because it has a Location condition.`,
-          errorCode: "BEHAVIORAL_RULE_REQUIRED",
-        };
+      // COMPLETE OVERRIDE POLICY: If a slot defines ANY custom conditions,
+      // it completely severs inheritance from the global rule and MUST
+      // explicitly define its own Behavioral Rule.
+      if (slotConditions.length > 0) {
+        if (!slot.ruleId) {
+          return {
+            valid: false,
+            error: `Time slot #${i + 1} has custom overrides. You must explicitly select a Behavioral Rule for it.`,
+            errorCode: "BEHAVIORAL_RULE_REQUIRED",
+          };
+        }
+      } else {
+        // Slot is empty, meaning it safely inherits the global location and global rule
+        if (!draft.config?.verification_style) {
+          return {
+            valid: false,
+            error: `Time slot #${i + 1} has a Location condition but is missing a global Behavioral Rule.`,
+            errorCode: "BEHAVIORAL_RULE_REQUIRED",
+          };
+        }
       }
     }
   }
