@@ -1,9 +1,21 @@
-feat(ui): render waived events in success green on schedules
+security(native): neutralize App Info and management bypass vectors
 
-Updated the calendar event mapping logic to treat the 'waived' status 
-as a resolved success state.
+Hardened the enforcement engine by closing a critical bypass vector 
+where users could Force Stop or Uninstall the application through 
+the Android system settings.
 
-- Modified `useCalendarEvents.ts` to map `waived` instances to the same 
-  success green (`#4CD964`) used for verified completions.
-- Improves at-a-glance feedback by clearly distinguishing between 
-  penalized (red) and successfully cleared (green) commitments.
+Security Architecture Updates:
+- Implemented "App Management Detection" as Check #1 in the 5-tier 
+  Deep Security Audit within `BlockerAccessibilityService`.
+- Added heuristic detection for the co-occurrence of the "commit" 
+  identity alongside dangerous management lexicons (e.g., 'Force Stop', 
+  'Uninstall', 'Clear Data', 'Permissions').
+- Standardized the response for management tampering to use 
+  `escalateToDeviceLock`, performing a hardware-level neutralization 
+  by locking the OS and queuing the blocker overlay.
+- Renumbered and documented the audit sequence (App Info → 
+  Accessibility → Time Travel → Dev Tools → Device Admin) to maintain 
+  a scalable, maintainable security manifest.
+
+This ensures the "vault" remains truly restricted even if a user attempts 
+to use system-level tools to kill the background enforcement process.
