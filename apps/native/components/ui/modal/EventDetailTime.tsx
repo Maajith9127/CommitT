@@ -228,16 +228,19 @@ export function EventDetailTime({
 
       {/* Strict Mode Lock State */}
       {strictUntil && strictUntil > Date.now() && (
-        <UView className="flex-row items-center mt-6">
-          <MaterialCommunityIcons
-            name="lock-outline"
-            size={24}
-            color="#9CA3AF"
-            style={{ marginRight: 16 }}
-          />
+        <UView className="flex-row items-center justify-between mt-6">
+          <UView className="flex-row items-center flex-1">
+            <MaterialCommunityIcons
+              name="lock-outline"
+              size={24}
+              color="#9CA3AF"
+              style={{ marginRight: 16 }}
+            />
+            <BodyText className="text-gray-300 text-base">Strict Until</BodyText>
+          </UView>
           <Animated.View style={{ opacity: opacityAnim }}>
-            <BodyText className="text-gray-300 text-base">
-              Till {dayjs(strictUntil).format('D MMM YYYY, h:mm a')}
+            <BodyText className="text-white text-base">
+              {dayjs(strictUntil).format('D MMM, h:mm a')}
             </BodyText>
           </Animated.View>
         </UView>

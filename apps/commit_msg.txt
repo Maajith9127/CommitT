@@ -1,18 +1,17 @@
-fix(sync): implement background resilience and SQLite self-healing
+feat(ui): implement behavioral manifest in EventDetailModal
 
-Resolved critical 'ERR_ACCESS_CLOSED_RESOURCE' failures and Convex WebSocket 
-timeouts observed in production release builds caused by aggressive Android 
-resource reclamation.
+Standardized the display of commitment "DNA" (type, alarms, and grace periods) 
+by decoupling operational configuration from the temporal view.
 
-Resilience Architecture:
-- Implemented `AppState` foreground detection to automatically trigger state 
-  reconciliation whenever the user returns to the application.
-- Engineered a robust SQLite health-check loop that retries connection probes 
-  up to 3 times with a 1.5s delay to survive OS-level handle invalidation.
-- Introduced a 10-second debounce guard and a mutex-based execution lock 
-  (`isSyncingRef`) to prevent redundant sync cycles and race conditions.
-- Enhanced version mismatch recovery logic to force a clean handshake 
-  immediately following backend redeployments.
+Visual Refinements:
+- Extracted Type, Alarm, and Grace metadata into a dedicated `ConfigSection` 
+  rendered immediately below the time window for better logical separation.
+- Implemented a clean horizontal layout (Label left, Value right) to maximize 
+  white space and improve readability on mobile screens.
+- Standardized icon metrics to `size={28}` and `margin={12}`, achieving 1:1 
+  visual parity with the primary countdown clock for a unified "Hero" column.
+- Mapped contextual icons: `bullseye-arrow`/`repeat` for Task Type, `alarm` 
+  for Schedule, and `timer-sand` for Grace buffer.
 
-This architecture ensures the local-cloud bridge remains consistent even after 
-prolonged backgrounding or OS-level memory pressure.
+This restructuring declutters the Timer section while ensuring critical 
+behavioral rules remain highly visible at the top of the detail drawer.

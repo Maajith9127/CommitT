@@ -386,3 +386,86 @@ export const BlocklistSection = ({ event, onPress }: { event: any; onPress?: () 
     </UView>
   );
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG SECTION — Behavioral DNA
+// ─────────────────────────────────────────────────────────────────────────────
+// Renders the commitment's operational configuration (verification style,
+// alarm schedule, grace period) as standard InfoSection rows at the bottom
+// of the EventDetailModal. This keeps the Time section focused purely on
+// temporal data while surfacing the "How" of the commitment here.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ConfigSection = ({ event }: { event: any }) => {
+  const config = event?.config;
+  if (!config) return null;
+
+  const verificationStyle = config.verification_style;
+  const alarms = config.alarms;
+  const graceMinutes = config.grace_period_minutes ?? 0;
+
+  // If there's literally nothing to show, hide the entire section
+  if (!verificationStyle && !alarms && graceMinutes === 0) return null;
+
+  return (
+    <UView className="p-6 border-b border-white/20">
+      {/* Verification Type */}
+      {verificationStyle && (
+        <UView className="flex-row items-center justify-between mb-6">
+          <UView className="flex-row items-center flex-1">
+            <MaterialCommunityIcons
+              name={verificationStyle === 'stay_throughout' ? 'repeat' : 'bullseye-arrow'}
+              size={28}
+              color="#9CA3AF"
+              style={{ marginRight: 12 }}
+            />
+            <BodyText className="text-gray-300 text-base">Type</BodyText>
+          </UView>
+          <BodyText className="text-white text-base">
+            {verificationStyle === 'stay_throughout'
+              ? 'Stay Throughout'
+              : verificationStyle === 'just_show_up'
+                ? 'Just Show Up'
+                : verificationStyle.replace(/_/g, ' ')}
+          </BodyText>
+        </UView>
+      )}
+
+      {/* Alarm Configuration */}
+      {alarms && (
+        <UView className="flex-row items-center justify-between mb-6">
+          <UView className="flex-row items-center flex-1">
+            <MaterialCommunityIcons
+              name="alarm"
+              size={28}
+              color="#9CA3AF"
+              style={{ marginRight: 12 }}
+            />
+            <BodyText className="text-gray-300 text-base">Alarm</BodyText>
+          </UView>
+          <BodyText className="text-white text-base">
+            Every {alarms.interval_minutes}m • {alarms.lead_time_minutes}m lead
+          </BodyText>
+        </UView>
+      )}
+
+      {/* Grace Period */}
+      {graceMinutes > 0 && (
+        <UView className="flex-row items-center justify-between mb-2">
+          <UView className="flex-row items-center flex-1">
+            <MaterialCommunityIcons
+              name="timer-sand"
+              size={28}
+              color="#9CA3AF"
+              style={{ marginRight: 12 }}
+            />
+            <BodyText className="text-gray-300 text-base">Grace</BodyText>
+          </UView>
+          <BodyText className="text-white text-base">
+            {graceMinutes}m buffer
+          </BodyText>
+        </UView>
+      )}
+    </UView>
+  );
+};

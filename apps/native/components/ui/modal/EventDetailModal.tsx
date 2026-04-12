@@ -37,7 +37,7 @@ import { useEventDetail } from '@/hooks/modal/useEventDetail';
 import { EventDetailHeader } from './EventDetailHeader';
 import { EventDetailTime } from './EventDetailTime';
 import { LocationSection } from './EventDetailLocation';
-import { PenaltySection, WaiverSection, BlocklistSection } from './EventDetailConditions';
+import { PenaltySection, WaiverSection, BlocklistSection, ConfigSection } from './EventDetailConditions';
 import { ActionMenu } from '@/components/ui/commits/ActionMenu';
 import { ConfirmationModal } from './ConfirmationModal';
 import { WaiverActionModal } from './WaiverActionModal';
@@ -115,6 +115,9 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
             checkpoints={(state.currentEvent as any).checkpoints}
             strictUntil={state.currentEvent.strict_until}
           />
+
+          {/* ── Behavioral Config (Type, Alarms, Grace) ── */}
+          <ConfigSection event={state.currentEvent} />
 
           {/* ── GPS Location (embedded Google Map) ── */}
           <LocationSection
