@@ -71,7 +71,8 @@ class EnforcementModule : Module() {
                 "camera" to cameraEnabled,
                 "notifications" to notificationsEnabled,
                 "alarms" to alarmsEnabled,
-                "battery" to isBatteryOptimizationDisabled(context)
+                "battery" to isBatteryOptimizationDisabled(context),
+                "admin" to isAdminActive(context)
             )
         }
 
@@ -159,5 +160,14 @@ class EnforcementModule : Module() {
         } else {
             true
         }
+    }
+
+    /**
+     * Checks if the application is currently an active Device Administrator.
+     */
+    private fun isAdminActive(context: Context): Boolean {
+        val dpm = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        val adminName = ComponentName(context.packageName, "expo.modules.blocker.BlockerDeviceAdminReceiver")
+        return dpm.isAdminActive(adminName)
     }
 }

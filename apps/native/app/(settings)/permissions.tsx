@@ -32,7 +32,7 @@ export default function PermissionsPage() {
   const batteryGranted = permissions.battery;
   const appearGranted = permissions.overlay;
   const accessibilityGranted = permissions.accessibility;
-  const adminGranted = false; // Step 1: UI Placeholder only
+  const adminGranted = permissions.admin;
 
   return (
     <UScroll showsVerticalScrollIndicator={false} className="flex-1 bg-black px-5 pt-12">

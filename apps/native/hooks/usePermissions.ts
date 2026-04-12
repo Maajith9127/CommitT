@@ -18,6 +18,7 @@ export interface PermissionStates {
   battery: boolean;
   overlay: boolean;
   accessibility: boolean;
+  admin: boolean;
 }
 
 /**
@@ -40,6 +41,7 @@ export function usePermissions() {
     battery: false,
     overlay: false,
     accessibility: false,
+    admin: false,
   });
 
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +49,7 @@ export function usePermissions() {
   /**
    * checkPermissions
    * 
-   * Executes a batch audit of all 7 system gates via the native EnforcementModule.
+   * Executes a batch audit of all 8 system gates via the native EnforcementModule.
    * This method is designed to be non-blocking, utilizing the AsyncFunction 
    * bridge to prevent UI jank during system-level lookups.
    */
@@ -64,6 +66,7 @@ export function usePermissions() {
         battery: results.battery,
         overlay: results.overlay,
         accessibility: results.accessibility,
+        admin: results.admin,
       });
     } catch (error) {
       console.error("[usePermissions] Error checking permission manifest:", error);
