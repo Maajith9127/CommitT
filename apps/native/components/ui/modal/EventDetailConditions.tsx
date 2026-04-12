@@ -399,9 +399,9 @@ export const BlocklistSection = ({ event, onPress }: { event: any; onPress?: () 
 //   without vertical clutter. 
 //
 // ALIGNMENT NOTE:
-//   All icons are set to size 28 with a 12px margin. This satisfies the 40px 
-//   standardized left-column "Slot" established by the Hero Clock in the 
-//   neighboring Time section, ensuring perfect vertical alignment across components.
+//   All icons are set to size 30 with a 12px margin. This satisfies the 42px 
+//   standardized left-column "Slot" established by the Hero UI, 
+//   ensuring perfect vertical alignment across components.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const ConfigSection = ({ event }: { event: any }) => {
@@ -423,7 +423,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
           <UView className="flex-row items-center flex-1">
             <MaterialCommunityIcons
               name={verificationStyle === 'stay_throughout' ? 'repeat' : 'bullseye-arrow'}
-              size={28}
+              size={30}
               color="#9CA3AF"
               style={{ marginRight: 12 }}
             />
@@ -445,7 +445,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
           <UView className="flex-row items-center flex-1">
             <MaterialCommunityIcons
               name="timer-sand"
-              size={28}
+              size={30}
               color="#9CA3AF"
               style={{ marginRight: 12 }}
             />
@@ -463,7 +463,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
           <UView className="flex-row items-center flex-1">
             <MaterialCommunityIcons
               name="alarm"
-              size={28}
+              size={30}
               color="#9CA3AF"
               style={{ marginRight: 12 }}
             />

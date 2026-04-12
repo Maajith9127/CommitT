@@ -39,7 +39,7 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
             >
               <UView className="flex-row items-center">
                 {item.icon && (
-                  <MaterialCommunityIcons name={item.icon} size={26} color="#4FA0FF" style={{ marginRight: 14 }} />
+                  <MaterialCommunityIcons name={item.icon} size={30} color="#4FA0FF" style={{ marginRight: 12 }} />
                 )}
                 <HeaderTitle className="text-lg text-white">
                   {item.title}
@@ -54,7 +54,7 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
             <UView className="flex-row items-center justify-between px-5 py-4 pt-5 pb-5">
               <UView className="flex-row items-center">
                 {item.icon && (
-                  <MaterialCommunityIcons name={item.icon} size={26} color="#4FA0FF" style={{ marginRight: 14 }} />
+                  <MaterialCommunityIcons name={item.icon} size={30} color="#4FA0FF" style={{ marginRight: 12 }} />
                 )}
                 <HeaderTitle className="text-lg text-white">
                   {item.title}

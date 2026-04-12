@@ -136,12 +136,13 @@ export default function EditRulePresetScreen() {
     }
   };
 
-  /** Schema for Protocol settings */
+  /** Schema for Protocol settings (Sync with final.tsx) */
   const commitmentSettingsItems = React.useMemo(() => [
     {
       id: "showUp",
       title: "Just Show Up",
       type: "toggle" as const,
+      icon: "account-check-outline",
       value: style === "just_show_up",
       onValueChange: (v: boolean) => {
         if (v) setStyle("just_show_up");
@@ -151,6 +152,7 @@ export default function EditRulePresetScreen() {
       id: "stayThroughout",
       title: "Stay Throughout",
       type: "toggle" as const,
+      icon: "timer-sand",
       value: style === "stay_throughout",
       onValueChange: (v: boolean) => {
         if (v) setStyle("stay_throughout");
@@ -160,6 +162,7 @@ export default function EditRulePresetScreen() {
       id: "intensity",
       title: "Check-In Intensity",
       type: "select" as const,
+      icon: "speedometer",
       disabled: style !== "stay_throughout",
       selectValue: style === "stay_throughout" 
         ? intensity.charAt(0).toUpperCase() + intensity.slice(1)
@@ -179,6 +182,7 @@ export default function EditRulePresetScreen() {
       id: "maxMissedCheckins",
       title: "Max Missed Check-ins",
       type: "select" as const,
+      icon: "alert-circle-outline",
       disabled: style !== "stay_throughout",
       selectValue: style === "stay_throughout" ? `${maxMissed}` : "N/A",
       onPress: () => {
@@ -196,8 +200,9 @@ export default function EditRulePresetScreen() {
       id: "grace",
       title: "Grace Period",
       type: "select" as const,
+      icon: "clock-fast",
       hidden: style === "stay_throughout",
-      selectValue: `${grace} mins`,
+      selectValue: `${grace}m`,
       onPress: () => setPicker({
         visible: true,
         title: "Grace Period",
@@ -208,13 +213,14 @@ export default function EditRulePresetScreen() {
     }
   ].filter(item => !(item as any).hidden), [style, intensity, maxMissed, grace]);
 
-  /** Schema for Alarm settings */
+  /** Schema for Alarm settings (Sync with final.tsx) */
   const alarmSettingsItems = React.useMemo(() => [
     {
       id: "alarmLeadTime",
       title: "Start Alarming",
       type: "select" as const,
-      selectValue: `${lead} mins before`,
+      icon: "bell-ring-outline",
+      selectValue: `-${lead}m`,
       onPress: () => setPicker({
         visible: true,
         title: "Start Alarming",
@@ -227,7 +233,8 @@ export default function EditRulePresetScreen() {
       id: "alarmInterval",
       title: "Alarm Frequency",
       type: "select" as const,
-      selectValue: `Every ${interval} mins`,
+      icon: "update",
+      selectValue: `${interval}m`,
       onPress: () => setPicker({
         visible: true,
         title: "Alarm Frequency",
@@ -240,6 +247,7 @@ export default function EditRulePresetScreen() {
       id: "alarmSound",
       title: "Alarm Music",
       type: "select" as const,
+      icon: "music-note-outline",
       selectValue: sound,
       onPress: () => setPicker({
         visible: true,
@@ -296,9 +304,9 @@ export default function EditRulePresetScreen() {
             />
           </View>
 
-          {/* Section: Commitment Style */}
+          {/* Section: Commitment Type */}
           <View className="mb-2">
-              <HeaderTitle>Commitment Style</HeaderTitle>
+              <HeaderTitle>Commitment Type</HeaderTitle>
           </View>
           <SettingsToggleCard
             className="mb-5"
