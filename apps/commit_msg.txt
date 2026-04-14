@@ -1,8 +1,11 @@
-ui(sync): standardize title-only aesthetic for all synchronization alerts
+fix(android): resolve native crash on Alarm trigger for Android 8-12
 
-- Refactored all error and success modals to utilize a "single-statement" title layout
-- Consolidated descriptive messages into the `title` prop and eliminated subtitle/message clutter
-- Removed redundant labels ("Forward-Healing", "Overlap Detected", "Shift Failed") in favor of direct status descriptions
-- Standardized `HealOverlay` to display dynamic healing progress as the primary bold title
-- Hardened `Alert.alert` calls to move descriptive subtext into the primary title argument
-- Fixed a structural `SyntaxError` in `BlocklistView.tsx` by properly closing the `processSave` async function
+Summary:
+Surgically patched the scheduler-module to address two critical failure points causing instant process crashes at alarm trigger time on specific OEM devices (e.g., Lenovo).
+
+Key Changes:
+- build.gradle: Added missing 'androidx.appcompat:appcompat' dependency to resolve Theme.AppCompat resource errors.
+- AlarmActivity.kt: Hardened the VibrationAttributes API guard by correctly targeting API 33 (Tiramisu). This prevents NoClassDefFoundError on devices running Android 8 through 12.
+
+Impact:
+Extends stable hardware alarm support to all devices from API 26 (Oreo) upwards, ensuring the "Forward-Heal" overlay fires reliably across different Android versions.

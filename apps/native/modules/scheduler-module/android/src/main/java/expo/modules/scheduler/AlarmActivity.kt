@@ -357,7 +357,7 @@ class AlarmActivity : Activity() {
             val vibrationPattern = longArrayOf(0, 500, 500)
 
             Log.d(TAG, "[SYSTEM ALERTS] Starting vibration pattern.")
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val vibrationAttributes = android.os.VibrationAttributes.Builder()
                     .setUsage(android.os.VibrationAttributes.USAGE_ALARM)
                     .build()
