@@ -142,6 +142,24 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
   };
 
   // ─── FINAL PERSISTENCE LOGIC ───────────────────────────────────────────────
+  /**
+   * @saga    BLOCKLIST_UPDATE_ORCHESTRATOR
+   * @desc    Synchronizes digital app/website blocklist changes across Cloud, Disk, and Hardware.
+   * @access  Internal (BlocklistView)
+   *
+   * Flow:
+   * 1. Cloud Sync: Update digital_commitment conditions in Convex.
+   * 2. Forward-Heal Loop (Step 1 Compensation):
+   *    - On device failure post-cloud success, enter blocking recovery.
+   *    - Pull fresh Delta Payload via Sync Engine.
+   *    - Refresh Native App Blocking Engine (scheduleNextAlarm).
+   * 3. Disk Sync: Update local blocklist cache in SQLite.
+   * 4. Hardware Sync: Force a native blocklist re-enforcement.
+   *
+   * Note:
+   * - Critical for preventing "Enforcement Leaks" where apps remain accessible after blocking.
+   * - Sync machines are infinite-retry to guarantee absolute compliance.
+   */
   const processSave = async () => {
     setIsSaving(true);
     

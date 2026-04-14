@@ -154,6 +154,23 @@ export default function SchedulesScreen() {
   // 2. SQLite (Local): Caches the updated instance for offline access.
   // 3. Kotlin (Hardware): Reschedules the underlying Android AlarmManager.
 
+  /**
+   * @saga    TEMPORAL_SHIFT_ORCHESTRATOR
+   * @desc    Synchronizes a drag-and-drop time update for a task instance across Cloud, Disk, and Hardware.
+   * @access  Internal (SchedulesScreen)
+   *
+   * Flow:
+   * 1. Cloud Sync: Send the new start/end times to Convex.
+   * 2. Forward-Heal Loop (Step 1 Compensation):
+   *    - If cloud succeeds but local update fails, enter blocking recovery.
+   *    - Pull fresh Delta Payload via Sync Engine.
+   *    - Realign Hardware Alarms.
+   * 3. Hardware Sync: Finalize the alarm shift on the device.
+   *
+   * Note:
+   * - Relies on the Sync Engine as the "Master Healer" to resolve local drift.
+   * - Prevents the phone from having stale alarms after a visual calendar move.
+   */
   const executeEventUpdate = useCallback(async () => {
     if (!dragConfirm.event || !dragConfirm.newStart || !dragConfirm.newEnd) return;
     

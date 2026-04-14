@@ -193,6 +193,27 @@ export function useCommitTask() {
 
   const { startHealing, stopHealing } = useHealStore();
 
+  /**
+   * @saga    TASK_CREATION_ORCHESTRATOR
+   * @desc    Coordinates the multi-stage creation or update of a commitment across Cloud, Disk, and Hardware.
+   * @access  Public (from wizard finalization)
+   *
+   * Flow:
+   * 1. Sanitize UI Data: Strip temporary local IDs from conditions.
+   * 2. Evaluate Penalties: Upload media assets (Voice/Video) to Convex storage if required.
+   * 3. Cloud Sync (Step 1): Execute Convex mutation to save the task and generate instances.
+   * 4. Forward-Heal Loop (Step 1 Compensation):
+   *    - If cloud succeeds but device fails, enter blocking retry loop.
+   *    - Wipe stale local instances.
+   *    - Pull fresh Delta Payload and ingest into SQLite.
+   *    - Realign Hardware Alarms.
+   * 5. Disk Sync (Step 2): Update the local SQLite mirror.
+   * 6. Hardware Sync (Step 3): Schedule the next OS-level alarm.
+   *
+   * Note:
+   * - Once Cloud confirmation is received, the operation is considered successful.
+   * - Infinite retry loop prevents "Split-Brain" states on flaky devices.
+   */
   return async function executeCommit(draft: TaskDraft, isEditMode: boolean): Promise<{ success: boolean; error: string | null }> {
     // 1. Sanitize UI Data for Backend
     const cleanedConditions: Omit<StoreCondition, "id">[] = draft.conditions.map((condition) => {
@@ -331,11 +352,11 @@ export function useCommitTask() {
                  
                  // 5. Success! Re-calculate hardware and break.
                  scheduleNextAlarm();
-                 console.log(`[HealLoop] ✅ Forward-Heal successful on attempt ${attempts}.`);
+                 console.log(`[HealLoop]  Forward-Heal successful on attempt ${attempts}.`);
                  break;
                  
                } catch (error) {
-                 console.error(`[HealLoop] ❌ Attempt ${attempts} failed:`, error);
+                 console.error(`[HealLoop]  Attempt ${attempts} failed:`, error);
                  // Wait 2 seconds before retrying
                  await new Promise(r => setTimeout(r, 2000));
                }

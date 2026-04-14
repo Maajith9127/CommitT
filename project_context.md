@@ -242,6 +242,35 @@ Resolved a critical ID leak in `local-db-instances.ts` where manual updates were
 
 ---
 
+## Synchronization: Imperial Forward-Heal (Cloud-First)
+
+In April 2026, the synchronization engine was migrated from a fragile "Revert-on-Failure" model to a robust **Imperial Forward-Heal** strategy. This architecture ensures that once the Convex Cloud confirms a mutation, the local device state is forcibly reconciled using a blocking retry loop that cannot be bypassed.
+
+### 1. Core Philosophy
+- **Cloud-as-Master**: If a write succeeds on Convex but fails on the device (Disk/Hardware), the system **never** rolls back the Cloud. Instead, it "Heals" the device.
+- **Infinite Retry Loop**: Recovery loops use a `while(true)` pattern with exponential backoff, preventing "Split-Brain" states where the device is out of sync with its enforcement rules.
+- **Global Gating**: The `HealOverlay` component blocks all user interaction during reconciliation, ensuring the device remains in a consistent state before allowing further input.
+
+### 2. Implementation Map (Hardened Files)
+
+| File Path | Role in Forward-Heal |
+| :--- | :--- |
+| [`useCommitTask.ts`](file:///wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts) | **Creation/Edit**: Triggers a `while(true)` heal loop if the task isn't cached locally after a successful Convex write. Performs a targeted wipe of the `task_id` before re-syncing. |
+| [`useTaskActions.ts`](file:///wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTaskActions.ts) | **Deletion**: Handles "Scorched Earth" eradication for both parent Tasks and individual Instances. Manually wipes SQLite rows by ID to prevent "Ghost" alarms. |
+| [`schedules.tsx`](file:///wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/(main)/schedules.tsx) | **Temporal Shifts**: Upgrades drag-and-drop moves to the Imperial model. Uses the Sync Engine to force the phone to capture the new event times. |
+| [`EventDetailLocation.tsx`](file:///wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailLocation.tsx) | **Geofence Pivots**: Forces the device to re-scan geofences and update local coordinates whenever a location is moved on the map. |
+| [`BlocklistView.tsx`](file:///wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/BlocklistView.tsx) | **Digital Enforcement**: Guarantees that the native Android blocking engine mirrors the Cloud blocklist immediately upon saving. |
+| [`useHealStore.ts`](file:///wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useHealStore.ts) | **UI State**: Manages the global `isHealing` state and provides localized status messages for the overlay spinner. |
+
+### 3. The "Heal Machine" Routine
+Every Forward-Heal loop follows this standardized protocol to guarantee eventual consistency:
+1. **Fetch Local Token**: Retrieve the current `last_synced_at` timestamp.
+2. **Delta Ingestion**: Call `getDeltaPayload` from Convex and run `ingestDeltaPayload` in an atomic SQLite transaction.
+3. **Hardware Realignment**: Force a call to `scheduleNextAlarm()` to ensure the native Android enforcer is aware of the state change.
+4. **Imperial Success Check**: The UI only returns `success: true` once the Cloud write is successful, as the background heal loop guarantees the device will eventually catch up.
+
+---
+
 ### Case Study: Granular Time-Slot Validation & "Sparse Master" Mode (April 2026)
 
 In April 2026, the commitment engine was refactored to support **Hierarchical Binding Validation**. This allows users to define specific enforcers (Location, App Blocking) for individual time slots, even if the top-level (Global) task conditions are empty.

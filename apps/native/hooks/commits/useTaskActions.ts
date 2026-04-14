@@ -51,6 +51,25 @@ export function useTaskActions() {
     router.push("/(create-commit)/final");
   }, [setDraft, router]);
 
+  /**
+   * @saga    TASK_ERADICATION_ORCHESTRATOR
+   * @desc    Performs a Cloud-First scorched-earth deletion of a parent commitment and all its dependencies.
+   * @access  Public (from delete confirm)
+   *
+   * Flow:
+   * 1. Cloud Eradication: Mark task as deleted in Convex.
+   * 2. Forward-Heal Loop (Step 1 Compensation):
+   *    - If cloud succeeds but device fails, enter blocking retry loop.
+   *    - Perform unified audit/wipe of local SQL rows (ghost prevention).
+   *    - Force-ingest fresh Delta Payload.
+   *    - Realign Hardware Alarms.
+   * 3. Disk Sync: Secondary local cleanup of auxiliary tables.
+   * 4. Hardware Sync: Final alarm system refresh.
+   *
+   * Note:
+   * - This is an Imperial Saga; once Cloud succeeds, the local device MUST follow.
+   * - Unified wipe targets unified Convex IDs, preventing orphaned alarms.
+   */
   const deleteTask = useCallback(async (taskId: string): Promise<{ success: boolean; error: string | null }> => {
     // ╔══════════════════════════════════════════════════════════════════════════════╗
     // ║  TASK DELETION SAGA                                                          ║
@@ -168,6 +187,25 @@ export function useTaskActions() {
   }, []);
 
   // Delete Individual Instance
+  /**
+   * @saga    INSTANCE_ERADICATION_ORCHESTRATOR
+   * @desc    Surgically removes a single temporal occurrence of a task from the calendar.
+   * @access  Public (from instance detail modal)
+   *
+   * Flow:
+   * 1. Cloud Instance Eradication: Delete specific taskInstance ID in Convex.
+   * 2. Forward-Heal Loop (Step 1 Compensation):
+   *    - Enter blocking retry loop on device failure.
+   *    - Manually purge the specific instance ID from SQLite.
+   *    - Ingest Delta Payload to ensure zero drift.
+   *    - Refresh Local Hardware Alarms.
+   * 3. Disk Sync: SQLite instance cache cleanup.
+   * 4. Hardware Sync: Individual alarm removal synchronization.
+   *
+   * Note:
+   * - Strictly uses the unified Convex ID for the "Surgical Wipe".
+   * - Prevents individual ghost events if cellular/database connection is flaky.
+   */
   const deleteInstance = useCallback(async (instanceConvexId: string): Promise<{ success: boolean; error: string | null }> => {
     // ╔══════════════════════════════════════════════════════════════════════════════╗
     // ║  INSTANCE DELETION SAGA                                                      ║

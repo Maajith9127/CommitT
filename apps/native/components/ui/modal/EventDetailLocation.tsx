@@ -106,6 +106,24 @@ export const LocationSection = React.memo(({
      * Finalizes the location pivot. Synchronizes the new geofence coordinates to 
      * Convex first (Strict Lock verification) then persists to the local vault.
      */
+    /**
+     * @saga    LOCATION_PIVOT_ORCHESTRATOR
+     * @desc    Synchronizes new geofence coordinates for a task instance across Cloud, Disk, and Hardware.
+     * @access  Internal (LocationSection)
+     *
+     * Flow:
+     * 1. Cloud Sync: Update geofence 'lat/lng' in Convex conditions.
+     * 2. Forward-Heal Loop (Step 1 Compensation):
+     *    - On device failure post-cloud success, enter blocking recovery.
+     *    - Ingest Delta Payload to pull new coordinates to SQLite.
+     *    - Realign Hardware Alarms (Geofence re-scan).
+     * 3. Disk Sync: Update local condition cache.
+     * 4. Hardware Sync: Force a hardware geofence refresh.
+     *
+     * Note:
+     * - Implementation uses the "Surgical Update" pattern for condition coordinates.
+     * - Prevents geofencing "Leaks" where the phone monitors the old location.
+     */
     const handleConfirmUpdate = async () => {
         if (!tempCoords) return;
         setIsUpdating(true);

@@ -1,9 +1,7 @@
-feat(sync): expand Imperial Forward-Heal strategy to all event-level sagas
+docs(sync): formalize Imperial Forward-Heal architecture and event-level sagas
 
-- Hardened `schedules.tsx` (Temporal Shifts) with infinite-retry recovery loops
-- Upgraded `useTaskActions.ts` to support Imperial Deletion of individual instances
-- Migrated `EventDetailLocation.tsx` (Geofence Pivots) to the Cloud-First model
-- Integrated Imperial Forward-Heal into `BlocklistView.tsx` for digital blocklist updates
-- Standardized recovery flow: Sync Engine (Delta Ingestion) + Hardware Alarm Re-alignment
-- Implemented global `HealOverlay` gating across all instance-level state transitions
-- Simplified recovery loops to rely strictly on Cloud source-of-truth, eliminating fragile manual patches
+- Integrated detailed JSDoc documentation (Flow/Note structure) to all 5 core saga files
+- Updated `project_context.md` with the official Imperial Synchronization protocol and file map
+- Finalized Forward-Heal logic for Instance Deletion, Location Pivots, and Blocklist updates
+- Hardened the "Surgical Wipe" logic to ensure zero-drift event removal from SQLite/Alarms
+- Standardized recovery machines to rely on Sync Engine Delta ingestion for ultimate consistency
