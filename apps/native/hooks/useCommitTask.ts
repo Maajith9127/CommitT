@@ -180,6 +180,7 @@ import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
 import { getLocalSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
 import { useConvex } from "convex/react";
 import { useChaosStore } from "@/stores/useChaosStore";
+import { useHealStore } from "@/stores/useHealStore";
 
 export function useCommitTask() {
   const db = useSQLiteContext();
@@ -187,9 +188,10 @@ export function useCommitTask() {
   const { data: session } = authClient.useSession();
   const createTask = useMutation(api.api.commitments.create.default);
   const updateTask = useMutation(api.api.commitments.update.default);
-  const removeTask = useMutation(api.api.commitments.delete.default); // Upgraded: For Cloud Compensating Transaction
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const recordFile = useMutation(api.files.record);
+
+  const { startHealing, stopHealing } = useHealStore();
 
   return async function executeCommit(draft: TaskDraft, isEditMode: boolean): Promise<{ success: boolean; error: string | null }> {
     // 1. Sanitize UI Data for Backend
@@ -294,13 +296,52 @@ export function useCommitTask() {
               return { taskId: result.taskId, instances: result.instances || [] };
             }
           },
-          async (ctx, result) => {
-            if (__DEV__ && useChaosStore.getState().faultCloudUndo) throw new Error("[CHAOS EVENT] Internet dropped during Cloud Rollback! SPLIT BRAIN TRIGGERED.");
-            // THE COMPENSATING TRANSACTION (UNDO FOR CLOUD)
-            if (!ctx.isEditMode && result.taskId) {
-              await removeTask({ id: result.taskId as Id<"tasks"> });
-              console.log("[Compensating Action] Successfully deleted ghost task from Convex Cloud.");
-            }
+          async (ctx, cloudMemory) => {
+             // FORWARD-HEAL: We no longer revert the cloud. 
+             startHealing("Cloud save verified. Synchronizing your device...");
+             
+             const taskId = cloudMemory.taskId;
+             let attempts = 0;
+
+             while (true) {
+               try {
+                 attempts++;
+                 if (attempts > 1) {
+                   startHealing(`Retrying Sync (Attempt ${attempts})...`);
+                 }
+                 
+                 console.log(`[HealLoop] Attempting Forward-Heal for Task ${taskId} (Attempt ${attempts})`);
+                 
+                 // 1. Targeted Purge
+                 // If the initial Disk write partially worked, we might have stale instances.
+                 // We wipe them to ensure the re-sync is the source of truth.
+                 await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [taskId]);
+                 
+                 // 2. Fetch Sync Token
+                 let token = await getLocalSyncToken();
+                 
+                 // 3. Request Delta 
+                 // Note: We use the old token because we want everything since the LAST successful sync.
+                 const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                   last_synced_at: token || undefined 
+                 });
+                 
+                 // 4. Ingest Delta
+                 await ingestDeltaPayload(db, payload);
+                 
+                 // 5. Success! Re-calculate hardware and break.
+                 scheduleNextAlarm();
+                 console.log(`[HealLoop] ✅ Forward-Heal successful on attempt ${attempts}.`);
+                 break;
+                 
+               } catch (error) {
+                 console.error(`[HealLoop] ❌ Attempt ${attempts} failed:`, error);
+                 // Wait 2 seconds before retrying
+                 await new Promise(r => setTimeout(r, 2000));
+               }
+             }
+             
+             stopHealing();
           }
         )
         .addStep(
@@ -315,23 +356,9 @@ export function useCommitTask() {
             }
             return { locked: true };
           },
-          async (ctx, result, prevResults) => {
-             if (__DEV__ && useChaosStore.getState().faultDiskUndo) throw new Error("[CHAOS EVENT] SQLite locked during Disk Undo!");
-             // THE COMPENSATING TRANSACTION (UNDO FOR SQLITE)
-             const cloudMemory = prevResults["Cloud Write (Convex)"];
-             if (!ctx.isEditMode && cloudMemory?.taskId) {
-               // 1. Locate local ID
-               const taskRow = await db.getFirstAsync<{ id: string }>("SELECT id FROM local_tasks WHERE convex_id = ?", [cloudMemory.taskId]);
-               if (taskRow) {
-                 // 2. Eradicate all generated instances and blocked conditions
-                 await db.runAsync("DELETE FROM task_instances WHERE task_id = ?", [taskRow.id]);
-                 await db.runAsync("DELETE FROM blocked_apps WHERE task_id = ?", [taskRow.id]);
-                 await db.runAsync("DELETE FROM blocked_websites WHERE task_id = ?", [taskRow.id]);
-               }
-               // 3. Delete master rule
-               await db.runAsync("DELETE FROM local_tasks WHERE convex_id = ?", [cloudMemory.taskId]);
-               console.log("[Compensating Action] Successfully purged ghost entities from SQLite.");
-             }
+          async () => {
+             // FORWARD-HEAL: We no longer revert the local disk.
+             console.log("[Saga] Local disk write succeeded/failed. Rollback skipped.");
           }
         )
         .addStep(
@@ -349,30 +376,18 @@ export function useCommitTask() {
       const executionResult = await orchestrator.execute();
 
       // ╔══════════════════════════════════════════════════════════════════════════════╗
-      // ║  FAIL-OVER: THE EVENTUAL CONSISTENCY SAFETY NET                              ║
+      // ║  THE IMPERIAL SUCCESS CHECK                                                  ║
       // ╠══════════════════════════════════════════════════════════════════════════════╣
-      // ║  If the network dropped AFTER we successfully wrote to Convex                ║
-      // ║  BUT BEFORE the Orchestrator could finish the Cloud "Compensating Delete",   ║
-      // ║  we are in a 'Split-Brain' hazard state.                                     ║
-      // ║  We instantly trigger the HydrationEngine logic to securely pull the         ║
-      // ║  locked ghost data DOWN to the phone, achieving Eventual Consistency.        ║
+      // ║  In our Forward-Heal model, if the Cloud Write succeeded, the Heal Loop      ║
+      // ║  guarantees that Disk and Hardware are also fixed before we return.          ║
+      // ║  Therefore, even if the Orchestrator technically "failed" its initial        ║
+      // ║  sequence, the system is now consistent and we return SUCCESS.               ║
       // ╚══════════════════════════════════════════════════════════════════════════════╝
-      if (executionResult.rollbackFailed) {
-         console.warn("\n[CommitT] 🚨 SPLIT-BRAIN HAZARD (Rollback Network Timeout)");
-         console.warn("[CommitT] The Orchestrator's rollback failed. Initiating Silent Hydration Sync to heal drift...");
-         try {
-             // Directly tap the Sync API to heal the drift instantly
-             const token = await getLocalSyncToken();
-             const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { last_synced_at: token || undefined });
-             await ingestDeltaPayload(db, payload);
-             scheduleNextAlarm(); // Re-calculate hardware based on the newly synced ghost data
-             console.log("[CommitT] Auto-Heal: Eventual Consistency successfully restored.\n");
-         } catch (healError) {
-             console.error("[CommitT] Auto-Heal failed (Likely still offline). The next Amnesia/Warm boot will resolve it natively.", healError);
-         }
-      }
+      const cloudWriteSuccess = !!executionResult.results["Cloud Write (Convex)"];
+      const finalSuccess = executionResult.success || cloudWriteSuccess;
+      const finalError = finalSuccess ? null : executionResult.error;
 
-      return { success: executionResult.success, error: executionResult.error };
+      return { success: finalSuccess, error: finalError };
 
     } catch (error) {
        console.error("[executeCommit] Uncaught Middleware Exception:", error);

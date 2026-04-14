@@ -19,6 +19,7 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useEffect } from "react";
 import { useHydrationSync } from "@/hooks/useHydrationSync";
 import { Logger } from "@/lib/logger";
+import { HealOverlay } from "@/components/ui/modal/HealOverlay";
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 
@@ -496,6 +497,7 @@ export default function Layout() {
                     <ThemeProvider value={{ ...DarkTheme, colors: { ...DarkTheme.colors, background: '#000000' } }}>
                       <HydrationEngine />
                       <StackLayout />
+                      <HealOverlay />
                     </ThemeProvider>
                     <DbDebugFab />
                     <AlarmFab />

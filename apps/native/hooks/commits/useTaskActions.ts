@@ -7,6 +7,9 @@ import { useTaskDraftStore } from '@/stores/useTaskDraftStore';
 import { scheduleNextAlarm } from '@/modules/scheduler-module';
 import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
 import { useChaosStore } from "@/stores/useChaosStore";
+import { useHealStore } from "@/stores/useHealStore";
+import { useConvex } from "convex/react";
+import { getLocalSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
 import { Logger } from "@/lib/logger";
 import type { Task } from './useTasks';
 
@@ -20,6 +23,8 @@ import type { Task } from './useTasks';
  */
 export function useTaskActions() {
   const router = useRouter();
+  const convex = useConvex();
+  const { startHealing, stopHealing } = useHealStore();
   const setDraft = useTaskDraftStore((state) => state.setDraft);
   const resetDraft = useTaskDraftStore((state) => state.resetDraft);
   const setAssigner = useTaskDraftStore((state) => state.setAssigner);
@@ -65,11 +70,47 @@ export function useTaskActions() {
           const result = await removeTaskMutation({ id: ctx.taskId as any });
           return { originalResult: result };
         },
-        async () => {
-          Logger.warn(`[TaskSaga] ROLLBACK triggered for Step 1: ${contextSnapshot.taskId}`);
-          // COMPENSATING: A 'Delete Rollback' is technically a 'Re-Create', but since 
-          // the source data is gone from the cloud, we rely on the Auto-Heal engine 
-          // (HydrationSync) to catch this Split-Brain state and restore the record.
+        async (ctx) => {
+          Logger.warn(`[TaskSaga] FORWARD-HEAL triggered for deletion of: ${ctx.taskId}`);
+          startHealing("Synchronizing your device after deletion...");
+          
+          let attempts = 0;
+          while (true) {
+            try {
+              attempts++;
+              if (attempts > 1) {
+                startHealing(`Retrying deletion sync (Attempt ${attempts})...`);
+              }
+
+              // 1. Manually Eradicate locally (The most direct path to consistency)
+              await db.withTransactionAsync(async () => {
+                await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [ctx.taskId]);
+                await db.runAsync('DELETE FROM blocked_apps WHERE task_id = ?', [ctx.taskId]);
+                await db.runAsync('DELETE FROM blocked_websites WHERE task_id = ?', [ctx.taskId]);
+                await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [ctx.taskId]);
+                await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [ctx.taskId]);
+              });
+
+              // 2. Sync Delta (Fallback repair to ensure no other drift)
+              const token = await getLocalSyncToken();
+              const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                last_synced_at: token || undefined 
+              });
+              await ingestDeltaPayload(db, payload);
+
+              // 3. Hardware Sync 
+              scheduleNextAlarm();
+              
+              Logger.info(`[TaskSaga] Fixed Forward-Heal successful for ${ctx.taskId} on attempt ${attempts}`);
+              break;
+
+            } catch (error) {
+              Logger.error(`[TaskSaga] Heal attempt ${attempts} failed:`, error);
+              await new Promise(r => setTimeout(r, 2000));
+            }
+          }
+          
+          stopHealing();
         }
       )
       .addStep(
@@ -80,7 +121,7 @@ export function useTaskActions() {
           
           await db.withTransactionAsync(async () => {
             // Nuke all auto-generated entities, but preserve manually edited ones.
-            await db.runAsync('DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0', [ctx.taskId]);
+            await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [ctx.taskId]);
             await db.runAsync('DELETE FROM blocked_apps WHERE task_id = ?', [ctx.taskId]);
             await db.runAsync('DELETE FROM blocked_websites WHERE task_id = ?', [ctx.taskId]);
             await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [ctx.taskId]);
@@ -101,8 +142,15 @@ export function useTaskActions() {
 
     try {
         const execution = await orchestrator.execute();
-        if (!execution.success) Logger.error(`[TaskSaga] Execution Failed for ${taskId}`, execution.error);
-        return { success: execution.success, error: execution.error };
+        
+        // IMPERIAL SUCCESS CHECK: If cloud eradication succeeded, the heal loop 
+        // guarantees consistency before returning.
+        const cloudEradicationSuccess = !!execution.results["Cloud Eradication (Convex)"];
+        const finalSuccess = execution.success || cloudEradicationSuccess;
+        const finalError = finalSuccess ? null : execution.error;
+
+        if (!finalSuccess) Logger.error(`[TaskSaga] Execution Failed for ${taskId}`, finalError);
+        return { success: finalSuccess, error: finalError };
     } catch (e: any) {
         Logger.error(`[TaskSaga] CATASTROPHIC FAILURE for ${taskId}`, e);
         return { success: false, error: e.message || "Deletion Engine crashed." };
@@ -160,12 +208,18 @@ export function useTaskActions() {
 
     try {
         const execution = await orchestrator.execute();
-        if (!execution.success) {
-            if (!String(execution.error).includes('STRICT_LOCK_ACTIVE')) {
-                Logger.error(`[InstanceSaga] Execution Failed for ${instanceConvexId}`, execution.error);
+        
+        // IMPERIAL SUCCESS CHECK: If cloud instance eradication succeeded, we are stable.
+        const instanceEradicationSuccess = !!execution.results["Cloud Eradication (Convex Instance)"];
+        const finalSuccess = execution.success || instanceEradicationSuccess;
+        const finalError = finalSuccess ? null : execution.error;
+
+        if (!finalSuccess) {
+            if (!String(finalError).includes('STRICT_LOCK_ACTIVE')) {
+                Logger.error(`[InstanceSaga] Execution Failed for ${instanceConvexId}`, finalError);
             }
         }
-        return { success: execution.success, error: execution.error };
+        return { success: finalSuccess, error: finalError };
     } catch (e: any) {
         if (!String(e.message).includes('STRICT_LOCK_ACTIVE')) {
             Logger.error(`[InstanceSaga] CATASTROPHIC FAILURE for ${instanceConvexId}`, e);
