@@ -20,8 +20,12 @@ import { useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
 import { updateInstanceInLocalDb } from "@/lib/local-db-commits";
 import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
+import { getLocalSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
 import { useChaosStore } from "@/stores/useChaosStore";
+import { useHealStore } from "@/stores/useHealStore";
+import { useConvex } from "convex/react";
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
+import { Logger } from "@/lib/logger";
 
 const UView = withUniwind(View);
 
@@ -54,6 +58,8 @@ const TABS = [
 
 export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
   const db = useSQLiteContext();
+  const convex = useConvex();
+  const { startHealing, stopHealing } = useHealStore();
   const updateConvexInstance = useMutation(api.api.instances.update.update);
 
   // 1. EXTRACT INITIAL COMMITMENT STATE
@@ -183,7 +189,42 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
           
           return { updatedConditions: newConditions };
         },
-        async () => { /* Auto-Heal */ }
+        async (ctx) => {
+          // ═══════════════════════════════════════════════════════════════════
+          // CLOUD-FIRST IMPERIAL STRATEGY (Forward-Heal)
+          // ═══════════════════════════════════════════════════════════════════
+          Logger.warn(`[BlocklistSaga] Blocklist save succeeded in Cloud but failed locally for instance: ${ctx.instanceId}`);
+          startHealing("Synchronizing blocklist update...");
+          
+          let attempts = 0;
+          while (true) {
+            try {
+              attempts++;
+              if (attempts > 1) {
+                startHealing(`Retrying blocklist sync (Attempt ${attempts})...`);
+              }
+
+              // 1. Sync Delta (Pull the new blocklist conditions from Cloud to SQLite)
+              const token = await getLocalSyncToken();
+              const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                last_synced_at: token || undefined 
+              });
+              await ingestDeltaPayload(db, payload);
+
+              // 2. Hardware Enforcer Refresh
+              scheduleNextAlarm();
+              
+              Logger.info(`[BlocklistSaga] Blocklist healed successfully on attempt ${attempts}`);
+              break;
+
+            } catch (error) {
+              Logger.error(`[BlocklistSaga] Blocklist repair attempt ${attempts} failed:`, error);
+              await new Promise(r => setTimeout(r, 2000));
+            }
+          }
+          
+          stopHealing();
+        }
       )
       .addStep(
         "Disk Sync (Local SQLite Blocklist)",
@@ -209,21 +250,28 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
 
     try {
         const exec = await orchestrator.execute();
-        if (exec.success) {
+
+        // IMPERIAL SUCCESS CHECK: If cloud save succeeded, the device is stable.
+        const cloudSaveSuccess = !!exec.results["Cloud Sync (Convex Blocklist)"];
+        const finalSuccess = exec.success || cloudSaveSuccess;
+        const finalError = finalSuccess ? null : exec.error;
+
+        if (finalSuccess) {
             setShowSaveConfirm(false);
             onClose();
         } else {
-            if (exec.error === "Instance Locked") {
+            if (finalError === "Instance Locked") {
                 setLockError({
                   title: "Instance Locked",
                   message: "This commitment is in its 'Strict Lock Zone' and cannot be edited."
                 });
             } else {
-                Alert.alert("Interaction Aborted", exec.error || "Device synchronization failed.");
+                Alert.alert("Interaction Aborted", finalError || "Device synchronization failed.");
             }
             setShowSaveConfirm(false);
         }
     } catch (err: any) {
+        Logger.error("[BlocklistSaga] Save Panic:", err);
         Alert.alert("System Failure", err.message || String(err));
         setShowSaveConfirm(false);
     } finally {

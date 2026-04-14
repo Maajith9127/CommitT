@@ -186,7 +186,42 @@ export function useTaskActions() {
           if ((result as any)?.success === false) throw new Error((result as any).error || "Convex instance delete rejected.");
           return { originalResult: result };
         },
-        async () => { /* Rely on Auto-Heal if rollback fails */ }
+        async (ctx) => {
+          Logger.warn(`[InstanceSaga] FORWARD-HEAL triggered for instance deletion of: ${ctx.instanceConvexId}`);
+          startHealing("Synchronizing device after instance removal...");
+          
+          let attempts = 0;
+          while (true) {
+            try {
+              attempts++;
+              if (attempts > 1) {
+                startHealing(`Retrying instance deletion sync (Attempt ${attempts})...`);
+              }
+
+              // 1. Manually Eradicate locally 
+              await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [ctx.instanceConvexId]);
+
+              // 2. Sync Delta (Fallback repair)
+              const token = await getLocalSyncToken();
+              const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                last_synced_at: token || undefined 
+              });
+              await ingestDeltaPayload(db, payload);
+
+              // 3. Hardware Sync 
+              scheduleNextAlarm();
+              
+              Logger.info(`[InstanceSaga] Fixed Forward-Heal successful for instance ${ctx.instanceConvexId} on attempt ${attempts}`);
+              break;
+
+            } catch (error) {
+              Logger.error(`[InstanceSaga] Instance heal attempt ${attempts} failed:`, error);
+              await new Promise(r => setTimeout(r, 2000));
+            }
+          }
+          
+          stopHealing();
+        }
       )
       .addStep(
         "Disk Eradication (SQLite Instance Cache)",

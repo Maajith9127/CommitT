@@ -8,7 +8,11 @@ import { scheduleNextAlarm } from '@/modules/scheduler-module';
 import { updateSingleInstanceInLocalDb } from '@/lib/local-db-instances';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
+import { getLocalSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
 import { useChaosStore } from "@/stores/useChaosStore";
+import { useHealStore } from "@/stores/useHealStore";
+import { useConvex } from 'convex/react';
+import { Logger } from "@/lib/logger";
 import CalendarKit, { 
   CalendarBody, 
   CalendarHeader,
@@ -46,6 +50,8 @@ export default function SchedulesScreen() {
 
   // SQLite Database instance for local cache synchronization
   const db = useSQLiteContext();
+  const convex = useConvex();
+  const { startHealing, stopHealing } = useHealStore();
 
   // Convex mutation for persisting remote updates
   const updateInstance = useMutation(api.api.instances.update.update);
@@ -192,13 +198,40 @@ export default function SchedulesScreen() {
           return { originalInstance: result.instance };
         },
         async (ctx) => {
-          // COMPENSATING: REVERT TO OLD TIME
-          if (__DEV__ && useChaosStore.getState().faultCloudUndo) throw new Error("[CHAOS] Rollback Network Failure.");
-          await updateInstance({
-              id: ctx.id,
-              start: ctx.oldStart,
-              end: ctx.oldEnd,
-          });
+          // ═══════════════════════════════════════════════════════════════════
+          // CLOUD-FIRST IMPERIAL STRATEGY (Forward-Heal)
+          // ═══════════════════════════════════════════════════════════════════
+          Logger.warn(`[Forward-Heal] Temporal shift succeeded in Cloud but failed locally for: ${ctx.id}`);
+          startHealing("Synchronizing calendar shift...");
+          
+          let attempts = 0;
+          while (true) {
+            try {
+              attempts++;
+              if (attempts > 1) {
+                startHealing(`Retrying calendar sync (Attempt ${attempts})...`);
+              }
+
+              // 1. Sync Delta (The source of truth will heal the phone)
+              const token = await getLocalSyncToken();
+              const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                last_synced_at: token || undefined 
+              });
+              await ingestDeltaPayload(db, payload);
+
+              // 2. Hardware Alignment
+              scheduleNextAlarm();
+              
+              Logger.info(`[Forward-Heal] Temporal shift healed successfully for ${ctx.id} on attempt ${attempts}`);
+              break;
+
+            } catch (error) {
+              Logger.error(`[Forward-Heal] Shift repair attempt ${attempts} failed:`, error);
+              await new Promise(r => setTimeout(r, 2000));
+            }
+          }
+          
+          stopHealing();
         }
       )
       .addStep(
@@ -208,9 +241,9 @@ export default function SchedulesScreen() {
           await updateSingleInstanceInLocalDb(db, prev["Cloud Sync (Convex Instance Update)"].originalInstance as any);
         },
         async (ctx) => {
-           // COMPENSATING: Local SQLite is resilient to partial drift; No manual undo needed 
-           // here because the next Hydration/Sync loop will heal the record based on the
-           // successful Cloud Rollback above.
+           // DISK COMPENSATE — INTENTIONAL NO-OP
+           // The Cloud Forward-Heal (above) already syncs the correct state
+           // to SQLite. No manual rollback needed.
         }
       )
       .addStep(
@@ -224,12 +257,17 @@ export default function SchedulesScreen() {
     try {
         const execution = await orchestrator.execute();
 
-        if (execution.success) {
+        // IMPERIAL SUCCESS CHECK: If cloud update succeeded, we are stable.
+        const cloudUpdateSuccess = !!execution.results["Cloud Sync (Convex Instance Update)"];
+        const finalSuccess = execution.success || cloudUpdateSuccess;
+        const finalError = finalSuccess ? null : execution.error;
+
+        if (finalSuccess) {
             setDragConfirm({ visible: false, isLoading: false });
             setSelectedCalendarEvent(undefined); 
         } else {
              // Handle Overlap Logic specifically
-             const [errorType, message] = (execution.error || "").split("|");
+             const [errorType, message] = (finalError || "").split("|");
              if (errorType === "OVERLAP_DETECTED") {
                  setDragConfirm(prev => ({ 
                     ...prev, 
@@ -238,7 +276,7 @@ export default function SchedulesScreen() {
                     overlapMessage: message,
                     isLoading: false,
                 }));
-             } else if (String(execution.error).includes('STRICT_LOCK_ACTIVE')) {
+             } else if (String(finalError).includes('STRICT_LOCK_ACTIVE')) {
                  const strictUntil = dragConfirm.event?.strict_until || dragConfirm.event?.originalData?.strict_until;
                  const lockedTime = strictUntil 
                      ? dayjs(strictUntil).format('h:mm A, MMM D') 
@@ -252,12 +290,12 @@ export default function SchedulesScreen() {
                     isLoading: false,
                 }));
              } else {
-                Alert.alert("Temporal Shift Error", execution.error || "Synchronizer aborted.");
+                Alert.alert("Temporal Shift Error", finalError || "Synchronizer aborted.");
                 setDragConfirm({ visible: false, isLoading: false });
              }
         }
-    } catch (criticalErr) {
-        console.error("[Schedules] Saga Panic:", criticalErr);
+    } catch (criticalErr: any) {
+        Logger.error("[Schedules] Saga Panic:", criticalErr);
         Alert.alert("System Panic", "Distributed transaction crashed before it could recover.");
         setDragConfirm({ visible: false });
     }

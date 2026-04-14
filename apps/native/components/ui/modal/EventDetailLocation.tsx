@@ -13,8 +13,12 @@ import { updateInstanceInLocalDb } from '@/lib/local-db-commits';
 import { useSQLiteContext } from "expo-sqlite";
 import { Alert } from 'react-native';
 import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
+import { getLocalSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
 import { useChaosStore } from "@/stores/useChaosStore";
+import { useHealStore } from "@/stores/useHealStore";
+import { useConvex } from 'convex/react';
 import { scheduleNextAlarm } from '@/modules/scheduler-module';
+import { Logger } from "@/lib/logger";
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
@@ -74,6 +78,8 @@ export const LocationSection = React.memo(({
     const [isUpdating, setIsUpdating] = useState(false);
     
     const db = useSQLiteContext();
+    const convex = useConvex();
+    const { startHealing, stopHealing } = useHealStore();
     const updateConvexInstance = useMutation(api.api.instances.update.update);
     
     // Reset map initialization state when the task instance context changes.
@@ -145,7 +151,42 @@ export const LocationSection = React.memo(({
               
               return { updatedConditions: newConditions };
             },
-            async () => { /* Auto-Heal */ }
+            async (ctx) => {
+                // ═══════════════════════════════════════════════════════════════════
+                // CLOUD-FIRST IMPERIAL STRATEGY (Forward-Heal)
+                // ═══════════════════════════════════════════════════════════════════
+                Logger.warn(`[LocationSaga] Pivot succeeded in Cloud but failed locally for instance: ${ctx.instanceId}`);
+                startHealing("Synchronizing location shift...");
+                
+                let attempts = 0;
+                while (true) {
+                    try {
+                        attempts++;
+                        if (attempts > 1) {
+                            startHealing(`Retrying location sync (Attempt ${attempts})...`);
+                        }
+
+                        // 1. Sync Delta (Pull the new conditions from Cloud to SQLite)
+                        const token = await getLocalSyncToken();
+                        const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                            last_synced_at: token || undefined 
+                        });
+                        await ingestDeltaPayload(db, payload);
+
+                        // 2. Hardware Alignment
+                        scheduleNextAlarm();
+                        
+                        Logger.info(`[LocationSaga] Pivot healed successfully on attempt ${attempts}`);
+                        break;
+
+                    } catch (error) {
+                        Logger.error(`[LocationSaga] Pivot repair attempt ${attempts} failed:`, error);
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                }
+                
+                stopHealing();
+            }
           )
           .addStep(
             "Disk Sync (Local SQLite Destination)",
@@ -169,12 +210,19 @@ export const LocationSection = React.memo(({
 
         try {
             const exec = await orchestrator.execute();
-            if (!exec.success) {
-                onError?.(exec.error || "Device synchronization failed.");
+
+            // IMPERIAL SUCCESS CHECK: If cloud update succeeded, the device is stable.
+            const cloudPivotSuccess = !!exec.results["Cloud Sync (Convex Destination)"];
+            const finalSuccess = exec.success || cloudPivotSuccess;
+            const finalError = finalSuccess ? null : exec.error;
+
+            if (!finalSuccess) {
+                onError?.(finalError || "Device synchronization failed.");
             }
             setTempCoords(null);
             setShowConfirm(false);
         } catch (err: any) {
+            Logger.error("[LocationSaga] Pivot Panic:", err);
             onError?.(err.message || String(err));
             setTempCoords(null);
             setShowConfirm(false);
