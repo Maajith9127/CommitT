@@ -1,11 +1,17 @@
-fix(android): resolve native crash on Alarm trigger for Android 8-12
+feat(native/blocker): implement surgical swipe-up fallback for non-Samsung devices
 
-Summary:
-Surgically patched the scheduler-module to address two critical failure points causing instant process crashes at alarm trigger time on specific OEM devices (e.g., Lenovo).
+Hardens the anti-tamper enforcement engine to support devices with carousel-style 
+recent app trays (Lenovo, Motorola, Pixel).
 
 Key Changes:
-- build.gradle: Added missing 'androidx.appcompat:appcompat' dependency to resolve Theme.AppCompat resource errors.
-- AlarmActivity.kt: Hardened the VibrationAttributes API guard by correctly targeting API 33 (Tiramisu). This prevents NoClassDefFoundError on devices running Android 8 through 12.
+- Authorized native gestures in blocker_config.xml (canPerformGestures="true").
+- Implemented `executeSwipeUpGesture` in BlockerAccessibilityService.kt 
+  using DisplayMetrics for precision coordinate calculation.
+- Refactored `dismissTopRecentApp` logic to trigger a gesture-based "flick" 
+  if the button-based purge (Samsung path) fails or is off-screen.
+- Added high-resolution diagnostic logs ([GESTURE_DEBUG], [RECENTS_PURGE]) 
+  for real-time enforcement auditing via adb logcat.
+- Fixed a scope-related compilation error in the candidates fuzzy scan logic.
 
-Impact:
-Extends stable hardware alarm support to all devices from API 26 (Oreo) upwards, ensuring the "Forward-Heal" overlay fires reliably across different Android versions.
+This ensures that even if the "Clear All" button is hidden, restricted settings 
+apps are physically neutralized before the hardware screen lock is applied.
