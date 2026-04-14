@@ -8,14 +8,14 @@ export function HealOverlay() {
   console.log("[HealOverlay] Component Ping - isHealing:", isHealing);
 
   if (isHealing) {
-    console.log("[HealOverlay] 🚨 SPINNING ACTIVE:", message);
+    console.log("[HealOverlay]  SPINNING ACTIVE:", message);
   }
 
   return (
     <ConfirmationModal
       visible={isHealing}
-      title="Forward-Healing"
-      message={message}
+      title={message || "Synchronizing device state..."}
+      message=""
       isLoading={true}
       singleButton={true}
       confirmText="Syncing..."

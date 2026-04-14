@@ -284,31 +284,29 @@ export default function SchedulesScreen() {
             setSelectedCalendarEvent(undefined); 
         } else {
              // Handle Overlap Logic specifically
-             const [errorType, message] = (finalError || "").split("|");
-             if (errorType === "OVERLAP_DETECTED") {
+             if (String(finalError).startsWith("OVERLAP_DETECTED")) {
+                setDragConfirm(prev => ({ 
+                    ...prev, 
+                    visible: true, 
+                    isOverlapError: true,
+                    overlapMessage: `This slot is already occupied by another active task.\n\n${(finalError as string).split('|')[1]}`,
+                    isLoading: false,
+                }));
+            } else if (String(finalError).includes('STRICT_LOCK_ACTIVE')) {
                  setDragConfirm(prev => ({ 
                     ...prev, 
                     visible: true, 
                     isOverlapError: true,
-                    overlapMessage: message,
+                    overlapMessage: `This commitment is currently in its 'Strict Lock Zone' and cannot be moved until ${lockedTime}.`,
                     isLoading: false,
                 }));
-             } else if (String(finalError).includes('STRICT_LOCK_ACTIVE')) {
-                 const strictUntil = dragConfirm.event?.strict_until || dragConfirm.event?.originalData?.strict_until;
-                 const lockedTime = strictUntil 
-                     ? dayjs(strictUntil).format('h:mm A, MMM D') 
-                     : 'its end time';
-
-                 setDragConfirm(prev => ({ 
-                    ...prev, 
-                    visible: true, 
-                    isOverlapError: true, // Triggers singleButton mode
-                    overlapMessage: `Vault is Active. Cannot be modified until ${lockedTime}.`,
+            } else {
+                setDragConfirm({
+                    visible: true,
+                    isOverlapError: true,
+                    overlapMessage: `Device synchronization failed. Your calendar change could not be persisted.`,
                     isLoading: false,
-                }));
-             } else {
-                Alert.alert("Temporal Shift Error", finalError || "Synchronizer aborted.");
-                setDragConfirm({ visible: false, isLoading: false });
+                });
              }
         }
     } catch (criticalErr: any) {

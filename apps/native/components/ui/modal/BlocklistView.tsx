@@ -280,17 +280,17 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
         } else {
             if (finalError === "Instance Locked") {
                 setLockError({
-                  title: "Instance Locked",
-                  message: "This commitment is in its 'Strict Lock Zone' and cannot be edited."
+                  title: "This commitment is in its 'Strict Lock Zone' and cannot be edited until the window concludes.",
+                  message: ""
                 });
             } else {
-                Alert.alert("Interaction Aborted", finalError || "Device synchronization failed.");
+                Alert.alert(`${finalError || "Device synchronization failed."}\n\nYour interaction was aborted because the device could not be reconciled.`, "");
             }
             setShowSaveConfirm(false);
         }
     } catch (err: any) {
         Logger.error("[BlocklistSaga] Save Panic:", err);
-        Alert.alert("System Failure", err.message || String(err));
+        Alert.alert(`The system encountered a critical synchronization failure.\n\n${err.message || String(err)}`, "");
         setShowSaveConfirm(false);
     } finally {
         setIsSaving(false);

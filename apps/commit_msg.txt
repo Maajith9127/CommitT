@@ -1,7 +1,8 @@
-docs(sync): formalize Imperial Forward-Heal architecture and event-level sagas
+ui(sync): standardize title-only aesthetic for all synchronization alerts
 
-- Integrated detailed JSDoc documentation (Flow/Note structure) to all 5 core saga files
-- Updated `project_context.md` with the official Imperial Synchronization protocol and file map
-- Finalized Forward-Heal logic for Instance Deletion, Location Pivots, and Blocklist updates
-- Hardened the "Surgical Wipe" logic to ensure zero-drift event removal from SQLite/Alarms
-- Standardized recovery machines to rely on Sync Engine Delta ingestion for ultimate consistency
+- Refactored all error and success modals to utilize a "single-statement" title layout
+- Consolidated descriptive messages into the `title` prop and eliminated subtitle/message clutter
+- Removed redundant labels ("Forward-Healing", "Overlap Detected", "Shift Failed") in favor of direct status descriptions
+- Standardized `HealOverlay` to display dynamic healing progress as the primary bold title
+- Hardened `Alert.alert` calls to move descriptive subtext into the primary title argument
+- Fixed a structural `SyntaxError` in `BlocklistView.tsx` by properly closing the `processSave` async function
