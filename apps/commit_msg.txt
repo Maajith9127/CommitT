@@ -1,17 +1,1 @@
-feat(native/blocker): implement surgical swipe-up fallback for non-Samsung devices
-
-Hardens the anti-tamper enforcement engine to support devices with carousel-style 
-recent app trays (Lenovo, Motorola, Pixel).
-
-Key Changes:
-- Authorized native gestures in blocker_config.xml (canPerformGestures="true").
-- Implemented `executeSwipeUpGesture` in BlockerAccessibilityService.kt 
-  using DisplayMetrics for precision coordinate calculation.
-- Refactored `dismissTopRecentApp` logic to trigger a gesture-based "flick" 
-  if the button-based purge (Samsung path) fails or is off-screen.
-- Added high-resolution diagnostic logs ([GESTURE_DEBUG], [RECENTS_PURGE]) 
-  for real-time enforcement auditing via adb logcat.
-- Fixed a scope-related compilation error in the candidates fuzzy scan logic.
-
-This ensures that even if the "Clear All" button is hidden, restricted settings 
-apps are physically neutralized before the hardware screen lock is applied.
+feat(checkpoint): checkpoint 2 
