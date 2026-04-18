@@ -1,8 +1,18 @@
-import React, { useMemo } from "react";
-import { ScrollView, View, Image } from "react-native";
+import React, { useMemo, useState } from "react";
+import { ScrollView, View, Image, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+
+import { useConvex } from "convex/react";
+import { api } from "@commit/backend/convex/_generated/api";
+import { useSQLiteContext } from "expo-sqlite";
+import { clearSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
+import { useHealStore } from "@/stores/useHealStore";
+import { syncLock } from "@/lib/sync-lock";
+import { scheduleNextAlarm } from "@/modules/scheduler-module";
+import { nukeAndRebuildSchema } from "@/lib/local-db";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -10,6 +20,7 @@ import { authClient } from "@/lib/auth-client";
 import { AuthHeading, FooterText, HeaderTitle } from "@/components/ui/text";
 // The 'select option' UI used in final.tsx
 import { SettingsToggleCard } from "@/components/ui/commits/SettingsToggleCard";
+import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
@@ -18,6 +29,18 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const user = session?.user;
+
+  // Hooks for Imperial Wipe
+  const convex = useConvex();
+  const db = useSQLiteContext();
+  const { startHealing, stopHealing } = useHealStore();
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const [showResyncConfirm, setShowResyncConfirm] = useState(false);
+  const [isResyncing, setIsResyncing] = useState(false);
+  const [resyncError, setResyncError] = useState<string | null>(null);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Menu Item Configurations
@@ -92,6 +115,44 @@ export default function ProfileScreen() {
     },
   ], []);
 
+  const sessionItems = useMemo(() => [
+    {
+      id: "full_resync",
+      title: "Full Resync",
+      type: "select" as const,
+      icon: "cloud-sync-outline",
+      onPress: () => setShowResyncConfirm(true),
+    },
+    {
+      id: "help_support",
+      title: "Help & Support",
+      type: "select" as const,
+      icon: "help-circle-outline",
+      onPress: () => console.log('Help & Support'),
+    },
+    {
+      id: "switch_accounts",
+      title: "Switch Accounts",
+      type: "select" as const,
+      icon: "account-switch-outline",
+      onPress: () => console.log('Switch Accounts'),
+    },
+    {
+      id: "logout",
+      title: "Log Out",
+      type: "select" as const,
+      icon: "logout",
+      onPress: () => setShowLogoutConfirm(true),
+    },
+    {
+      id: "delete_account",
+      title: "Delete Account",
+      type: "select" as const,
+      icon: "delete-forever-outline",
+      onPress: () => console.log('Delete Account'),
+    },
+  ], []);
+
   return (
     <UScroll 
       className="flex-1 bg-black"
@@ -134,6 +195,103 @@ export default function ProfileScreen() {
         // @ts-ignore
         items={customizeItems}
       />
+
+      {/* ── SESSION SECTION ── */}
+      <UView className="mb-1">
+        <HeaderTitle className="mb-2 text-2xl font-bold text-white">Session & Data</HeaderTitle>
+      </UView>
+      <SettingsToggleCard
+        className="mb-6"
+        // @ts-ignore
+        items={sessionItems}
+      />
+
+      <ConfirmationModal
+        visible={showLogoutConfirm}
+        title="Are you sure you want to log out?"
+        confirmText="Log Out"
+        confirmColor="#FF3B30"
+        cancelText="Cancel"
+        isLoading={isLoggingOut}
+        onConfirm={async () => {
+          setIsLoggingOut(true);
+          try {
+            // 1. Wipe Convex / BetterAuth Session Token
+            await authClient.signOut();
+            
+            // 2. Wipe Native Google Play Services Cache
+            try {
+              await GoogleSignin.signOut();
+            } catch (e) {
+              console.warn("[Profile] Google SignOut Error (user may not have used Google Auth):", e);
+            }
+
+            setShowLogoutConfirm(false);
+            router.replace("/(auth)/signin");
+          } finally {
+            setIsLoggingOut(false);
+          }
+        }}
+        onCancel={() => {
+          if (!isLoggingOut) setShowLogoutConfirm(false);
+        }}
+      />
+
+      <ConfirmationModal
+        visible={showResyncConfirm}
+        title="Do you want to start a full Resync?"
+        confirmText="Start Resync"
+        confirmColor="#4FA0FF"
+        cancelText="Cancel"
+        cancelColor="#FF3B30"
+        isLoading={isResyncing}
+        onConfirm={async () => {
+          setIsResyncing(true);
+          setResyncError(null);
+          startHealing("Wiping cache and performing full device resynchronization...");
+          
+          try {
+            await syncLock.execute("Saga:ManualResync", async () => {
+              // 1. Wipe SQLite safely using structural drops to avoid NativeStatement WAL corruption
+              await nukeAndRebuildSchema(db);
+
+              // 2. Clear Token (Forces Convex to return EVERYTHING)
+              await clearSyncToken();
+
+              // 3. Download Full Snapshot
+              const payload = await convex.query(api.api.sync.delta.getDeltaPayload, {});
+
+              // 4. Ingest everything
+              await ingestDeltaPayload(db, payload);
+
+              // 5. Re-Arm Hardware
+              scheduleNextAlarm();
+            });
+            setShowResyncConfirm(false);
+            console.log("[Profile] Manual Full Resync Complete");
+          } catch (e: any) {
+            console.error("[Profile] Resync Failed:", e);
+            setResyncError(e.message || String(e));
+          } finally {
+            setIsResyncing(false);
+            stopHealing();
+          }
+        }}
+        onCancel={() => {
+          if (!isResyncing) {
+            setShowResyncConfirm(false);
+            setResyncError(null);
+          }
+        }}
+      >
+        {resyncError && (
+          <UView className="bg-red-500/20 p-3 rounded-xl border border-red-500/50">
+            <FooterText className="text-red-400 text-xs text-center font-bold">
+              {resyncError}
+            </FooterText>
+          </UView>
+        )}
+      </ConfirmationModal>
 
     </UScroll>
   );

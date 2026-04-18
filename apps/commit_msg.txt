@@ -1,12 +1,19 @@
-fix(sync): eliminate phantom table crash loops in saga orchestrator
+feat(profile): implement scorched-earth session management & imperial wipe engine
 
-The transition to SQLite Schema V12 completely eliminated the physical `blocked_apps` and `blocked_websites` tables in favor of embedding digital commitments into JSON arrays. However, legacy `INSERT` and `DELETE` queries targeting these non-existent tables were left buried inside the Triple-Write Saga execution paths.
+- **Scorched-Earth Logout Sequence**: 
+  - Wired `ConfirmationModal` to `authClient.signOut()`.
+  - Added `GoogleSignin.signOut()` to natively zero-out Google Play Services identity cache, aggressively preventing auto-login bypasses.
+  - Implemented async spinner UI block during the termination phase to prevent dual-routing.
 
-Any attempt to Create or Delete a task would trigger an `ERR_INTERNAL_SQLITE_ERROR: no such table: blocked_apps`, crashing the Main Saga. This predictably triggered the Forward-Heal compensator — but because the Heal Loop *also* contained these legacy operations inside a `while(true)` retry block, it permanently trapped the application in an infinite crashing panic loop.
+- **Full Device Resynchronization (Imperial Wipe)**:
+  - Added a "Full Resync" option under "Session & Data".
+  - Architected a manual Convex Delta trigger using `nukeAndRebuildSchema`. By explicitly using `DROP TABLE IF EXISTS` instead of `DELETE FROM`, this permanently bypasses the dreaded `NativeStatement.finalizeAsync` (SQLITE_CORRUPT) WAL pointer fragmentation bug.
+  - Deletes the `sync_token` from SecureStore enforcing an 'Amnesia Wipe' that downloads 100% cloud parity state back into SQLite.
 
-Changes:
-- Removed deprecated `DELETE FROM blocked_apps/blocked_websites` queries from both the Main Saga and Forward-Heal loops in `useTaskActions.ts`.
-- Stripped deprecated `prepareAsync` insertion statements for legacy tables from the instance projection loops in `local-db-commits.ts`.
-- Removed legacy `DELETE` operations from the `updateTaskInLocalDb` purge mechanism.
+- **Graceful Error Bubbling**:
+  - Wired up `ConfirmationModal` to natively handle `isLoading` tracking.
+  - Attached a dynamic, styled `resyncError` payload to the modal children slot so background SQLite panics render inline rather than silently swallowing UI execution.
 
-This permanently aligns all Disk Write paths perfectly with the Schema V12 architecture, guaranteeing race-free and crash-free Task creation, updates, and deletions.
+- **Architectural Polish**:
+  - Restructured `profile.tsx` visual headers for clarity ("Session & Data" grouping).
+  - Validated Global Mutex (`syncLock.execute`) bindings explicitly block `HydrationEngine` concurrency races during AppState transitions.
