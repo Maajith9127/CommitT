@@ -129,6 +129,12 @@ export const LocationSection = React.memo(({
         if (!tempCoords) return;
         setIsUpdating(true);
 
+        // ╔══════════════════════════════════════════════════════════════════════════════╗
+        // ║  LOCATION PIVOT SAGA                                                         ║
+        // ╠══════════════════════════════════════════════════════════════════════════════╣
+        // ║  Shifting a geofence alters the exact perimeter the underlying OS monitors.  ║
+        // ║  If the hardware kernel fails to refresh, we rely on the Forward-Heal loop.  ║
+        // ╚══════════════════════════════════════════════════════════════════════════════╝
         const contextSnapshot = { tempCoords, instanceId: event._id };
         const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
 
