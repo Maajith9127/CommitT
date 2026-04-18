@@ -26,6 +26,7 @@ import { useHealStore } from "@/stores/useHealStore";
 import { useConvex } from "convex/react";
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
 import { Logger } from "@/lib/logger";
+import { syncLock } from "@/lib/sync-lock";
 
 const UView = withUniwind(View);
 
@@ -227,10 +228,12 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
               const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
                 last_synced_at: token || undefined 
               });
-              await ingestDeltaPayload(db, payload);
-
-              // 2. Hardware Enforcer Refresh
-              scheduleNextAlarm();
+              
+              await syncLock.execute("Heal:BlocklistView", async () => {
+                await ingestDeltaPayload(db, payload);
+                // 2. Hardware Enforcer Refresh
+                scheduleNextAlarm();
+              });
               
               Logger.info(`[BlocklistSaga] Blocklist healed successfully on attempt ${attempts}`);
               break;
@@ -245,24 +248,25 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
         }
       )
       .addStep(
-        "Disk Sync (Local SQLite Blocklist)",
+        "Local Sync (Disk + Hardware)",
         async (ctx, prev) => {
-            if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
-               throw new Error("[CHAOS] SQLite save failed.");
-            
-            const conditions = prev["Cloud Sync (Convex Blocklist)"].updatedConditions;
-            await updateInstanceInLocalDb(db, ctx.instanceId, { conditions });
-        }
-      )
-      .addStep(
-        "Hardware Sync (Re-enforce Apps)",
-        async () => {
-            if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
-               throw new Error("[CHAOS] Android enforcer failed to refresh.");
-            
-            // CRITICAL: Notify the Android Accessibility Service and Alarm module
-            // that the blocklist HAS changed.
-            scheduleNextAlarm();
+            await syncLock.execute("Saga:BlocklistUpdate", async () => {
+                if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
+                   throw new Error("[CHAOS] SQLite save failed.");
+                
+                const conditions = prev["Cloud Sync (Convex Blocklist)"].updatedConditions;
+                await updateInstanceInLocalDb(db, ctx.instanceId, { 
+                    conditions, 
+                    is_manual_edit: true 
+                });
+
+                if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
+                   throw new Error("[CHAOS] Android enforcer failed to refresh.");
+                
+                // CRITICAL: Notify the Android Accessibility Service and Alarm module
+                // that the blocklist HAS changed.
+                scheduleNextAlarm();
+            });
         }
       );
 

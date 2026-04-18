@@ -1,1 +1,12 @@
-feat(checkpoint): checkpoint 2 
+fix(sync): eliminate phantom table crash loops in saga orchestrator
+
+The transition to SQLite Schema V12 completely eliminated the physical `blocked_apps` and `blocked_websites` tables in favor of embedding digital commitments into JSON arrays. However, legacy `INSERT` and `DELETE` queries targeting these non-existent tables were left buried inside the Triple-Write Saga execution paths.
+
+Any attempt to Create or Delete a task would trigger an `ERR_INTERNAL_SQLITE_ERROR: no such table: blocked_apps`, crashing the Main Saga. This predictably triggered the Forward-Heal compensator — but because the Heal Loop *also* contained these legacy operations inside a `while(true)` retry block, it permanently trapped the application in an infinite crashing panic loop.
+
+Changes:
+- Removed deprecated `DELETE FROM blocked_apps/blocked_websites` queries from both the Main Saga and Forward-Heal loops in `useTaskActions.ts`.
+- Stripped deprecated `prepareAsync` insertion statements for legacy tables from the instance projection loops in `local-db-commits.ts`.
+- Removed legacy `DELETE` operations from the `updateTaskInLocalDb` purge mechanism.
+
+This permanently aligns all Disk Write paths perfectly with the Schema V12 architecture, guaranteeing race-free and crash-free Task creation, updates, and deletions.

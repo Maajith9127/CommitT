@@ -11,6 +11,7 @@ import { useHealStore } from "@/stores/useHealStore";
 import { useConvex } from "convex/react";
 import { getLocalSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
 import { Logger } from "@/lib/logger";
+import { syncLock } from "@/lib/sync-lock";
 import type { Task } from './useTasks';
 
 /**
@@ -71,12 +72,11 @@ export function useTaskActions() {
    * - Unified wipe targets unified Convex IDs, preventing orphaned alarms.
    */
   const deleteTask = useCallback(async (taskId: string): Promise<{ success: boolean; error: string | null }> => {
-    // ╔══════════════════════════════════════════════════════════════════════════════╗
-    // ║  TASK DELETION SAGA                                                          ║
-    // ╠══════════════════════════════════════════════════════════════════════════════╣
-    // ║  Deleting a task is destructive. We must ensure the hardware alarm is        ║
-    // ║  cleared before we let the UI hide the task from the user.                   ║
-    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    /**
+     * TASK DELETION SAGA
+     * Deleting a task is destructive. We must ensure the hardware alarm is
+     * cleared before we let the UI hide the task from the user.
+     */
     const contextSnapshot = { taskId };
     const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
 
@@ -101,24 +101,30 @@ export function useTaskActions() {
                 startHealing(`Retrying deletion sync (Attempt ${attempts})...`);
               }
 
-              // 1. Manually Eradicate locally (The most direct path to consistency)
-              await db.withTransactionAsync(async () => {
-                await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [ctx.taskId]);
-                await db.runAsync('DELETE FROM blocked_apps WHERE task_id = ?', [ctx.taskId]);
-                await db.runAsync('DELETE FROM blocked_websites WHERE task_id = ?', [ctx.taskId]);
-                await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [ctx.taskId]);
-                await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [ctx.taskId]);
-              });
+              /**
+               * SYNC LOCK ACQUISITION (HEAL LOOP)
+               * 
+               * We must lock the DB here to prevent the Background Engine
+               * from running its own ingestion at the exact same millisecond.
+               */
+              await syncLock.execute("Saga:DeleteTask:Heal", async () => {
+                // 1. Manually Eradicate locally (The most direct path to consistency)
+                await db.withTransactionAsync(async () => {
+                  await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [ctx.taskId]);
+                  await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [ctx.taskId]);
+                  await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [ctx.taskId]);
+                });
 
-              // 2. Sync Delta (Fallback repair to ensure no other drift)
-              const token = await getLocalSyncToken();
-              const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
-                last_synced_at: token || undefined 
-              });
-              await ingestDeltaPayload(db, payload);
+                // 2. Sync Delta (Fallback repair to ensure no other drift)
+                const token = await getLocalSyncToken();
+                const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                  last_synced_at: token || undefined 
+                });
+                await ingestDeltaPayload(db, payload);
 
-              // 3. Hardware Sync 
-              scheduleNextAlarm();
+                // 3. Hardware Sync 
+                scheduleNextAlarm();
+              });
               
               Logger.info(`[TaskSaga] Fixed Forward-Heal successful for ${ctx.taskId} on attempt ${attempts}`);
               break;
@@ -133,28 +139,30 @@ export function useTaskActions() {
         }
       )
       .addStep(
-        "Disk Eradication (SQLite Cache)",
+        "Local Sync (Disk + Hardware)",
         async (ctx) => {
-          Logger.info(`[TaskSaga] Step 2: SQLite Disk Eradication for ${ctx.taskId}`);
+          Logger.info(`[TaskSaga] Step 2: SQLite Disk Eradication & Hardware Sync for ${ctx.taskId}`);
           if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] SQLite delete failed.");
-          
-          await db.withTransactionAsync(async () => {
-            // Nuke all auto-generated entities, but preserve manually edited ones.
-            await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [ctx.taskId]);
-            await db.runAsync('DELETE FROM blocked_apps WHERE task_id = ?', [ctx.taskId]);
-            await db.runAsync('DELETE FROM blocked_websites WHERE task_id = ?', [ctx.taskId]);
-            await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [ctx.taskId]);
-            await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [ctx.taskId]); // Double-tap for legacy rows
-            Logger.info(`[TaskSaga] Unified Disk Eradication complete for ${ctx.taskId}`);
-          });
-        }
-      )
-      .addStep(
-        "Hardware Sync (Clear Alarms)",
-        async () => {
-          Logger.info(`[TaskSaga] Step 3: Hardware Sync for ${contextSnapshot.taskId}`);
           if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Android failed to clear alarm.");
-          scheduleNextAlarm();
+          
+          /**
+           * SYNC LOCK ACQUISITION (MAIN SAGA)
+           * 
+           * CRITICAL MERGE: We combine the SQLite Delete and the Kotlin 
+           * Alarm trigger into a SINGLE Locked operation to prevent "Phantom Overwrite".
+           */
+          await syncLock.execute("Saga:DeleteTask", async () => {
+            await db.withTransactionAsync(async () => {
+              // Nuke all auto-generated entities, but preserve manually edited ones.
+              await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [ctx.taskId]);
+              await db.runAsync('DELETE FROM local_tasks WHERE id = ?', [ctx.taskId]);
+              await db.runAsync('DELETE FROM local_tasks WHERE convex_id = ?', [ctx.taskId]); // Double-tap for legacy rows
+              Logger.info(`[TaskSaga] Unified Disk Eradication complete for ${ctx.taskId}`);
+            });
+            
+            scheduleNextAlarm();
+          });
+
           Logger.info(`[TaskSaga] Saga Complete for ${contextSnapshot.taskId}`);
         }
       );
@@ -207,11 +215,10 @@ export function useTaskActions() {
    * - Prevents individual ghost events if cellular/database connection is flaky.
    */
   const deleteInstance = useCallback(async (instanceConvexId: string): Promise<{ success: boolean; error: string | null }> => {
-    // ╔══════════════════════════════════════════════════════════════════════════════╗
-    // ║  INSTANCE DELETION SAGA                                                      ║
-    // ╠══════════════════════════════════════════════════════════════════════════════╣
-    // ║  Even an individual instance deletion must be guaranteed by the hardware.    ║
-    // ╚══════════════════════════════════════════════════════════════════════════════╝
+    /**
+     * INSTANCE DELETION SAGA
+     * Even an individual instance deletion must be guaranteed by the hardware.
+     */
     const contextSnapshot = { instanceConvexId };
     const orchestrator = new TripleWriteOrchestrator(contextSnapshot);
 
@@ -236,18 +243,23 @@ export function useTaskActions() {
                 startHealing(`Retrying instance deletion sync (Attempt ${attempts})...`);
               }
 
-              // 1. Manually Eradicate locally 
-              await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [ctx.instanceConvexId]);
+              /**
+               * SYNC LOCK ACQUISITION (HEAL LOOP)
+               */
+              await syncLock.execute("Saga:DeleteInstance:Heal", async () => {
+                // 1. Manually Eradicate locally 
+                await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [ctx.instanceConvexId]);
 
-              // 2. Sync Delta (Fallback repair)
-              const token = await getLocalSyncToken();
-              const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
-                last_synced_at: token || undefined 
+                // 2. Sync Delta (Fallback repair)
+                const token = await getLocalSyncToken();
+                const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                  last_synced_at: token || undefined 
+                });
+                await ingestDeltaPayload(db, payload);
+
+                // 3. Hardware Sync 
+                scheduleNextAlarm();
               });
-              await ingestDeltaPayload(db, payload);
-
-              // 3. Hardware Sync 
-              scheduleNextAlarm();
               
               Logger.info(`[InstanceSaga] Fixed Forward-Heal successful for instance ${ctx.instanceConvexId} on attempt ${attempts}`);
               break;
@@ -262,19 +274,20 @@ export function useTaskActions() {
         }
       )
       .addStep(
-        "Disk Eradication (SQLite Instance Cache)",
+        "Local Sync (Disk + Hardware)",
         async (ctx) => {
-          Logger.info(`[InstanceSaga] Step 2: SQLite Disk Instance Eradication for ${ctx.instanceConvexId}`);
+          Logger.info(`[InstanceSaga] Step 2: SQLite Disk Eradication & Hardware Sync for ${ctx.instanceConvexId}`);
           if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] SQLite delete failed.");
-          await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [ctx.instanceConvexId]);
-        }
-      )
-      .addStep(
-        "Hardware Sync (Clear Instance Alarm)",
-        async () => {
-          Logger.info(`[InstanceSaga] Step 3: Hardware Alarm Sync for ${contextSnapshot.instanceConvexId}`);
           if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Android failed to clear individual alarm.");
-          scheduleNextAlarm();
+
+          /**
+           * SYNC LOCK ACQUISITION (MAIN SAGA)
+           */
+          await syncLock.execute("Saga:DeleteInstance", async () => {
+            await db.runAsync('DELETE FROM task_instances WHERE convex_id = ?', [ctx.instanceConvexId]);
+            scheduleNextAlarm();
+          });
+
           Logger.info(`[InstanceSaga] Saga Complete for ${contextSnapshot.instanceConvexId}`);
         }
       );

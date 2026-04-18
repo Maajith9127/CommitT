@@ -1,8 +1,8 @@
 /**
  * useEventDetail
- * ══════════════════════════════════════════════════════════════════════════════
+ *
  * THE ACTION ORCHESTRATOR FOR TASK INSTANCES
- * ──────────────────────────────────────────────────────────────────────────────
+ *
  * Encapsulates data subscriptions, optimistic UI state, and cross-layer 
  * synchronization (Saga pattern) for individual commitment interactions.
  * 
@@ -10,7 +10,6 @@
  * 1. ATOMICITY: Status changes must sync across Cloud, Disk, and Hardware.
  * 2. RESILIENCE: Failed hardware phases trigger compensating rollbacks.
  * 3. TRANSPARENCY: User is notified of sync aborted/failed states immediately.
- * ══════════════════════════════════════════════════════════════════════════════
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -26,6 +25,7 @@ import { scheduleNextAlarm } from '@/modules/scheduler-module';
 import { TripleWriteOrchestrator } from "@/lib/triple-write-orchestrator";
 import { useChaosStore } from "@/stores/useChaosStore";
 import { Logger } from '@/lib/logger';
+import { syncLock } from '@/lib/sync-lock';
 import type { ActionMenuItem } from '@/components/ui/commits/ActionMenu';
 
 // ─── TYPES ──────────────────────────────────────────────────────────────────
@@ -307,7 +307,7 @@ export function useEventDetail(): EventDetailState {
   }, [currentEvent, verifyingMetric, verifyMutation]);
 
   const confirmDelete = useCallback(async () => {
-    if (!selectedTaskId) return;
+    if (!currentEvent?._id) return;
     setIsDeleting(true);
 
     const handleStrictError = () => {
@@ -325,7 +325,7 @@ export function useEventDetail(): EventDetailState {
     };
 
     try {
-      const result = await deleteInstance(selectedTaskId);
+      const result = await deleteInstance(currentEvent._id);
       if (result.success) {
         setDeleteConfirmVisible(false);
         handleClose();
@@ -345,7 +345,7 @@ export function useEventDetail(): EventDetailState {
     } finally {
       setIsDeleting(false);
     }
-  }, [selectedTaskId, deleteInstance, handleClose, currentEvent]);
+  }, [currentEvent, deleteInstance, handleClose]);
 
   const handleStartWaiver = useCallback(async () => {
     if (!currentEvent?._id) return;
@@ -363,9 +363,11 @@ export function useEventDetail(): EventDetailState {
           }
           return result;
       })
-      .addStep("Hardware Alarm Update", async () => {
-          Logger.info(`[WaiverSaga] Step 2: Recalculating hardware alarms via scheduler-module`);
-          scheduleNextAlarm();
+      .addStep("Local Sync (Hardware Update)", async () => {
+          Logger.info(`[WaiverSaga] Step 2: Recalculating hardware alarms under SyncLock`);
+          await syncLock.execute("Saga:Waiver", async () => {
+            scheduleNextAlarm();
+          });
       });
 
     try {
@@ -405,16 +407,18 @@ export function useEventDetail(): EventDetailState {
 
     orchestrator
       .addStep("Cloud Lock", async (ctx) => {
-          // [DISTRIBUTED SYSTEMS PATTERN: Lease Extension]
-          // The 30s buffer ensures Convex has adequate time to independently execute
-          // the 'runVerification' heartbeat before the UI officially un-freezes.
+          /**
+           * DISTRIBUTED SYSTEMS PATTERN: Lease Extension
+           * The 30s buffer ensures Convex has adequate time to independently execute
+           * the 'runVerification' heartbeat before the UI officially un-freezes.
+           */
           await updateInstanceMutation({ id: ctx.instanceId as any, strict_until: ctx.strictUntil, is_manual_edit: true });
       })
-      .addStep("Disk Lock", async (ctx) => {
-          await updateInstanceInLocalDb(db, ctx.instanceId, { strict_until: ctx.strictUntil, is_manual_edit: true });
-      })
-      .addStep("Hardware Lock", async () => {
-          scheduleNextAlarm();
+      .addStep("Local Sync (Disk + Hardware)", async (ctx) => {
+          await syncLock.execute("Saga:StrictMode", async () => {
+            await updateInstanceInLocalDb(db, ctx.instanceId, { strict_until: ctx.strictUntil, is_manual_edit: true });
+            scheduleNextAlarm();
+          });
       });
 
     try {

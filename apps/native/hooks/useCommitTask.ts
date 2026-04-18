@@ -4,49 +4,45 @@ import { api } from "@commit/backend/convex/_generated/api";
 import type { Id } from "@commit/backend/convex/_generated/dataModel";
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
 import { insertTaskToLocalDb, updateTaskInLocalDb } from "@/lib/local-db-commits";
+import { syncLock } from "@/lib/sync-lock";
+import { Logger } from "@/lib/logger";
 import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDraftStore";
 import { authClient } from "@/lib/auth-client";
 
 /**
- * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  useCommitTask — The "Triple-Write" Orchestrator                             ║
- * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                              ║
- * ║  PURPOSE:                                                                    ║
- * ║  This is the Master Coordination Engine holding zero UI logic.               ║
- * ║  It guarantees perfect atomic synchronization across three environments:     ║
- * ║  1. Convex Cloud (Remote Master Record)                                      ║
- * ║  2. Expo SQLite (Offline Cache Layer)                                        ║
- * ║  3. Kotlin Native (Kernel Hardware WakeLock Scheduling)                      ║
- * ║                                                                              ║
- * ║  PENALTY PHOTO UPLOAD FLOW:                                                  ║
- * ║  When the draft contains an "embarrassing_photo" penalty with a local        ║
- * ║  file:/// URI, the orchestrator intercepts the payload BEFORE sending        ║
- * ║  it to Convex. It uploads the photo to Convex Storage, swaps the local       ║
- * ║  URI for the permanent storageId, then proceeds with the normal create       ║
- * ║  flow. This is the "Deferred Upload" pattern — no wasted bandwidth for       ║
- * ║  abandoned or edited drafts.                                                 ║
- * ║                                                                              ║
- * ╚══════════════════════════════════════════════════════════════════════════════╝
+ * useCommitTask - The "Triple-Write" Orchestrator
+ *
+ * PURPOSE:
+ * This is the Master Coordination Engine holding zero UI logic.
+ * It guarantees perfect atomic synchronization across three environments:
+ * 1. Convex Cloud (Remote Master Record)
+ * 2. Expo SQLite (Offline Cache Layer)
+ * 3. Kotlin Native (Kernel Hardware WakeLock Scheduling)
+ *
+ * PENALTY PHOTO UPLOAD FLOW:
+ * When the draft contains an "embarrassing_photo" penalty with a local
+ * file:/// URI, the orchestrator intercepts the payload BEFORE sending
+ * it to Convex. It uploads the photo to Convex Storage, swaps the local
+ * URI for the permanent storageId, then proceeds with the normal create
+ * flow. This is the "Deferred Upload" pattern - no wasted bandwidth for
+ * abandoned or edited drafts.
  */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PENALTY PHOTO UPLOAD — Middleware that converts local URIs to Convex Storage
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// WHY THIS EXISTS:
-// The penalty photo lives as a local `file:///data/user/...` URI on the
-// device while the user is configuring. This path is meaningless to the
-// backend. When the user commits, we:
-//   1. Request a short-lived upload URL from Convex.
-//   2. POST the raw photo bytes to that URL.
-//   3. Receive a permanent `storageId` from Convex Storage.
-//   4. Swap `photoUrl` for `storageId` in the penalty config.
-//
-// The backend then stores `storageId` on the task and instances. When the
-// penalty fires, the executor calls `getUrl(storageId)` to retrieve it.
-//
-// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * PENALTY PHOTO UPLOAD - Middleware that converts local URIs to Convex Storage
+ *
+ * WHY THIS EXISTS:
+ * The penalty photo lives as a local `file:///data/user/...` URI on the
+ * device while the user is configuring. This path is meaningless to the
+ * backend. When the user commits, we:
+ *   1. Request a short-lived upload URL from Convex.
+ *   2. POST the raw photo bytes to that URL.
+ *   3. Receive a permanent `storageId` from Convex Storage.
+ *   4. Swap `photoUrl` for `storageId` in the penalty config.
+ *
+ * The backend then stores `storageId` on the task and instances. When the
+ * penalty fires, the executor calls `getUrl(storageId)` to retrieve it.
+ */
 
 /**
  * Detects if a URI is a local device file path (not yet uploaded).
@@ -230,9 +226,9 @@ export function useCommitTask() {
     };
 
     try {
-      // ─────────────────────────────────────────────────────────────────────
-      // MIDDLEWARE: Ensure media assets are uploaded before freezing data.
-      // ─────────────────────────────────────────────────────────────────────
+      /**
+       * MIDDLEWARE: Ensure media assets are uploaded before freezing data.
+       */
       const cleanedPenalty = await preparePenaltyPayload(
         draft.penalty,
         generateUploadUrl,
@@ -241,10 +237,10 @@ export function useCommitTask() {
 
       console.log("[executeCommit] Penalty evaluated/uploaded resolving into ContextSnapshot.");
 
-      // ─────────────────────────────────────────────────────────────────────
-      // SAGA ARCHITECTURE: The Triple-Write Black Box
-      // ─────────────────────────────────────────────────────────────────────
-      // We freeze the intent here. Unpredictable UI states will no longer affect the engine.
+      /**
+       * SAGA ARCHITECTURE: The Triple-Write Black Box
+       * We freeze the intent here. Unpredictable UI states will no longer affect the engine.
+       */
       const contextSnapshot = {
         draft: finalizedDraft,
         now,
@@ -331,33 +327,39 @@ export function useCommitTask() {
                    startHealing(`Retrying Sync (Attempt ${attempts})...`);
                  }
                  
-                 console.log(`[HealLoop] Attempting Forward-Heal for Task ${taskId} (Attempt ${attempts})`);
+                 Logger.info(`[HealLoop] Attempting Forward-Heal for Task ${taskId} (Attempt ${attempts})`);
                  
-                 // 1. Targeted Purge
-                 // If the initial Disk write partially worked, we might have stale instances.
-                 // We wipe them to ensure the re-sync is the source of truth.
-                 await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [taskId]);
-                 
-                 // 2. Fetch Sync Token
-                 let token = await getLocalSyncToken();
-                 
-                 // 3. Request Delta 
-                 // Note: We use the old token because we want everything since the LAST successful sync.
-                 const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
-                   last_synced_at: token || undefined 
+                 /**
+                  * SYNC LOCK ACQUISITION (HEAL LOOP)
+                  * 
+                  * The Heal Loop downloads and ingests massive chunks of data.
+                  * We must lock the DB here to prevent the Background Engine
+                  * from running its own ingestion at the exact same millisecond.
+                  */
+                 await syncLock.execute("Saga:ForwardHeal", async () => {
+                   // 1. Targeted Purge
+                   await db.runAsync('DELETE FROM task_instances WHERE task_id = ?', [taskId]);
+                   
+                   // 2. Fetch Sync Token
+                   let token = await getLocalSyncToken();
+                   
+                   // 3. Request Delta 
+                   const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
+                     last_synced_at: token || undefined 
+                   });
+                   
+                   // 4. Ingest Delta
+                   await ingestDeltaPayload(db, payload);
+                   
+                   // 5. Success! Re-calculate hardware
+                   scheduleNextAlarm();
                  });
                  
-                 // 4. Ingest Delta
-                 await ingestDeltaPayload(db, payload);
-                 
-                 // 5. Success! Re-calculate hardware and break.
-                 scheduleNextAlarm();
-                 console.log(`[HealLoop]  Forward-Heal successful on attempt ${attempts}.`);
+                 Logger.info(`[HealLoop] Forward-Heal successful on attempt ${attempts}.`);
                  break;
                  
                } catch (error) {
-                 console.error(`[HealLoop]  Attempt ${attempts} failed:`, error);
-                 // Wait 2 seconds before retrying
+                 Logger.error(`[HealLoop] Attempt ${attempts} failed:`, error);
                  await new Promise(r => setTimeout(r, 2000));
                }
              }
@@ -366,44 +368,51 @@ export function useCommitTask() {
           }
         )
         .addStep(
-          "Disk Write (SQLite Cache)",
+          "Local Sync (Disk + Hardware)",
           async (ctx, prevResults) => {
             if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS EVENT] Local DB corrupted during Disk Write!");
+            if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS EVENT] Hardware Alarm Permission Denied!");
+
             const cloudMemory = prevResults["Cloud Write (Convex)"];
-            if (ctx.isEditMode) {
-              await updateTaskInLocalDb(db, ctx.draft, cloudMemory.taskId, ctx.now, ctx.cleanedConditions, cloudMemory.instances, ctx.cleanedPenalty);
-            } else {
-              await insertTaskToLocalDb(db, ctx.draft, cloudMemory.taskId, ctx.now, ctx.cleanedConditions, cloudMemory.instances, ctx.cleanedPenalty);
-            }
+            
+            /**
+             * SYNC LOCK ACQUISITION (MAIN SAGA)
+             * 
+             * CRITICAL MERGE: We combine the SQLite Write and the Kotlin 
+             * Alarm trigger into a SINGLE Locked operation. 
+             * This completely prevents the "Phantom Overwrite" bug where the 
+             * Background Engine modifies the Database in the split-second 
+             * before the Saga manages to update the hardware alarms.
+             */
+            await syncLock.execute("Saga:CommitTask", async () => {
+              if (ctx.isEditMode) {
+                await updateTaskInLocalDb(db, ctx.draft, cloudMemory.taskId, ctx.now, ctx.cleanedConditions, cloudMemory.instances, ctx.cleanedPenalty);
+              } else {
+                await insertTaskToLocalDb(db, ctx.draft, cloudMemory.taskId, ctx.now, ctx.cleanedConditions, cloudMemory.instances, ctx.cleanedPenalty);
+              }
+              
+              Logger.info('[Saga:CommitTask] Disk Write finished. Firing Hardware Kernel...');
+              scheduleNextAlarm();
+            });
+
             return { locked: true };
           },
           async () => {
-             // FORWARD-HEAL: We no longer revert the local disk.
-             console.log("[Saga] Local disk write succeeded/failed. Rollback skipped.");
-          }
-        )
-        .addStep(
-          "Hardware Integration (Kotlin System Alarms)",
-          async () => {
-             if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS EVENT] Hardware Alarm Permission Denied!");
-             // This is the trigger. If Android Permission settings block Exact Alarms,
-             // Kotlin throws an error, killing the Orchestrator, automatically forcing
-             // the Cloud and Disk step to run backwards to clean themselves up.
-             scheduleNextAlarm();
+             Logger.info("[Saga] Local Sync succeeded/failed. Rollback skipped.");
           }
         );
 
       // Execute the Master Saga Coordinator
       const executionResult = await orchestrator.execute();
 
-      // ╔══════════════════════════════════════════════════════════════════════════════╗
-      // ║  THE IMPERIAL SUCCESS CHECK                                                  ║
-      // ╠══════════════════════════════════════════════════════════════════════════════╣
-      // ║  In our Forward-Heal model, if the Cloud Write succeeded, the Heal Loop      ║
-      // ║  guarantees that Disk and Hardware are also fixed before we return.          ║
-      // ║  Therefore, even if the Orchestrator technically "failed" its initial        ║
-      // ║  sequence, the system is now consistent and we return SUCCESS.               ║
-      // ╚══════════════════════════════════════════════════════════════════════════════╝
+      /**
+       * THE IMPERIAL SUCCESS CHECK
+       * 
+       * In our Forward-Heal model, if the Cloud Write succeeded, the Heal Loop
+       * guarantees that Disk and Hardware are also fixed before we return.
+       * Therefore, even if the Orchestrator technically "failed" its initial
+       * sequence, the system is now consistent and we return SUCCESS.
+       */
       const cloudWriteSuccess = !!executionResult.results["Cloud Write (Convex)"];
       const finalSuccess = executionResult.success || cloudWriteSuccess;
       const finalError = finalSuccess ? null : executionResult.error;

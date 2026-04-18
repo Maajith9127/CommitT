@@ -34,8 +34,33 @@ export async function ingestDeltaPayload(db: SQLiteDatabase, payload: DeltaPaylo
 
   try {
     await db.withTransactionAsync(async () => {
+      const skippedTaskIds = new Set<string>();
+
       // 1. Ingest Tasks (INSERT OR REPLACE)
       for (const task of payload.tasks) {
+        /**
+         * ───────────────────────────────────────────────────────────────
+         * THE FRESHNESS GUARD (PILLAR 2) - TASKS
+         * ───────────────────────────────────────────────────────────────
+         * If the local Master Task has a newer updated_at timestamp than 
+         * the incoming Convex payload, we discard the payload. This permanently
+         * destroys the "Phantom Overwrite" bug where a background sync 
+         * writes stale data over a user's fresh manual edit.
+         */
+        const existing = await db.getFirstAsync<{ updated_at: number }>(
+          `SELECT updated_at FROM local_tasks WHERE id = ?`, [task._id]
+        );
+        
+        // Convert Convex backend timestamp to comparible epoch.
+        // Fallback to 0 only if data is totally malformed, ensuring local always wins.
+        const incomingTime = task.updated_at || task._creationTime || 0;
+        
+        if (existing && existing.updated_at > incomingTime) {
+          Logger.warn(`[SyncEngine] Freshness Guard: Discarding STALE Convex payload for task ${task._id}`);
+          skippedTaskIds.add(task._id);
+          continue;
+        }
+
         await db.runAsync(`
           INSERT OR REPLACE INTO local_tasks (
             id, convex_id, assigner_id, assignee_id, title, description, visibility,
@@ -68,6 +93,30 @@ export async function ingestDeltaPayload(db: SQLiteDatabase, payload: DeltaPaylo
       // local_tasks) are inserted without error. This aligns with the Convex
       // backend's "instance survival" model.
       for (const instance of payload.instances) {
+        /**
+         * ───────────────────────────────────────────────────────────────
+         * THE FRESHNESS GUARD (PILLAR 2) - INSTANCES
+         * ───────────────────────────────────────────────────────────────
+         */
+        
+        // 1. Parent Task Protection
+        if (skippedTaskIds.has(instance.task_id)) {
+          Logger.info(`[SyncEngine] Freshness Guard: Skipped instance ${instance._id} (Parent Locked)`);
+          continue;
+        }
+
+        // 2. Individual Instance Protection
+        // If local instance is a manually locked/waived edit, but the incoming Convex dataset 
+        // doesn't have it flagged yet (stale), discard the incoming instance.
+        const existingInstance = await db.getFirstAsync<{ is_manual_edit: number }>(
+          `SELECT is_manual_edit FROM task_instances WHERE id = ?`, [instance._id]
+        );
+
+        if (existingInstance?.is_manual_edit === 1 && !instance.is_manual_edit) {
+           Logger.warn(`[SyncEngine] Freshness Guard: Discarding STALE instance ${instance._id} (Local Manual Edit Active)`);
+           continue;
+        }
+
         await db.runAsync(`
           INSERT OR REPLACE INTO task_instances (
             id, task_id, convex_id, title, scheduled_timestamp, start_time, end_time,

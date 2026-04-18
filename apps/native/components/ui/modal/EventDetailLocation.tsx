@@ -19,6 +19,7 @@ import { useHealStore } from "@/stores/useHealStore";
 import { useConvex } from 'convex/react';
 import { scheduleNextAlarm } from '@/modules/scheduler-module';
 import { Logger } from "@/lib/logger";
+import { syncLock } from "@/lib/sync-lock";
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
@@ -189,10 +190,12 @@ export const LocationSection = React.memo(({
                         const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
                             last_synced_at: token || undefined 
                         });
-                        await ingestDeltaPayload(db, payload);
-
-                        // 2. Hardware Alignment
-                        scheduleNextAlarm();
+                        
+                        await syncLock.execute("Heal:LocationPivot", async () => {
+                            await ingestDeltaPayload(db, payload);
+                            // 2. Hardware Alignment
+                            scheduleNextAlarm();
+                        });
                         
                         Logger.info(`[LocationSaga] Pivot healed successfully on attempt ${attempts}`);
                         break;
@@ -207,22 +210,23 @@ export const LocationSection = React.memo(({
             }
           )
           .addStep(
-            "Disk Sync (Local SQLite Destination)",
+            "Local Sync (Disk + Hardware)",
             async (ctx, prev) => {
-                if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
-                   throw new Error("[CHAOS] SQLite update failed.");
-                
-                const conditions = prev["Cloud Sync (Convex Destination)"].updatedConditions;
-                await updateInstanceInLocalDb(db, ctx.instanceId, { conditions });
-            }
-          )
-          .addStep(
-            "Hardware Sync (Re-scan Geofence)",
-            async () => {
-                if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
-                   throw new Error("[CHAOS] Alarm manager failed to pivot.");
-                
-                scheduleNextAlarm();
+                await syncLock.execute("Saga:LocationUpdate", async () => {
+                    if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultDiskWrite) 
+                       throw new Error("[CHAOS] SQLite update failed.");
+                    
+                    const conditions = prev["Cloud Sync (Convex Destination)"].updatedConditions;
+                    await updateInstanceInLocalDb(db, ctx.instanceId, { 
+                        conditions,
+                        is_manual_edit: true
+                    });
+
+                    if (typeof __DEV__ !== 'undefined' && __DEV__ && useChaosStore.getState().faultHardware) 
+                       throw new Error("[CHAOS] Alarm manager failed to pivot.");
+                    
+                    scheduleNextAlarm();
+                });
             }
           );
 

@@ -13,6 +13,7 @@ import { useChaosStore } from "@/stores/useChaosStore";
 import { useHealStore } from "@/stores/useHealStore";
 import { useConvex } from 'convex/react';
 import { Logger } from "@/lib/logger";
+import { syncLock } from "@/lib/sync-lock";
 import CalendarKit, { 
   CalendarBody, 
   CalendarHeader,
@@ -234,10 +235,12 @@ export default function SchedulesScreen() {
               const payload = await convex.query(api.api.sync.delta.getDeltaPayload, { 
                 last_synced_at: token || undefined 
               });
-              await ingestDeltaPayload(db, payload);
-
-              // 2. Hardware Alignment
-              scheduleNextAlarm();
+              
+              await syncLock.execute("Heal:TemporalShift", async () => {
+                  await ingestDeltaPayload(db, payload);
+                  // 2. Hardware Alignment
+                  scheduleNextAlarm();
+              });
               
               Logger.info(`[Forward-Heal] Temporal shift healed successfully for ${ctx.id} on attempt ${attempts}`);
               break;
@@ -252,22 +255,19 @@ export default function SchedulesScreen() {
         }
       )
       .addStep(
-        "Disk Sync (Local SQLite Cache)",
+        "Local Sync (Disk + Hardware)",
         async (ctx, prev) => {
-          if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] Disk Write Failed.");
-          await updateSingleInstanceInLocalDb(db, prev["Cloud Sync (Convex Instance Update)"].originalInstance as any);
-        },
-        async (ctx) => {
-           // DISK COMPENSATE — INTENTIONAL NO-OP
-           // The Cloud Forward-Heal (above) already syncs the correct state
-           // to SQLite. No manual rollback needed.
-        }
-      )
-      .addStep(
-        "Hardware Sync (Android Alarms)",
-        async () => {
-          if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Hardware Alarm Fail.");
-          scheduleNextAlarm();
+          await syncLock.execute("Saga:TemporalShift", async () => {
+              if (__DEV__ && useChaosStore.getState().faultDiskWrite) throw new Error("[CHAOS] Disk Write Failed.");
+              
+              const updatedInstance = prev["Cloud Sync (Convex Instance Update)"].originalInstance as any;
+              updatedInstance.is_manual_edit = true; // Inject Freshness Guard protection
+              
+              await updateSingleInstanceInLocalDb(db, updatedInstance);
+
+              if (__DEV__ && useChaosStore.getState().faultHardware) throw new Error("[CHAOS] Hardware Alarm Fail.");
+              scheduleNextAlarm();
+          });
         }
       );
 

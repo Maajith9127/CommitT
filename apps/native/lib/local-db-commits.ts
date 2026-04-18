@@ -118,8 +118,6 @@ export async function updateTaskInLocalDb(
     // No lookup needed — remoteId is the task_id in the instance world.
     // We protect manually edited instances from this purge.
     await db.runAsync("DELETE FROM task_instances WHERE task_id = ? AND is_manual_edit = 0", [remoteId]);
-    await db.runAsync("DELETE FROM blocked_apps WHERE task_id = ?", [remoteId]);
-    await db.runAsync("DELETE FROM blocked_websites WHERE task_id = ?", [remoteId]);
 
     // 3. Repopulate fully aligned with the newly edited timeframe constraints.
     await syncInstancesToLocalDb(db, remoteId, backendInstances, now);
@@ -216,16 +214,6 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
-  const blockAppsStatement = await db.prepareAsync(
-    `INSERT INTO blocked_apps (task_id, package_name, active_from, active_until) 
-     VALUES (?, ?, ?, ?)`
-  );
-
-  const blockWebStatement = await db.prepareAsync(
-    `INSERT INTO blocked_websites (task_id, domain, active_from, active_until) 
-     VALUES (?, ?, ?, ?)`
-  );
-
   try {
     for (const instance of backendInstances) {
       // A. Insert the main instance 
@@ -248,32 +236,12 @@ async function syncInstancesToLocalDb(db: SQLiteDatabase, localTaskId: string, b
         now,
       ]);
 
-      // B. Project Digital Commitments (Blocked Apps & Websites) into dedicated tables
-      if (instance.conditions) {
-        const digitalCond = instance.conditions.find((c: any) => c.metric_key === "digital_commitment");
-        if (digitalCond?.target?.value) {
-          const { apps = [], websites = [] } = digitalCond.target.value;
-          
-          for (const pkg of apps) {
-            await blockAppsStatement.executeAsync([localTaskId, pkg, instance.start, instance.end]);
-          }
-          
-          for (const domain of websites) {
-            await blockWebStatement.executeAsync([localTaskId, domain, instance.start, instance.end]);
-          }
-        }
-      }
+      // B. Project Digital Commitments (Legacy table inserts removed)
     }
     console.log(`[TaskRepository] SQLite sync complete. Projected ${backendInstances.length} instances.`);
   } finally {
     try { await instanceStatement.finalizeAsync(); } catch (e) {
       console.warn('[TaskRepository] instanceStatement finalize failed:', e);
-    }
-    try { await blockAppsStatement.finalizeAsync(); } catch (e) {
-      console.warn('[TaskRepository] blockAppsStatement finalize failed:', e);
-    }
-    try { await blockWebStatement.finalizeAsync(); } catch (e) {
-      console.warn('[TaskRepository] blockWebStatement finalize failed:', e);
     }
   }
 }
