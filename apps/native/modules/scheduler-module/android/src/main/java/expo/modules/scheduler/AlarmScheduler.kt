@@ -31,8 +31,8 @@ import java.util.Calendar
  */
 object AlarmScheduler {
     private const val TAG = "AlarmScheduler"
-    private const val CACHE_PREFS_NAME = "UpcomingAlarmsCache"
-    private const val KEY_ALARMS_LIST = "AlarmsList"
+    private const val CACHE_PREFS_NAME = "UpcomingAlarmsCacheV2"
+    private const val KEY_ALARMS_LIST = "AlarmsListV2"
 
     /**
      * AUDIO RESOURCE MAP (Production Sound Pipeline)
@@ -252,6 +252,11 @@ object AlarmScheduler {
             Log.w(TAG, "[PRE-ALARM MATH] Failed to parse config_json cleanly. Falling back to default lead: 15m, interval: 2m.")
         }
         
+        // Critical System Infrastructure constraint: 
+        // If intervalMinutes is exactly 0, the staggered offset while-loop becomes INFINITE,
+        // causing a massive JVM Memory Leak that predictably explodes exactly at ~124MB allocation limits.
+        if (intervalMinutes <= 0) intervalMinutes = 1
+
         Log.v(TAG, "[ALARM MATH] Lead: $leadTimeMinutes, Interval: $intervalMinutes, StayThroughout: $isStayThroughout")
 
         // 1. Calculate T-minus staggered target intervals dynamically!

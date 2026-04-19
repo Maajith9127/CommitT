@@ -20,6 +20,7 @@ import { useEffect } from "react";
 import { useHydrationSync } from "@/hooks/useHydrationSync";
 import { Logger } from "@/lib/logger";
 import { HealOverlay } from "@/components/ui/modal/HealOverlay";
+import { HeaderTitle, BodyText } from "@/components/ui/text";
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 
@@ -452,12 +453,12 @@ function SecurityShield({ children }: { children: React.ReactNode }) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0A0A0A', justifyContent: 'center', alignItems: 'center', padding: 32 }}>
         <MaterialCommunityIcons name="shield-alert-outline" size={80} color="#FF3B30" style={{ marginBottom: 20 }} />
-        <Text style={{ color: '#FF3B30', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>
+        <HeaderTitle className="text-[#FF3B30] text-2xl font-bold text-center mb-3">
           Security Violation
-        </Text>
-        <Text style={{ color: '#9CA3AF', fontSize: 16, textAlign: 'center', lineHeight: 24 }}>
+        </HeaderTitle>
+        <BodyText className="text-gray-400 text-center text-base" style={{ lineHeight: 24 }}>
           This application has detected unauthorized hardware configuration. It cannot execute natively while Developer Settings or Location Spoofing protocols are active on this device.
-        </Text>
+        </BodyText>
       </View>
     );
   }

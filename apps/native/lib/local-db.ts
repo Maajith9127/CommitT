@@ -173,6 +173,13 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
 
   try {
     await db.execAsync(UNIFIED_SCHEMA_V12);
+    
+    // Hard eliminate any lingering ghost WAL boundaries that corrupt Android JNI scans
+    await db.execAsync(`
+      PRAGMA wal_checkpoint(TRUNCATE);
+      VACUUM;
+    `);
+
     console.log(`[LocalDB] Nuke & Pave complete. Schema v${DATABASE_VERSION} deployed.`);
   } catch (rebuildError: any) {
     // ── LAST RESORT: Even the rebuild failed. ──────────────────────────────
@@ -199,6 +206,18 @@ export async function nukeAndRebuildSchema(db: SQLiteDatabase): Promise<void> {
 
   try {
     await db.execAsync(UNIFIED_SCHEMA_V12);
+    
+    // Critical Infrastructure Fix: 
+    // A standard DROP TABLE does not rebuild the physical .db file boundaries or clean out 
+    // the Write-Ahead Log (WAL). If the WAL previously experienced catastrophic fragmentation, 
+    // Android's native CursorWindow will attempt to read corrupted lengths (e.g. interpreting a 
+    // ghost byte as asking for a 124MB string), instantly crashing the JVM with an OOM.
+    // The VACUUM command physically reconstructs the entire database file from scratch.
+    await db.execAsync(`
+      PRAGMA wal_checkpoint(TRUNCATE);
+      VACUUM;
+    `);
+
     console.log('[LocalDB] ☢️ NUKE & REBUILD complete. Awaiting Amnesia re-sync from Convex.');
   } catch (error: any) {
     console.error('[LocalDB] ☢️ NUKE & REBUILD FAILED:', error);

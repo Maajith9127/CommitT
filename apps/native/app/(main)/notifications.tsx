@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { useState, useRef } from "react";
+import { View, ScrollView, Pressable, ActivityIndicator, useWindowDimensions } from "react-native";
 import { useQuery } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
 import { withUniwind } from "uniwind";
 import { TabsBar } from "@/components/ui/blocklist";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { BodyText, FooterText } from "@/components/ui/text";
+import { BodyText, FooterText, HeaderTitle } from "@/components/ui/text";
 import dayjs from "dayjs";
 
 const UView = withUniwind(View);
@@ -128,6 +128,8 @@ function NotificationListItem({ instance, tabType }: { instance: TaskInstance, t
  */
 export default function NotificationsScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const horizontalScrollRef = useRef<ScrollView>(null);
 
   const data = useQuery(api.api.notifications.read.getGroups, { limit: 50 });
 
@@ -136,10 +138,30 @@ export default function NotificationsScreen() {
   const waiversList = (data?.action_required || []) as any[];
   const verifiedList = (data?.verified || []) as any[];
 
+  const handleTabChange = (key: Tab) => {
+    const index = TABS.map(t => t.key).indexOf(key);
+    if (index !== -1) {
+      horizontalScrollRef.current?.scrollTo({
+        x: index * SCREEN_WIDTH,
+        animated: true
+      });
+      setActiveTab(key);
+    }
+  };
+
+  const handleMomentumScrollEnd = (e: any) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / SCREEN_WIDTH);
+    const newTab = TABS[index]?.key;
+    if (newTab && newTab !== activeTab) {
+      setActiveTab(newTab as Tab);
+    }
+  };
+
   return (
     <UView className="flex-1 bg-black pt-2">
       <UView className="px-4">
-        <TabsBar tabs={TABS} activeTab={activeTab} onChange={(key) => setActiveTab(key as Tab)} />
+        <TabsBar tabs={TABS} activeTab={activeTab} onChange={(key) => handleTabChange(key as Tab)} />
       </UView>
 
       {/* Suspend the list feed during WebSocket connection initialization */}
@@ -148,33 +170,56 @@ export default function NotificationsScreen() {
           <ActivityIndicator size="small" color="#4FA0FF" />
         </UView>
       ) : (
-        <UScroll className="flex-1 mt-2" showsVerticalScrollIndicator={false}>
-          
-          {activeTab === "upcoming" && upcomingList.map((instance) => (
-            <NotificationListItem
-              key={`up-${instance._id}`}
-              instance={instance}
-              tabType="upcoming"
-            />
-          ))}
+        <ScrollView
+          ref={horizontalScrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
+          style={{ flex: 1, marginTop: 8 }}
+        >
+          {/* TAB 1: Upcoming */}
+          <UScroll style={{ width: SCREEN_WIDTH }} showsVerticalScrollIndicator={false}>
+            {upcomingList.map((instance) => (
+              <NotificationListItem key={`up-${instance._id}`} instance={instance} tabType="upcoming" />
+            ))}
+            {upcomingList.length === 0 && (
+              <UView className="py-20 items-center justify-center px-8">
+                 <MaterialCommunityIcons name="clock-check-outline" size={48} color="white" />
+                 <HeaderTitle className="mt-4 text-center text-lg">No upcoming commitments right now.</HeaderTitle>
+              </UView>
+            )}
+            <UView className="pb-10" />
+          </UScroll>
 
-          {activeTab === "action_required" && waiversList.map((instance) => (
-            <NotificationListItem
-              key={`act-${instance._id}`}
-              instance={instance}
-              tabType="action_required"
-            />
-          ))}
+          {/* TAB 2: Action Required */}
+          <UScroll style={{ width: SCREEN_WIDTH }} showsVerticalScrollIndicator={false}>
+            {waiversList.map((instance) => (
+              <NotificationListItem key={`act-${instance._id}`} instance={instance} tabType="action_required" />
+            ))}
+            {waiversList.length === 0 && (
+              <UView className="py-20 items-center justify-center px-8">
+                 <MaterialCommunityIcons name="shield-check-outline" size={48} color="white" />
+                 <HeaderTitle className="mt-4 text-center text-lg">You are all caught up! No waivers require attention.</HeaderTitle>
+              </UView>
+            )}
+            <UView className="pb-10" />
+          </UScroll>
 
-          {activeTab === "verified" && verifiedList.map((instance) => (
-            <NotificationListItem
-              key={`ver-${instance._id}`}
-              instance={instance}
-              tabType="verified"
-            />
-          ))}
-            
-        </UScroll>
+          {/* TAB 3: Verified */}
+          <UScroll style={{ width: SCREEN_WIDTH }} showsVerticalScrollIndicator={false}>
+            {verifiedList.map((instance) => (
+              <NotificationListItem key={`ver-${instance._id}`} instance={instance} tabType="verified" />
+            ))}
+            {verifiedList.length === 0 && (
+              <UView className="py-20 items-center justify-center px-8">
+                 <MaterialCommunityIcons name="history" size={48} color="white" />
+                 <HeaderTitle className="mt-4 text-center text-lg">Verified commitments will appear here.</HeaderTitle>
+              </UView>
+            )}
+            <UView className="pb-10" />
+          </UScroll>
+        </ScrollView>
       )}
     </UView>
   );

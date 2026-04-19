@@ -213,10 +213,10 @@ export default function PresetsScreen() {
 
                 {locations !== undefined && locations.length === 0 && (
                   <UView className="py-20 items-center justify-center px-8">
-                    <MaterialCommunityIcons name="map-marker-off-outline" size={48} color="#333" />
-                    <BodyText className="text-gray-500 mt-4 text-center">
+                    <MaterialCommunityIcons name="map-marker-off-outline" size={48} color="white" />
+                    <HeaderTitle className="mt-4 text-center text-lg">
                       No saved locations yet. Create a commitment with a location to see it here.
-                    </BodyText>
+                    </HeaderTitle>
                   </UView>
                 )}
 
@@ -248,10 +248,10 @@ export default function PresetsScreen() {
 
                 {digitalPresets !== undefined && digitalPresets.length === 0 && (
                   <UView className="py-20 items-center justify-center px-8">
-                    <MaterialCommunityIcons name="shield-off-outline" size={48} color="#333" />
-                    <BodyText className="text-gray-500 mt-4 text-center">
+                    <MaterialCommunityIcons name="shield-off-outline" size={48} color="white" />
+                    <HeaderTitle className="mt-4 text-center text-lg">
                       No saved blocklists yet. Create a commitment with app-blocking to see it here.
-                    </BodyText>
+                    </HeaderTitle>
                   </UView>
                 )}
 
@@ -275,10 +275,10 @@ export default function PresetsScreen() {
                <UView className="pb-24">
                 {rulePresets !== undefined && rulePresets.length === 0 && (
                   <UView className="py-20 items-center justify-center px-8">
-                    <MaterialCommunityIcons name="playlist-remove" size={48} color="#333" />
-                    <BodyText className="text-gray-500 mt-4 text-center">
+                    <MaterialCommunityIcons name="playlist-remove" size={48} color="white" />
+                    <HeaderTitle className="mt-4 text-center text-lg">
                       No saved behavioral rules yet. Create one to define your focus protocols.
-                    </BodyText>
+                    </HeaderTitle>
                   </UView>
                 )}
 
@@ -299,9 +299,9 @@ export default function PresetsScreen() {
             style={{ width: SCREEN_WIDTH }} 
             showsVerticalScrollIndicator={false}
           >
-            <UView className="px-6 py-10 items-center justify-center">
-                <MaterialCommunityIcons name="image-multiple-outline" size={40} color="#333" />
-                <BodyText className="text-gray-500 mt-4">Reference photo presets coming soon.</BodyText>
+            <UView className="px-6 py-20 items-center justify-center">
+                <MaterialCommunityIcons name="image-multiple-outline" size={48} color="white" />
+                <HeaderTitle className="mt-4 text-center text-lg">Reference photo presets coming soon.</HeaderTitle>
             </UView>
           </UScroll>
       </ScrollView>
