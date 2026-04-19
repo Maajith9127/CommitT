@@ -439,6 +439,42 @@ export const ConfigSection = ({ event }: { event: any }) => {
         </UView>
       )}
 
+      {/* Intensity (Only for Stay Throughout) */}
+      {verificationStyle === 'stay_throughout' && config.stay_throughout_config?.intensity && (
+        <UView className="flex-row items-center justify-between mb-6">
+          <UView className="flex-row items-center flex-1">
+            <MaterialCommunityIcons
+              name="speedometer"
+              size={30}
+              color="#9CA3AF"
+              style={{ marginRight: 12 }}
+            />
+            <BodyText className="text-gray-300 text-base">Intensity</BodyText>
+          </UView>
+          <BodyText className="text-white text-base">
+            {config.stay_throughout_config.intensity.charAt(0).toUpperCase() + config.stay_throughout_config.intensity.slice(1)}
+          </BodyText>
+        </UView>
+      )}
+
+      {/* Max Missed Checkins (Only for Stay Throughout) */}
+      {verificationStyle === 'stay_throughout' && config.stay_throughout_config?.max_missed_checkins !== undefined && (
+        <UView className="flex-row items-center justify-between mb-6">
+          <UView className="flex-row items-center flex-1">
+            <MaterialCommunityIcons
+              name="alert-circle-outline"
+              size={30}
+              color="#9CA3AF"
+              style={{ marginRight: 12 }}
+            />
+            <BodyText className="text-gray-300 text-base">Allowed Misses</BodyText>
+          </UView>
+          <BodyText className="text-white text-base">
+            {config.stay_throughout_config.max_missed_checkins}
+          </BodyText>
+        </UView>
+      )}
+
       {/* Grace Period */}
       {graceMinutes > 0 && (
         <UView className="flex-row items-center justify-between mb-6">

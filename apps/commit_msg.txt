@@ -1,20 +1,18 @@
-chore(sync): resolve native deadlocks and "Loop of Doom" sync cycles
+ui(detail): overhaul behavioral DNA manifest in EventDetailModal
 
-This commit hardens the native synchronization engine to prevent deadlocks
-and redundant reconciliation cycles, particularly on Android ROMs where 
-JS-side swipe-killing does not immediately terminate native threads.
+Standardized and synchronized the display of commitment operational 
+metadata to achieve 1:1 parity with the creation flow.
 
-Key Infrastructure Changes:
-- SyncLock V2: Implemented a 30s/45s Operation Timeout Guard. If a Convex 
-  query or SQLite transaction hangs, the lock is now forcibly released 
-  to prevent permanent system deadlocks.
-- Manual Resync Awareness: Added an `isManualResyncActive` flag to 
-  coordinate between the Profile resync saga and the background engine.
-- HydrationSync Circuit Breaker: Limits consecutive "Amnesia" detections 
-  to 3 attempts, preventing infinite log-flooding loops.
-- Cold Boot Reset: Added an explicit SyncLock reset on initial mount 
-  to clear "zombie" locks surviving from previous process lifetimes.
-- SQLite Integrity: Hardened the "Nuke & Pave" logic with VACUUM and 
-  TRUNCATE to eliminate fragmented WAL boundaries causing JVM OOMs.
+Key Changes:
+- Extracted 'Intensity' and 'Allowed Misses' into dedicated, high-fidelity 
+  rows within the EventDetail ConfigSection.
+- Synchronized iconography with final.tsx: mapped 'speedometer' to 
+  Intensity and 'alert-circle-outline' to Allowed Misses.
+- Improved logical grouping for 'Stay Throughout' commitments, surfacing 
+  the full strictness protocol at a glance.
+- Maintained the 42px left-column alignment standard for perfect 
+  vertical rhythm across all detail components.
 
-Resolves persistent sync hangs on Lenovo K12 Note.
+This ensures that users can see the exact enforcement rules (strictness 
+and failure thresholds) directly in the event drawer without needing 
+to navigate back to the parent task.
