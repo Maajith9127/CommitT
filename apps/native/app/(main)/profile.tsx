@@ -250,6 +250,30 @@ export default function ProfileScreen() {
           setResyncError(null);
           startHealing("Wiping cache and performing full device resynchronization...");
           
+          /**
+           * ───────────────────────────────────────────────────────────────
+           * MANUAL RESYNC PROTOCOL (The "Imperial Override")
+           * ───────────────────────────────────────────────────────────────
+           * This is a 5-stage nuclear operation:
+           *   1. Signal HydrationSync to stand down (isManualResyncActive)
+           *   2. Nuke the local SQLite database
+           *   3. Clear the sync token (forces Convex to return EVERYTHING)
+           *   4. Download the full snapshot from Convex
+           *   5. Ingest everything and re-arm the hardware alarms
+           *
+           * CRITICAL: The isManualResyncActive flag MUST be set BEFORE
+           * acquiring the SyncLock and cleared in the outermost `finally`.
+           * This prevents the HydrationSync background engine from seeing
+           * the empty database mid-operation and entering the "Loop of Doom"
+           * (repeated AMNESIA detections competing with this operation).
+           *
+           * TIMEOUT: We use a 45-second timeout (vs. the default 30s)
+           * because this operation includes a full Convex network round-trip
+           * which may be slow on cold connections or high-latency networks.
+           * ───────────────────────────────────────────────────────────────
+           */
+          syncLock.isManualResyncActive = true;
+
           try {
             await syncLock.execute("Saga:ManualResync", async () => {
               // 1. Wipe SQLite safely using structural drops to avoid NativeStatement WAL corruption
@@ -266,13 +290,15 @@ export default function ProfileScreen() {
 
               // 5. Re-Arm Hardware
               scheduleNextAlarm();
-            });
+            }, 45_000); // 45s timeout for the full network round-trip
             setShowResyncConfirm(false);
             console.log("[Profile] Manual Full Resync Complete");
           } catch (e: any) {
             console.error("[Profile] Resync Failed:", e);
             setResyncError(e.message || String(e));
           } finally {
+            // ALWAYS clear the flag, even on failure, so HydrationSync can resume
+            syncLock.isManualResyncActive = false;
             setIsResyncing(false);
             stopHealing();
           }

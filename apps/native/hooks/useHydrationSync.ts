@@ -37,6 +37,25 @@ const MAX_HEALTH_CHECK_RETRIES = 3;
 const HEALTH_CHECK_RETRY_DELAY_MS = 1_500; // 1.5 seconds
 
 /**
+ * AMNESIA CIRCUIT BREAKER
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Maximum number of consecutive "Amnesia" (token === null) detections before
+ * the engine stops retrying and waits for the next manual foreground trigger.
+ *
+ * WHY THIS EXISTS:
+ * If a ManualResync nukes the database but fails to re-download (e.g., Convex
+ * query hangs), every subsequent foreground transition sees an empty DB and
+ * fires "AMNESIA DETECTED!". Without a circuit breaker, this creates the
+ * "Loop of Doom" — an infinite cycle of:
+ *   AMNESIA → Convex query → timeout/hang → foreground → AMNESIA → ...
+ *
+ * After MAX_CONSECUTIVE_AMNESIA_ATTEMPTS, the engine logs a critical warning
+ * and stops. The counter resets on any successful sync or when the user
+ * manually triggers another resync.
+ */
+const MAX_CONSECUTIVE_AMNESIA_ATTEMPTS = 3;
+
+/**
  * ─────────────────────────────────────────────────────────────────────────────
  * HOOK: useHydrationSync
  * ─────────────────────────────────────────────────────────────────────────────
@@ -93,8 +112,31 @@ export function useHydrationSync() {
   /** Cleanup flag: ensures async operations abort if the component unmounts. */
   const isMountedRef = useRef(true);
 
+  /**
+   * AMNESIA CIRCUIT BREAKER COUNTER
+   * Tracks how many consecutive times we've entered Amnesia mode without
+   * a successful sync completing. Resets on any successful ingestion.
+   */
+  const consecutiveAmnesiaRef = useRef<number>(0);
+
   useEffect(() => {
     isMountedRef.current = true;
+
+    /**
+     * ─────────────────────────────────────────────────────────────────────
+     * 0. COLD BOOT LOCK RESET
+     * ─────────────────────────────────────────────────────────────────────
+     * On some Android ROMs (notably Lenovo), swiping the app from recents
+     * does NOT kill the process if an Accessibility Service holds it alive.
+     * This means the in-memory SyncLock Promise chain can survive a
+     * "swipe-kill" in a permanently stuck state.
+     *
+     * By calling reset() on mount, we guarantee a clean slate. If the
+     * process was truly killed, this is a no-op (fresh memory). If the
+     * process survived, this clears the zombie lock.
+     */
+    syncLock.reset();
+    consecutiveAmnesiaRef.current = 0;
 
     /**
      * ─────────────────────────────────────────────────────────────────────
@@ -166,6 +208,19 @@ export function useHydrationSync() {
     async function executeReconciliation() {
       if (!isMountedRef.current) return;
 
+      /**
+       * ── Manual Resync Gate ──
+       * If the user has explicitly triggered a Full Resync from the
+       * Profile screen, the ManualResync saga owns the entire sync
+       * lifecycle (nuke → download → ingest → re-arm). The background
+       * engine must NOT interfere, or it will see an empty database
+       * and enter the "Loop of Doom" (repeated AMNESIA detections).
+       */
+      if (syncLock.isManualResyncActive) {
+        Logger.info('[HydrationSync] Manual Resync in progress. Background sync deferred.');
+        return;
+      }
+
       // ── Mutex Gate ──
       // If a sync is already in-flight, silently bail. The in-flight
       // cycle will already deliver the latest state.
@@ -197,8 +252,31 @@ export function useHydrationSync() {
         const isAmnesiaWipe = token === null;
 
         if (isAmnesiaWipe) {
-          Logger.info('[HydrationSync] AMNESIA DETECTED! Local DB wiped. Forcing Full Storage Rebuild...');
+          /**
+           * ── Amnesia Circuit Breaker ──
+           * If we've detected AMNESIA too many times in a row without
+           * successfully completing a sync, something is fundamentally
+           * broken (e.g., ManualResync crashed mid-way, or Convex is
+           * unreachable). Stop hammering and wait for the user to
+           * manually intervene or for the next cold boot.
+           */
+          consecutiveAmnesiaRef.current += 1;
+
+          if (consecutiveAmnesiaRef.current > MAX_CONSECUTIVE_AMNESIA_ATTEMPTS) {
+            Logger.error(
+              `[HydrationSync] CIRCUIT BREAKER TRIPPED: ${consecutiveAmnesiaRef.current} consecutive ` +
+              `Amnesia detections without recovery. Suspending background sync until next cold boot or manual resync.`
+            );
+            return;
+          }
+
+          Logger.info(
+            `[HydrationSync] AMNESIA DETECTED! Local DB wiped. Forcing Full Storage Rebuild... ` +
+            `(attempt ${consecutiveAmnesiaRef.current}/${MAX_CONSECUTIVE_AMNESIA_ATTEMPTS})`
+          );
         } else {
+          // Successful token read — reset the circuit breaker
+          consecutiveAmnesiaRef.current = 0;
           Logger.info(`[HydrationSync] Warm Boot. Last sync: ${new Date(token).toLocaleTimeString()}`);
         }
 
@@ -230,6 +308,9 @@ export function useHydrationSync() {
           await syncLock.execute("Engine:Hydrate", async () => {
             await ingestDeltaPayload(db, payload);
 
+            // Successful ingestion — reset the Amnesia circuit breaker
+            consecutiveAmnesiaRef.current = 0;
+
             /**
              * Phase 5: Hardware Re-Arm
              * Alarms are ONLY updated while the lock is held. This guarantees
@@ -240,6 +321,8 @@ export function useHydrationSync() {
             Logger.info('[HydrationSync] Hardware fully synchronized!');
           });
         } else {
+          // Successful empty sync — reset the circuit breaker
+          consecutiveAmnesiaRef.current = 0;
           Logger.info('[HydrationSync] Fully synchronized. Zero mutation drift.');
         }
 
