@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { ScrollView, View, Image, Alert } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { withUniwind } from "uniwind";
@@ -55,6 +55,15 @@ export default function ProfileScreen() {
   const [resyncError, setResyncError] = useState<string | null>(null);
 
   /**
+   * ** FRICTION GATE STATE **
+   * We implement a high-friction tap counter to prevent impulsive resynchronization.
+   * By requiring 50 manual taps, we ensure the user is performing a deliberate 
+   * action rather than seeking a quick "escape" from active commitments.
+   */
+  const [resyncTapCount, setResyncTapCount] = useState(0);
+  const RESYNC_TAP_REQUIREMENT = 100;
+
+  /**
    * ─────────────────────────────────────────────────────────────────────────────
    * MENU CONFIGURATIONS
    * ─────────────────────────────────────────────────────────────────────────────
@@ -76,7 +85,10 @@ export default function ProfileScreen() {
   ], []);
 
   const sessionItems = useMemo(() => [
-    { id: "full_resync", title: "Full Resync", type: "select" as const, icon: "cloud-sync-outline", onPress: () => setShowResyncConfirm(true) },
+    { id: "full_resync", title: "Full Resync", type: "select" as const, icon: "cloud-sync-outline", onPress: () => {
+      setResyncTapCount(0); // ** RESET FRICTION COUNTER ON OPEN **
+      setShowResyncConfirm(true);
+    }},
     { id: "help_support", title: "Help & Support", type: "select" as const, icon: "help-circle-outline", onPress: () => console.log('Help & Support') },
     { id: "switch_accounts", title: "Switch Accounts", type: "select" as const, icon: "account-switch-outline", onPress: () => console.log('Switch Accounts') },
     { id: "logout", title: "Log Out", type: "select" as const, icon: "logout", onPress: () => setShowLogoutConfirm(true) },
@@ -87,27 +99,6 @@ export default function ProfileScreen() {
    * ─────────────────────────────────────────────────────────────────────────────
    * HANDLER: handleFullResync (The "Imperial Override")
    * ─────────────────────────────────────────────────────────────────────────────
-   * PRODUCTION RATIONALE:
-   * This is a 5-stage nuclear operation designed to recover from persistent 
-   * local data corruption or to perform a clean-slate synchronization.
-   *
-   * 🛡️ SECURITY: 
-   * We utilize a 'Fetch-Before-Wipe' protocol. This prevents 'offline amnesia' 
-   * exploits where a user could turn off the internet, wipe local data, and 
-   * bypass active blocks or rule enforcements. No data is touched until the 
-   * cloud has proven it is ready to provide a replacement snapshot.
-   *
-   * 🏗️ DATABASE INTEGRITY:
-   * During the wipe phase, we utilize structural drops rather than simple 
-   * row deletions. This prevents 'NativeStatement' WAL (Write-Ahead Logging) 
-   * corruption which can occur on budget Android devices if the WAL file 
-   * grows too large during a bulk row delete.
-   *
-   * 🔄 ENGINE COORDINATION:
-   * The 'isManualResyncActive' flag is a critical semaphore. It signals the 
-   * background 'HydrationSync' engine to stand down, preventing it from 
-   * detecting the empty database mid-wipe and entering a concurrent 
-   * 'Loop of Doom' sync race.
    */
   const handleFullResync = async () => {
     setIsResyncing(true);
@@ -115,7 +106,6 @@ export default function ProfileScreen() {
     
     try {
       // ── STAGE 0: PROVE CONNECTIVITY ──
-      // verifying internet access BEFORE we wipe any local anti-cheat data.
       const probe = await fetch('https://google.com', { method: 'HEAD' }).catch(() => null);
       if (!probe || !probe.ok) {
         throw new Error("Active internet connection required for Full Resync.");
@@ -128,12 +118,9 @@ export default function ProfileScreen() {
 
       await syncLock.execute("Saga:ManualResync", async () => {
         // ── STAGE 1: ATOMIC CLOUD FETCH ──
-        // Download entire snapshot to RAM before touching SQLite.
-        // If this fails (network drop), the local "Block" state remains intact.
         const payload = await convex.query(api.api.sync.delta.getDeltaPayload, {});
 
         // ── STAGE 2: STRUCTURAL WIPE ──
-        // Only safe to wipe now that we have the replacement data in memory.
         await nukeAndRebuildSchema(db);
 
         // ── STAGE 3: DATA REFLATION ──
@@ -150,12 +137,27 @@ export default function ProfileScreen() {
       console.error("[Profile] Resync Failed:", e);
       setResyncError(e.message || String(e));
     } finally {
-      // Release the semaphore so HydrationSync can resume operations
       syncLock.isManualResyncActive = false;
       setIsResyncing(false);
       stopHealing();
+      setResyncTapCount(0); // ** RESET FRICTION ON FINISH **
     }
   };
+
+  /**
+   * ** FRICTION TAP HANDLER **
+   * Intercepts the confirmation action to enforce the 50-tap discipline rule.
+   */
+  const handleResyncTap = useCallback(() => {
+    if (isResyncing) return;
+
+    const nextCount = resyncTapCount + 1;
+    if (nextCount >= RESYNC_TAP_REQUIREMENT) {
+      handleFullResync();
+    } else {
+      setResyncTapCount(nextCount);
+    }
+  }, [resyncTapCount, isResyncing]);
 
   return (
     <UScroll 
@@ -180,37 +182,24 @@ export default function ProfileScreen() {
         </FooterText>
       </UView>
 
-      {/* ── SECTION: ACCOUNT ── */}
+      {/* ── SECTIONS ── */}
       <UView className="mb-1">
         <HeaderTitle className="mb-2 text-2xl font-bold text-white">Account</HeaderTitle>
       </UView>
-      <SettingsToggleCard
-        className="mb-6"
-        // @ts-ignore
-        items={accountItems}
-      />
+      <SettingsToggleCard className="mb-6" items={accountItems} />
 
-      {/* ── SECTION: CUSTOMIZE ── */}
       <UView className="mb-1">
         <HeaderTitle className="mb-2 text-2xl font-bold text-white">Customize</HeaderTitle>
       </UView>
-      <SettingsToggleCard
-        className="mb-6"
-        // @ts-ignore
-        items={customizeItems}
-      />
+      <SettingsToggleCard className="mb-6" items={customizeItems} />
 
-      {/* ── SECTION: SESSION & DATA ── */}
       <UView className="mb-1">
         <HeaderTitle className="mb-2 text-2xl font-bold text-white">Session & Data</HeaderTitle>
       </UView>
-      <SettingsToggleCard
-        className="mb-6"
-        // @ts-ignore
-        items={sessionItems}
-      />
+      <SettingsToggleCard className="mb-6" items={sessionItems} />
 
-      {/* ── MODALS: CONFIRMATION FLOWS ── */}
+      {/* ── MODALS ── */}
+      
       <ConfirmationModal
         visible={showLogoutConfirm}
         title="Are you sure you want to log out?"
@@ -231,18 +220,27 @@ export default function ProfileScreen() {
 
       <ConfirmationModal
         visible={showResyncConfirm}
-        title="Do you want to start a full Resync?"
-        confirmText="Start Resync"
-        confirmColor="#4FA0FF"
+        title={resyncTapCount > 0 
+          ? `Tap ${RESYNC_TAP_REQUIREMENT - resyncTapCount} more times` 
+          : "Tap 100 times to start"
+        }
+        confirmText="TAP"
+        confirmColor={resyncTapCount >= 80 ? "#FF3B30" : "#4FA0FF"}
         cancelText="Cancel"
         cancelColor="#FF3B30"
         isLoading={isResyncing}
-        onConfirm={handleFullResync}
-        onCancel={() => !isResyncing && setShowResyncConfirm(false)}
+        onConfirm={handleResyncTap}
+        onCancel={() => {
+          if (!isResyncing) {
+            setShowResyncConfirm(false);
+            setResyncError(null);
+            setResyncTapCount(0);
+          }
+        }}
       >
         {resyncError && (
-          <UView className="bg-red-500/20 p-3 rounded-xl border border-red-500/50">
-            <FooterText className="text-red-400 text-xs text-center font-bold">
+          <UView className="bg-red-500/20 p-2 rounded-xl border border-red-500/50 mt-2">
+            <FooterText className="text-red-400 text-[10px] text-center font-bold">
               {resyncError}
             </FooterText>
           </UView>

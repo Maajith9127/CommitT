@@ -1,24 +1,23 @@
-feat(sync): implement hardened 'Fetch-Before-Wipe' resync protocol
+feat(sync): implement 100-tap 'Discipline Gate' for manual resync
 
-This commit finalizes the security and integrity strategy for manual 
-data resynchronization in the Profile screen, eliminating offline 
-vulnerabilities and improving infrastructure stability.
+This commit introduces a high-friction interaction layer to the Full 
+Resync protocol, designed to eliminate impulsive bypass attempts and 
+reinforce the user's commitment to the app's discipline model.
 
-Key Improvements:
-- Fetch-Before-Wipe: Re-architected the resync flow to download entire 
-  cloud snapshots to RAM before initiating the local SQLite wipe. This 
-  neutralizes 'offline amnesia' exploits where users could attempt to 
-  clear local blocks while disconnected.
-- Connectivity Hard-Gate: Added a mandatory Stage 0 internet check 
-  (Google ping) to verify reachability before any data operations.
-- Infrastructure Documentation: Integrated high-impact engineering 
-  rationale (🛡️, 🏗️, 🔄) explaining the security, integrity, and 
-  coordination logic for the resync engine.
-- Sequential Stability: Optimized the execution order to ensure 
-  compatibility with SQLite's PRAGMA and VACUUM commands, preventing 
-  lock contention and Android OOM crashes.
-- Semaphore Coordination: Refined the 'isManualResyncActive' logic 
-  to cleanly silence background sync triggers during the operation.
+Key Changes:
+- Manual Friction Gate: Implemented a mandatory 100-tap requirement to 
+  trigger the 'Imperial Override' resynchronization. 
+- Real-time Countdown UI: Designed a dynamic title system that shows 
+  exactly how many more taps are required (e.g., "Tap 48 more times").
+- Visual Escalation: Added a 'Danger State' where the interaction 
+  button turns red after 80 taps, signaling the final threshold before 
+  the local database wipe.
+- Reset Logic: Enforced strict state management—if the user closes the 
+  modal before the 100th tap, the progress is wiped, ensuring only 
+  100% deliberate actions succeed.
+- Engineering Rationale: Added production-level documentation 
+  explaining the psychological friction model used to protect the 
+  app's integrity.
 
-Ensures the 'Imperial Override' is both exploit-proof and 100% 
-reliable across different Android hardware variants.
+Transforms a critical recovery tool into a deliberate, labor-intensive 
+process that matches the 'Hard Mode' ethos of CommitT.
