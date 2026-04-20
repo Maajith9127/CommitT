@@ -1,22 +1,22 @@
-fix(native): implement ConnectionWatchdog and refactor root layout
+refactor(create-commit): decompose FinalScreen and elevate documentation
 
-CRITICAL FIX:
-- Implemented `ConnectionWatchdog` to resolve the "Zombie WebSocket" bug observed
-  after extended Android deep sleep (6+ hours).
-- The watchdog probes connection health on foreground resume and forces a 
-  WebSocket resurrection via `clearAuth`/`getSession` if a stale state or 
-  mutation timeout is detected. This eliminates the need for phone restarts 
-  to restore write capabilities.
+ARCHITECTURAL EXTRACTION:
+- Extracted types, interfaces, and all constant objects (CONDITION_CONFIGS,
+  LAYOUT, COLORS, SETTINGS_OPTIONS) into `_lib/constants.ts`.
+- Extracted the three useMemo settings schema builders (Commitment Type,
+  Alarms, Waiver Rules) into `_lib/useSettingsItems.ts` custom hook.
+- Extracted penalty and waiver display resolvers into pure functions
+  in `_lib/displayHelpers.ts`, replacing inline IIFEs in JSX.
+- All extracted modules live under `_lib/` (Expo Router exclusion via
+  underscore prefix convention).
 
-ARCHITECTURAL REFACTOR:
-- De-cluttered `_layout.tsx` by extracting ~550 lines of inline system/debug 
-  components into an organized directory structure:
-    - Moved `SecurityShield`, `HydrationEngine`, and `ConnectionWatchdog` to `@/components/system`
-    - Moved `ChaosFab` and `DbDebugFab` to `@/components/dev`
-    - Moved `AlarmFab` to `@/components/ui/buttons`
-- Standardized module-level imports and orchestration logic within the root layout.
+DOCUMENTATION UPGRADE:
+- Replaced all amateur single-line `//` comments with production-grade
+  JSDoc block comments (`/** */`) throughout FinalScreen.
+- Each logical section now carries detailed design rationale annotations
+  covering architecture decisions, security model, and failure semantics.
+- JSX section markers standardized to `{/* ── Section: Name ── */}` format.
 
-TECHNICAL DEBT:
-- Standardized hook usage to `useConvex()` to match current SDK version exports.
-- Cleaned up unused legacy imports and unified commenting patterns across 
-  system components.
+IMPACT:
+- FinalScreen reduced from 822 → ~450 lines (pure orchestration + JSX).
+- Zero functional changes — exact behavioral parity maintained.
