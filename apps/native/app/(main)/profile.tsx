@@ -22,15 +22,27 @@ import { AuthHeading, FooterText, HeaderTitle } from "@/components/ui/text";
 import { SettingsToggleCard } from "@/components/ui/commits/SettingsToggleCard";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * STYLING UTILITIES
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * VIEW: ProfileScreen
+ * ─────────────────────────────────────────────────────────────────────────────
+ * User management hub providing access to account settings, customization,
+ * and critical data synchronization operations.
+ */
 export default function ProfileScreen() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const user = session?.user;
 
-  // Hooks for Imperial Wipe
+  // ── DATA & STATE HOOKS ──
   const convex = useConvex();
   const db = useSQLiteContext();
   const { startHealing, stopHealing } = useHealStore();
@@ -42,116 +54,108 @@ export default function ProfileScreen() {
   const [isResyncing, setIsResyncing] = useState(false);
   const [resyncError, setResyncError] = useState<string | null>(null);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Menu Item Configurations
-  // Using the exact 'select' pattern from final.tsx for navigation options
-  // ─────────────────────────────────────────────────────────────────────────
+  /**
+   * ─────────────────────────────────────────────────────────────────────────────
+   * MENU CONFIGURATIONS
+   * ─────────────────────────────────────────────────────────────────────────────
+   */
+
   const accountItems = useMemo(() => [
-    {
-      id: "account",
-      title: "Account",
-      type: "select" as const,
-      icon: "account-outline",
-      onPress: () => console.log('Navigate to Account'),
-    },
-    {
-      id: "premium",
-      title: "Premium",
-      type: "select" as const,
-      icon: "diamond-stone",
-      onPress: () => console.log('Navigate to Premium'),
-    },
-    {
-      id: "backup",
-      title: "Backup",
-      type: "select" as const,
-      icon: "cloud-outline",
-      onPress: () => console.log('Navigate to Backup'),
-    },
-    {
-      id: "permissions",
-      title: "Permissions",
-      type: "select" as const,
-      icon: "shield-check-outline",
-      onPress: () => router.push("/(settings)/permissions" as any),
-    },
-    {
-      id: "privacy",
-      title: "Privacy & Security",
-      type: "select" as const,
-      icon: "lock-outline",
-      onPress: () => console.log('Navigate to Privacy'),
-    },
+    { id: "account", title: "Account", type: "select" as const, icon: "account-outline", onPress: () => console.log('Navigate to Account') },
+    { id: "premium", title: "Premium", type: "select" as const, icon: "diamond-stone", onPress: () => console.log('Navigate to Premium') },
+    { id: "backup", title: "Backup", type: "select" as const, icon: "cloud-outline", onPress: () => console.log('Navigate to Backup') },
+    { id: "permissions", title: "Permissions", type: "select" as const, icon: "shield-check-outline", onPress: () => router.push("/(settings)/permissions" as any) },
+    { id: "privacy", title: "Privacy & Security", type: "select" as const, icon: "lock-outline", onPress: () => console.log('Navigate to Privacy') },
   ], [router]);
 
   const customizeItems = useMemo(() => [
-    {
-      id: "general",
-      title: "General",
-      type: "select" as const,
-      icon: "cog-outline",
-      onPress: () => console.log('Navigate to General'),
-    },
-    {
-      id: "appearance",
-      title: "Appearance",
-      type: "select" as const,
-      icon: "palette-outline",
-      onPress: () => console.log('Navigate to Appearance'),
-    },
-    {
-      id: "blockScreen",
-      title: "Block Screen",
-      type: "select" as const,
-      icon: "cellphone",
-      onPress: () => console.log('Navigate to Block Screen'),
-    },
-    {
-      id: "notifications",
-      title: "Notifications",
-      type: "select" as const,
-      icon: "bell-outline",
-      onPress: () => console.log('Navigate to Notifications'),
-    },
+    { id: "general", title: "General", type: "select" as const, icon: "cog-outline", onPress: () => console.log('Navigate to General') },
+    { id: "appearance", title: "Appearance", type: "select" as const, icon: "palette-outline", onPress: () => console.log('Navigate to Appearance') },
+    { id: "blockScreen", title: "Block Screen", type: "select" as const, icon: "cellphone", onPress: () => console.log('Navigate to Block Screen') },
+    { id: "notifications", title: "Notifications", type: "select" as const, icon: "bell-outline", onPress: () => console.log('Navigate to Notifications') },
   ], []);
 
   const sessionItems = useMemo(() => [
-    {
-      id: "full_resync",
-      title: "Full Resync",
-      type: "select" as const,
-      icon: "cloud-sync-outline",
-      onPress: () => setShowResyncConfirm(true),
-    },
-    {
-      id: "help_support",
-      title: "Help & Support",
-      type: "select" as const,
-      icon: "help-circle-outline",
-      onPress: () => console.log('Help & Support'),
-    },
-    {
-      id: "switch_accounts",
-      title: "Switch Accounts",
-      type: "select" as const,
-      icon: "account-switch-outline",
-      onPress: () => console.log('Switch Accounts'),
-    },
-    {
-      id: "logout",
-      title: "Log Out",
-      type: "select" as const,
-      icon: "logout",
-      onPress: () => setShowLogoutConfirm(true),
-    },
-    {
-      id: "delete_account",
-      title: "Delete Account",
-      type: "select" as const,
-      icon: "delete-forever-outline",
-      onPress: () => console.log('Delete Account'),
-    },
+    { id: "full_resync", title: "Full Resync", type: "select" as const, icon: "cloud-sync-outline", onPress: () => setShowResyncConfirm(true) },
+    { id: "help_support", title: "Help & Support", type: "select" as const, icon: "help-circle-outline", onPress: () => console.log('Help & Support') },
+    { id: "switch_accounts", title: "Switch Accounts", type: "select" as const, icon: "account-switch-outline", onPress: () => console.log('Switch Accounts') },
+    { id: "logout", title: "Log Out", type: "select" as const, icon: "logout", onPress: () => setShowLogoutConfirm(true) },
+    { id: "delete_account", title: "Delete Account", type: "select" as const, icon: "delete-forever-outline", onPress: () => console.log('Delete Account') },
   ], []);
+
+  /**
+   * ─────────────────────────────────────────────────────────────────────────────
+   * HANDLER: handleFullResync (The "Imperial Override")
+   * ─────────────────────────────────────────────────────────────────────────────
+   * PRODUCTION RATIONALE:
+   * This is a 5-stage nuclear operation designed to recover from persistent 
+   * local data corruption or to perform a clean-slate synchronization.
+   *
+   * 🛡️ SECURITY: 
+   * We utilize a 'Fetch-Before-Wipe' protocol. This prevents 'offline amnesia' 
+   * exploits where a user could turn off the internet, wipe local data, and 
+   * bypass active blocks or rule enforcements. No data is touched until the 
+   * cloud has proven it is ready to provide a replacement snapshot.
+   *
+   * 🏗️ DATABASE INTEGRITY:
+   * During the wipe phase, we utilize structural drops rather than simple 
+   * row deletions. This prevents 'NativeStatement' WAL (Write-Ahead Logging) 
+   * corruption which can occur on budget Android devices if the WAL file 
+   * grows too large during a bulk row delete.
+   *
+   * 🔄 ENGINE COORDINATION:
+   * The 'isManualResyncActive' flag is a critical semaphore. It signals the 
+   * background 'HydrationSync' engine to stand down, preventing it from 
+   * detecting the empty database mid-wipe and entering a concurrent 
+   * 'Loop of Doom' sync race.
+   */
+  const handleFullResync = async () => {
+    setIsResyncing(true);
+    setResyncError(null);
+    
+    try {
+      // ── STAGE 0: PROVE CONNECTIVITY ──
+      // verifying internet access BEFORE we wipe any local anti-cheat data.
+      const probe = await fetch('https://google.com', { method: 'HEAD' }).catch(() => null);
+      if (!probe || !probe.ok) {
+        throw new Error("Active internet connection required for Full Resync.");
+      }
+
+      startHealing("Verifying cloud state and preparing resynchronization...");
+      
+      // Arm the semaphore to silence background sync triggers
+      syncLock.isManualResyncActive = true;
+
+      await syncLock.execute("Saga:ManualResync", async () => {
+        // ── STAGE 1: ATOMIC CLOUD FETCH ──
+        // Download entire snapshot to RAM before touching SQLite.
+        // If this fails (network drop), the local "Block" state remains intact.
+        const payload = await convex.query(api.api.sync.delta.getDeltaPayload, {});
+
+        // ── STAGE 2: STRUCTURAL WIPE ──
+        // Only safe to wipe now that we have the replacement data in memory.
+        await nukeAndRebuildSchema(db);
+
+        // ── STAGE 3: DATA REFLATION ──
+        await clearSyncToken();
+        await ingestDeltaPayload(db, payload);
+
+        // ── STAGE 4: HARDWARE RESCHEDULING ──
+        scheduleNextAlarm();
+      }, 45_000); // 45s timeout for full network round-trip
+
+      setShowResyncConfirm(false);
+      console.log("[Profile] Manual Full Resync Complete");
+    } catch (e: any) {
+      console.error("[Profile] Resync Failed:", e);
+      setResyncError(e.message || String(e));
+    } finally {
+      // Release the semaphore so HydrationSync can resume operations
+      syncLock.isManualResyncActive = false;
+      setIsResyncing(false);
+      stopHealing();
+    }
+  };
 
   return (
     <UScroll 
@@ -176,17 +180,17 @@ export default function ProfileScreen() {
         </FooterText>
       </UView>
 
-      {/* ── ACCOUNT SECTION ── */}
+      {/* ── SECTION: ACCOUNT ── */}
       <UView className="mb-1">
         <HeaderTitle className="mb-2 text-2xl font-bold text-white">Account</HeaderTitle>
       </UView>
       <SettingsToggleCard
         className="mb-6"
-        // @ts-ignore - Ignoring strict type checking in case the component signature has a slightly different property set for select items
+        // @ts-ignore
         items={accountItems}
       />
 
-      {/* ── CUSTOMIZE SECTION ── */}
+      {/* ── SECTION: CUSTOMIZE ── */}
       <UView className="mb-1">
         <HeaderTitle className="mb-2 text-2xl font-bold text-white">Customize</HeaderTitle>
       </UView>
@@ -196,7 +200,7 @@ export default function ProfileScreen() {
         items={customizeItems}
       />
 
-      {/* ── SESSION SECTION ── */}
+      {/* ── SECTION: SESSION & DATA ── */}
       <UView className="mb-1">
         <HeaderTitle className="mb-2 text-2xl font-bold text-white">Session & Data</HeaderTitle>
       </UView>
@@ -206,35 +210,23 @@ export default function ProfileScreen() {
         items={sessionItems}
       />
 
+      {/* ── MODALS: CONFIRMATION FLOWS ── */}
       <ConfirmationModal
         visible={showLogoutConfirm}
         title="Are you sure you want to log out?"
         confirmText="Log Out"
         confirmColor="#FF3B30"
-        cancelText="Cancel"
         isLoading={isLoggingOut}
         onConfirm={async () => {
           setIsLoggingOut(true);
           try {
-            // 1. Wipe Convex / BetterAuth Session Token
             await authClient.signOut();
-            
-            // 2. Wipe Native Google Play Services Cache
-            try {
-              await GoogleSignin.signOut();
-            } catch (e) {
-              console.warn("[Profile] Google SignOut Error (user may not have used Google Auth):", e);
-            }
-
+            try { await GoogleSignin.signOut(); } catch (e) {}
             setShowLogoutConfirm(false);
             router.replace("/(auth)/signin");
-          } finally {
-            setIsLoggingOut(false);
-          }
+          } finally { setIsLoggingOut(false); }
         }}
-        onCancel={() => {
-          if (!isLoggingOut) setShowLogoutConfirm(false);
-        }}
+        onCancel={() => !isLoggingOut && setShowLogoutConfirm(false)}
       />
 
       <ConfirmationModal
@@ -242,73 +234,9 @@ export default function ProfileScreen() {
         title="Do you want to start a full Resync?"
         confirmText="Start Resync"
         confirmColor="#4FA0FF"
-        cancelText="Cancel"
-        cancelColor="#FF3B30"
         isLoading={isResyncing}
-        onConfirm={async () => {
-          setIsResyncing(true);
-          setResyncError(null);
-          startHealing("Wiping cache and performing full device resynchronization...");
-          
-          /**
-           * ───────────────────────────────────────────────────────────────
-           * MANUAL RESYNC PROTOCOL (The "Imperial Override")
-           * ───────────────────────────────────────────────────────────────
-           * This is a 5-stage nuclear operation:
-           *   1. Signal HydrationSync to stand down (isManualResyncActive)
-           *   2. Nuke the local SQLite database
-           *   3. Clear the sync token (forces Convex to return EVERYTHING)
-           *   4. Download the full snapshot from Convex
-           *   5. Ingest everything and re-arm the hardware alarms
-           *
-           * CRITICAL: The isManualResyncActive flag MUST be set BEFORE
-           * acquiring the SyncLock and cleared in the outermost `finally`.
-           * This prevents the HydrationSync background engine from seeing
-           * the empty database mid-operation and entering the "Loop of Doom"
-           * (repeated AMNESIA detections competing with this operation).
-           *
-           * TIMEOUT: We use a 45-second timeout (vs. the default 30s)
-           * because this operation includes a full Convex network round-trip
-           * which may be slow on cold connections or high-latency networks.
-           * ───────────────────────────────────────────────────────────────
-           */
-          syncLock.isManualResyncActive = true;
-
-          try {
-            await syncLock.execute("Saga:ManualResync", async () => {
-              // 1. Wipe SQLite safely using structural drops to avoid NativeStatement WAL corruption
-              await nukeAndRebuildSchema(db);
-
-              // 2. Clear Token (Forces Convex to return EVERYTHING)
-              await clearSyncToken();
-
-              // 3. Download Full Snapshot
-              const payload = await convex.query(api.api.sync.delta.getDeltaPayload, {});
-
-              // 4. Ingest everything
-              await ingestDeltaPayload(db, payload);
-
-              // 5. Re-Arm Hardware
-              scheduleNextAlarm();
-            }, 45_000); // 45s timeout for the full network round-trip
-            setShowResyncConfirm(false);
-            console.log("[Profile] Manual Full Resync Complete");
-          } catch (e: any) {
-            console.error("[Profile] Resync Failed:", e);
-            setResyncError(e.message || String(e));
-          } finally {
-            // ALWAYS clear the flag, even on failure, so HydrationSync can resume
-            syncLock.isManualResyncActive = false;
-            setIsResyncing(false);
-            stopHealing();
-          }
-        }}
-        onCancel={() => {
-          if (!isResyncing) {
-            setShowResyncConfirm(false);
-            setResyncError(null);
-          }
-        }}
+        onConfirm={handleFullResync}
+        onCancel={() => !isResyncing && setShowResyncConfirm(false)}
       >
         {resyncError && (
           <UView className="bg-red-500/20 p-3 rounded-xl border border-red-500/50">
