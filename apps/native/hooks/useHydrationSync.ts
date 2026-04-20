@@ -45,7 +45,7 @@ const ZOMBIE_THRESHOLD_MS = 5_000;
  * ─────────────────────────────────────────────────────────────────────────────
  * HOOK: useHydrationSync
  * ─────────────────────────────────────────────────────────────────────────────
- * This hook is the single source of truth for local/cloud state reconciliation.
+ * This hook is the single source of truth for local↔cloud state reconciliation.
  * It sits at the absolute root of the application tree and is responsible for:
  * 
  * 1. BOOT SYNC: Detects if local SQLite cache is wiped or warm.
@@ -57,7 +57,7 @@ export function useHydrationSync() {
   const convex = useConvex();
   const db = useSQLiteContext();
   const { data: session } = authClient.useSession();
-  const { resurrect } = useResurrection();
+  const { resurrect, iteration } = useResurrection();
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [isFullyHydrated, setIsFullyHydrated] = useState(false);
@@ -186,8 +186,28 @@ export function useHydrationSync() {
         }
 
         if (errorStr.includes('LAG_TIMEOUT')) {
-          Logger.warn('[HydrationSync] LAG DETECTED (>15s). Triggering WebSocket Resurrection...');
-          resurrect();
+          /** 
+           * SMART BLAME LOGIC:
+           * Verify if the lag is due to a total lack of internet or a 'Zombie' app state.
+           */
+          try {
+            const probe = await fetch('https://google.com', { method: 'HEAD' });
+            const isInternetUp = probe.ok;
+
+            if (isInternetUp) {
+              if (iteration > 0) {
+                Logger.error('[HydrationSync] PERSISTENT ZOMBIE DETECTED. Soft reset failed. Executing Nuclear Logout...');
+                await authClient.signOut();
+              } else {
+                Logger.warn('[HydrationSync] REACHABLE ZOMBIE DETECTED. Triggering Soft Resurrection...');
+                resurrect();
+              }
+            } else {
+              Logger.info('[HydrationSync] Network is unreachable. Suppressing reset.');
+            }
+          } catch (pingErr) {
+            Logger.info('[HydrationSync] Network appears down (ping failed). Suppressing reset.');
+          }
           return;
         }
 
