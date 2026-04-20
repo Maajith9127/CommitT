@@ -22,6 +22,26 @@ import { AlarmFab } from "@/components/ui/buttons/AlarmFab";
 import { SecurityShield } from "@/components/system/SecurityShield";
 import { HydrationEngine } from "@/components/system/HydrationEngine";
 import { ConnectionWatchdog } from "@/components/system/ConnectionWatchdog";
+import { createContext, useContext, useState, useMemo } from "react";
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * RESURRECTION CONTEXT
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Provides a way for the Sync Engine to force a full re-instantiation 
+ * of the Convex Client without logging the user out of the app.
+ */
+export const ResurrectionContext = createContext<{ 
+  resurrect: () => void,
+  iteration: number 
+}>({ 
+  resurrect: () => {}, 
+  iteration: 0 
+});
+
+export function useResurrection() {
+  return useContext(ResurrectionContext);
+}
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 
@@ -44,9 +64,7 @@ const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
  * self-heals after backend redeployments without requiring a manual restart.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-const convex = new ConvexReactClient(convexUrl, {
-  unsavedChangesWarning: false,
-});
+// Global client removed in favor of useMemoed client inside Layout
 
 function StackLayout() {
   return (
@@ -72,6 +90,24 @@ function StackLayout() {
 
 
 export default function Layout() {
+  const [iteration, setIteration] = useState(0);
+
+  const resurrect = () => {
+    console.log("[Resurrection] TRIGGERED - Incrementing iteration...");
+    setIteration(prev => prev + 1);
+  };
+
+  /**
+   * THE REBIRTH ENGINE:
+   * Recreates the Convex client from scratch whenever 'iteration' changes.
+   */
+  const convexClient = useMemo(() => {
+    console.log(`[Layout] Spawning fresh Convex Client (Iteration: ${iteration})`);
+    return new ConvexReactClient(convexUrl, {
+      unsavedChangesWarning: false,
+    });
+  }, [iteration]);
+
   useEffect(() => {
     // ── SYSTEM INITIALIZATION ──
     GoogleSignin.configure({
@@ -80,31 +116,33 @@ export default function Layout() {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'black' }}>
-      <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
-        <SecurityShield>
-          <ConvexBetterAuthProvider client={convex} authClient={authClient}>
-            <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
-              <KeyboardProvider>
-                <AppThemeProvider>
-                  <HeroUINativeProvider>
-                    <ThemeProvider value={{ ...DarkTheme, colors: { ...DarkTheme.colors, background: '#000000' } }}>
-                      <ConnectionWatchdog />
-                      <HydrationEngine />
-                      <StackLayout />
-                      <HealOverlay />
-                    </ThemeProvider>
-                    <DbDebugFab />
-                    <AlarmFab />
-                  </HeroUINativeProvider>
-                </AppThemeProvider>
-              </KeyboardProvider>
-            </GestureHandlerRootView>
-          </ConvexBetterAuthProvider>
-        </SecurityShield>
-      </SQLiteProvider>
-      <ChaosFab />
-    </View>
+    <ResurrectionContext.Provider value={{ resurrect, iteration }}>
+      <View style={{ flex: 1, backgroundColor: 'black' }}>
+        <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
+          <SecurityShield>
+            <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>
+              <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
+                <KeyboardProvider>
+                  <AppThemeProvider>
+                    <HeroUINativeProvider>
+                      <ThemeProvider value={{ ...DarkTheme, colors: { ...DarkTheme.colors, background: '#000000' } }}>
+                        <ConnectionWatchdog />
+                        <HydrationEngine />
+                        <StackLayout />
+                        <HealOverlay />
+                      </ThemeProvider>
+                      <DbDebugFab />
+                      <AlarmFab />
+                    </HeroUINativeProvider>
+                  </AppThemeProvider>
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </ConvexBetterAuthProvider>
+          </SecurityShield>
+        </SQLiteProvider>
+        <ChaosFab />
+      </View>
+    </ResurrectionContext.Provider>
   );
 }
 
