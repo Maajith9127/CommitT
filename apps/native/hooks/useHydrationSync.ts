@@ -8,7 +8,7 @@ import { getLocalSyncToken, ingestDeltaPayload, clearSyncToken } from "@/lib/syn
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
 import { Logger } from "@/lib/logger";
 import { syncLock } from "@/lib/sync-lock";
-import { useResurrection } from "@/app/_layout";
+import { useResurrection } from "@/providers/ResurrectionProvider";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURATION CONSTANTS

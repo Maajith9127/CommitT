@@ -1,4 +1,3 @@
-
 import "@/global.css";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
 import { ConvexReactClient } from "convex/react";
@@ -6,7 +5,7 @@ import { Stack } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 import { HeroUINativeProvider } from "heroui-native";
 import { View } from "react-native";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AppThemeProvider } from "@/contexts/app-theme-context";
@@ -22,50 +21,50 @@ import { AlarmFab } from "@/components/ui/buttons/AlarmFab";
 import { SecurityShield } from "@/components/system/SecurityShield";
 import { HydrationEngine } from "@/components/system/HydrationEngine";
 import { ConnectionWatchdog } from "@/components/system/ConnectionWatchdog";
-import { createContext, useContext, useState, useMemo } from "react";
-
-/**
- * ─────────────────────────────────────────────────────────────────────────────
- * RESURRECTION CONTEXT
- * ─────────────────────────────────────────────────────────────────────────────
- * Provides a way for the Sync Engine to force a full re-instantiation 
- * of the Convex Client without logging the user out of the app.
- */
-export const ResurrectionContext = createContext<{ 
-  resurrect: () => void,
-  iteration: number 
-}>({ 
-  resurrect: () => {}, 
-  iteration: 0 
-});
-
-export function useResurrection() {
-  return useContext(ResurrectionContext);
-}
+import { ResurrectionProvider, useResurrection } from "@/providers/ResurrectionProvider";
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * CONVEX CLIENT — Resilient Connection Factory
+ * COMPONENT: ConvexClientWrapper
  * ─────────────────────────────────────────────────────────────────────────────
- * PRODUCTION RATIONALE:
- * The Convex WebSocket protocol uses an internal version counter to track
- * sync state. When the backend is redeployed (dev: `npx convex dev` restart,
- * prod: deployment rollover), the server version resets to 0. If the client
- * still holds a stale version (e.g., 2), the server rejects it with:
- *   "Base version 2 passed up doesn't match the current version 0"
- *
- * This is a FATAL error in the Convex SDK — it kills the WebSocket connection
- * permanently. Without intervention, the entire app loses real-time sync.
- *
- * SOLUTION: We intercept the `onFailure` callback to detect version mismatches
- * and trigger an automatic state reset + reconnection. This ensures the app
- * self-heals after backend redeployments without requiring a manual restart.
- * ─────────────────────────────────────────────────────────────────────────────
+ * An internal wrapper designed to consume the ResurrectionContext.
+ * 
+ * It manages the lifecycle of the ConvexReactClient, ensuring that whenever 
+ * a 'Resurrection' (system reset) is triggered, the client is destroyed 
+ * and re-instantiated from scratch to clear stale WebSocket states.
  */
-// Global client removed in favor of useMemoed client inside Layout
+function ConvexClientWrapper({ children }: { children: React.ReactNode }) {
+  const { iteration } = useResurrection();
 
+  const convexClient = useMemo(() => {
+    const instanceId = Math.random().toString(36).substring(7).toUpperCase();
+    console.log(`
+      ╔══════════════════════════════════════════════════════════╗
+      ║ ⚡️ CONVEX REBIRTH: Spawning fresh client...              ║
+      ║ 🆔 ID: ${instanceId}                                     ║
+      ║ 🔄 ITERATION: ${iteration}                               ║
+      ╚══════════════════════════════════════════════════════════╝
+    `);
+    return new ConvexReactClient(convexUrl, {
+      unsavedChangesWarning: false,
+    });
+  }, [iteration]);
+
+  return (
+    <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>
+      {children}
+    </ConvexBetterAuthProvider>
+  );
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * VIEW: StackLayout
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Primary navigation structure for the application.
+ */
 function StackLayout() {
   return (
     <Stack
@@ -87,27 +86,14 @@ function StackLayout() {
   );
 }
 
-
-
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * ENTRY POINT: Layout
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Root layout component responsible for initializing the provider tree.
+ * Orchestrates security, data sync, persistence, and global UI components.
+ */
 export default function Layout() {
-  const [iteration, setIteration] = useState(0);
-
-  const resurrect = () => {
-    console.log("[Resurrection] TRIGGERED - Incrementing iteration...");
-    setIteration(prev => prev + 1);
-  };
-
-  /**
-   * THE REBIRTH ENGINE:
-   * Recreates the Convex client from scratch whenever 'iteration' changes.
-   */
-  const convexClient = useMemo(() => {
-    console.log(`[Layout] Spawning fresh Convex Client (Iteration: ${iteration})`);
-    return new ConvexReactClient(convexUrl, {
-      unsavedChangesWarning: false,
-    });
-  }, [iteration]);
-
   useEffect(() => {
     // ── SYSTEM INITIALIZATION ──
     GoogleSignin.configure({
@@ -116,11 +102,11 @@ export default function Layout() {
   }, []);
 
   return (
-    <ResurrectionContext.Provider value={{ resurrect, iteration }}>
+    <ResurrectionProvider>
       <View style={{ flex: 1, backgroundColor: 'black' }}>
         <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
           <SecurityShield>
-            <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>
+            <ConvexClientWrapper>
               <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
                 <KeyboardProvider>
                   <AppThemeProvider>
@@ -137,14 +123,11 @@ export default function Layout() {
                   </AppThemeProvider>
                 </KeyboardProvider>
               </GestureHandlerRootView>
-            </ConvexBetterAuthProvider>
+            </ConvexClientWrapper>
           </SecurityShield>
         </SQLiteProvider>
         <ChaosFab />
       </View>
-    </ResurrectionContext.Provider>
+    </ResurrectionProvider>
   );
 }
-
-
-
