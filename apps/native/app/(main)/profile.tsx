@@ -234,6 +234,8 @@ export default function ProfileScreen() {
         title="Do you want to start a full Resync?"
         confirmText="Start Resync"
         confirmColor="#4FA0FF"
+        cancelText="Cancel"
+        cancelColor="#FF3B30"
         isLoading={isResyncing}
         onConfirm={handleFullResync}
         onCancel={() => !isResyncing && setShowResyncConfirm(false)}
