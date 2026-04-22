@@ -12,7 +12,7 @@ import { clearSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
 import { useHealStore } from "@/stores/useHealStore";
 import { syncLock } from "@/lib/sync-lock";
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
-import { nukeAndRebuildSchema } from "@/lib/local-db";
+import { nukeAndRebuildSchema, purgeAllDataRecords } from "@/lib/local-db";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -120,8 +120,10 @@ export default function ProfileScreen() {
         // ── STAGE 1: ATOMIC CLOUD FETCH ──
         const payload = await convex.query(api.api.sync.delta.getDeltaPayload, {});
 
-        // ── STAGE 2: STRUCTURAL WIPE ──
-        await nukeAndRebuildSchema(db);
+        // ** STAGE 2: PRODUCTION-LEVEL SURGICAL PURGE **
+        // We no longer nuke the file layout. We wipe data records and 
+        // truncate the WAL to maintain background service continuity.
+        await purgeAllDataRecords(db);
 
         // ── STAGE 3: DATA REFLATION ──
         await clearSyncToken();

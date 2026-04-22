@@ -1,6 +1,8 @@
 import { SQLiteDatabase } from 'expo-sqlite';
 import * as SecureStore from 'expo-secure-store';
+import { Alert, BackHandler } from 'react-native';
 import { Logger } from './logger';
+import { purgeAllDataRecords } from './local-db';
 
 const SYNC_TOKEN_KEY = 'commit_t_last_synced_at';
 
@@ -146,9 +148,36 @@ export async function ingestDeltaPayload(db: SQLiteDatabase, payload: DeltaPaylo
   } catch (err: any) {
     Logger.error('[SyncEngine] TRANSACTION FAILED. Rolling back atomically.', err);
 
-    if (String(err).includes('malformed')) {
-      Logger.error('🚨 [SyncEngine] DATABASE CORRUPTION DETECTED during ingestion.');
-      Logger.info('🚨 Recovery: Next boot will trigger Amnesia-mode full rebuild.');
+    const errorString = String(err).toLowerCase();
+
+    /**
+     * ** AUTOMATIC CORE RECOVERY **
+     * If we detect structural corruption (malformed) or severe locking failure 
+     * (disk I/O), we must prevent the app from entering a death loop. 
+     * We purge the records and clear the sync token to force a full re-sync 
+     * on the next operational cycle.
+     */
+    if (errorString.includes('malformed') || errorString.includes('disk i/o')) {
+      Logger.error('[SyncEngine] CRITICAL DATABASE CORRUPTION DETECTED. Initiating recovery...');
+
+      try {
+        // 1. Clear records and truncate WAL to fix memory corruption
+        await purgeAllDataRecords(db);
+
+        // 2. Clear token to force Convex to provide a full payload next time
+        await clearSyncToken();
+
+        Logger.info('[SyncEngine] Recovery protocol successful. System state reset.');
+
+        // 3. Notify user and force exit for clean reboot
+        Alert.alert(
+          "Critical System Sync",
+          "A data inconsistency was detected. The system has been reset safely. A full resynchronization will occur upon restart.",
+          [{ text: "OK", onPress: () => BackHandler.exitApp() }]
+        );
+      } catch (recoveryErr) {
+        Logger.error('[SyncEngine] RECOVERY PROTOCOL FAILED. Manual intervention required.', recoveryErr);
+      }
     }
 
     throw err;

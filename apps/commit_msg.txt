@@ -3,3 +3,6 @@ fix(native): resolve database connection leak in accessibility heartbeat
 - Wrapped pulseRunnable vault-read logic in a try/finally block to guarantee closure.
 - Moved db?.close() to the finally block to prevent connection leaks during SQL errors.
 - Prevents resource exhaustion crashes caused by the 5-second audit heartbeat.
+
+
+adb logcat -v color --pid=$(adb shell pidof -s com.mono.commit)
