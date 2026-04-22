@@ -61,7 +61,7 @@ export default function ProfileScreen() {
    * action rather than seeking a quick "escape" from active commitments.
    */
   const [resyncTapCount, setResyncTapCount] = useState(0);
-  const RESYNC_TAP_REQUIREMENT = 100;
+  const RESYNC_TAP_REQUIREMENT = 1;
 
   /**
    * ─────────────────────────────────────────────────────────────────────────────

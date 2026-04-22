@@ -34,6 +34,9 @@ object AlarmScheduler {
     private const val CACHE_PREFS_NAME = "UpcomingAlarmsCacheV2"
     private const val KEY_ALARMS_LIST = "AlarmsListV2"
 
+    /** Cached database connection to prevent SQLite connection spam & collision wipes (Error 9). */
+    private var cachedVaultDb: SQLiteDatabase? = null
+
     /**
      * AUDIO RESOURCE MAP (Production Sound Pipeline)
      * -----------------------------------------------------------------------
@@ -89,16 +92,19 @@ object AlarmScheduler {
             return
         }
 
-        var database: SQLiteDatabase? = null
         try {
-            Log.d(TAG, "[DATABASE ACCESS] Unlocking SQLite Vault at path: ${dbFile.absolutePath}")
-            
-            // Open the database for read-only access to prevent corruption locking.
-            database = SQLiteDatabase.openDatabase(
-                dbFile.absolutePath, 
-                null, 
-                SQLiteDatabase.OPEN_READONLY
-            )
+            if (cachedVaultDb == null || !cachedVaultDb!!.isOpen) {
+                Log.d(TAG, "[DATABASE ACCESS] Unlocking SQLite Vault at path: ${dbFile.absolutePath}")
+                
+                // Open the database for Read/Write access (so mutations can share this too)
+                // and cache the connection to strictly prevent OS Collision Wipes.
+                cachedVaultDb = SQLiteDatabase.openDatabase(
+                    dbFile.absolutePath, 
+                    null, 
+                    SQLiteDatabase.OPEN_READWRITE
+                )
+            }
+            val database = cachedVaultDb!!
             
             val currentTimeMs = System.currentTimeMillis()
             Log.d(TAG, "[TIME] Current System Time: $currentTimeMs (${formatTimestamp(currentTimeMs)})")
@@ -207,9 +213,16 @@ object AlarmScheduler {
         } catch (exception: Exception) {
             // Highly robust Exception Catching. If the DB blew up unexpectedly, just use the Sticky Note anyway!
             Log.e(TAG, "[SYSTEM FAILURE] SQLite evaluation chain completely broke down. Forcing fallback cache delegation. Exception output: ${exception.message}", exception)
+            
+            // Destroy the corrupt cache if a collision happens, allowing a fresh rebuild next pulse
+            try {
+                cachedVaultDb?.close()
+            } catch (ignored: Exception) {}
+            cachedVaultDb = null
+            
             scheduleFromStickyNote(context)
         } finally {
-            database?.close() // And always close your DB connection
+            // DO NOT database?.close() here because we are natively caching the connection!
             Log.i(TAG, "==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====")
         }
     }
@@ -350,22 +363,29 @@ object AlarmScheduler {
             return
         }
 
-        var database: SQLiteDatabase? = null
         try {
             Log.d(TAG, "[MUTATION LOGIC] Attempting SQL WRITE on Vault for $instanceId...")
-            database = SQLiteDatabase.openDatabase(
-                dbFile.absolutePath, 
-                null, 
-                SQLiteDatabase.OPEN_READWRITE // Critical requirement: writable connection
-            )
+            if (cachedVaultDb == null || !cachedVaultDb!!.isOpen) {
+                cachedVaultDb = SQLiteDatabase.openDatabase(
+                    dbFile.absolutePath, 
+                    null, 
+                    SQLiteDatabase.OPEN_READWRITE // Critical requirement: writable connection
+                )
+            }
+            val database = cachedVaultDb!!
+            
             // Hard string substitution replacing status for completion 
             val updateQuery = "UPDATE task_instances SET status = 'proceeded' WHERE id = ?"
             database.execSQL(updateQuery, arrayOf(instanceId))
             Log.i(TAG, "[MUTATION SUCCESS] Instance $instanceId flagged strictly as proceeded.")
         } catch (exception: Exception) {
             Log.e(TAG, "[MUTATION FAULT] Read/Write execution shattered during status write. Error: ${exception.message}", exception)
+            try {
+                cachedVaultDb?.close()
+            } catch (ignored: Exception) {}
+            cachedVaultDb = null
         } finally {
-            database?.close()
+            // DO NOT database?.close() here to strictly prevent caching collision!
             Log.i(TAG, "==== [MUTATION SEQUENCE COMPLETED] ====")
         }
     }
