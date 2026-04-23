@@ -54,9 +54,6 @@ export default function ProfileScreen() {
   const [isResyncing, setIsResyncing] = useState(false);
   const [resyncError, setResyncError] = useState<string | null>(null);
 
-  const [showSecurityBlockModal, setShowSecurityBlockModal] = useState(false);
-  const [securityBlockTitle, setSecurityBlockTitle] = useState("");
-
 
   /**
    * ─────────────────────────────────────────────────────────────────────────────
@@ -190,42 +187,7 @@ export default function ProfileScreen() {
         onConfirm={async () => {
           setIsLoggingOut(true);
           try {
-            // ── STAGE 1: CLOUD SECURITY AUDIT ──
-            // We treat the cloud as the final source of truth. If the backend
-            // detects any active or upcoming commitments, logout is flatly denied.
-            const audit = await convex.query(api.api.security.audit.checkLogoutSafety, {})
-              .catch(() => ({ safe: false, reason: "OFFLINE" }));
-
-            if (!audit.safe) {
-              if (audit.reason === "OFFLINE") {
-                setSecurityBlockTitle("Internet connection required to verify security status.");
-              } else {
-                const conflict = audit.conflicts?.[0];
-                const reason = audit.reason || "Logout Forbidden";
-                
-                let timeInfo = "";
-                if (conflict && conflict.startTime > audit.serverTime) {
-                  const diffMs = conflict.startTime - audit.serverTime;
-                  const diffMins = Math.round(diffMs / 60000);
-                  if (diffMins < 60) {
-                    timeInfo = ` (Starts in ${diffMins} min${diffMins !== 1 ? 's' : ''})`;
-                  } else {
-                    const hrs = Math.floor(diffMins / 60);
-                    const mins = diffMins % 60;
-                    timeInfo = ` (Starts in ${hrs}hr ${mins}m)`;
-                  }
-                } else if (conflict) {
-                  timeInfo = " (Currently Active)";
-                }
-
-                setSecurityBlockTitle(`${reason}: ${conflict?.title || "Commitment"}${timeInfo}`);
-              }
-              setShowLogoutConfirm(false);
-              setShowSecurityBlockModal(true);
-              return;
-            }
-
-            // ── STAGE 2: EXECUTE SIGN OUT ──
+            // ── EXECUTE SIGN OUT ──
             await authClient.signOut();
             try { await GoogleSignin.signOut(); } catch (e) {}
             setShowLogoutConfirm(false);
@@ -264,15 +226,6 @@ export default function ProfileScreen() {
         )}
       </ConfirmationModal>
 
-      <ConfirmationModal
-        visible={showSecurityBlockModal}
-        title={securityBlockTitle}
-        confirmText="OK"
-        confirmColor="#4FA0FF"
-        singleButton={true}
-        onConfirm={() => setShowSecurityBlockModal(false)}
-        onCancel={() => setShowSecurityBlockModal(false)}
-      />
 
     </UScroll>
   );

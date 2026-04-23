@@ -1,27 +1,14 @@
-refactor(security): implement fail-closed enforcement & domain-driven audit service
+feat(security): implement "Ironclad Marriage" hardware-account monogamy core
 
-Hardens the account lifecycle by preventing logout during active or high-urgency 
-commitment windows. Migrates disparate security logic into a centralized 
-Domain Service architecture to ensure systemic integrity.
+- Re-architected hardware enforcement to use a strictly bonded 1-to-1 marriage model.
+- Implemented "Intelligent Proxy-Divorce" in `bondService` to allow seamless device 
+  migration only when the user has zero future task commitments.
+- Refactored `syncHardwareBond` API to use a polling-retry mechanism, resolving 
+  Convex session synchronization race conditions during the Google Login flow.
+- Hardened `AuthForm` to execute immediate session purging and Google sign-out if 
+  hardware enforcement fails, preventing bypasses.
+- Simplified Profile UI by removing legacy logout safety checks in favor of terminal 
+  identity verification at the login gateway.
+- Added production-grade documentation and enforcement logic for long-term scalability.
 
-Core & API:
-- [Domain] Introduced `core/enforcement/service.ts` as the authoritative source 
-  of truth for user lock-in status.
-- [Security] Increased the enforcement threshold to a 6-hour look-ahead window 
-  to prevent 'last-minute' account switching bypasses.
-- [Architecture] Refactored `api/security/audit.ts` into a thin delegation 
-  wrapper, leveraging `authedQuery` for decoupled identity injection.
-
-Mobile UI/UX:
-- [Hardening] Replaced standard system alerts with branded `ConfirmationModal` 
-  logic for high-friction security blocks.
-- [UX] Implemented temporal delta calculations to surface precise 'time-to-start' 
-  metrics in enforcement rejection titles.
-- [Refinement] Deprecated the legacy friction-gate (100-tap requirement) in 
-  favor of robust, server-validated security audits.
-- [Modality] Optimized security acknowledgement dialogs to a single-button 
-  state, enforcing a non-cancellable system status UI.
-
-Technical Debt:
-- Standardized cross-folder relative imports to ensure successful bundling 
-  during production `convex deploy` cycles.
+"No escape once the commitment is made." 🛡️🔒💎

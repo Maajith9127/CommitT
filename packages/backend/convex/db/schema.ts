@@ -514,4 +514,32 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_userId_recency", ["userId", "last_used_at"])
     .index("by_userId_popularity", ["userId", "usage_count"]),
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // HARDWARE IDENTITY REGISTRY — Device Binding
+  // ═══════════════════════════════════════════════════════════════════════
+  // Maps authenticated users to persistent physical signatures (SSAID).
+  // 
+  // DESIGN RATIONALE:
+  // Decoupling account identity from hardware identity allows us to detect
+  // and block "Account Switching" bypass attempts. Even if app data is 
+  // wiped, the cloud remembers the device's enforcement history.
+  //
+  // ROADMAP:
+  // Current implementation uses high-confidence SSAID (Android ID).
+  // Future iterations will expand this schema to store 'Device Attestation 
+  // Tokens' from the Google Play Integrity API to prevent APK-level spoofing.
+  // ═══════════════════════════════════════════════════════════════════════
+  userDevices: defineTable({
+    userId: v.string(),
+    deviceId: v.string(), // The SSAID (Android ID)
+    lastSeen: v.number(),
+    metadata: v.optional(v.object({
+      model: v.optional(v.string()),
+      osVersion: v.optional(v.string()),
+    })),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_deviceId", ["deviceId"])
+    .index("by_userId_deviceId", ["userId", "deviceId"]),
 });

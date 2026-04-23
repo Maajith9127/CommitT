@@ -9,8 +9,14 @@ import {
   PrimaryButton,
   ScreenContainer,
 } from "@/components/ui";
+import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
+import * as Application from "expo-application";
+import * as Device from "expo-device";
+import { useMutation } from "convex/react";
+import { api } from "@commit/backend/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
 import type { AuthFormErrors, AuthMode } from "./types";
+import { Platform } from "react-native";
 
 export function AuthForm() {
   const router = useRouter();
@@ -20,6 +26,12 @@ export function AuthForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<AuthFormErrors>({});
+
+  const [showHardwareLockedModal, setShowHardwareLockedModal] = useState(false);
+  const [hardwareLockedMessage, setHardwareLockedMessage] = useState("");
+
+  // ── HARDWARE BOND GATEKEEPER ──
+  const syncHardwareBond = useMutation(api.api.security.bond.syncHardwareBond);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -75,6 +87,39 @@ export function AuthForm() {
       }
 
       if (result?.data) {
+        // ── STAGE 2: HARDWARE SECURITY AUDIT ──
+        const deviceId = Platform.OS === "android" 
+          ? await Application.getAndroidId() 
+          : "ios-dev-device"; // Placeholder for iOS
+
+        // ── STAGE 3: THE MARRIAGE HANDSHAKE (RETRY LOOP) ──
+        let audit;
+        let retries = 3;
+        
+        while (retries > 0) {
+          audit = await syncHardwareBond({ deviceId });
+          
+          if (audit?.retry) {
+            console.log(`[Auth] Backend session syncing, retrying... (${retries} left)`);
+            await new Promise(resolve => setTimeout(resolve, 800));
+            retries--;
+            continue;
+          }
+          break; // It either succeeded or definitively failed
+        }
+
+        if (audit && !audit.success) {
+          // ── INSTANT PURGE ──
+          // If the marriage is invalid, we destroy the session immediately
+          // before the app can navigate to the main layout.
+          await authClient.signOut();
+          try { await GoogleSignin.signOut(); } catch (e) {}
+          
+          setHardwareLockedMessage(audit.reason || "This hardware is currently restricted.");
+          setShowHardwareLockedModal(true);
+          return;
+        }
+
         router.replace("/(auth)/welcome");
       } else {
         setErrors({ general: "Authentication failed. Please try again." });
@@ -109,6 +154,35 @@ export function AuthForm() {
         });
 
         if (result?.data) {
+          // ── STAGE 2: HARDWARE SECURITY AUDIT ──
+          const deviceId = Platform.OS === "android" 
+            ? await Application.getAndroidId() 
+            : "ios-dev-device";
+
+          // ── THE MARRIAGE HANDSHAKE (RETRY LOOP) ──
+          let audit;
+          let retries = 3;
+          
+          while (retries > 0) {
+            audit = await syncHardwareBond({ deviceId });
+            
+            if (audit?.retry) {
+              await new Promise(resolve => setTimeout(resolve, 800));
+              retries--;
+              continue;
+            }
+            break;
+          }
+
+          if (audit && !audit.success) {
+            await authClient.signOut();
+            try { await GoogleSignin.signOut(); } catch (e) {}
+            
+            setHardwareLockedMessage(audit.reason || "This hardware is currently restricted.");
+            setShowHardwareLockedModal(true);
+            return;
+          }
+
           router.replace("/(auth)/welcome");
         }
       }
@@ -245,6 +319,17 @@ export function AuthForm() {
           />
         </ScrollView>
       </ScreenContainer>
+
+      <ConfirmationModal
+        visible={showHardwareLockedModal}
+        title={hardwareLockedMessage}
+        confirmText="OK"
+        confirmColor="#4FA0FF"
+        singleButton={true}
+        onConfirm={() => setShowHardwareLockedModal(false)}
+        onCancel={() => setShowHardwareLockedModal(false)}
+      />
+
     </ImageBackground>
   );
 }
