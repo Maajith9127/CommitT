@@ -20,13 +20,13 @@ if [ -z "$MESSAGE" ]; then
     exit 1
 fi
 
-echo -e "${BLUE}📦 Staging all changes...${NC}"
+echo -e "${BLUE} Staging all changes...${NC}"
 git add -A
 
-echo -e "${BLUE}💾 Committing: ${MESSAGE}${NC}"
+echo -e "${BLUE} Committing: ${MESSAGE}${NC}"
 git commit -m "$MESSAGE"
 
-echo -e "${BLUE}🚀 Pushing to origin...${NC}"
+echo -e "${BLUE} Pushing to origin...${NC}"
 git push
 
-echo -e "${GREEN}✅ Done! Changes pushed successfully.${NC}"
+echo -e "${GREEN} Done! Changes pushed successfully.${NC}"

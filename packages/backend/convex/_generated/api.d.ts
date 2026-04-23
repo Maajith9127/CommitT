@@ -23,6 +23,7 @@ import type * as api_instances_read from "../api/instances/read.js";
 import type * as api_instances_update from "../api/instances/update.js";
 import type * as api_instances_waivers from "../api/instances/waivers.js";
 import type * as api_notifications_read from "../api/notifications/read.js";
+import type * as api_security_audit from "../api/security/audit.js";
 import type * as api_sync_delta from "../api/sync/delta.js";
 import type * as config_constants from "../config/constants.js";
 import type * as config_enums from "../config/enums.js";
@@ -32,6 +33,7 @@ import type * as core_commitments_instanceService from "../core/commitments/inst
 import type * as core_commitments_scheduler from "../core/commitments/scheduler.js";
 import type * as core_commitments_service from "../core/commitments/service.js";
 import type * as core_commitments_validator from "../core/commitments/validator.js";
+import type * as core_enforcement_service from "../core/enforcement/service.js";
 import type * as core_instances_generator from "../core/instances/generator.js";
 import type * as core_instances_service from "../core/instances/service.js";
 import type * as core_penalties_dispatcher from "../core/penalties/dispatcher.js";
@@ -88,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   "api/instances/update": typeof api_instances_update;
   "api/instances/waivers": typeof api_instances_waivers;
   "api/notifications/read": typeof api_notifications_read;
+  "api/security/audit": typeof api_security_audit;
   "api/sync/delta": typeof api_sync_delta;
   "config/constants": typeof config_constants;
   "config/enums": typeof config_enums;
@@ -97,6 +100,7 @@ declare const fullApi: ApiFromModules<{
   "core/commitments/scheduler": typeof core_commitments_scheduler;
   "core/commitments/service": typeof core_commitments_service;
   "core/commitments/validator": typeof core_commitments_validator;
+  "core/enforcement/service": typeof core_enforcement_service;
   "core/instances/generator": typeof core_instances_generator;
   "core/instances/service": typeof core_instances_service;
   "core/penalties/dispatcher": typeof core_penalties_dispatcher;

@@ -54,14 +54,9 @@ export default function ProfileScreen() {
   const [isResyncing, setIsResyncing] = useState(false);
   const [resyncError, setResyncError] = useState<string | null>(null);
 
-  /**
-   * ** FRICTION GATE STATE **
-   * We implement a high-friction tap counter to prevent impulsive resynchronization.
-   * By requiring 50 manual taps, we ensure the user is performing a deliberate 
-   * action rather than seeking a quick "escape" from active commitments.
-   */
-  const [resyncTapCount, setResyncTapCount] = useState(0);
-  const RESYNC_TAP_REQUIREMENT = 1;
+  const [showSecurityBlockModal, setShowSecurityBlockModal] = useState(false);
+  const [securityBlockTitle, setSecurityBlockTitle] = useState("");
+
 
   /**
    * ─────────────────────────────────────────────────────────────────────────────
@@ -86,7 +81,6 @@ export default function ProfileScreen() {
 
   const sessionItems = useMemo(() => [
     { id: "full_resync", title: "Full Resync", type: "select" as const, icon: "cloud-sync-outline", onPress: () => {
-      setResyncTapCount(0); // ** RESET FRICTION COUNTER ON OPEN **
       setShowResyncConfirm(true);
     }},
     { id: "help_support", title: "Help & Support", type: "select" as const, icon: "help-circle-outline", onPress: () => console.log('Help & Support') },
@@ -142,24 +136,9 @@ export default function ProfileScreen() {
       syncLock.isManualResyncActive = false;
       setIsResyncing(false);
       stopHealing();
-      setResyncTapCount(0); // ** RESET FRICTION ON FINISH **
     }
   };
 
-  /**
-   * ** FRICTION TAP HANDLER **
-   * Intercepts the confirmation action to enforce the 50-tap discipline rule.
-   */
-  const handleResyncTap = useCallback(() => {
-    if (isResyncing) return;
-
-    const nextCount = resyncTapCount + 1;
-    if (nextCount >= RESYNC_TAP_REQUIREMENT) {
-      handleFullResync();
-    } else {
-      setResyncTapCount(nextCount);
-    }
-  }, [resyncTapCount, isResyncing]);
 
   return (
     <UScroll 
@@ -211,43 +190,89 @@ export default function ProfileScreen() {
         onConfirm={async () => {
           setIsLoggingOut(true);
           try {
+            // ── STAGE 1: CLOUD SECURITY AUDIT ──
+            // We treat the cloud as the final source of truth. If the backend
+            // detects any active or upcoming commitments, logout is flatly denied.
+            const audit = await convex.query(api.api.security.audit.checkLogoutSafety, {})
+              .catch(() => ({ safe: false, reason: "OFFLINE" }));
+
+            if (!audit.safe) {
+              if (audit.reason === "OFFLINE") {
+                setSecurityBlockTitle("Internet connection required to verify security status.");
+              } else {
+                const conflict = audit.conflicts?.[0];
+                const reason = audit.reason || "Logout Forbidden";
+                
+                let timeInfo = "";
+                if (conflict && conflict.startTime > audit.serverTime) {
+                  const diffMs = conflict.startTime - audit.serverTime;
+                  const diffMins = Math.round(diffMs / 60000);
+                  if (diffMins < 60) {
+                    timeInfo = ` (Starts in ${diffMins} min${diffMins !== 1 ? 's' : ''})`;
+                  } else {
+                    const hrs = Math.floor(diffMins / 60);
+                    const mins = diffMins % 60;
+                    timeInfo = ` (Starts in ${hrs}hr ${mins}m)`;
+                  }
+                } else if (conflict) {
+                  timeInfo = " (Currently Active)";
+                }
+
+                setSecurityBlockTitle(`${reason}: ${conflict?.title || "Commitment"}${timeInfo}`);
+              }
+              setShowLogoutConfirm(false);
+              setShowSecurityBlockModal(true);
+              return;
+            }
+
+            // ── STAGE 2: EXECUTE SIGN OUT ──
             await authClient.signOut();
             try { await GoogleSignin.signOut(); } catch (e) {}
             setShowLogoutConfirm(false);
             router.replace("/(auth)/signin");
-          } finally { setIsLoggingOut(false); }
+          } catch (e: any) {
+            Alert.alert("Logout Failed", e.message || "An unexpected error occurred.");
+          } finally { 
+            setIsLoggingOut(false); 
+          }
         }}
         onCancel={() => !isLoggingOut && setShowLogoutConfirm(false)}
       />
 
       <ConfirmationModal
         visible={showResyncConfirm}
-        title={resyncTapCount > 0 
-          ? `Tap ${RESYNC_TAP_REQUIREMENT - resyncTapCount} more times` 
-          : "Tap 100 times to start"
-        }
-        confirmText="TAP"
-        confirmColor={resyncTapCount >= 80 ? "#FF3B30" : "#4FA0FF"}
+        title="Tap to start full resyncing"
+        confirmText="Start Resyncing"
+        confirmColor="#4FA0FF"
         cancelText="Cancel"
         cancelColor="#FF3B30"
         isLoading={isResyncing}
-        onConfirm={handleResyncTap}
+        onConfirm={handleFullResync}
         onCancel={() => {
           if (!isResyncing) {
             setShowResyncConfirm(false);
             setResyncError(null);
-            setResyncTapCount(0);
           }
         }}
       >
         {resyncError && (
-          <UView className="bg-red-500/20 p-2 rounded-xl border border-red-500/50 mt-2">
+          <UView className="bg-red-500/20 p-2 rounded-xl border border-red-500/50 mt-4">
             <FooterText className="text-red-400 text-[10px] text-center font-bold">
               {resyncError}
             </FooterText>
           </UView>
         )}
       </ConfirmationModal>
+
+      <ConfirmationModal
+        visible={showSecurityBlockModal}
+        title={securityBlockTitle}
+        confirmText="OK"
+        confirmColor="#4FA0FF"
+        singleButton={true}
+        onConfirm={() => setShowSecurityBlockModal(false)}
+        onCancel={() => setShowSecurityBlockModal(false)}
+      />
 
     </UScroll>
   );
