@@ -1,11 +1,8 @@
-fix(sync): resolve SQLite WAL corruption and Resurrection resource leaks
+fix(enforce): prioritize hardware alarms over blocker to prevent UI deadlock
 
-HARDENING MEASURES:
-- Refactored native `AlarmScheduler` to utilize a cached READONLY connection for scheduling queries. This eliminates WAL writer contention with expo-sqlite, which was deterministically corrupting the database on eMMC-based hardware (Lenovo K12) during concurrent access.
-- Isolated native SQLite write operations (`markInstanceProceeded`) to dedicated, short-lived atomic connections that close immediately after execution to release journal locks.
-- Enabled explicit `Write-Ahead Logging (WAL)` on native SQLite handles to ensure read/write consistency with the JavaScript-side synchronization engine.
-- Implemented graceful teardown in `ConvexClientWrapper` using `useRef` and `useEffect` to explicitly `.close()` stale `ConvexReactClient` instances during Resurrection, preventing orphaned WebSocket and file-descriptor leaks.
-- Increased `ZOMBIE_THRESHOLD_MS` to 120,000ms (2 minutes) to prevent aggressive Resurrection triggers during standard Android permission setup round-trips (Camera/Battery/Overlay/Accessibility).
+- Implemented a "Global Alarm Mutex" via SharedPreferences to synchronize state between the Scheduler and Blocker native modules.
+- Refactored `AlarmActivity` to broadcast its active state ($is_alarm_active) and updated its Manifest to `singleInstance` with unique `taskAffinity` for absolute window stack isolation.
+- Modified `BlockerAccessibilityService` to enter "Silent Passthrough" mode when the alarm mutex is active, suspending all enforcement and preventing overlay launches.
+- Added a failsafe to `BlockerOverlayActivity` to immediately `finish()` if an alarm is detected in `onCreate`, ensuring the Dismiss button is never obscured.
 
-RATIONALE:
-Slower eMMC storage is highly sensitive to overlapping SQLite writer locks. Previous versions allowed multiple READWRITE handles to coexist during Resurrection cycles, leading to deterministic WAL journal corruption. These changes enforce a 'Single-Writer' architecture while preserving connection caching to mitigate POSIX Error 9.
+This resolves a critical safety issue where concurrent blocker triggers could bury the alarm UI, resulting in infinite ringing and requiring a device restart.

@@ -57,6 +57,10 @@ class AlarmActivity : Activity() {
         private const val EXTRA_SOUND_KEY = "sound_key"
         private const val EXTRA_ALARM_TYPE = "alarm_type"
         private const val EXTRA_IS_STAY_THROUGHOUT = "is_stay_throughout"
+
+        // Global Mutex for Module-to-Module Communication
+        private const val PREFS_ENFORCEMENT = "CommitTEnforcementState"
+        private const val KEY_ALARM_ACTIVE = "is_alarm_active"
     }
 
     /**
@@ -71,6 +75,10 @@ class AlarmActivity : Activity() {
 
         // Phase 1: Give our window ultimate screen bypass authority
         elevateWindowPermissions()
+        
+        // Phase 1.5: Broadcast "Global Alarm Active" state to the Blocker Module.
+        // This ensures the blocker doesn't accidentally cover the alarm dismissal UI.
+        setAlarmActiveState(true)
 
         // Phase 2: Digest intent variables configured originally by AlarmScheduler
         val taskInstanceId = intent.getStringExtra(EXTRA_INSTANCE_ID) ?: ""
@@ -281,6 +289,7 @@ class AlarmActivity : Activity() {
 
                 Log.i(TAG, "[CHAIN PROPAGATION] Propagating schedule chain upon dismissal.")
                 hasScheduledNext = true
+                setAlarmActiveState(false) // Release global mutex immediately on dismissal
                 AlarmScheduler.scheduleNextAlarm(applicationContext)
 
                 Log.d(TAG, "[WAKE API] Finishing activity.")
@@ -404,6 +413,23 @@ class AlarmActivity : Activity() {
         if (!hasScheduledNext) {
             Log.w(TAG, "[RECOVERY] UI closed without dismissal. Propagating schedule chain for resilience.")
             AlarmScheduler.scheduleNextAlarm(applicationContext)
+        }
+        
+        // Final safety release of the global mutex
+        setAlarmActiveState(false)
+    }
+
+    /**
+     * Communicates the alarm state to other native modules (like the Blocker)
+     * using a high-latency-resistant SharedPreference flag.
+     */
+    private fun setAlarmActiveState(isActive: Boolean) {
+        try {
+            val prefs = getSharedPreferences("CommitTEnforcementState", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("is_alarm_active", isActive).apply()
+            Log.d(TAG, "[GLOBAL MUTEX] Alarm active state updated to: $isActive")
+        } catch (e: Exception) {
+            Log.e(TAG, "[GLOBAL MUTEX] Failed to update alarm state pref", e)
         }
     }
 }
