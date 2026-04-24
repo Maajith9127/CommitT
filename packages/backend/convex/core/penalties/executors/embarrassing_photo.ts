@@ -1,4 +1,5 @@
 import { Doc } from "../../../_generated/dataModel";
+import { internal } from "../../../_generated/api";
 import { PenaltyResult } from "../dispatcher";
 
 /**
@@ -14,6 +15,20 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
 
   if (penalty?.type !== "embarrassing_photo") {
     console.error(`[EXECUTOR:embarrassing_photo] CRITICAL: Invalid penalty type: ${penalty?.type}`);
+    // ** AUDIT LOG: Record penalty failure (Invalid Type) **
+    await ctx.runMutation(internal.api.logs.mutations.createAuditLog, {
+      userId: instance.assignee_id,
+      taskId: instance.task_id,
+      instanceId: instance._id,
+      event_type: "penalty_failed",
+      message: `Failed to execute penalty for task: ${instance.title} (Invalid config type)`,
+      metadata: {
+        task_title: instance.title,
+        error_message: `Invalid penalty type: ${penalty?.type}`,
+        timestamp: Date.now(),
+        timestamp_readable: new Date().toISOString(),
+      }
+    });
     return { success: false, error: "INVALID_TYPE" };
   }
 
@@ -27,6 +42,21 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
 
   if (!emailTo) {
     console.error(`[EXECUTOR:embarrassing_photo] No recipient email found`);
+    // ** AUDIT LOG: Record penalty failure (Missing config) **
+    await ctx.runMutation(internal.api.logs.mutations.createAuditLog, {
+      userId: instance.assignee_id,
+      taskId: instance.task_id,
+      instanceId: instance._id,
+      event_type: "penalty_failed",
+      message: `Failed to execute penalty for task: ${instance.title} (Missing Recipient)`,
+      metadata: {
+        task_title: instance.title,
+        error_message: "Missing configured recipient email.",
+        timestamp: Date.now(),
+        timestamp_readable: new Date().toISOString(),
+        penalty_type: penalty?.type,
+      }
+    });
     return { success: false, error: "MISSING_RECIPIENT" };
   }
 
@@ -98,10 +128,44 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
     }
 
     console.log(`[EXECUTOR:embarrassing_photo] Evidence blasted successfully to ${emailTo}`);
+    
+    // ** AUDIT LOG: Record specific blast success **
+    await ctx.runMutation(internal.api.logs.mutations.createAuditLog, {
+      userId: instance.assignee_id,
+      taskId: instance.task_id,
+      instanceId: instance._id,
+      event_type: "penalty_executed",
+      message: `Embarrassing photo penalty executed. Evidence blasted to ${emailTo}`,
+      metadata: {
+        task_title: instance.title,
+        recipient: emailTo,
+        timestamp: Date.now(),
+        timestamp_readable: new Date().toISOString(),
+        penalty_type: penalty?.type,
+      }
+    });
+
     return { success: true };
 
   } catch (error: any) {
     console.error(`[EXECUTOR:embarrassing_photo] FAILED:`, error.message);
+    
+    // ** AUDIT LOG: Record penalty failure (API or external error) **
+    await ctx.runMutation(internal.api.logs.mutations.createAuditLog, {
+      userId: instance.assignee_id,
+      taskId: instance.task_id,
+      instanceId: instance._id,
+      event_type: "penalty_failed",
+      message: `Failed to execute penalty for task: ${instance.title} (Execution Error)`,
+      metadata: {
+        task_title: instance.title,
+        error_message: error.message,
+        timestamp: Date.now(),
+        timestamp_readable: new Date().toISOString(),
+        penalty_type: penalty?.type,
+      }
+    });
+
     return { success: false, error: error.message };
   }
 }

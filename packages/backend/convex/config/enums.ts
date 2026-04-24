@@ -170,3 +170,15 @@ export const waiverTypeEnum = v.union(
   v.literal("captcha"),    // Solve N CAPTCHAs within the deadline
   v.literal("paragraph"),  // Type a 3000-word paragraph accurately
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT LOGGING — Centralized system event tracking
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const auditEventTypeEnum = v.union(
+  v.literal("verification_success"), // The user passed the verification window
+  v.literal("verification_failed"),  // The user failed the verification window
+  v.literal("penalty_executed"),     // A penalty was actually detonated (charged, sent, etc.)
+  v.literal("penalty_failed"),       // Added: A penalty failed to execute (e.g. Resend API error)
+  v.literal("waiver_completed"),     // A waiver was successfully completed
+);

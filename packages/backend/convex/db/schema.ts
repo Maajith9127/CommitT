@@ -13,6 +13,7 @@ import {
   intensityEnum,
   penaltyTypeEnum,
   waiverTypeEnum,
+  auditEventTypeEnum,
 } from "../config/enums";
 
 export default defineSchema({
@@ -542,4 +543,24 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_deviceId", ["deviceId"])
     .index("by_userId_deviceId", ["userId", "deviceId"]),
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // SYSTEM AUDIT LOGS — Central Ledger for User Events
+  // ═══════════════════════════════════════════════════════════════════════
+  // Used for displaying chronological history of successes, failures, and 
+  // executed penalties on the frontend dashboard.
+  // ═══════════════════════════════════════════════════════════════════════
+  auditLogs: defineTable({
+    userId: v.string(),               // The owner of the event
+    taskId: v.optional(v.id("tasks")),         // The related task (if applicable)
+    instanceId: v.optional(v.id("taskInstances")), // The related instance (if applicable)
+    event_type: auditEventTypeEnum,   // The category of the event
+    message: v.string(),              // Human-readable message (e.g., "Successfully completed morning run!")
+    metadata: v.optional(v.any()),    // Type-specific payload (e.g., penalty amount, verification style)
+    created_at: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_created", ["userId", "created_at"])
+    .index("by_taskId", ["taskId"])
+    .index("by_instanceId", ["instanceId"]),
 });

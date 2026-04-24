@@ -169,10 +169,26 @@ export const runVerification = internalMutation({
         await armAccountabilityContract(ctx, instance, instance.end);
       } else {
         await ctx.db.patch(args.instanceId, { status: "failed" });
+        // NOTE: We could log verification_failed here if needed, but the primary request 
+        // was for verification success and penalty success logs.
       }
     } else {
       console.log(`[runVerification] SUCCESS: Marking ${instance._id} as proceeded.`);
       await ctx.db.patch(args.instanceId, { status: "proceeded" });
+      
+      // ** AUDIT LOG: Record verification success **
+      await ctx.scheduler.runAfter(0, internal.api.logs.mutations.createAuditLog, {
+        userId: instance.assignee_id,
+        taskId: instance.task_id,
+        instanceId: instance._id,
+        event_type: "verification_success",
+        message: `Successfully verified: ${args.taskTitle || "Target habit"}`,
+        metadata: {
+          task_title: args.taskTitle || "Target habit",
+          timestamp: Date.now(),
+          timestamp_readable: new Date().toISOString(),
+        }
+      });
     }
 
     if (!task) {

@@ -78,6 +78,21 @@ export const firePenaltyAction = internalAction({
 
     if (result?.success) {
       console.log(`[firePenaltyAction] SUCCESS: Penalty executed for ${args.instanceId}.`);
+      
+      // ** AUDIT LOG: Record penalty execution **
+      await ctx.runMutation(internal.api.logs.mutations.createAuditLog, {
+        userId: instance.assignee_id,
+        taskId: instance.task_id,
+        instanceId: args.instanceId,
+        event_type: "penalty_executed",
+        message: `Penalty successfully enforced for task: ${instance.title}`,
+        metadata: {
+          task_title: instance.title,
+          timestamp: Date.now(),
+          timestamp_readable: new Date().toISOString(),
+          penalty_type: instance.penalty?.type,
+        }
+      });
     } else {
       console.error(`[firePenaltyAction] FAILURE:`, result?.error);
     }

@@ -17,7 +17,7 @@ type Tab = "upcoming" | "action_required" | "verified";
 const TABS = [
   { key: "upcoming", label: "Upcoming" },
   { key: "action_required", label: "Waiver" },
-  { key: "verified", label: "Verified" },
+  { key: "verified", label: "History" },
 ];
 
 /**
@@ -59,9 +59,25 @@ export interface TaskInstance {
  * Compute this from `instance.end + deadline_minutes` instead of relying 
  * on the injected `_live_schedule_time` field.
  */
-function NotificationListItem({ instance, tabType }: { instance: TaskInstance, tabType: Tab }) {
-  const iconName = tabType === "upcoming" ? "clock-outline" : tabType === "action_required" ? "alert-decagram-outline" : "check-decagram-outline";
-  const formattedTime = dayjs(instance.start).format("MMM D, h:mm A");
+function NotificationListItem({ instance, tabType }: { instance: any, tabType: Tab }) {
+  let iconName = "clock-outline";
+  let iconColor = "white";
+
+  if (tabType === "upcoming") {
+    iconName = "clock-outline";
+  } else if (tabType === "action_required") {
+    iconName = "alert-decagram-outline";
+  } else if (tabType === "verified") {
+    if (instance.event_type === "penalty_executed" || instance.event_type === "penalty_failed") {
+      iconName = "close-circle-outline";
+      iconColor = "#FF4A4A"; // Red
+    } else {
+      iconName = "check-decagram-outline";
+      iconColor = "#4ADE80"; // Green
+    }
+  }
+
+  const formattedTime = dayjs(instance.start || instance.created_at).format("MMM D, h:mm A");
   
   const locationCondition = instance.conditions?.find((c: any) => c.metric_key === "location");
   const locName = locationCondition?.target?.value?.address?.split(",")[0];
@@ -70,8 +86,8 @@ function NotificationListItem({ instance, tabType }: { instance: TaskInstance, t
     <UPress className="active:opacity-70">
       <UView className="flex-row items-start py-4 border-b border-[#2A2A2A] px-4">
         
-        <UView className="w-[44px] items-end mr-3">
-          <MaterialCommunityIcons name={iconName} size={32} color="white" />
+        <UView className="w-[44px] items-end mr-3 mt-1">
+          <MaterialCommunityIcons name={iconName as any} size={30} color={iconColor} />
         </UView>
 
         <UView className="flex-1">
@@ -105,9 +121,14 @@ function NotificationListItem({ instance, tabType }: { instance: TaskInstance, t
               )}
             </UView>
           ) : (
-            <BodyText className="text-gray-300 text-[15px] leading-5">
-              <BodyText className="font-bold text-white">{instance.title}</BodyText> was successfully verified at {formattedTime}.
-            </BodyText>
+            <UView className="flex-col">
+              <BodyText className="text-gray-300 text-[15px] leading-5">
+                {instance.message}
+              </BodyText>
+              <BodyText className="font-bold mt-1 text-[13px]" style={{ color: iconColor }}>
+                {dayjs(instance.created_at).format("MMM D, h:mm A")}
+              </BodyText>
+            </UView>
           )}
         </UView>
         
@@ -206,7 +227,7 @@ export default function NotificationsScreen() {
             <UView className="pb-10" />
           </UScroll>
 
-          {/* TAB 3: Verified */}
+          {/* TAB 3: History */}
           <UScroll style={{ width: SCREEN_WIDTH }} showsVerticalScrollIndicator={false}>
             {verifiedList.map((instance) => (
               <NotificationListItem key={`ver-${instance._id}`} instance={instance} tabType="verified" />
@@ -214,7 +235,7 @@ export default function NotificationsScreen() {
             {verifiedList.length === 0 && (
               <UView className="py-20 items-center justify-center px-8">
                  <MaterialCommunityIcons name="history" size={48} color="white" />
-                 <HeaderTitle className="mt-4 text-center text-lg">Verified commitments will appear here.</HeaderTitle>
+                 <HeaderTitle className="mt-4 text-center text-lg">Your chronological history will appear here.</HeaderTitle>
               </UView>
             )}
             <UView className="pb-10" />

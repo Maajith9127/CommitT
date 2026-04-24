@@ -79,10 +79,17 @@ export const getGroups = authedQuery({
       (a: any, b: any) => (a._live_schedule_time || a.end) - (b._live_schedule_time || b.end)
     );
 
+    // Fetch chronological system audit logs for the "Verified" section
+    const verified = await ctx.db
+      .query("auditLogs")
+      .withIndex("by_userId_created", (q) => q.eq("userId", user._id))
+      .order("desc")
+      .take(args.limit ?? 50);
+
     return {
       upcoming,
       action_required,
-      verified: [],
+      verified,
     };
   },
 });
