@@ -5,7 +5,7 @@ import { Stack } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 import { HeroUINativeProvider } from "heroui-native";
 import { View } from "react-native";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { AppThemeProvider } from "@/contexts/app-theme-context";
@@ -38,6 +38,24 @@ const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 function ConvexClientWrapper({ children }: { children: React.ReactNode }) {
   const { iteration } = useResurrection();
 
+  /**
+   * ** CRITICAL: Stale Client Reference for Graceful Teardown **
+   *
+   * On slower eMMC hardware (e.g. Lenovo K12 Note), abandoning a ConvexReactClient
+   * without calling `.close()` leaves orphaned WebSocket connections and native
+   * SQLite file descriptors alive in the JS garbage collector's finalizer queue.
+   * When a new client is spawned (via Resurrection), these ghost handles overlap
+   * with the new client's handles on the same `commit.db` file, corrupting the
+   * WAL journal and producing fatal `database disk image is malformed` errors.
+   *
+   * Samsung's faster UFS storage masks this because transactions complete before
+   * the overlap window, but eMMC's slower I/O makes the race catastrophic.
+   *
+   * FIX: We store a ref to the previous client and explicitly `.close()` it
+   * in the useEffect cleanup before the new client takes over.
+   */
+  const previousClientRef = useRef<ConvexReactClient | null>(null);
+
   const convexClient = useMemo(() => {
     const instanceId = Math.random().toString(36).substring(7).toUpperCase();
     console.log(`
@@ -51,6 +69,32 @@ function ConvexClientWrapper({ children }: { children: React.ReactNode }) {
       unsavedChangesWarning: false,
     });
   }, [iteration]);
+
+  useEffect(() => {
+    /**
+     * ** Graceful Client Lifecycle Management **
+     *
+     * If a previous client exists from a prior iteration, close it NOW
+     * before the new client begins its first query. This ensures exactly
+     * ONE active WebSocket + connection pool exists at any given time,
+     * eliminating the file-descriptor overlap that corrupts the WAL.
+     */
+    if (previousClientRef.current && previousClientRef.current !== convexClient) {
+      console.log('[ConvexClientWrapper] Closing stale client from previous iteration.');
+      previousClientRef.current.close();
+    }
+    previousClientRef.current = convexClient;
+
+    return () => {
+      /**
+       * ** Unmount Cleanup **
+       * If this wrapper fully unmounts (e.g., app teardown), close the
+       * active client to release all native resources immediately rather
+       * than waiting for GC finalization.
+       */
+      convexClient.close();
+    };
+  }, [convexClient]);
 
   return (
     <ConvexBetterAuthProvider client={convexClient} authClient={authClient}>

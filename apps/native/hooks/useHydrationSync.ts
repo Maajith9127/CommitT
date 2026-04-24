@@ -35,11 +35,26 @@ const HEALTH_CHECK_RETRY_DELAY_MS = 1_500; // 1.5 seconds
 const MAX_CONSECUTIVE_AMNESIA_ATTEMPTS = 3;
 
 /**
- * PROACTIVE ZOMBIE THRESHOLD
- * Forces a proactive WebSocket resurrection if the background gap is too large.
- * (Testing: 5 seconds | Production: 30 minutes)
+ * ** PROACTIVE ZOMBIE THRESHOLD **
+ *
+ * Forces a full WebSocket resurrection if the app was backgrounded longer
+ * than this threshold. This exists to kill "Zombie" Convex connections
+ * that appear alive but have silently lost their server-side session.
+ *
+ * CRITICAL HISTORY (April 2026):
+ * This was originally set to 5_000ms (5 seconds) for aggressive testing.
+ * That value was CATASTROPHICALLY too low for production because the
+ * permissions setup flow (camera → battery → overlay → accessibility)
+ * sends the user to Android Settings and back 4+ times, each round-trip
+ * taking 5-15 seconds. Every return triggered a Resurrection, spawning
+ * a new ConvexReactClient without closing the old one. On Lenovo K12
+ * Note's eMMC storage, 3 stacked orphaned clients corrupted the SQLite
+ * WAL journal within 60 seconds, bricking the local database.
+ *
+ * 120 seconds (2 minutes) is the safe production value — long enough to
+ * survive any Settings round-trip, short enough to catch genuine zombies.
  */
-const ZOMBIE_THRESHOLD_MS = 5_000;
+const ZOMBIE_THRESHOLD_MS = 120_000;
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────

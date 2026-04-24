@@ -1,292 +1,330 @@
 --------- beginning of main
-04-24 13:46:19.063 I/chatty  (23770): uid=10524(com.mono.commit) expire 73 lines
-04-24 13:46:21.318 I/chatty  (23770): uid=10524(com.mono.commit) pool-2-thread-1 expire 4 lines
-04-24 13:46:21.343 I/chatty  (23770): uid=10524(com.mono.commit) OkHttp Dispatch expire 2 lines
-04-24 13:46:21.343 I/chatty  (23770): uid=10524(com.mono.commit) OkHttp Dispatch expire 1 line
-04-24 13:46:21.345 I/chatty  (23770): uid=10524(com.mono.commit) pool-2-thread-1 expire 2 lines
-04-24 13:46:21.357 I/chatty  (23770): uid=10524(com.mono.commit) expire 4 lines
-04-24 13:46:21.380 I/chatty  (23770): uid=10524(com.mono.commit) pool-2-thread-1 expire 6 lines
-04-24 13:46:21.398 I/chatty  (23770): uid=10524(com.mono.commit) expire 1 line
-04-24 13:46:21.423 I/chatty  (23770): uid=10524(com.mono.commit) RenderThread expire 4 lines
-04-24 13:46:22.480 I/ExpoModulesCore(23770): ✅ AppContext was initialized
-04-24 13:46:22.547 W/unknown:BridgelessReact(23770): ReactHost{0}.getOrCreateReactInstanceTask(): Loading JS Bundle
-04-24 13:46:22.548 W/unknown:BridgelessReact(23770): ReactHost{0}.getOrCreateReactInstanceTask(): Calling DevSupportManagerBase.onNewReactContextCreated(reactContext)
-04-24 13:46:22.556 W/unknown:ReactNative(23770): Packager connection already open, nooping.
-04-24 13:46:22.556 W/unknown:BridgelessReact(23770): ReactHost{0}.startSurface(surfaceId = 0): Execute
-04-24 13:46:22.556 W/unknown:BridgelessReact(23770): ReactContext.onHostResume()
-04-24 13:46:22.557 W/unknown:BridgelessReact(23770): ReactHost{0}.getOrCreateReactInstanceTask(): Executing ReactInstanceEventListeners
-04-24 13:46:22.720 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.reactnativekeyboardcontroller.OverKeyboardViewManager
-04-24 13:46:22.733 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.reactnativekeyboardcontroller.views.overlay.OverKeyboardHostShadowNode
-04-24 13:46:22.740 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaProviderManager
-04-24 13:46:22.741 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.uimanager.LayoutShadowNode
-04-24 13:46:22.742 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.SearchBarManager
-04-24 13:46:22.745 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.ScreenFooterManager
-04-24 13:46:22.747 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.gamma.tabs.TabScreenViewManager
-04-24 13:46:22.750 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class expo.modules.kotlin.views.GroupViewManagerWrapper
-04-24 13:46:22.756 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.ScreenContainerViewManager
-04-24 13:46:22.758 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.reactnativecommunity.slider.ReactSliderManager
-04-24 13:46:22.763 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.gamma.tabs.TabsHostViewManager
-04-24 13:46:22.771 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.ModalScreenViewManager
-04-24 13:46:22.777 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.reactnativekeyboardcontroller.KeyboardControllerViewManager
-04-24 13:46:22.782 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager
-04-24 13:46:22.785 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.reactnativekeyboardcontroller.KeyboardGestureAreaViewManager
-04-24 13:46:22.787 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.ScreenContentWrapperManager
-04-24 13:46:22.791 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewManager
-04-24 13:46:22.792 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewShadowNode
-04-24 13:46:22.795 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.ScreenViewManager
-04-24 13:46:22.798 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.reactnativegooglesignin.RNGoogleSigninButtonViewManager
-04-24 13:46:22.799 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderSubviewManager
-04-24 13:46:22.800 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.rnscreens.ScreenStackViewManager
-04-24 13:46:22.801 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.reactnativekeyboardcontroller.KeyboardBackgroundViewManager
-04-24 13:46:22.911 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeMergeManager
-04-24 13:46:22.915 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.VirtualViewManager$RenderableShadowNode
-04-24 13:46:22.924 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.safeareaview.ReactSafeAreaViewManager
-04-24 13:46:22.925 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.safeareaview.ReactSafeAreaViewShadowNode
-04-24 13:46:22.932 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LinearGradientManager
-04-24 13:46:22.941 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.progressbar.ReactProgressBarViewManager
-04-24 13:46:22.942 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.progressbar.ProgressBarShadowNode
-04-24 13:46:22.948 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeColorMatrixManager
-04-24 13:46:22.954 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$SymbolManager
-04-24 13:46:22.965 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PatternManager
-04-24 13:46:22.975 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.SvgViewManager
-04-24 13:46:22.985 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.switchview.ReactSwitchManager
-04-24 13:46:22.986 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.switchview.ReactSwitchShadowNode
-04-24 13:46:22.992 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$UseViewManager
-04-24 13:46:23.000 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TSpanViewManager
-04-24 13:46:23.009 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FilterManager
-04-24 13:46:23.015 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MarkerManager
-04-24 13:46:23.025 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerButtonViewManager
-04-24 13:46:23.031 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ForeignObjectManager
-04-24 13:46:23.040 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$GroupViewManager
-04-24 13:46:23.047 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextViewManager
-04-24 13:46:23.055 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ImageViewManager
-04-24 13:46:23.063 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeCompositeManager
-04-24 13:46:23.069 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RadialGradientManager
-04-24 13:46:23.077 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.unimplementedview.ReactUnimplementedViewManager
-04-24 13:46:23.082 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeOffsetManager
-04-24 13:46:23.088 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PathViewManager
-04-24 13:46:23.097 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.drawer.ReactDrawerLayoutManager
-04-24 13:46:23.111 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.textinput.ReactTextInputManager
-04-24 13:46:23.116 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.textinput.ReactTextInputShadowNode
-04-24 13:46:23.124 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$DefsViewManager
-04-24 13:46:23.131 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.debuggingoverlay.DebuggingOverlayManager
-04-24 13:46:23.135 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeGaussianBlurManager
-04-24 13:46:23.144 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollViewManager
-04-24 13:46:23.154 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.text.ReactTextViewManager
-04-24 13:46:23.156 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.text.ReactTextShadowNode
-04-24 13:46:23.162 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollContainerViewManager
-04-24 13:46:23.168 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ClipPathViewManager
-04-24 13:46:23.174 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeBlendManager
-04-24 13:46:23.180 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.view.ReactViewManager
-04-24 13:46:23.185 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$CircleViewManager
-04-24 13:46:23.193 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.modal.ReactModalHostManager
-04-24 13:46:23.199 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$EllipseViewManager
-04-24 13:46:23.206 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LineViewManager
-04-24 13:46:23.213 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.text.frescosupport.FrescoBasedReactTextInlineImageViewManager
-04-24 13:46:23.214 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.text.frescosupport.FrescoBasedReactTextInlineImageShadowNode
-04-24 13:46:23.219 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeFloodManager
-04-24 13:46:23.227 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.image.ReactImageManager
-04-24 13:46:23.233 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MaskManager
-04-24 13:46:23.241 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RectViewManager
-04-24 13:46:23.248 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextPathViewManager
-04-24 13:46:23.259 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.scroll.ReactScrollViewManager
-04-24 13:46:23.266 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.text.ReactVirtualTextViewManager
-04-24 13:46:23.266 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.text.ReactVirtualTextShadowNode
-04-24 13:46:23.273 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.swiperefresh.SwipeRefreshLayoutManager
-04-24 13:46:23.279 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.text.ReactRawTextManager
-04-24 13:46:23.279 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.facebook.react.views.text.ReactRawTextShadowNode
-04-24 13:46:23.281 W/unknown:ViewManagerPropertyUpdater(23770): Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerRootViewManager
-04-24 13:46:23.297 W/BridgelessReactContext(23770): [WARNING] Bridgeless doesn't support CatalystInstance. Accessing an API that's not part of the new architecture is not encouraged usage.
-04-24 13:46:23.313 I/ExpoModulesCore(23770): ✅ JSI interop was installed
-04-24 13:46:23.342 I/TetheringManager(23770): registerTetheringEventCallback:com.mono.commit
-04-24 13:46:23.353 I/ExpoModulesCore(23770): ✅ Constants were exported
-04-24 13:46:23.457 I/ReactNativeJS(23770): Running "main"
-04-24 13:46:23.844 W/mqt_v_js(23770): type=1400 audit(0.0:2464): avc: denied { read } for name="cache" dev="dm-6" ino=16 scontext=u:r:untrusted_app:s0:c12,c258,c512,c768 tcontext=u:object_r:cache_file:s0 tclass=lnk_file permissive=0 app=com.mono.commit
-04-24 13:46:24.183 W/Settings(23770): Setting adb_enabled has moved from android.provider.Settings.Secure to android.provider.Settings.Global.
-04-24 13:46:24.183 I/AdbEnabled(23770): AdbEnabled: true
-04-24 13:46:24.408 I/ReactNativeJS(23770):       ╔══════════════════════════════════════════════════════════╗
-04-24 13:46:24.408 I/ReactNativeJS(23770):       ║ ⚡️ CONVEX REBIRTH: Spawning fresh client...              ║
-04-24 13:46:24.408 I/ReactNativeJS(23770):       ║ 🆔 ID: 8L6GYJ                                     ║
-04-24 13:46:24.408 I/ReactNativeJS(23770):       ║ 🔄 ITERATION: 0                               ║
-04-24 13:46:24.408 I/ReactNativeJS(23770):       ╚══════════════════════════════════════════════════════════╝
-04-24 13:46:24.408 I/ReactNativeJS(23770):     
-04-24 13:46:24.428 I/ReactNativeJS(23770): '[HealOverlay] Component Ping - isHealing:', false
-04-24 13:46:24.494 W/[RNScreens](23770): backTitleVisible prop is not available on Android
-04-24 13:46:24.494 W/[RNScreens](23770): backTitleFontFamily prop is not available on Android
-04-24 13:46:24.494 W/[RNScreens](23770): disableBackButtonMenu prop is not available on Android
-04-24 13:46:24.494 W/[RNScreens](23770): largeTitleFontFamily prop is not available on Android
-04-24 13:46:24.494 W/[RNScreens](23770): largeTitleFontWeight prop is not available on Android
-04-24 13:46:24.495 W/[RNScreens](23770): largeTitleHideShadow prop is not available on Android
-04-24 13:46:24.567 I/ReactNative(23770): [GESTURE HANDLER] Initialize gesture handler for root view com.facebook.react.runtime.ReactSurfaceView{1936d33 V.E...... .......D 0,0-720,1600 #1}
-04-24 13:46:24.636 D/jni_lib_merge(23770): Entering merged library JNI_OnLoad.
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing 12 pre-merged libs (including stub)
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libfabricjni_so.  onload_func: 0x6f0a1d3edc
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libreact_devsupportjni_so.  onload_func: 0x6f0a2a4f40
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libreact_featureflagsjni_so.  onload_func: 0x6f0a2b79f8
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libreact_newarchdefaults_so.  onload_func: 0x6f0a2dce30
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libreactnativeblob_so.  onload_func: 0x6f0a36f5b0
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libreactnativejni_so.  onload_func: 0x6f0a389b24
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libreactnativejni_common_so.  onload_func: 0x6f0a390458
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register librninstance_so.  onload_func: 0x6f0a3ac070
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libturbomodulejsijni_so.  onload_func: 0x6f0a4441a4
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libuimanagerjni_so.  onload_func: 0x6f0a44b7e0
-04-24 13:46:24.636 D/jni_lib_merge(23770): Preparing to register libyoga_so.  onload_func: 0x6f0a452da4
-04-24 13:46:24.636 D/jni_lib_merge(23770): About to register 11 actual methods.
-04-24 13:46:25.710 I/WebViewFactory(23770): Loading com.google.android.webview version 147.0.7727.55 (code 772705503)
-04-24 13:46:25.721 D/ApplicationLoaders(23770): Returning zygote-cached class loader: /system/framework/android.test.base.jar
-04-24 13:46:25.738 I/ReactNativeJS(23770): [CommitT] Session active at root. Transferring control to dashboard...
-04-24 13:46:25.742 W/linker  (23770): Warning: "/data/app/~~PNpcWB2GtTL0GuAebSnAqQ==/com.google.android.webview-ELMV28NP0lUf7uy3_QOBlQ==/base.apk!/lib/arm64-v8a/libwebviewchromium.so" unused DT entry: unknown processor-specific (type 0x70000001 arg 0x0) (ignoring)
-04-24 13:46:25.803 I/cr_WVCFactoryProvider(23770): version=147.0.7727.55 (772705503) minSdkVersion=29 multiprocess=true packageId=127 splits=<none>
-04-24 13:46:25.818 I/chromium(23770): [0424/134625.818665:INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
-04-24 13:46:25.819 I/chromium(23770): [0424/134625.819218:INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
-04-24 13:46:25.833 I/cr_LibraryLoader(23770): Successfully loaded native library
-04-24 13:46:25.835 I/cr_CachingUmaRecorder(23770): Flushed 10 samples from 10 histograms, 0 samples were dropped.
-04-24 13:46:26.112 W/com.mono.commi(23770): Accessing hidden field Landroid/widget/ScrollView;->mScroller:Landroid/widget/OverScroller; (greylist, reflection, allowed)
-04-24 13:46:26.324 W/[RNScreens](23770): backTitleVisible prop is not available on Android
-04-24 13:46:26.324 W/[RNScreens](23770): backTitleFontFamily prop is not available on Android
-04-24 13:46:26.324 W/[RNScreens](23770): disableBackButtonMenu prop is not available on Android
-04-24 13:46:26.324 W/[RNScreens](23770): largeTitleFontFamily prop is not available on Android
-04-24 13:46:26.324 W/[RNScreens](23770): largeTitleFontWeight prop is not available on Android
-04-24 13:46:26.324 W/[RNScreens](23770): largeTitleHideShadow prop is not available on Android
-04-24 13:46:26.370 I/ReactNativeJS(23770): '[VerificationCard] Next Pending Event:', 'None'
-04-24 13:46:26.373 I/ReactNativeJS(23770): [AppDiscovery] Fetching PNG icons from native bridge...
-04-24 13:46:26.376 I/ReactNativeJS(23770): '[DEBUG] Current Hardware Permissions Manifest:', '{\n  "camera": false,\n  "location": false,\n  "notifications": false,\n  "alarms": false,\n  "battery": false,\n  "overlay": false,\n  "accessibility": false,\n  "admin": false\n}'
-04-24 13:46:26.380 I/ReactNativeJS(23770): [CalendarStore] Action: calendar/setRange
-04-24 13:46:26.380 I/ReactNativeJS(23770): ---------------------------------------------------------
-04-24 13:46:26.380 I/ReactNativeJS(23770): {
-04-24 13:46:26.380 I/ReactNativeJS(23770):   eventsCount: 4,
-04-24 13:46:26.380 I/ReactNativeJS(23770):   selectedEventId: null,
-04-24 13:46:26.380 I/ReactNativeJS(23770):   selectedEventTaskId: null,
-04-24 13:46:26.380 I/ReactNativeJS(23770):   range: [24 Feb - 30 Jun],
-04-24 13:46:26.380 I/ReactNativeJS(23770):   itemsCount: 4
-04-24 13:46:26.380 I/ReactNativeJS(23770): }
-04-24 13:46:26.380 I/ReactNativeJS(23770): ---------------------------------------------------------
-04-24 13:46:26.575 I/ReactNativeJS(23770): '[index.android:1] [HydrationSync] Warm Boot. Last sync: 1:45:44 PM', ''
-04-24 13:46:26.577 I/ReactNativeJS(23770): [HydrationSync] Sending probe to Convex (Timeout: 15000ms)...
-04-24 13:46:26.986 D/ProfileInstaller(23770): Installing profile for com.mono.commit
-04-24 13:46:27.273 W/com.mono.commi(23770): Accessing hidden method Ljava/io/ObjectStreamClass;->getConstructorId(Ljava/lang/Class;)J (greylist, reflection, allowed)
-04-24 13:46:27.962 I/com.mono.commi(23770): Background concurrent copying GC freed 126886(4294KB) AllocSpace objects, 2(88KB) LOS objects, 49% free, 12MB/24MB, paused 64us total 119.925ms
-04-24 13:46:28.045 W/com.mono.commi(23770): Accessing hidden field Landroid/widget/HorizontalScrollView;->mScroller:Landroid/widget/OverScroller; (greylist, reflection, allowed)
-04-24 13:46:28.653 I/ReactNativeJS(23770): [AppDiscovery] Success. Loaded 51 apps.
-04-24 13:46:28.654 I/ReactNativeJS(23770): '[AppDiscovery] Sample Data:', [ { id: 'com.google.android.apps.googleassistant',
-04-24 13:46:28.654 I/ReactNativeJS(23770):     name: 'Assistant',
-04-24 13:46:28.654 I/ReactNativeJS(23770):     iconUri: 'file:///data/user/0/com.mono.commit/cache/app_icons/com.google.android.apps.googleassistant.png' },
-04-24 13:46:28.654 I/ReactNativeJS(23770):   { id: 'com.google.android.calculator',
-04-24 13:46:28.654 I/ReactNativeJS(23770):     name: 'Calculator',
-04-24 13:46:28.654 I/ReactNativeJS(23770):     iconUri: 'file:///data/user/0/com.mono.commit/cache/app_icons/com.google.android.calculator.png' },
-04-24 13:46:28.654 I/ReactNativeJS(23770):   { id: 'com.hld.anzenbokusucal',
-04-24 13:46:28.654 I/ReactNativeJS(23770):     name: 'Calculator',
-04-24 13:46:28.654 I/ReactNativeJS(23770):     iconUri: 'file:///data/user/0/com.mono.commit/cache/app_icons/com.hld.anzenbokusucal.png' } ]
-04-24 13:46:28.883 I/ReactNativeJS(23770): '[DEBUG] Current Hardware Permissions Manifest:', '{\n  "location": false,\n  "camera": false,\n  "notifications": true,\n  "alarms": true,\n  "battery": true,\n  "overlay": true,\n  "accessibility": false,\n  "admin": false\n}'
-04-24 13:46:30.968 I/ReactNativeJS(23770): '[index.android:1] [HydrationSync] Ingesting: 0 tasks, 4 instances.', ''
-04-24 13:46:30.970 I/ReactNativeJS(23770): '[index.android:1]  [SyncLock] Lock Acquired by "Engine:Hydrate". Executing...', ''
-04-24 13:46:30.972 I/ReactNativeJS(23770): '[index.android:1] [SyncEngine] Ingesting Delta: 0 tasks, 4 instances. Token: 1777018605758', ''
-04-24 13:46:31.003 I/ReactNativeJS(23770): [useCalendarEvents] Fetched 4 instances.
-04-24 13:46:31.277 I/ReactNativeJS(23770): [VerificationStore] 🔄 verification/setUpcomingEvent
-04-24 13:46:31.277 I/ReactNativeJS(23770): { upcomingEvent: Ex1 (Gym) (jh7bdpcb0xd5p08ydr2r4ck3h585f4cj) }
-04-24 13:46:31.505 I/ReactNativeJS(23770): '[VerificationCard] Next Pending Event:', { id: 'jh7bdpcb0xd5p08ydr2r4ck3h585f4cj',
-04-24 13:46:31.505 I/ReactNativeJS(23770):   title: 'Ex1 (Gym)',
-04-24 13:46:31.505 I/ReactNativeJS(23770):   start: 1777595400000 }
-04-24 13:46:31.818 I/ReactNativeJS(23770): '[index.android:1] [SyncEngine] Sync Complete. Token 1777018605758 locked.', ''
-04-24 13:46:31.820 I/SchedulerModule(23770): ==== [JS BRIDGE INVOKED] ====
-04-24 13:46:31.820 D/SchedulerModule(23770): [JS BRIDGE] scheduleNextAlarm() requested by JavaScript.
-04-24 13:46:31.820 V/SchedulerModule(23770): [JS BRIDGE] Context resolved: com.mono.commit. Delegating to native engine...
-04-24 13:46:31.826 I/AlarmScheduler(23770): ==== [MASTER SCHEDULING SEQUENCE INITIATED] ====
-04-24 13:46:31.826 V/AlarmScheduler(23770): [FILESYSTEM] Attempting to resolve SQLite database location...
-04-24 13:46:31.826 V/AlarmScheduler(23770): [FILESYSTEM] Path 1 CHECK: /data/user/0/com.mono.commit/files/SQLite/commit.db
-04-24 13:46:31.826 D/AlarmScheduler(23770): [FILESYSTEM PATHING] Path 1 SUCCESS (Expo Default).
-04-24 13:46:31.826 D/AlarmScheduler(23770): [DATABASE ACCESS] Unlocking SQLite Vault at path: /data/user/0/com.mono.commit/files/SQLite/commit.db
-04-24 13:46:31.834 D/AlarmScheduler(23770): [TIME] Current System Time: 1777018591833 (Friday April 24 at 01:46:31 pm)
-04-24 13:46:31.834 D/AlarmScheduler(23770): [DATABASE QUERY] Fetching future unexecuted task instances...
-04-24 13:46:31.835 D/AlarmScheduler(23770): [DATABASE QUERY] Found 4 potential pending instances.
-04-24 13:46:31.835 D/AlarmScheduler(23770): [LOGIC ROUTING] Tasks identified. Calculating precise Pre-Alarm staggered offsets.
-04-24 13:46:31.836 V/AlarmScheduler(23770): [EVAL_ROW_0] ID: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj | Title: Ex1 (Gym) | Start: 1777595400000 | End: 1777645800000
-04-24 13:46:31.836 V/AlarmScheduler(23770): [EVAL_ROW_0] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
-04-24 13:46:31.836 V/AlarmScheduler(23770): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
-04-24 13:46:31.836 V/AlarmScheduler(23770): [ALARM MATH] Found future PRE_ALARM at 1777593600000
-04-24 13:46:31.836 V/AlarmScheduler(23770): [EVAL_ROW_0] Result -> Trigger: 1777593600000, Type: PRE_ALARM
-04-24 13:46:31.836 D/AlarmScheduler(23770): [BEST_FOUND] New Best: Ex1 (Gym) at 1777593600000 (Type: PRE_ALARM)
-04-24 13:46:31.836 V/AlarmScheduler(23770): [EVAL_ROW_1] ID: jh7a8jw1a0jg945qjse6ms1jq585es6y | Title: Ex1 (Gym) | Start: 1778200200000 | End: 1778250600000
-04-24 13:46:31.836 V/AlarmScheduler(23770): [EVAL_ROW_1] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
-04-24 13:46:31.837 V/AlarmScheduler(23770): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
-04-24 13:46:31.837 V/AlarmScheduler(23770): [ALARM MATH] Found future PRE_ALARM at 1778198400000
-04-24 13:46:31.837 V/AlarmScheduler(23770): [EVAL_ROW_1] Result -> Trigger: 1778198400000, Type: PRE_ALARM
-04-24 13:46:31.837 V/AlarmScheduler(23770): [EVAL_ROW_2] ID: jh7ac173zcxn24bs1jtervnkb585ekad | Title: Ex1 (Gym) | Start: 1778805000000 | End: 1778855400000
-04-24 13:46:31.837 V/AlarmScheduler(23770): [EVAL_ROW_2] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
-04-24 13:46:31.837 V/AlarmScheduler(23770): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
-04-24 13:46:31.837 V/AlarmScheduler(23770): [ALARM MATH] Found future PRE_ALARM at 1778803200000
-04-24 13:46:31.837 V/AlarmScheduler(23770): [EVAL_ROW_2] Result -> Trigger: 1778803200000, Type: PRE_ALARM
-04-24 13:46:31.838 V/AlarmScheduler(23770): [EVAL_ROW_3] ID: jh70ec3ht7bkkbct32jdd99jt985f502 | Title: Ex1 (Gym) | Start: 1779409800000 | End: 1779460200000
-04-24 13:46:31.838 V/AlarmScheduler(23770): [EVAL_ROW_3] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
-04-24 13:46:31.838 V/AlarmScheduler(23770): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
-04-24 13:46:31.838 V/AlarmScheduler(23770): [ALARM MATH] Found future PRE_ALARM at 1779408000000
-04-24 13:46:31.838 V/AlarmScheduler(23770): [EVAL_ROW_3] Result -> Trigger: 1779408000000, Type: PRE_ALARM
-04-24 13:46:31.839 I/AlarmScheduler(23770): [ALARM SELECTED] Earliest trigger -> Type: [PRE_ALARM], Target: [Ex1 (Gym)], InstanceId: [jh7bdpcb0xd5p08ydr2r4ck3h585f4cj], Time: Friday May 01 at 05:30:00 am
-04-24 13:46:31.839 I/AlarmScheduler(23770): [HARDWARE INSTRUCTOR] Preparing OS registration for: Ex1 (Gym) (jh7bdpcb0xd5p08ydr2r4ck3h585f4cj) at 1777593600000
-04-24 13:46:31.840 V/AlarmScheduler(23770): [HARDWARE INSTRUCTOR] Intent Payload Built -> Type: PRE_ALARM, Sound: alarm_start, StayThroughout: false
-04-24 13:46:31.841 D/AlarmScheduler(23770): [HARDWARE INSTRUCTOR] Dispatching exact wake parameters down to Android Kernel hardware...
-04-24 13:46:31.841 D/AlarmScheduler(23770): [HARDWARE INSTRUCTOR] Strategy: setExactAndAllowWhileIdle.
-04-24 13:46:31.843 D/AlarmScheduler(23770): [CACHE REFRESH] Synchronizing newly evaluated queue into DE Storage Sticky Note.
-04-24 13:46:31.844 D/AlarmScheduler(23770): [STICKY NOTE SYNC] Full Payload String: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj|Ex1 (Gym)|1777595400000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1777645800000;;jh7a8jw1a0jg945qjse6ms1jq585es6y|Ex1 (Gym)|1778200200000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778250600000;;jh7ac173zcxn24bs1jtervnkb585ekad|Ex1 (Gym)|1778805000000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778855400000;;jh70ec3ht7bkkbct32jdd99jt985f502|Ex1 (Gym)|1779409800000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1779460200000
-04-24 13:46:31.849 I/AlarmScheduler(23770): [STICKY NOTE FLUSH] Synced exactly 4 events structurally into Device Encrypted storage payload.
-04-24 13:46:31.849 I/AlarmScheduler(23770): ==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====
-04-24 13:46:31.849 I/SchedulerModule(23770): ==== [JS BRIDGE DELEGATION SUCCESSFUL] ====
-04-24 13:46:31.851 I/ReactNativeJS(23770): '[index.android:1]  [SyncLock] Lock Released by "Engine:Hydrate".', ''
-04-24 13:46:43.306 W/Choreographer(23770): Frame time is 0.075754 ms in the future!  Check that graphics HAL is generating vsync timestamps using the correct timebase.
-04-24 13:46:43.692 W/System  (23770): A resource failed to call close. 
-04-24 13:46:43.696 I/chatty  (23770): uid=10524(com.mono.commit) FinalizerDaemon identical 3 lines
-04-24 13:46:43.697 W/System  (23770): A resource failed to call close. 
-04-24 13:46:52.032 I/ReactNativeJS(23770): '[HealStore] 🟡 startHealing triggered:', 'Verifying cloud state and preparing resynchronization...'
-04-24 13:46:52.231 I/ReactNativeJS(23770): '[HealOverlay] Component Ping - isHealing:', true
-04-24 13:46:52.231 I/ReactNativeJS(23770): '[HealOverlay]  SPINNING ACTIVE:', 'Verifying cloud state and preparing resynchronization...'
-04-24 13:46:52.276 I/ReactNativeJS(23770): '[index.android:1]  [SyncLock] Lock Acquired by "Saga:ManualResync". Executing...', ''
-04-24 13:46:53.895 I/ReactNativeJS(23770): [LocalDB] INITIATING SURGICAL PURGE: Clearing data records...
-04-24 13:46:53.936 I/ReactNativeJS(23770): [LocalDB] PURGE SUCCESSFUL: Data layers at zero.
-04-24 13:46:53.942 I/ReactNativeJS(23770): '[index.android:1] [SyncEngine] Ingesting Delta: 1 tasks, 4 instances. Token: 1777018629137', ''
-04-24 13:46:54.086 I/ReactNativeJS(23770): '[index.android:1] [SyncEngine] Sync Complete. Token 1777018629137 locked.', ''
-04-24 13:46:54.087 I/SchedulerModule(23770): ==== [JS BRIDGE INVOKED] ====
-04-24 13:46:54.087 D/SchedulerModule(23770): [JS BRIDGE] scheduleNextAlarm() requested by JavaScript.
-04-24 13:46:54.087 V/SchedulerModule(23770): [JS BRIDGE] Context resolved: com.mono.commit. Delegating to native engine...
-04-24 13:46:54.087 I/AlarmScheduler(23770): ==== [MASTER SCHEDULING SEQUENCE INITIATED] ====
-04-24 13:46:54.087 V/AlarmScheduler(23770): [FILESYSTEM] Attempting to resolve SQLite database location...
-04-24 13:46:54.088 V/AlarmScheduler(23770): [FILESYSTEM] Path 1 CHECK: /data/user/0/com.mono.commit/files/SQLite/commit.db
-04-24 13:46:54.088 D/AlarmScheduler(23770): [FILESYSTEM PATHING] Path 1 SUCCESS (Expo Default).
-04-24 13:46:54.089 D/AlarmScheduler(23770): [TIME] Current System Time: 1777018614088 (Friday April 24 at 01:46:54 pm)
-04-24 13:46:54.089 D/AlarmScheduler(23770): [DATABASE QUERY] Fetching future unexecuted task instances...
-04-24 13:46:54.091 D/AlarmScheduler(23770): [DATABASE QUERY] Found 4 potential pending instances.
-04-24 13:46:54.091 D/AlarmScheduler(23770): [LOGIC ROUTING] Tasks identified. Calculating precise Pre-Alarm staggered offsets.
-04-24 13:46:54.092 V/AlarmScheduler(23770): [EVAL_ROW_0] ID: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj | Title: Ex1 (Gym) | Start: 1777595400000 | End: 1777645800000
-04-24 13:46:54.092 V/AlarmScheduler(23770): [EVAL_ROW_0] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
-04-24 13:46:54.092 V/AlarmScheduler(23770): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
-04-24 13:46:54.092 V/AlarmScheduler(23770): [ALARM MATH] Found future PRE_ALARM at 1777593600000
-04-24 13:46:54.092 V/AlarmScheduler(23770): [EVAL_ROW_0] Result -> Trigger: 1777593600000, Type: PRE_ALARM
-04-24 13:46:54.092 D/AlarmScheduler(23770): [BEST_FOUND] New Best: Ex1 (Gym) at 1777593600000 (Type: PRE_ALARM)
-04-24 13:46:54.093 V/AlarmScheduler(23770): [EVAL_ROW_1] ID: jh7a8jw1a0jg945qjse6ms1jq585es6y | Title: Ex1 (Gym) | Start: 1778200200000 | End: 1778250600000
-04-24 13:46:54.093 V/AlarmScheduler(23770): [EVAL_ROW_1] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
-04-24 13:46:54.093 V/AlarmScheduler(23770): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
-04-24 13:46:54.093 V/AlarmScheduler(23770): [ALARM MATH] Found future PRE_ALARM at 1778198400000
-04-24 13:46:54.093 V/AlarmScheduler(23770): [EVAL_ROW_1] Result -> Trigger: 1778198400000, Type: PRE_ALARM
-04-24 13:46:54.094 V/AlarmScheduler(23770): [EVAL_ROW_2] ID: jh7ac173zcxn24bs1jtervnkb585ekad | Title: Ex1 (Gym) | Start: 1778805000000 | End: 1778855400000
-04-24 13:46:54.094 V/AlarmScheduler(23770): [EVAL_ROW_2] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
-04-24 13:46:54.094 V/AlarmScheduler(23770): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
-04-24 13:46:54.094 V/AlarmScheduler(23770): [ALARM MATH] Found future PRE_ALARM at 1778803200000
-04-24 13:46:54.094 V/AlarmScheduler(23770): [EVAL_ROW_2] Result -> Trigger: 1778803200000, Type: PRE_ALARM
-04-24 13:46:54.095 V/AlarmScheduler(23770): [EVAL_ROW_3] ID: jh70ec3ht7bkkbct32jdd99jt985f502 | Title: Ex1 (Gym) | Start: 1779409800000 | End: 1779460200000
-04-24 13:46:54.095 V/AlarmScheduler(23770): [EVAL_ROW_3] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
-04-24 13:46:54.095 V/AlarmScheduler(23770): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
-04-24 13:46:54.095 V/AlarmScheduler(23770): [ALARM MATH] Found future PRE_ALARM at 1779408000000
-04-24 13:46:54.095 V/AlarmScheduler(23770): [EVAL_ROW_3] Result -> Trigger: 1779408000000, Type: PRE_ALARM
-04-24 13:46:54.097 I/AlarmScheduler(23770): [ALARM SELECTED] Earliest trigger -> Type: [PRE_ALARM], Target: [Ex1 (Gym)], InstanceId: [jh7bdpcb0xd5p08ydr2r4ck3h585f4cj], Time: Friday May 01 at 05:30:00 am
-04-24 13:46:54.097 I/AlarmScheduler(23770): [HARDWARE INSTRUCTOR] Preparing OS registration for: Ex1 (Gym) (jh7bdpcb0xd5p08ydr2r4ck3h585f4cj) at 1777593600000
-04-24 13:46:54.097 V/AlarmScheduler(23770): [HARDWARE INSTRUCTOR] Intent Payload Built -> Type: PRE_ALARM, Sound: alarm_start, StayThroughout: false
-04-24 13:46:54.099 D/AlarmScheduler(23770): [HARDWARE INSTRUCTOR] Dispatching exact wake parameters down to Android Kernel hardware...
-04-24 13:46:54.099 D/AlarmScheduler(23770): [HARDWARE INSTRUCTOR] Strategy: setExactAndAllowWhileIdle.
-04-24 13:46:54.101 D/AlarmScheduler(23770): [CACHE REFRESH] Synchronizing newly evaluated queue into DE Storage Sticky Note.
-04-24 13:46:54.103 D/AlarmScheduler(23770): [STICKY NOTE SYNC] Full Payload String: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj|Ex1 (Gym)|1777595400000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1777645800000;;jh7a8jw1a0jg945qjse6ms1jq585es6y|Ex1 (Gym)|1778200200000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778250600000;;jh7ac173zcxn24bs1jtervnkb585ekad|Ex1 (Gym)|1778805000000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778855400000;;jh70ec3ht7bkkbct32jdd99jt985f502|Ex1 (Gym)|1779409800000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1779460200000
-04-24 13:46:54.103 I/AlarmScheduler(23770): [STICKY NOTE FLUSH] Synced exactly 4 events structurally into Device Encrypted storage payload.
-04-24 13:46:54.104 I/AlarmScheduler(23770): ==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====
-04-24 13:46:54.104 I/SchedulerModule(23770): ==== [JS BRIDGE DELEGATION SUCCESSFUL] ====
-04-24 13:46:54.106 I/ReactNativeJS(23770): '[index.android:1]  [SyncLock] Lock Released by "Saga:ManualResync".', ''
-04-24 13:46:54.106 I/ReactNativeJS(23770): [Profile] Manual Full Resync Complete
-04-24 13:46:54.107 I/ReactNativeJS(23770): [HealStore] 🟢 stopHealing triggered
-04-24 13:46:54.288 I/ReactNativeJS(23770): '[HealOverlay] Component Ping - isHealing:', false
+04-24 14:42:12.925 I/chatty  ( 4153): uid=10527(com.mono.commit) expire 54 lines
+04-24 14:42:15.686 I/chatty  ( 4153): uid=10527(com.mono.commit) FinalizerDaemon expire 6 lines
+04-24 14:42:17.759 I/chatty  ( 4153): uid=10527(com.mono.commit) OkHttp Dispatch expire 1 line
+04-24 14:42:17.790 I/chatty  ( 4153): uid=10527(com.mono.commit) mqt_v_js expire 59 lines
+04-24 14:42:19.017 I/chatty  ( 4153): uid=10527(com.mono.commit) OkHttp Dispatch expire 1 line
+04-24 14:42:22.937 I/chatty  ( 4153): uid=10527(com.mono.commit) expire 1 line
+04-24 14:42:22.940 I/chatty  ( 4153): uid=10527(com.mono.commit) mqt_v_js expire 3 lines
+04-24 14:42:22.950 I/chatty  ( 4153): uid=10527(com.mono.commit) OkHttp Dispatch expire 1 line
+04-24 14:42:23.058 I/chatty  ( 4153): uid=10527(com.mono.commit) expire 2 lines
+04-24 14:42:23.128 I/chatty  ( 4153): uid=10527(com.mono.commit) mqt_v_js expire 1 line
+04-24 14:42:23.142 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:23.162 I/ReactNativeJS( 4153): [LocalDB] PURGE SUCCESSFUL: Data layers at zero.
+04-24 14:42:23.173 I/ReactNativeJS( 4153): '[index.android:1] [SyncEngine] Ingesting Delta: 1 tasks, 4 instances. Token: 1777021958414', ''
+04-24 14:42:23.379 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:23.381 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:23.694 I/ReactNativeJS( 4153): '[index.android:1] [SyncEngine] Sync Complete. Token 1777021958414 locked.', ''
+04-24 14:42:23.695 I/SchedulerModule( 4153): ==== [JS BRIDGE INVOKED] ====
+04-24 14:42:23.695 D/SchedulerModule( 4153): [JS BRIDGE] scheduleNextAlarm() requested by JavaScript.
+04-24 14:42:23.695 V/SchedulerModule( 4153): [JS BRIDGE] Context resolved: com.mono.commit. Delegating to native engine...
+04-24 14:42:23.695 I/AlarmScheduler( 4153): ==== [MASTER SCHEDULING SEQUENCE INITIATED] ====
+04-24 14:42:23.695 V/AlarmScheduler( 4153): [FILESYSTEM] Attempting to resolve SQLite database location...
+04-24 14:42:23.695 V/AlarmScheduler( 4153): [FILESYSTEM] Path 1 CHECK: /data/user/0/com.mono.commit/files/SQLite/commit.db
+04-24 14:42:23.695 D/AlarmScheduler( 4153): [FILESYSTEM PATHING] Path 1 SUCCESS (Expo Default).
+04-24 14:42:23.696 D/AlarmScheduler( 4153): [TIME] Current System Time: 1777021943695 (Friday April 24 at 02:42:23 pm)
+04-24 14:42:23.696 D/AlarmScheduler( 4153): [DATABASE QUERY] Fetching future unexecuted task instances...
+04-24 14:42:23.697 D/AlarmScheduler( 4153): [DATABASE QUERY] Found 4 potential pending instances.
+04-24 14:42:23.697 D/AlarmScheduler( 4153): [LOGIC ROUTING] Tasks identified. Calculating precise Pre-Alarm staggered offsets.
+04-24 14:42:23.697 V/AlarmScheduler( 4153): [EVAL_ROW_0] ID: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj | Title: Ex1 (Gym) | Start: 1777013100000 | End: 1777063500000
+04-24 14:42:23.697 V/AlarmScheduler( 4153): [EVAL_ROW_0] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [ALARM MATH] Found future END_ALARM at 1777063500000
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_0] Result -> Trigger: 1777063500000, Type: END_ALARM
+04-24 14:42:23.698 D/AlarmScheduler( 4153): [BEST_FOUND] New Best: Ex1 (Gym) at 1777063500000 (Type: END_ALARM)
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_1] ID: jh7a8jw1a0jg945qjse6ms1jq585es6y | Title: Ex1 (Gym) | Start: 1778200200000 | End: 1778250600000
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_1] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1778198400000
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_1] Result -> Trigger: 1778198400000, Type: PRE_ALARM
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_2] ID: jh7ac173zcxn24bs1jtervnkb585ekad | Title: Ex1 (Gym) | Start: 1778805000000 | End: 1778855400000
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_2] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1778803200000
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_2] Result -> Trigger: 1778803200000, Type: PRE_ALARM
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_3] ID: jh70ec3ht7bkkbct32jdd99jt985f502 | Title: Ex1 (Gym) | Start: 1779409800000 | End: 1779460200000
+04-24 14:42:23.698 V/AlarmScheduler( 4153): [EVAL_ROW_3] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:23.699 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:23.699 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1779408000000
+04-24 14:42:23.699 V/AlarmScheduler( 4153): [EVAL_ROW_3] Result -> Trigger: 1779408000000, Type: PRE_ALARM
+04-24 14:42:23.699 I/AlarmScheduler( 4153): [ALARM SELECTED] Earliest trigger -> Type: [END_ALARM], Target: [Ex1 (Gym)], InstanceId: [jh7bdpcb0xd5p08ydr2r4ck3h585f4cj], Time: Saturday April 25 at 02:15:00 am
+04-24 14:42:23.699 I/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Preparing OS registration for: Ex1 (Gym) (jh7bdpcb0xd5p08ydr2r4ck3h585f4cj) at 1777063500000
+04-24 14:42:23.700 V/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Intent Payload Built -> Type: END_ALARM, Sound: alarm_end, StayThroughout: false
+04-24 14:42:23.700 D/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Dispatching exact wake parameters down to Android Kernel hardware...
+04-24 14:42:23.700 D/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Strategy: setExactAndAllowWhileIdle.
+04-24 14:42:23.702 D/AlarmScheduler( 4153): [CACHE REFRESH] Synchronizing newly evaluated queue into DE Storage Sticky Note.
+04-24 14:42:23.702 D/AlarmScheduler( 4153): [STICKY NOTE SYNC] Full Payload String: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj|Ex1 (Gym)|1777013100000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1777063500000;;jh7a8jw1a0jg945qjse6ms1jq585es6y|Ex1 (Gym)|1778200200000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778250600000;;jh7ac173zcxn24bs1jtervnkb585ekad|Ex1 (Gym)|1778805000000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778855400000;;jh70ec3ht7bkkbct32jdd99jt985f502|Ex1 (Gym)|1779409800000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1779460200000
+04-24 14:42:23.703 I/AlarmScheduler( 4153): [STICKY NOTE FLUSH] Synced exactly 4 events structurally into Device Encrypted storage payload.
+04-24 14:42:23.703 I/AlarmScheduler( 4153): ==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====
+04-24 14:42:23.703 I/SchedulerModule( 4153): ==== [JS BRIDGE DELEGATION SUCCESSFUL] ====
+04-24 14:42:23.704 I/ReactNativeJS( 4153): '[index.android:1]  [SyncLock] Lock Released by "Saga:ManualResync".', ''
+04-24 14:42:23.705 I/ReactNativeJS( 4153): [Profile] Manual Full Resync Complete
+04-24 14:42:23.705 I/ReactNativeJS( 4153): [HealStore] 🟢 stopHealing triggered
+04-24 14:42:23.882 I/ReactNativeJS( 4153): '[HealOverlay] Component Ping - isHealing:', false
+04-24 14:42:24.459 D/BlockerAccessibilityService( 4153): [PULSE_AUDIT] Vigilant check for: com.mono.commit
+04-24 14:42:24.635 W/unknown:ReactNative( 4153): Can't cancel already finished gesture. Is a child View trying to start a gesture from an UP/CANCEL event?
+04-24 14:42:24.692 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:24.693 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:24.837 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:24.838 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:25.191 W/unknown:BridgelessReact( 4153): ReactHost{0}.onHostPause(activity)
+04-24 14:42:25.207 W/unknown:BridgelessReact( 4153): ReactContext.onHostPause()
+04-24 14:42:25.245 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:25.246 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:25.310 W/unknown:BridgelessReact( 4153): ReactHost{0}.onHostResume(activity)
+04-24 14:42:25.314 W/unknown:BridgelessReact( 4153): ReactContext.onHostResume()
+04-24 14:42:25.317 I/ReactNativeJS( 4153): '[index.android:1] [HydrationSync] Foreground transition. Gap: 0s.', ''
+04-24 14:42:25.318 I/ReactNativeJS( 4153): [usePermissions] App foregrounded, re-auditing enforcers...
+04-24 14:42:25.327 W/unknown:ReconnectingWebSocket( 4153): Couldn't connect to "ws://localhost:8081/message?device=Lenovo%20K12%20Note%20-%2011%20-%20API%2030&app=com.mono.commit&clientid=BridgelessDevSupportManager", will silently retry
+04-24 14:42:25.396 I/ReactNativeJS( 4153): '[DEBUG] Current Hardware Permissions Manifest:', '{\n  "location": true,\n  "camera": true,\n  "notifications": true,\n  "alarms": true,\n  "battery": true,\n  "overlay": true,\n  "accessibility": true,\n  "admin": true\n}'
+04-24 14:42:25.438 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:25.741 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:25.741 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:25.855 W/unknown:ReactNative( 4153): Can't cancel already finished gesture. Is a child View trying to start a gesture from an UP/CANCEL event?
+04-24 14:42:25.896 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:25.899 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:26.039 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:26.040 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:26.287 W/unknown:BridgelessReact( 4153): ReactHost{0}.onHostPause(activity)
+04-24 14:42:26.295 W/unknown:BridgelessReact( 4153): ReactContext.onHostPause()
+04-24 14:42:26.381 W/unknown:BridgelessReact( 4153): ReactHost{0}.onHostResume(activity)
+04-24 14:42:26.385 W/unknown:BridgelessReact( 4153): ReactContext.onHostResume()
+04-24 14:42:26.390 I/ReactNativeJS( 4153): '[index.android:1] [HydrationSync] Foreground transition. Gap: 0s.', ''
+04-24 14:42:26.391 I/ReactNativeJS( 4153): [usePermissions] App foregrounded, re-auditing enforcers...
+04-24 14:42:26.400 W/unknown:ReconnectingWebSocket( 4153): Couldn't connect to "ws://localhost:8081/message?device=Lenovo%20K12%20Note%20-%2011%20-%20API%2030&app=com.mono.commit&clientid=BridgelessDevSupportManager", will silently retry
+04-24 14:42:26.466 I/ReactNativeJS( 4153): '[DEBUG] Current Hardware Permissions Manifest:', '{\n  "location": true,\n  "camera": true,\n  "notifications": true,\n  "alarms": true,\n  "battery": true,\n  "overlay": true,\n  "accessibility": true,\n  "admin": true\n}'
+04-24 14:42:26.508 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:26.876 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:26.877 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:27.075 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:27.167 I/ReactNative( 4153): [GESTURE HANDLER] Gesture handler is already enabled for a parent view
+04-24 14:42:27.168 I/ReactNative( 4153): [GESTURE HANDLER] Gesture handler is already enabled for a parent view
+04-24 14:42:29.460 D/BlockerAccessibilityService( 4153): [PULSE_AUDIT] Vigilant check for: com.mono.commit
+04-24 14:42:29.599 W/System  ( 4153): A resource failed to call close. 
+04-24 14:42:29.606 I/chatty  ( 4153): uid=10527(com.mono.commit) FinalizerDaemon identical 12 lines
+04-24 14:42:29.606 W/System  ( 4153): A resource failed to call close. 
+04-24 14:42:30.406 V/LocationTrackingService( 4153): [FUSED_LOCATION] High-Accuracy Fix Received: Lat 12.975237, Lng 79.1661114 | Acc: 16.279m
+04-24 14:42:30.555 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:31.005 I/ReactNativeJS( 4153): '[index.android:1] [Saga:LOS4JJ] Initiating 2-stage sequence...', { context: 
+04-24 14:42:31.005 I/ReactNativeJS( 4153):    { id: 'jh7bdpcb0xd5p08ydr2r4ck3h585f4cj',
+04-24 14:42:31.005 I/ReactNativeJS( 4153):      newStart: 1777098600000,
+04-24 14:42:31.005 I/ReactNativeJS( 4153):      newEnd: 1777149000000,
+04-24 14:42:31.005 I/ReactNativeJS( 4153):      oldStart: null,
+04-24 14:42:31.005 I/ReactNativeJS( 4153):      oldEnd: null } }
+04-24 14:42:31.007 I/ReactNativeJS( 4153): '[index.android:1] [Saga:LOS4JJ] Phase: Cloud Sync (Convex Instance Update) (timeout: 15000ms)', ''
+04-24 14:42:31.713 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:31.714 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:32.291 W/unknown:BridgelessReact( 4153): ReactHost{0}.onUserLeaveHint(activity)
+04-24 14:42:32.293 W/unknown:BridgelessReact( 4153): ReactHost{0}.onHostPause(activity)
+04-24 14:42:32.305 W/unknown:BridgelessReact( 4153): ReactContext.onHostPause()
+04-24 14:42:32.397 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:32.398 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:32.555 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:32.556 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:32.635 I/ReactNativeJS( 4153): '[index.android:1] [Saga:LOS4JJ] Phase: Local Sync (Disk + Hardware) (timeout: 15000ms)', ''
+04-24 14:42:32.637 I/ReactNativeJS( 4153): '[index.android:1]  [SyncLock] Lock Acquired by "Saga:TemporalShift". Executing...', ''
+04-24 14:42:32.637 I/ReactNativeJS( 4153): [InstanceRepository] Initiating Atomic Update for Instance: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj
+04-24 14:42:32.643 I/ReactNativeJS( 4153): [useCalendarEvents] Fetched 4 instances.
+04-24 14:42:32.874 I/ReactNativeJS( 4153): [VerificationStore] 🔄 verification/setUpcomingEvent
+04-24 14:42:32.874 I/ReactNativeJS( 4153): { upcomingEvent: Ex1 (Gym) (jh7bdpcb0xd5p08ydr2r4ck3h585f4cj) }
+04-24 14:42:33.093 I/ReactNativeJS( 4153): '[VerificationCard] Next Pending Event:', { id: 'jh7bdpcb0xd5p08ydr2r4ck3h585f4cj',
+04-24 14:42:33.093 I/ReactNativeJS( 4153):   title: 'Ex1 (Gym)',
+04-24 14:42:33.093 I/ReactNativeJS( 4153):   start: 1777098600000 }
+04-24 14:42:33.136 I/ReactNativeJS( 4153): [InstanceRepository] Atomic Update Success. Unified ID: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj
+04-24 14:42:33.143 I/SchedulerModule( 4153): ==== [JS BRIDGE INVOKED] ====
+04-24 14:42:33.143 D/SchedulerModule( 4153): [JS BRIDGE] scheduleNextAlarm() requested by JavaScript.
+04-24 14:42:33.143 V/SchedulerModule( 4153): [JS BRIDGE] Context resolved: com.mono.commit. Delegating to native engine...
+04-24 14:42:33.143 I/AlarmScheduler( 4153): ==== [MASTER SCHEDULING SEQUENCE INITIATED] ====
+04-24 14:42:33.143 V/AlarmScheduler( 4153): [FILESYSTEM] Attempting to resolve SQLite database location...
+04-24 14:42:33.143 V/AlarmScheduler( 4153): [FILESYSTEM] Path 1 CHECK: /data/user/0/com.mono.commit/files/SQLite/commit.db
+04-24 14:42:33.143 D/AlarmScheduler( 4153): [FILESYSTEM PATHING] Path 1 SUCCESS (Expo Default).
+04-24 14:42:33.144 D/AlarmScheduler( 4153): [TIME] Current System Time: 1777021953143 (Friday April 24 at 02:42:33 pm)
+04-24 14:42:33.144 D/AlarmScheduler( 4153): [DATABASE QUERY] Fetching future unexecuted task instances...
+04-24 14:42:33.145 D/AlarmScheduler( 4153): [DATABASE QUERY] Found 4 potential pending instances.
+04-24 14:42:33.145 D/AlarmScheduler( 4153): [LOGIC ROUTING] Tasks identified. Calculating precise Pre-Alarm staggered offsets.
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [EVAL_ROW_0] ID: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj | Title: Ex1 (Gym) | Start: 1777098600000 | End: 1777149000000
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [EVAL_ROW_0] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1777096800000
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [EVAL_ROW_0] Result -> Trigger: 1777096800000, Type: PRE_ALARM
+04-24 14:42:33.145 D/AlarmScheduler( 4153): [BEST_FOUND] New Best: Ex1 (Gym) at 1777096800000 (Type: PRE_ALARM)
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [EVAL_ROW_1] ID: jh7a8jw1a0jg945qjse6ms1jq585es6y | Title: Ex1 (Gym) | Start: 1778200200000 | End: 1778250600000
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [EVAL_ROW_1] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1778198400000
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [EVAL_ROW_1] Result -> Trigger: 1778198400000, Type: PRE_ALARM
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [EVAL_ROW_2] ID: jh7ac173zcxn24bs1jtervnkb585ekad | Title: Ex1 (Gym) | Start: 1778805000000 | End: 1778855400000
+04-24 14:42:33.145 V/AlarmScheduler( 4153): [EVAL_ROW_2] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:33.146 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:33.146 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1778803200000
+04-24 14:42:33.146 V/AlarmScheduler( 4153): [EVAL_ROW_2] Result -> Trigger: 1778803200000, Type: PRE_ALARM
+04-24 14:42:33.146 V/AlarmScheduler( 4153): [EVAL_ROW_3] ID: jh70ec3ht7bkkbct32jdd99jt985f502 | Title: Ex1 (Gym) | Start: 1779409800000 | End: 1779460200000
+04-24 14:42:33.146 V/AlarmScheduler( 4153): [EVAL_ROW_3] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:33.146 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:33.146 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1779408000000
+04-24 14:42:33.146 V/AlarmScheduler( 4153): [EVAL_ROW_3] Result -> Trigger: 1779408000000, Type: PRE_ALARM
+04-24 14:42:33.146 I/AlarmScheduler( 4153): [ALARM SELECTED] Earliest trigger -> Type: [PRE_ALARM], Target: [Ex1 (Gym)], InstanceId: [jh7bdpcb0xd5p08ydr2r4ck3h585f4cj], Time: Saturday April 25 at 11:30:00 am
+04-24 14:42:33.147 I/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Preparing OS registration for: Ex1 (Gym) (jh7bdpcb0xd5p08ydr2r4ck3h585f4cj) at 1777096800000
+04-24 14:42:33.147 V/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Intent Payload Built -> Type: PRE_ALARM, Sound: alarm_start, StayThroughout: false
+04-24 14:42:33.148 D/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Dispatching exact wake parameters down to Android Kernel hardware...
+04-24 14:42:33.148 D/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Strategy: setExactAndAllowWhileIdle.
+04-24 14:42:33.149 D/AlarmScheduler( 4153): [CACHE REFRESH] Synchronizing newly evaluated queue into DE Storage Sticky Note.
+04-24 14:42:33.149 D/AlarmScheduler( 4153): [STICKY NOTE SYNC] Full Payload String: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj|Ex1 (Gym)|1777098600000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1777149000000;;jh7a8jw1a0jg945qjse6ms1jq585es6y|Ex1 (Gym)|1778200200000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778250600000;;jh7ac173zcxn24bs1jtervnkb585ekad|Ex1 (Gym)|1778805000000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778855400000;;jh70ec3ht7bkkbct32jdd99jt985f502|Ex1 (Gym)|1779409800000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1779460200000
+04-24 14:42:33.150 I/AlarmScheduler( 4153): [STICKY NOTE FLUSH] Synced exactly 4 events structurally into Device Encrypted storage payload.
+04-24 14:42:33.150 I/AlarmScheduler( 4153): ==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====
+04-24 14:42:33.150 I/SchedulerModule( 4153): ==== [JS BRIDGE DELEGATION SUCCESSFUL] ====
+04-24 14:42:33.151 I/ReactNativeJS( 4153): '[index.android:1]  [SyncLock] Lock Released by "Saga:TemporalShift".', ''
+04-24 14:42:33.153 I/ReactNativeJS( 4153): '[index.android:1] [Saga:LOS4JJ] SUCCESS: All layers committed.', ''
+04-24 14:42:33.224 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:33.225 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:33.789 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.instagram.android
+04-24 14:42:33.791 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.instagram.android
+04-24 14:42:34.462 I/BlockerAccessibilityService( 4153): [GPS_SLEEP] No active commitments. Terminating Location Foreground Service.
+04-24 14:42:34.465 I/LocationTrackingService( 4153): [LOCATION_TRACKER] Terminating GPS Engine and releasing hardware locks.
+04-24 14:42:36.133 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.google.android.googlequicksearchbox
+04-24 14:42:36.134 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.google.android.googlequicksearchbox
+04-24 14:42:36.567 W/unknown:BridgelessReact( 4153): ReactHost{0}.onHostResume(activity)
+04-24 14:42:36.589 W/unknown:BridgelessReact( 4153): ReactContext.onHostResume()
+04-24 14:42:36.592 I/ReactNativeJS( 4153): '[index.android:1] [HydrationSync] Foreground transition. Gap: 4s.', ''
+04-24 14:42:36.595 I/ReactNativeJS( 4153): [usePermissions] App foregrounded, re-auditing enforcers...
+04-24 14:42:36.624 W/unknown:ReconnectingWebSocket( 4153): Couldn't connect to "ws://localhost:8081/message?device=Lenovo%20K12%20Note%20-%2011%20-%20API%2030&app=com.mono.commit&clientid=BridgelessDevSupportManager", will silently retry
+04-24 14:42:36.677 I/ReactNativeJS( 4153): '[index.android:1] [HydrationSync] Warm Boot. Last sync: 2:42:38 PM', ''
+04-24 14:42:36.679 I/ReactNativeJS( 4153): [HydrationSync] Sending probe to Convex (Timeout: 15000ms)...
+04-24 14:42:36.681 I/ReactNativeJS( 4153): '[DEBUG] Current Hardware Permissions Manifest:', '{\n  "location": true,\n  "camera": true,\n  "notifications": true,\n  "alarms": true,\n  "battery": true,\n  "overlay": true,\n  "accessibility": true,\n  "admin": true\n}'
+04-24 14:42:36.871 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:37.283 I/ReactNativeJS( 4153): '[index.android:1] [HydrationSync] Ingesting: 0 tasks, 4 instances.', ''
+04-24 14:42:37.285 I/ReactNativeJS( 4153): '[index.android:1]  [SyncLock] Lock Acquired by "Engine:Hydrate". Executing...', ''
+04-24 14:42:37.287 I/ReactNativeJS( 4153): '[index.android:1] [SyncEngine] Ingesting Delta: 0 tasks, 4 instances. Token: 1777021972609', ''
+04-24 14:42:37.371 I/ReactNativeJS( 4153): '[index.android:1] [SyncEngine] Sync Complete. Token 1777021972609 locked.', ''
+04-24 14:42:37.372 I/SchedulerModule( 4153): ==== [JS BRIDGE INVOKED] ====
+04-24 14:42:37.372 D/SchedulerModule( 4153): [JS BRIDGE] scheduleNextAlarm() requested by JavaScript.
+04-24 14:42:37.372 V/SchedulerModule( 4153): [JS BRIDGE] Context resolved: com.mono.commit. Delegating to native engine...
+04-24 14:42:37.372 I/AlarmScheduler( 4153): ==== [MASTER SCHEDULING SEQUENCE INITIATED] ====
+04-24 14:42:37.372 V/AlarmScheduler( 4153): [FILESYSTEM] Attempting to resolve SQLite database location...
+04-24 14:42:37.373 V/AlarmScheduler( 4153): [FILESYSTEM] Path 1 CHECK: /data/user/0/com.mono.commit/files/SQLite/commit.db
+04-24 14:42:37.373 D/AlarmScheduler( 4153): [FILESYSTEM PATHING] Path 1 SUCCESS (Expo Default).
+04-24 14:42:37.374 D/AlarmScheduler( 4153): [TIME] Current System Time: 1777021957373 (Friday April 24 at 02:42:37 pm)
+04-24 14:42:37.374 D/AlarmScheduler( 4153): [DATABASE QUERY] Fetching future unexecuted task instances...
+04-24 14:42:37.374 D/AlarmScheduler( 4153): [DATABASE QUERY] Found 4 potential pending instances.
+04-24 14:42:37.374 D/AlarmScheduler( 4153): [LOGIC ROUTING] Tasks identified. Calculating precise Pre-Alarm staggered offsets.
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [EVAL_ROW_0] ID: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj | Title: Ex1 (Gym) | Start: 1777098600000 | End: 1777149000000
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [EVAL_ROW_0] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1777096800000
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [EVAL_ROW_0] Result -> Trigger: 1777096800000, Type: PRE_ALARM
+04-24 14:42:37.375 D/AlarmScheduler( 4153): [BEST_FOUND] New Best: Ex1 (Gym) at 1777096800000 (Type: PRE_ALARM)
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [EVAL_ROW_1] ID: jh7a8jw1a0jg945qjse6ms1jq585es6y | Title: Ex1 (Gym) | Start: 1778200200000 | End: 1778250600000
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [EVAL_ROW_1] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1778198400000
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [EVAL_ROW_1] Result -> Trigger: 1778198400000, Type: PRE_ALARM
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [EVAL_ROW_2] ID: jh7ac173zcxn24bs1jtervnkb585ekad | Title: Ex1 (Gym) | Start: 1778805000000 | End: 1778855400000
+04-24 14:42:37.375 V/AlarmScheduler( 4153): [EVAL_ROW_2] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:37.376 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:37.376 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1778803200000
+04-24 14:42:37.376 V/AlarmScheduler( 4153): [EVAL_ROW_2] Result -> Trigger: 1778803200000, Type: PRE_ALARM
+04-24 14:42:37.376 V/AlarmScheduler( 4153): [EVAL_ROW_3] ID: jh70ec3ht7bkkbct32jdd99jt985f502 | Title: Ex1 (Gym) | Start: 1779409800000 | End: 1779460200000
+04-24 14:42:37.376 V/AlarmScheduler( 4153): [EVAL_ROW_3] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:37.376 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:37.376 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1779408000000
+04-24 14:42:37.376 V/AlarmScheduler( 4153): [EVAL_ROW_3] Result -> Trigger: 1779408000000, Type: PRE_ALARM
+04-24 14:42:37.377 I/AlarmScheduler( 4153): [ALARM SELECTED] Earliest trigger -> Type: [PRE_ALARM], Target: [Ex1 (Gym)], InstanceId: [jh7bdpcb0xd5p08ydr2r4ck3h585f4cj], Time: Saturday April 25 at 11:30:00 am
+04-24 14:42:37.377 I/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Preparing OS registration for: Ex1 (Gym) (jh7bdpcb0xd5p08ydr2r4ck3h585f4cj) at 1777096800000
+04-24 14:42:37.377 V/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Intent Payload Built -> Type: PRE_ALARM, Sound: alarm_start, StayThroughout: false
+04-24 14:42:37.378 D/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Dispatching exact wake parameters down to Android Kernel hardware...
+04-24 14:42:37.378 D/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Strategy: setExactAndAllowWhileIdle.
+04-24 14:42:37.379 D/AlarmScheduler( 4153): [CACHE REFRESH] Synchronizing newly evaluated queue into DE Storage Sticky Note.
+04-24 14:42:37.379 D/AlarmScheduler( 4153): [STICKY NOTE SYNC] Full Payload String: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj|Ex1 (Gym)|1777098600000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1777149000000;;jh7a8jw1a0jg945qjse6ms1jq585es6y|Ex1 (Gym)|1778200200000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778250600000;;jh7ac173zcxn24bs1jtervnkb585ekad|Ex1 (Gym)|1778805000000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778855400000;;jh70ec3ht7bkkbct32jdd99jt985f502|Ex1 (Gym)|1779409800000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1779460200000
+04-24 14:42:37.380 I/AlarmScheduler( 4153): [STICKY NOTE FLUSH] Synced exactly 4 events structurally into Device Encrypted storage payload.
+04-24 14:42:37.380 I/AlarmScheduler( 4153): ==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====
+04-24 14:42:37.380 I/SchedulerModule( 4153): ==== [JS BRIDGE DELEGATION SUCCESSFUL] ====
+04-24 14:42:37.381 I/ReactNativeJS( 4153): '[index.android:1]  [SyncLock] Lock Released by "Engine:Hydrate".', ''
+04-24 14:42:39.710 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:40.199 I/ReactNativeJS( 4153): '[index.android:1] [Saga:MA0QBZH] Initiating 2-stage sequence...', { context: 
+04-24 14:42:40.199 I/ReactNativeJS( 4153):    { id: 'jh7bdpcb0xd5p08ydr2r4ck3h585f4cj',
+04-24 14:42:40.199 I/ReactNativeJS( 4153):      newStart: 1777011300000,
+04-24 14:42:40.199 I/ReactNativeJS( 4153):      newEnd: 1777061700000,
+04-24 14:42:40.199 I/ReactNativeJS( 4153):      oldStart: null,
+04-24 14:42:40.199 I/ReactNativeJS( 4153):      oldEnd: null } }
+04-24 14:42:40.206 I/ReactNativeJS( 4153): '[index.android:1] [Saga:MA0QBZH] Phase: Cloud Sync (Convex Instance Update) (timeout: 15000ms)', ''
+04-24 14:42:41.024 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:41.026 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:41.453 W/unknown:BridgelessReact( 4153): ReactHost{0}.onUserLeaveHint(activity)
+04-24 14:42:41.455 W/unknown:BridgelessReact( 4153): ReactHost{0}.onHostPause(activity)
+04-24 14:42:41.466 W/unknown:BridgelessReact( 4153): ReactContext.onHostPause()
+04-24 14:42:41.645 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.instagram.android
+04-24 14:42:41.646 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.instagram.android
+04-24 14:42:41.906 I/ReactNativeJS( 4153): '[index.android:1] [Saga:MA0QBZH] Phase: Local Sync (Disk + Hardware) (timeout: 15000ms)', ''
+04-24 14:42:41.908 I/ReactNativeJS( 4153): '[index.android:1]  [SyncLock] Lock Acquired by "Saga:TemporalShift". Executing...', ''
+04-24 14:42:41.908 I/ReactNativeJS( 4153): [InstanceRepository] Initiating Atomic Update for Instance: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj
+04-24 14:42:41.913 I/ReactNativeJS( 4153): [useCalendarEvents] Fetched 4 instances.
+04-24 14:42:42.124 I/ReactNativeJS( 4153): [VerificationStore] 🔄 verification/setUpcomingEvent
+04-24 14:42:42.124 I/ReactNativeJS( 4153): { upcomingEvent: Ex1 (Gym) (jh7a8jw1a0jg945qjse6ms1jq585es6y) }
+04-24 14:42:42.310 I/ReactNativeJS( 4153): '[VerificationCard] Next Pending Event:', { id: 'jh7a8jw1a0jg945qjse6ms1jq585es6y',
+04-24 14:42:42.310 I/ReactNativeJS( 4153):   title: 'Ex1 (Gym)',
+04-24 14:42:42.310 I/ReactNativeJS( 4153):   start: 1778200200000 }
+04-24 14:42:42.349 I/ReactNativeJS( 4153): [InstanceRepository] Atomic Update Success. Unified ID: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj
+04-24 14:42:42.357 I/SchedulerModule( 4153): ==== [JS BRIDGE INVOKED] ====
+04-24 14:42:42.357 D/SchedulerModule( 4153): [JS BRIDGE] scheduleNextAlarm() requested by JavaScript.
+04-24 14:42:42.358 V/SchedulerModule( 4153): [JS BRIDGE] Context resolved: com.mono.commit. Delegating to native engine...
+04-24 14:42:42.358 I/AlarmScheduler( 4153): ==== [MASTER SCHEDULING SEQUENCE INITIATED] ====
+04-24 14:42:42.358 V/AlarmScheduler( 4153): [FILESYSTEM] Attempting to resolve SQLite database location...
+04-24 14:42:42.358 V/AlarmScheduler( 4153): [FILESYSTEM] Path 1 CHECK: /data/user/0/com.mono.commit/files/SQLite/commit.db
+04-24 14:42:42.358 D/AlarmScheduler( 4153): [FILESYSTEM PATHING] Path 1 SUCCESS (Expo Default).
+04-24 14:42:42.359 D/AlarmScheduler( 4153): [TIME] Current System Time: 1777021962358 (Friday April 24 at 02:42:42 pm)
+04-24 14:42:42.359 D/AlarmScheduler( 4153): [DATABASE QUERY] Fetching future unexecuted task instances...
+04-24 14:42:42.359 D/AlarmScheduler( 4153): [DATABASE QUERY] Found 4 potential pending instances.
+04-24 14:42:42.359 D/AlarmScheduler( 4153): [LOGIC ROUTING] Tasks identified. Calculating precise Pre-Alarm staggered offsets.
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_0] ID: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj | Title: Ex1 (Gym) | Start: 1777011300000 | End: 1777061700000
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_0] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [ALARM MATH] Found future END_ALARM at 1777061700000
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_0] Result -> Trigger: 1777061700000, Type: END_ALARM
+04-24 14:42:42.360 D/AlarmScheduler( 4153): [BEST_FOUND] New Best: Ex1 (Gym) at 1777061700000 (Type: END_ALARM)
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_1] ID: jh7a8jw1a0jg945qjse6ms1jq585es6y | Title: Ex1 (Gym) | Start: 1778200200000 | End: 1778250600000
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_1] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1778198400000
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_1] Result -> Trigger: 1778198400000, Type: PRE_ALARM
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_2] ID: jh7ac173zcxn24bs1jtervnkb585ekad | Title: Ex1 (Gym) | Start: 1778805000000 | End: 1778855400000
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_2] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1778803200000
+04-24 14:42:42.360 V/AlarmScheduler( 4153): [EVAL_ROW_2] Result -> Trigger: 1778803200000, Type: PRE_ALARM
+04-24 14:42:42.361 V/AlarmScheduler( 4153): [EVAL_ROW_3] ID: jh70ec3ht7bkkbct32jdd99jt985f502 | Title: Ex1 (Gym) | Start: 1779409800000 | End: 1779460200000
+04-24 14:42:42.361 V/AlarmScheduler( 4153): [EVAL_ROW_3] Config: {"alarms":{"interval_minutes":5,"lead_time_minutes":30,"sound_key":"Default"},"grace_period_minutes":10,"verification_style":"just_show_up"}
+04-24 14:42:42.361 V/AlarmScheduler( 4153): [ALARM MATH] Lead: 30, Interval: 5, StayThroughout: false
+04-24 14:42:42.361 V/AlarmScheduler( 4153): [ALARM MATH] Found future PRE_ALARM at 1779408000000
+04-24 14:42:42.361 V/AlarmScheduler( 4153): [EVAL_ROW_3] Result -> Trigger: 1779408000000, Type: PRE_ALARM
+04-24 14:42:42.362 I/AlarmScheduler( 4153): [ALARM SELECTED] Earliest trigger -> Type: [END_ALARM], Target: [Ex1 (Gym)], InstanceId: [jh7bdpcb0xd5p08ydr2r4ck3h585f4cj], Time: Saturday April 25 at 01:45:00 am
+04-24 14:42:42.362 I/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Preparing OS registration for: Ex1 (Gym) (jh7bdpcb0xd5p08ydr2r4ck3h585f4cj) at 1777061700000
+04-24 14:42:42.362 V/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Intent Payload Built -> Type: END_ALARM, Sound: alarm_end, StayThroughout: false
+04-24 14:42:42.363 D/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Dispatching exact wake parameters down to Android Kernel hardware...
+04-24 14:42:42.363 D/AlarmScheduler( 4153): [HARDWARE INSTRUCTOR] Strategy: setExactAndAllowWhileIdle.
+04-24 14:42:42.364 D/AlarmScheduler( 4153): [CACHE REFRESH] Synchronizing newly evaluated queue into DE Storage Sticky Note.
+04-24 14:42:42.365 D/AlarmScheduler( 4153): [STICKY NOTE SYNC] Full Payload String: jh7bdpcb0xd5p08ydr2r4ck3h585f4cj|Ex1 (Gym)|1777011300000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1777061700000;;jh7a8jw1a0jg945qjse6ms1jq585es6y|Ex1 (Gym)|1778200200000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778250600000;;jh7ac173zcxn24bs1jtervnkb585ekad|Ex1 (Gym)|1778805000000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1778855400000;;jh70ec3ht7bkkbct32jdd99jt985f502|Ex1 (Gym)|1779409800000|eyJhbGFybXMiOnsiaW50ZXJ2YWxfbWludXRlcyI6NSwibGVhZF90aW1lX21pbnV0ZXMiOjMwLCJzb3VuZF9rZXkiOiJEZWZhdWx0In0sImdyYWNlX3BlcmlvZF9taW51dGVzIjoxMCwidmVyaWZpY2F0aW9uX3N0eWxlIjoianVzdF9zaG93X3VwIn0=|W10=|1779460200000
+04-24 14:42:42.365 I/AlarmScheduler( 4153): [STICKY NOTE FLUSH] Synced exactly 4 events structurally into Device Encrypted storage payload.
+04-24 14:42:42.365 I/AlarmScheduler( 4153): ==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====
+04-24 14:42:42.365 I/SchedulerModule( 4153): ==== [JS BRIDGE DELEGATION SUCCESSFUL] ====
+04-24 14:42:42.367 I/ReactNativeJS( 4153): '[index.android:1]  [SyncLock] Lock Released by "Saga:TemporalShift".', ''
+04-24 14:42:42.368 I/ReactNativeJS( 4153): '[index.android:1] [Saga:MA0QBZH] SUCCESS: All layers committed.', ''
+04-24 14:42:43.166 W/BlockerAccessibilityService( 4153): [ENFORCED] BLOCKED: com.instagram.android (Reason: App restricted by time commitment.)
+04-24 14:42:43.179 W/BlockerAccessibilityService( 4153): [ENFORCED] BLOCKED: com.instagram.android (Reason: App restricted by time commitment.)
+04-24 14:42:43.186 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.instagram.android
+04-24 14:42:43.187 W/BlockerAccessibilityService( 4153): [ENFORCED] BLOCKED: com.instagram.android (Reason: App restricted by time commitment.)
+04-24 14:42:43.222 I/BlockerOverlayActivity( 4153): [ENFORCER] Overlay activated.
+04-24 14:42:43.302 W/BlockerAccessibilityService( 4153): [ENFORCED] BLOCKED: com.instagram.android (Reason: App restricted by time commitment.)
+04-24 14:42:43.340 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:43.373 W/BlockerAccessibilityService( 4153): [ENFORCED] BLOCKED: com.instagram.android (Reason: App restricted by time commitment.)
+04-24 14:42:43.426 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.mono.commit
+04-24 14:42:44.269 I/BlockerOverlayActivity( 4153): [ENFORCER] User returning to home screen.
+04-24 14:42:44.471 I/BlockerAccessibilityService( 4153): [GPS_WAKEUP] Escalating to Foreground Service for High-Accuracy Location.
+04-24 14:42:44.474 D/BlockerAccessibilityService( 4153): [PULSE_AUDIT] Vigilant check for: com.motorola.launcher3
+04-24 14:42:44.475 I/LocationTrackingService( 4153): [LOCATION_TRACKER] Initializing Fused Foreground GPS Engine.
+04-24 14:42:44.477 I/LocationTrackingService( 4153): [LOCATION_TRACKER] Escalating to Foreground Execution.
+04-24 14:42:44.479 I/LocationTrackingService( 4153): [GPS_WAKEUP] Engaging Google Fused Location Provider at 1Hz resolution.
+04-24 14:42:44.488 I/BlockerAccessibilityService( 4153): [LAUNCH_ENFORCER] Analyzing: com.motorola.launcher3
+04-24 14:42:44.489 I/BlockerAccessibilityService( 4153): [ENFORCED] ALLOWED: com.motorola.launcher3
+04-24 14:42:49.480 D/BlockerAccessibilityService( 4153): [PULSE_AUDIT] Vigilant check for: com.motorola.launcher3
+04-24 14:42:54.070 V/LocationTrackingService( 4153): [FUSED_LOCATION] High-Accuracy Fix Received: Lat 12.9752167, Lng 79.1660787 | Acc: 18.719m
+04-24 14:42:54.488 D/BlockerAccessibilityService( 4153): [PULSE_AUDIT] Vigilant check for: com.motorola.launcher3

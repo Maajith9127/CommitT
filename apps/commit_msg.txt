@@ -1,14 +1,11 @@
-feat(security): implement "Ironclad Marriage" hardware-account monogamy core
+fix(sync): resolve SQLite WAL corruption and Resurrection resource leaks
 
-- Re-architected hardware enforcement to use a strictly bonded 1-to-1 marriage model.
-- Implemented "Intelligent Proxy-Divorce" in `bondService` to allow seamless device 
-  migration only when the user has zero future task commitments.
-- Refactored `syncHardwareBond` API to use a polling-retry mechanism, resolving 
-  Convex session synchronization race conditions during the Google Login flow.
-- Hardened `AuthForm` to execute immediate session purging and Google sign-out if 
-  hardware enforcement fails, preventing bypasses.
-- Simplified Profile UI by removing legacy logout safety checks in favor of terminal 
-  identity verification at the login gateway.
-- Added production-grade documentation and enforcement logic for long-term scalability.
+HARDENING MEASURES:
+- Refactored native `AlarmScheduler` to utilize a cached READONLY connection for scheduling queries. This eliminates WAL writer contention with expo-sqlite, which was deterministically corrupting the database on eMMC-based hardware (Lenovo K12) during concurrent access.
+- Isolated native SQLite write operations (`markInstanceProceeded`) to dedicated, short-lived atomic connections that close immediately after execution to release journal locks.
+- Enabled explicit `Write-Ahead Logging (WAL)` on native SQLite handles to ensure read/write consistency with the JavaScript-side synchronization engine.
+- Implemented graceful teardown in `ConvexClientWrapper` using `useRef` and `useEffect` to explicitly `.close()` stale `ConvexReactClient` instances during Resurrection, preventing orphaned WebSocket and file-descriptor leaks.
+- Increased `ZOMBIE_THRESHOLD_MS` to 120,000ms (2 minutes) to prevent aggressive Resurrection triggers during standard Android permission setup round-trips (Camera/Battery/Overlay/Accessibility).
 
-"No escape once the commitment is made." 🛡️🔒💎
+RATIONALE:
+Slower eMMC storage is highly sensitive to overlapping SQLite writer locks. Previous versions allowed multiple READWRITE handles to coexist during Resurrection cycles, leading to deterministic WAL journal corruption. These changes enforce a 'Single-Writer' architecture while preserving connection caching to mitigate POSIX Error 9.

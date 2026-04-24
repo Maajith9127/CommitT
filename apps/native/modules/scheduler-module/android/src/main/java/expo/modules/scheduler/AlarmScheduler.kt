@@ -34,7 +34,29 @@ object AlarmScheduler {
     private const val CACHE_PREFS_NAME = "UpcomingAlarmsCacheV2"
     private const val KEY_ALARMS_LIST = "AlarmsListV2"
 
-    /** Cached database connection to prevent SQLite connection spam & collision wipes (Error 9). */
+    /**
+     * ** Cached READ-ONLY database connection (Production-Critical Architecture) **
+     *
+     * This connection is intentionally READONLY and cached as a singleton to prevent
+     * two distinct failure modes:
+     *
+     * 1. POSIX Error 9 ("Bad file descriptor"): Rapidly opening and closing connections
+     *    on the Lenovo K12 Note's eMMC storage caused file descriptor exhaustion,
+     *    crashing the scheduler. Caching eliminates open/close churn.
+     *
+     * 2. WAL Journal Corruption (April 2026 Root Cause):
+     *    This native Kotlin connection and expo-sqlite's JS connection both access
+     *    the same `commit.db` file simultaneously. When BOTH were READWRITE, they
+     *    maintained competing WAL writer locks. On fast UFS storage (Samsung), the
+     *    transactions completed before overlap occurred. On slow eMMC (Lenovo K12),
+     *    the transactions overlapped, corrupting the WAL journal and producing fatal
+     *    `database disk image is malformed` errors within seconds of first boot.
+     *
+     *    FIX: This connection is now READONLY. SQLite's WAL architecture permits
+     *    unlimited concurrent readers alongside a single writer (expo-sqlite).
+     *    The only write operation (markInstanceProceeded) uses a dedicated,
+     *    short-lived READWRITE connection that immediately closes after use.
+     */
     private var cachedVaultDb: SQLiteDatabase? = null
 
     /**
@@ -94,15 +116,23 @@ object AlarmScheduler {
 
         try {
             if (cachedVaultDb == null || !cachedVaultDb!!.isOpen) {
-                Log.d(TAG, "[DATABASE ACCESS] Unlocking SQLite Vault at path: ${dbFile.absolutePath}")
+                Log.d(TAG, "[DATABASE ACCESS] Unlocking SQLite Vault (READONLY) at path: ${dbFile.absolutePath}")
                 
-                // Open the database for Read/Write access (so mutations can share this too)
-                // and cache the connection to strictly prevent OS Collision Wipes.
+                /**
+                 * ** READONLY + WAL: The Safe Coexistence Formula **
+                 *
+                 * OPEN_READONLY ensures this native connection never acquires a WAL
+                 * writer lock, which would collide with expo-sqlite's writer on eMMC.
+                 * enableWriteAheadLogging() ensures this connection reads from the WAL
+                 * (matching expo-sqlite's journal_mode=wal) instead of forcing a
+                 * checkpoint that would block the JS-side writer mid-transaction.
+                 */
                 cachedVaultDb = SQLiteDatabase.openDatabase(
                     dbFile.absolutePath, 
                     null, 
-                    SQLiteDatabase.OPEN_READWRITE
+                    SQLiteDatabase.OPEN_READONLY
                 )
+                cachedVaultDb!!.enableWriteAheadLogging()
             }
             val database = cachedVaultDb!!
             
@@ -347,45 +377,55 @@ object AlarmScheduler {
     }
 
     /**
-     * markInstanceProceeded()
-     * 
-     * When the user clicks "Dismiss" on a MAIN ALARM, we execute this sequence.
-     * It connects directly to the vault and mutates the status of the task to 'proceeded'.
-     * Pre-Alarms DO NOT use this, because they aren't the final event!
+     * ** Dedicated Write Operation (Isolated READWRITE Connection) **
+     *
+     * This is the ONLY function in the native scheduler that writes to SQLite.
+     * It uses a dedicated, short-lived READWRITE connection that is opened and
+     * closed within this single function scope. This is safe because:
+     *
+     * 1. This function is called RARELY (only when user dismisses a MAIN alarm).
+     * 2. The connection lives for ~2ms (one UPDATE statement), so there is no
+     *    sustained overlap with expo-sqlite's writer.
+     * 3. Unlike the cached READONLY connection (which must survive the full app
+     *    lifecycle to prevent POSIX Error 9), a write connection that opens
+     *    and closes once per alarm dismiss has zero churn risk.
+     *
+     * NOTE: This deliberately does NOT use cachedVaultDb. The cached connection
+     * is READONLY and cannot execute UPDATE statements.
      */
     fun markInstanceProceeded(context: Context, instanceId: String) {
         Log.i(TAG, "==== [MUTATION SEQUENCE INITIATED] ====")
         val dbFile = getDbFile(context)
         if (dbFile == null) {
-            // Because writing to SQLite requires Credential Access, we CANNOT mutate if the phone is locked.
             Log.e(TAG, "[MUTATION FAULT] System locked. Cannot update SQLite status for $instanceId.")
             Log.i(TAG, "==== [MUTATION SEQUENCE ABORTED] ====")
             return
         }
 
+        var writeDb: SQLiteDatabase? = null
         try {
-            Log.d(TAG, "[MUTATION LOGIC] Attempting SQL WRITE on Vault for $instanceId...")
-            if (cachedVaultDb == null || !cachedVaultDb!!.isOpen) {
-                cachedVaultDb = SQLiteDatabase.openDatabase(
-                    dbFile.absolutePath, 
-                    null, 
-                    SQLiteDatabase.OPEN_READWRITE // Critical requirement: writable connection
-                )
-            }
-            val database = cachedVaultDb!!
-            
-            // Hard string substitution replacing status for completion 
+            Log.d(TAG, "[MUTATION LOGIC] Opening dedicated WRITE connection for $instanceId...")
+            writeDb = SQLiteDatabase.openDatabase(
+                dbFile.absolutePath,
+                null,
+                SQLiteDatabase.OPEN_READWRITE
+            )
+            writeDb.enableWriteAheadLogging()
+
             val updateQuery = "UPDATE task_instances SET status = 'proceeded' WHERE id = ?"
-            database.execSQL(updateQuery, arrayOf(instanceId))
+            writeDb.execSQL(updateQuery, arrayOf(instanceId))
             Log.i(TAG, "[MUTATION SUCCESS] Instance $instanceId flagged strictly as proceeded.")
         } catch (exception: Exception) {
             Log.e(TAG, "[MUTATION FAULT] Read/Write execution shattered during status write. Error: ${exception.message}", exception)
-            try {
-                cachedVaultDb?.close()
-            } catch (ignored: Exception) {}
-            cachedVaultDb = null
         } finally {
-            // DO NOT database?.close() here to strictly prevent caching collision!
+            /**
+             * ** Immediate Cleanup: No Caching for Write Connections **
+             * Write connections are closed immediately to release the WAL writer
+             * lock, ensuring expo-sqlite's writer is never blocked.
+             */
+            try {
+                writeDb?.close()
+            } catch (ignored: Exception) {}
             Log.i(TAG, "==== [MUTATION SEQUENCE COMPLETED] ====")
         }
     }
