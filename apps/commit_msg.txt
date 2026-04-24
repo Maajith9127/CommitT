@@ -1,8 +1,7 @@
-fix(enforce): prioritize hardware alarms over blocker to prevent UI deadlock
+fix(security): harden SecurityShield against "Ghost ADB" attack vector
 
-- Implemented a "Global Alarm Mutex" via SharedPreferences to synchronize state between the Scheduler and Blocker native modules.
-- Refactored `AlarmActivity` to broadcast its active state ($is_alarm_active) and updated its Manifest to `singleInstance` with unique `taskAffinity` for absolute window stack isolation.
-- Modified `BlockerAccessibilityService` to enter "Silent Passthrough" mode when the alarm mutex is active, suspending all enforcement and preventing overlay launches.
-- Added a failsafe to `BlockerOverlayActivity` to immediately `finish()` if an alarm is detected in `onCreate`, ensuring the Dismiss button is never obscured.
+- Added `isUsbDebuggingEnabled` native function to `BlockerModule` to query `Settings.Global.ADB_ENABLED` directly from the Android system database.
+- Integrated a 4th security layer into `SecurityShield` that detects active USB debugging even if the Developer Options menu has been hidden via shell commands (e.g., `development_settings_enabled 0`).
+- Updated the security violation UI to explicitly list USB Debugging as a restricted configuration.
 
-This resolves a critical safety issue where concurrent blocker triggers could bury the alarm UI, resulting in infinite ringing and requiring a device restart.
+This neutralizes the "Ghost ADB" exploit where a user could keep the ADB bridge operational for remote database manipulation while bypassing standard menu-based detection.
