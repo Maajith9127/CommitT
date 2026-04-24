@@ -5,7 +5,7 @@ import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
-import { useConvex } from "convex/react";
+import { useConvex, useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
 import { useSQLiteContext } from "expo-sqlite";
 import { clearSyncToken, ingestDeltaPayload } from "@/lib/sync-engine";
@@ -54,6 +54,10 @@ export default function ProfileScreen() {
   const [isResyncing, setIsResyncing] = useState(false);
   const [resyncError, setResyncError] = useState<string | null>(null);
 
+  // ── AUDIT HISTORY FLUSH ──
+  const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
+  const [isClearingHistory, setIsClearingHistory] = useState(false);
+  const clearHistoryMutation = useMutation(api.api.logs.mutations.clearUserHistory);
 
   /**
    * ─────────────────────────────────────────────────────────────────────────────
@@ -81,7 +85,7 @@ export default function ProfileScreen() {
       setShowResyncConfirm(true);
     }},
     { id: "help_support", title: "Help & Support", type: "select" as const, icon: "help-circle-outline", onPress: () => console.log('Help & Support') },
-    { id: "switch_accounts", title: "Switch Accounts", type: "select" as const, icon: "account-switch-outline", onPress: () => console.log('Switch Accounts') },
+    { id: "clear_history", title: "Clear History", type: "select" as const, icon: "delete-empty-outline", onPress: () => setShowClearHistoryConfirm(true) },
     { id: "logout", title: "Log Out", type: "select" as const, icon: "logout", onPress: () => setShowLogoutConfirm(true) },
     { id: "delete_account", title: "Delete Account", type: "select" as const, icon: "delete-forever-outline", onPress: () => console.log('Delete Account') },
   ], []);
@@ -226,6 +230,28 @@ export default function ProfileScreen() {
         )}
       </ConfirmationModal>
 
+      <ConfirmationModal
+        visible={showClearHistoryConfirm}
+        title="Do you want to clear the history?"
+        confirmText="Clear All"
+        confirmColor="#FF3B30"
+        isLoading={isClearingHistory}
+        onConfirm={async () => {
+          setIsClearingHistory(true);
+          try {
+            // ** AUDIT LOG: Permanently delete the user's chronological footprint **
+            await clearHistoryMutation();
+            setShowClearHistoryConfirm(false);
+            console.log("[Profile] Audit ledger successfully purged.");
+          } catch (e: any) {
+            Alert.alert("Failed to clear history", e.message || "An unexpected error occurred.");
+            console.error("[Profile] Failed to clear history:", e);
+          } finally {
+            setIsClearingHistory(false);
+          }
+        }}
+        onCancel={() => !isClearingHistory && setShowClearHistoryConfirm(false)}
+      />
 
     </UScroll>
   );
