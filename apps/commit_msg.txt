@@ -1,6 +1,5 @@
-fix(prod): harden audit logic and resolve temporal shift crashes
+fix(ui): standardize blocklist error handling with ConfirmationModal
 
-- Hardening: Reinstated production waiver deadline logic in runner.ts and enforced a hard 60-minute minimum window for security.
-- Fix: Resolved a ReferenceError crash in the Schedules calendar when dragging strict-locked events by properly calculating lock expiry.
-- Fix: Aligned ConnectionWatchdog probe with the correct backend healthCheck endpoint to eliminate 404 errors in Convex logs.
-- Quality: Improved error messaging in the Schedules ConfirmationModal for strict-lock violations.
+- Replaced raw native `Alert.alert()` calls with `ConfirmationModal` in BlocklistView.tsx for a consistent production UI.
+- Unified strict-lock, sync-failure, and critical-crash error paths into a single dynamic acknowledgement modal.
+- Removed unused `Alert` import to maintain a clean dependency tree.

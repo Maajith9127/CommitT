@@ -3,7 +3,7 @@
  * ═════════════════════════════════════════════════
  */
 import React, { useState, useEffect } from "react";
-import { View, Text, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 import { withUniwind } from "uniwind";
 import { TopBar, TabsBar, InlineAddBar, SelectableListItem } from "@/components/ui/blocklist";
 import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
@@ -288,13 +288,19 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
                   message: ""
                 });
             } else {
-                Alert.alert(`${finalError || "Device synchronization failed."}\n\nYour interaction was aborted because the device could not be reconciled.`, "");
+                setLockError({
+                  title: finalError || "Device synchronization failed. Your interaction was aborted because the device could not be reconciled.",
+                  message: ""
+                });
             }
             setShowSaveConfirm(false);
         }
     } catch (err: any) {
         Logger.error("[BlocklistSaga] Save Panic:", err);
-        Alert.alert(`The system encountered a critical synchronization failure.\n\n${err.message || String(err)}`, "");
+        setLockError({
+          title: `Critical synchronization failure: ${err.message || String(err)}`,
+          message: ""
+        });
         setShowSaveConfirm(false);
     } finally {
         setIsSaving(false);
@@ -403,10 +409,10 @@ export const BlocklistView = ({ event, onClose }: BlocklistViewProps) => {
         onCancel={() => setShowSaveConfirm(false)}
       />
 
-      {/* Lock Error Modal (Acknowledgement style) */}
+      {/* Error Modal (Acknowledgement style) — Handles strict-lock AND general sync errors */}
       <ConfirmationModal
         visible={!!lockError}
-        title="Commitment Locked: This instance is in its 'Strict Lock Zone' and cannot be edited."
+        title={lockError?.title || "An error occurred."}
         confirmText="Understood"
         singleButton
         confirmColor="#FF3B30"
