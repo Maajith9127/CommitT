@@ -88,30 +88,30 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
       body: JSON.stringify({
         from: "CommitT <noreply@hey-jarvis-accountability.store>",
         to: toArray,
-        subject: emailSubject || `I failed my commitment...`,
-        text: `Hey,\n\nI committed to a task ("${instance.title}") but I completely failed to follow through.\n\nHere is a message I left for you: "${emailBody || "I failed my commitment."}"\n\nView my embarrassing photo here: ${photoUrl}\n\n- Sent automatically via CommitT`,
+        subject: emailSubject || `Accountability Update: ${instance.title}`,
+        text: `Hello,\n\nThis is an automated accountability update regarding my goal: "${instance.title}".\n\nI wasn't able to complete it in time. As my accountability partner, here is a message I left for you:\n\n"${emailBody || "I missed my goal today."}"\n\nView the attached photo update here: ${photoUrl}\n\n- Sent automatically via CommitT`,
         html: `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; color: #111827; line-height: 1.6;">
-            <p style="font-size: 16px;">Hey there,</p>
+            <p style="font-size: 16px;">Hello,</p>
             
             <p style="font-size: 16px;">
-              I committed to a task called <strong>"${instance.title}"</strong>, but I completely failed to follow through.
+              This is an automated accountability update regarding my goal: <strong>"${instance.title}"</strong>.
             </p>
             
-            <p style="font-size: 16px;">As my accountability partner, here is a message I left for you:</p>
+            <p style="font-size: 16px;">I wasn't able to complete it within the scheduled time. As my accountability partner, here is a message I left for you:</p>
             
             <blockquote style="margin: 0 0 24px 0; padding: 12px 16px; border-left: 4px solid #3B82F6; background-color: #F3F4F6; font-size: 16px; font-style: italic; color: #4B5563;">
-              "${emailBody || "I failed my commitment."}"
+              "${emailBody || "I missed my goal today."}"
             </blockquote>
 
-            <p style="font-size: 16px;">And as promised, here is my embarrassing photo forfeit:</p>
+            <p style="font-size: 16px;">As part of my accountability contract, here is the attached photo update:</p>
             
             ${photoUrl ? `
               <div style="margin: 20px 0;">
-                <img src="${photoUrl}" alt="My Forfeit Photo" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #E5E7EB;" />
+                <img src="${photoUrl}" alt="Accountability Update Photo" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #E5E7EB;" />
               </div>
             ` : `
-              <p style="font-style: italic; color: #6B7280;">(No photo was attached to this task)</p>
+              <p style="font-style: italic; color: #6B7280;">(No photo was attached to this update)</p>
             `}
             
             <p style="margin-top: 32px; font-size: 14px; color: #6B7280;">

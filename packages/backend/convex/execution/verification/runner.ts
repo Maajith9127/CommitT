@@ -77,7 +77,8 @@ export async function armAccountabilityContract(
   const settingMinutes = instance.penalty_waiver.deadline_minutes ?? MIN_WAIVER_WINDOW_MINUTES;
   const deadlineMinutes = Math.max(settingMinutes, MIN_WAIVER_WINDOW_MINUTES);
   
-  const deadlineMs = deadlineMinutes * 60 * 1000;
+  // TESTING OVERRIDE: Set waiver deadline to 5 seconds for fast testing
+  const deadlineMs = 5000; // deadlineMinutes * 60 * 1000;
   const expiresAt = baseTime + deadlineMs;
 
   // Cleanup existing jobs to prevent duplicate enforcement (Safety Guard)
