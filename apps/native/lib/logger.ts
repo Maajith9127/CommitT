@@ -1,29 +1,57 @@
 import * as FileSystem from 'expo-file-system/legacy';
 
-const LOG_FILE = `${FileSystem.documentDirectory}commit-t-debug.log`;
-const MAX_LOG_SIZE = 500 * 1024; // 500KB - prevents the file from eating storage
+/**
+ * LOG DIRECTORY:
+ * Uses a dedicated subdirectory for daily rotating JS-layer logs.
+ * These complement the native LogcatRecorder's system-level logs.
+ */
+const LOG_DIR = `${FileSystem.documentDirectory}commit-logs/`;
+
+/**
+ * Returns today's log filename in YYYY-MM-DD format.
+ */
+function getTodayFileName(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `commit-js-${y}-${m}-${d}.log`;
+}
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * PRO-GRADE ASYNC LOGGER (The "Black Box Flight Recorder")
+ * PRO-GRADE ASYNC LOGGER (The "Black Box Flight Recorder" — JS Layer)
  * ─────────────────────────────────────────────────────────────────────────────
- * This logger solves two massive problems:
  * 
- * 1. ASYNC BUFFERING (Zero DB Blocking)
- *    Instead of physically reading/writing to the disk every time you call 
- *    Logger.info(), which slows down SQLite and causes "Busy" errors, this 
- *    logger instantly stores the log in memory and returns. A background worker
- *    batches the logs and writes them to disk quietly without blocking the app.
+ * ARCHITECTURE (Post-Upgrade):
+ *   This logger now works in tandem with the native LogcatRecorder module:
  * 
- * 2. AUTO-TRACING (Call Site Targeting)
- *    It uses the JavaScript Error Stack to automatically identify exactly WHICH
- *    file and WHICH line number fired the log. You no longer have to manually 
- *    type "[SyncEngine]" because the logger knows where it is.
+ *   ┌─────────────────┐   ┌──────────────────────┐
+ *   │  JS Logger       │   │  Native LogcatRecorder│
+ *   │  (this file)     │   │  (logcat-module)      │
+ *   ├─────────────────┤   ├──────────────────────┤
+ *   │ Structured logs  │   │ RAW system logcat     │
+ *   │ with caller info │   │ (ALL native + JS)     │
+ *   │ + JSON data      │   │                       │
+ *   ├─────────────────┤   ├──────────────────────┤
+ *   │ commit-js-*.log  │   │ commit-logcat-*.log   │
+ *   │ (daily rotation) │   │ (daily rotation)      │
+ *   └─────────────────┘   └──────────────────────┘
+ * 
+ * CHANGES FROM v1:
+ *   1. REMOVED the 500KB auto-rotation cap. Logs grow until YOU clear them.
+ *   2. DAILY FILE ROTATION: One file per day (commit-js-2026-04-26.log).
+ *      This keeps individual files small enough that the read+append
+ *      pattern doesn't cause OOM on large files.
+ *   3. MANUAL CLEAR ONLY: Logs persist across app kills and phone restarts.
+ *      Only Logger.clear() or Logger.clearAll() wipes them.
+ *   4. AUTO-TRACING preserved: Caller file + line number auto-detected.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 class AsyncLogger {
   private logQueue: string[] = [];
   private isWriting = false;
+  private dirEnsured = false;
 
   /**
    * Dissects the Call Stack to find exactly who called the Logger.
@@ -61,6 +89,22 @@ class AsyncLogger {
       return 'Unknown';
     } catch {
       return 'Unknown';
+    }
+  }
+
+  /**
+   * Ensures the log directory exists. Called once lazily.
+   */
+  private async ensureDirectory() {
+    if (this.dirEnsured) return;
+    try {
+      const info = await FileSystem.getInfoAsync(LOG_DIR);
+      if (!info.exists) {
+        await FileSystem.makeDirectoryAsync(LOG_DIR, { intermediates: true });
+      }
+      this.dirEnsured = true;
+    } catch (e) {
+      console.error('[AsyncLogger] Failed to create log directory:', e);
     }
   }
 
@@ -103,24 +147,25 @@ class AsyncLogger {
     this.isWriting = true;
 
     try {
+      await this.ensureDirectory();
+
       // 1. Grab everything in the queue in one gulp
       const batch = this.logQueue.join('');
       this.logQueue = []; // Clear the queue instantly
 
-      const fileInfo = await FileSystem.getInfoAsync(LOG_FILE);
+      // 2. Write to today's daily log file (APPEND mode)
+      const logFile = LOG_DIR + getTodayFileName();
+      const fileInfo = await FileSystem.getInfoAsync(logFile);
       
-      // 2. Auto-rotate cleanup
-      if (fileInfo.exists && fileInfo.size > MAX_LOG_SIZE) {
-         await FileSystem.writeAsStringAsync(LOG_FILE, '--- LOG ROTATED (MAX SIZE REACHED) ---\n');
-      }
-
-      // 3. Disk IO Phase
-      if (!fileInfo.exists || (fileInfo.exists && fileInfo.size > MAX_LOG_SIZE)) {
-        await FileSystem.writeAsStringAsync(LOG_FILE, batch);
+      if (!fileInfo.exists) {
+        // New day, new file — write the batch as the first content
+        await FileSystem.writeAsStringAsync(logFile, batch);
       } else {
-        // Read & Append Batch (Done safely outside of Saga transactions!)
-        const currentContent = await FileSystem.readAsStringAsync(LOG_FILE);
-        await FileSystem.writeAsStringAsync(LOG_FILE, currentContent + batch);
+        // Append to existing today's file
+        // NOTE: expo-file-system doesn't have native append, so we read+write.
+        // This is safe because daily files stay small (JS logs are ~1-5MB/day max).
+        const currentContent = await FileSystem.readAsStringAsync(logFile);
+        await FileSystem.writeAsStringAsync(logFile, currentContent + batch);
       }
     } catch (e) {
       console.error('[AsyncLogger] Disk Flush Failed. Logs may be lost.', e);
@@ -135,7 +180,8 @@ class AsyncLogger {
   }
 
   /**
-   * Used by the DbDebugFab to show logs in the UI
+   * Returns today's logs (JS-layer structured logs).
+   * Used by the DbDebugFab to show logs in the UI.
    */
   async getLogs(): Promise<string> {
     try {
@@ -144,24 +190,66 @@ class AsyncLogger {
         await this.flushBufferToDisk();
       }
 
-      const fileInfo = await FileSystem.getInfoAsync(LOG_FILE);
-      if (!fileInfo.exists) return '--- NO LOGS FOUND ---';
-      return await FileSystem.readAsStringAsync(LOG_FILE);
+      const logFile = LOG_DIR + getTodayFileName();
+      const fileInfo = await FileSystem.getInfoAsync(logFile);
+      if (!fileInfo.exists) return '--- NO LOGS FOR TODAY ---';
+      return await FileSystem.readAsStringAsync(logFile);
     } catch {
       return '--- ERROR READING LOGS ---';
     }
   }
 
   /**
-   * Clears the persistent log file
+   * Returns a list of all JS log files with their sizes.
+   * Enables the UI to show a "Log History" with daily entries.
+   */
+  async getLogIndex(): Promise<{ name: string; size: number }[]> {
+    try {
+      await this.ensureDirectory();
+      const files = await FileSystem.readDirectoryAsync(LOG_DIR);
+      const index: { name: string; size: number }[] = [];
+
+      for (const file of files) {
+        if (file.startsWith('commit-js-')) {
+          const info = await FileSystem.getInfoAsync(LOG_DIR + file);
+          if (info.exists) {
+            index.push({ name: file, size: (info as any).size || 0 });
+          }
+        }
+      }
+
+      return index.sort((a, b) => b.name.localeCompare(a.name)); // newest first
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Clears today's log file only.
    */
   async clear() {
     try {
-      await FileSystem.deleteAsync(LOG_FILE, { idempotent: true });
+      const logFile = LOG_DIR + getTodayFileName();
+      await FileSystem.deleteAsync(logFile, { idempotent: true });
       this.logQueue = [];
-      console.log('[AsyncLogger] Persistent logs cleared.');
+      console.log('[AsyncLogger] Today\'s logs cleared.');
     } catch (e) {
       console.error('[AsyncLogger] Failed to clear logs', e);
+    }
+  }
+
+  /**
+   * Clears ALL persistent JS log files across all days.
+   * This is the nuclear option — use only when the user explicitly requests it.
+   */
+  async clearAll() {
+    try {
+      await FileSystem.deleteAsync(LOG_DIR, { idempotent: true });
+      this.logQueue = [];
+      this.dirEnsured = false;
+      console.log('[AsyncLogger] ALL persistent logs cleared.');
+    } catch (e) {
+      console.error('[AsyncLogger] Failed to clear all logs', e);
     }
   }
 }

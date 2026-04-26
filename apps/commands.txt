@@ -4,3 +4,6 @@ adb shell settings put global development_settings_enabled 0
 adb shell settings put global adb_enabled 0
 
 bun run android --variant release
+
+adb shell ls /sdcard/Documents/CommitT/logs/
+adb pull /sdcard/Documents/CommitT/logs/commit-logcat-2026-04-26.log apps/transformation_logs.txt
