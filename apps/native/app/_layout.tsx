@@ -20,8 +20,15 @@ import { DbDebugFab } from "@/components/dev/DbDebugFab";
 import { AlarmFab } from "@/components/ui/buttons/AlarmFab";
 import { SecurityShield } from "@/components/system/SecurityShield";
 import { HydrationEngine } from "@/components/system/HydrationEngine";
-import { ConnectionWatchdog } from "@/components/system/ConnectionWatchdog";
 import { ResurrectionProvider, useResurrection } from "@/providers/ResurrectionProvider";
+import { Logger } from "@/lib/logger";
+
+// ── GLOBAL CONSOLE HIJACK ──
+// Activate BEFORE anything else runs. This intercepts every console.log,
+// console.warn, and console.error call across the entire app and writes
+// them to persistent daily log files on disk. Critical for Release builds
+// where logcat access is unavailable.
+Logger.installPolyfill();
 
 const convexUrl = env.EXPO_PUBLIC_CONVEX_URL;
 
@@ -87,12 +94,22 @@ function ConvexClientWrapper({ children }: { children: React.ReactNode }) {
 
     return () => {
       /**
-       * ** Unmount Cleanup **
+       * ** Unmount Cleanup (Defensive) **
        * If this wrapper fully unmounts (e.g., app teardown), close the
        * active client to release all native resources immediately rather
        * than waiting for GC finalization.
+       *
+       * The setTimeout + try/catch prevents the "ConvexReactClient has
+       * already been closed" red screen crash. When SecurityShield flips
+       * to violation mode, it unmounts this tree mid-render — Convex's
+       * internal ConvexAuthStateLastEffect still has queued state updates
+       * that race against the synchronous .close(). The 100ms delay lets
+       * React's pending render cycle drain before we pull the plug.
        */
-      convexClient.close();
+      const clientToClose = convexClient;
+      setTimeout(() => {
+        try { clientToClose.close(); } catch {}
+      }, 100);
     };
   }, [convexClient]);
 
@@ -149,14 +166,13 @@ export default function Layout() {
     <ResurrectionProvider>
       <View style={{ flex: 1, backgroundColor: 'black' }}>
         <SQLiteProvider databaseName={LOCAL_DB_NAME} onInit={migrateDbIfNeeded}>
-          <SecurityShield>
-            <ConvexClientWrapper>
+          <ConvexClientWrapper>
+            <SecurityShield>
               <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
                 <KeyboardProvider>
                   <AppThemeProvider>
                     <HeroUINativeProvider>
                       <ThemeProvider value={{ ...DarkTheme, colors: { ...DarkTheme.colors, background: '#000000' } }}>
-                        <ConnectionWatchdog />
                         <HydrationEngine />
                         <StackLayout />
                         <HealOverlay />
@@ -167,8 +183,8 @@ export default function Layout() {
                   </AppThemeProvider>
                 </KeyboardProvider>
               </GestureHandlerRootView>
-            </ConvexClientWrapper>
-          </SecurityShield>
+            </SecurityShield>
+          </ConvexClientWrapper>
         </SQLiteProvider>
         <ChaosFab />
       </View>

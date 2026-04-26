@@ -1,5 +1,32 @@
-fix(ui): standardize blocklist error handling with ConfirmationModal
+feat(system): harden production logging and resolve data-layer lifecycle race conditions
 
-- Replaced raw native `Alert.alert()` calls with `ConfirmationModal` in BlocklistView.tsx for a consistent production UI.
-- Unified strict-lock, sync-failure, and critical-crash error paths into a single dynamic acknowledgement modal.
-- Removed unused `Alert` import to maintain a clean dependency tree.
+This commit implements a robust auditing infrastructure for Release builds and resolves 
+critical race conditions in the Convex client lifecycle that triggered "ConvexReactClient 
+already closed" crashes during security-gated foreground transitions.
+
+1. Global Console Persistence (Black Box Auditing):
+   - Implemented `Logger.installPolyfill()` to intercept all global `console` methods.
+   - Every log entry is now mirrored to persistent, daily-rotating disk files, 
+     ensuring visibility into JS-layer behavior in production environments where 
+     logcat is unavailable.
+
+2. Resolved Convex "Red Screen" Lifecycle Crash:
+   - Re-architected `app/_layout.tsx` to move `SecurityShield` inside `ConvexClientWrapper`.
+     This prevents the entire data-layer from being ripped out mid-render when the 
+     SecurityShield detects a hardware violation (e.g. DevMode enabled) on foreground.
+   - Added a defensive 100ms `setTimeout` with try/catch to `convexClient.close()` 
+     in the unmount cleanup. This allows pending React render cycles (like 
+     ConvexAuthStateEffects) to drain safely before the WebSocket connection is severed.
+
+3. Decommissioned Legacy "ConnectionWatchdog":
+   - Identified and removed the `ConnectionWatchdog` component, which was performing 
+     "rogue" resurrections by calling `clearAuth()` on dead sockets.
+   - This legacy logic was bypassing the centralized `ResurrectionProvider` and 
+     triggering CATASTROPHIC 15-second Saga timeouts and server errors during 
+     standard Convex cold starts.
+   - All connection monitoring is now delegated to the authoritative 
+     `HydrationEngine` / `useHydrationSync` pipeline.
+
+4. Audit Trail Documentation:
+   - Added a detailed tombstone to `ConnectionWatchdog.tsx` to prevent regression 
+     and document the identified anti-patterns.

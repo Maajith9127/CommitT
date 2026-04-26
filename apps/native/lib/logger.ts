@@ -53,6 +53,44 @@ class AsyncLogger {
   private isWriting = false;
   private dirEnsured = false;
 
+  private originalConsole = {
+    log: console.log,
+    warn: console.warn,
+    error: console.error,
+  };
+
+  /**
+   * Hijacks global console calls to ensure they are recorded in the persistent log files.
+   * This is critical for Release builds where standard console logs are often hidden.
+   */
+  installPolyfill() {
+    if ((global as any)._commitLoggerPolyfilled) return;
+
+    console.log = (...args: any[]) => {
+      this.originalConsole.log(...args);
+      this.log('INFO', args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' '));
+    };
+
+    console.warn = (...args: any[]) => {
+      this.originalConsole.warn(...args);
+      this.log('WARN', args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' '));
+    };
+
+    console.error = (...args: any[]) => {
+      this.originalConsole.error(...args);
+      this.log('ERROR', args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' '));
+    };
+
+    (global as any)._commitLoggerPolyfilled = true;
+    this.info('Global Console Polyfill Activated. All console.logs are now being recorded.');
+  }
+
   /**
    * Dissects the Call Stack to find exactly who called the Logger.
    * Format: `filename:line_number`
@@ -121,10 +159,10 @@ class AsyncLogger {
     const extraStr = extra ? `\n    └─ DATA: ${JSON.stringify(extra, null, 2).replace(/\n/g, '\n       ')}` : '';
     const entry = `[${timestamp}] [${level}]${callerTag} ${message}${extraStr}\n`;
 
-    // 1. Console Output for Dev Mode
-    if (level === 'ERROR') console.error(`[${caller}] ${message}`, extra || '');
-    else if (level === 'WARN') console.warn(`[${caller}] ${message}`, extra || '');
-    else console.log(`[${caller}] ${message}`, extra || '');
+    // 1. Console Output for Dev Mode (using original to avoid recursion)
+    if (level === 'ERROR') this.originalConsole.error(`[${caller}] ${message}`, extra || '');
+    else if (level === 'WARN') this.originalConsole.warn(`[${caller}] ${message}`, extra || '');
+    else this.originalConsole.log(`[${caller}] ${message}`, extra || '');
 
     // 2. Queue for Background Disk Write
     this.logQueue.push(entry);
