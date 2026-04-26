@@ -88,35 +88,31 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
       body: JSON.stringify({
         from: "CommitT <noreply@hey-jarvis-accountability.store>",
         to: toArray,
-        subject: emailSubject || `Accountability Update: ${instance.title}`,
-        text: `Hello,\n\nThis is an automated accountability update regarding my goal: "${instance.title}".\n\nI wasn't able to complete it in time. As my accountability partner, here is a message I left for you:\n\n"${emailBody || "I missed my goal today."}"\n\nView the attached photo update here: ${photoUrl}\n\n- Sent automatically via CommitT`,
+        subject: emailSubject || "Hey, check this out",
+        text: `Hey!\n\nHope you've been doing well. Just wanted to drop a quick note and share this with you.\n\n${emailBody ? `${emailBody}\n\n` : ""}Here is the picture: ${photoUrl}\n\nCatch up soon!`,
         html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; color: #111827; line-height: 1.6;">
-            <p style="font-size: 16px;">Hello,</p>
+          <div style="font-family: Arial, sans-serif; font-size: 15px; color: #222; max-width: 600px;">
+            <p>Hey!</p>
             
-            <p style="font-size: 16px;">
-              This is an automated accountability update regarding my goal: <strong>"${instance.title}"</strong>.
+            <p>Hope you've been doing well. Just wanted to drop a quick note and share this with you.</p>
+            
+            ${emailBody ? `
+            <p style="margin: 15px 0; color: #444;">
+              ${emailBody}
             </p>
-            
-            <p style="font-size: 16px;">I wasn't able to complete it within the scheduled time. As my accountability partner, here is a message I left for you:</p>
-            
-            <blockquote style="margin: 0 0 24px 0; padding: 12px 16px; border-left: 4px solid #3B82F6; background-color: #F3F4F6; font-size: 16px; font-style: italic; color: #4B5563;">
-              "${emailBody || "I missed my goal today."}"
-            </blockquote>
+            ` : ""}
 
-            <p style="font-size: 16px;">As part of my accountability contract, here is the attached photo update:</p>
+            <p>Here is the picture:</p>
             
             ${photoUrl ? `
               <div style="margin: 20px 0;">
-                <img src="${photoUrl}" alt="Accountability Update Photo" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #E5E7EB;" />
+                <img src="${photoUrl}" alt="Attached Photo" style="max-width: 100%; height: auto; border-radius: 4px;" />
               </div>
             ` : `
-              <p style="font-style: italic; color: #6B7280;">(No photo was attached to this update)</p>
+              <p style="color: #888;">(No photo attached)</p>
             `}
             
-            <p style="margin-top: 32px; font-size: 14px; color: #6B7280;">
-              — Sent automatically on my behalf via the CommitT app.
-            </p>
+            <p>Catch up soon!</p>
           </div>
         `
       })
