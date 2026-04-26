@@ -293,11 +293,17 @@ export default function SchedulesScreen() {
                     isLoading: false,
                 }));
             } else if (String(finalError).includes('STRICT_LOCK_ACTIVE')) {
+                 // Extract the lock expiry from the event's original data for display.
+                 // Falls back to a generic message if the timestamp is unavailable.
+                 const strictUntil = dragConfirm.event?.originalData?.strict_until;
+                 const lockTimeDisplay = strictUntil
+                   ? dayjs(strictUntil).format('h:mm A, DD MMM')
+                   : 'the lock expires';
                  setDragConfirm(prev => ({ 
                     ...prev, 
                     visible: true, 
                     isOverlapError: true,
-                    overlapMessage: `This commitment is currently in its 'Strict Lock Zone' and cannot be moved until ${lockedTime}.`,
+                    overlapMessage: `This commitment is currently in its 'Strict Lock Zone' and cannot be moved until ${lockTimeDisplay}.`,
                     isLoading: false,
                 }));
             } else {

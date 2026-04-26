@@ -1,15 +1,6 @@
-feat(security/logging): implement native adb hardening and centralized audit ledger
+fix(prod): harden audit logic and resolve temporal shift crashes
 
-Security Hardening:
-- Added `isUsbDebuggingEnabled` to BlockerModule (Android Native) to detect ADB via system settings, bypassing "Ghost ADB" menu-hiding tricks.
-- Integrated the hardware check into SecurityShield for app-wide lockdown when debugging is active.
-
-Audit Logging System:
-- Created a production-grade `auditLogs` ledger in Convex with compound indexing for O(1) retrieval.
-- Integrated success/failure logging into `runVerification`, `firePenaltyAction`, and the `embarrassing_photo` executor.
-- Established a type-safe `auditEventTypeEnum` for strict event classification.
-
-Frontend Implementation:
-- Transformed the notifications "Verified" tab into a "History" chronological feed with dynamic status icons and color-coded timestamps.
-- Implemented the "Clear History" feature in Profile settings using a `ConfirmationModal` and secured Convex mutation.
-- Standardized backend logging headers to use clean ** ** annotations without emojis.
+- Hardening: Reinstated production waiver deadline logic in runner.ts and enforced a hard 60-minute minimum window for security.
+- Fix: Resolved a ReferenceError crash in the Schedules calendar when dragging strict-locked events by properly calculating lock expiry.
+- Fix: Aligned ConnectionWatchdog probe with the correct backend healthCheck endpoint to eliminate 404 errors in Convex logs.
+- Quality: Improved error messaging in the Schedules ConfirmationModal for strict-lock violations.
