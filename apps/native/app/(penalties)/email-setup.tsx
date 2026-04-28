@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
 
-import { ActionScreenLayout, HeaderTitle, BodyText } from "@/components/ui";
+import { ActionScreenLayout, HeaderTitle, BodyText, PrimaryButton } from "@/components/ui";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { usePenaltySync } from "@/hooks/commits/usePenaltySync";
 
@@ -148,20 +148,71 @@ export default function EmailSetupScreen() {
                 </UPressable>
               </UView>
             )}
-            
-            {/* TAGGING & LOCATION PREVIEWS */}
-            {config.photoUrl && (
-              <UView className="mt-4 gap-3">
-                <UPressable className="flex-row items-center px-3 py-1.5 bg-[#0F1419] border border-[#333] rounded-full self-start">
-                  <BodyText className="text-[#4FA0FF] text-xs font-semibold">Tag people</BodyText>
-                </UPressable>
-                <UView className="flex-row items-center">
-                  <MaterialCommunityIcons name="map-marker-outline" size={16} color="#8E8E93" />
-                  <BodyText className="text-[#8E8E93] text-xs ml-1">Add location</BodyText>
-                </UView>
-              </UView>
-            )}
+
           </UView>
+
+          {/* ───────────────────────────────────────────────────────────── */}
+          {/* HARD VISUAL SEPARATOR */}
+          {/* ───────────────────────────────────────────────────────────── */}
+          <UView className="w-full h-[1px] bg-[#222] my-8" />
+
+          {/* TEST RECEIVER SANDBOX CARD */}
+          <UView className="bg-[#1A1A1A] border border-[#222] rounded-3xl px-4 py-5 mb-12">
+            <UView className="mb-4">
+              <HeaderTitle className="text-xl text-[#E3E3E3]">Test the receiver</HeaderTitle>
+              <BodyText className="text-[#888] text-sm mt-1">
+                Preview how the email will look in their inbox.
+              </BodyText>
+            </UView>
+
+            {/* FROM FIELD (TEST) */}
+            <UView className="flex-row items-center py-4 border-b border-[#2A2A2A]">
+              <BodyText className="text-[#A0A0A0] w-20">From</BodyText>
+              <BodyText className="flex-1 text-[#888]">forfeit@commit.com</BodyText>
+            </UView>
+
+            {/* TO FIELD (TEST) */}
+            <UView className="flex-row items-center py-4 border-b border-[#2A2A2A]">
+              <BodyText className="text-[#A0A0A0] w-20">To</BodyText>
+              <UTextInput
+                value={config.emailTo || "friend@example.com"}
+                editable={false}
+                placeholderTextColor="#444"
+                className="flex-1 text-[#888] text-base py-0"
+              />
+            </UView>
+
+            {/* SUBJECT FIELD (TEST) */}
+            <UView className="flex-row items-center py-4 border-b border-[#2A2A2A]">
+              <BodyText className="text-[#A0A0A0] w-20">Subject</BodyText>
+              <UTextInput
+                value="beta test"
+                editable={false}
+                placeholderTextColor="#444"
+                className="flex-1 text-[#888] text-base py-0 font-medium"
+              />
+            </UView>
+
+            {/* MESSAGE AREA (TEST) */}
+            <UView className="flex-row items-start pt-4">
+              <BodyText className="text-[#A0A0A0] w-20 mt-1">Message</BodyText>
+              <UTextInput
+                value="test message"
+                editable={false}
+                multiline
+                textAlignVertical="top"
+                className="flex-1 text-[#888] text-base py-0 leading-6"
+              />
+            </UView>
+            
+            <PrimaryButton 
+              className="mt-8 mb-2 h-14" 
+              onPress={() => console.log("Test Now")}
+            >
+              Test Now
+            </PrimaryButton>
+          </UView>
+
         </ActionScreenLayout>
       </UKeyboardAvoidingView>
     </UView>
