@@ -2,6 +2,8 @@ import { Doc } from "../../../_generated/dataModel";
 import { internal } from "../../../_generated/api";
 import { PenaltyResult } from "../dispatcher";
 
+
+
 /**
  * embarrassing_photo.ts
  * 
@@ -65,7 +67,7 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not set");
     }
-
+    
     // 1. Resolve the public URL for the embarrassing photo
     let photoUrl = config.photoUrl; // Fallback to provided URL
     if (storageId) {
@@ -79,43 +81,50 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
     // 2. Blast the email via Resend
     const toArray = Array.isArray(emailTo) ? emailTo : [emailTo];
 
+    const emailPayload: any = {
+      from: `Maajith <noreply@hey-jarvis-accountability.store>`,
+      to: toArray,
+      subject: emailSubject || `Maajith failed their commitment...`,
+      text: `Hey,\n\nI committed to a task ("${instance.title}") but I completely failed to follow through.\n\nHere is a message I left for you: "${emailBody || "I failed my commitment."}"\n\nI've attached my embarrassing photo to this email.\n\n- Sent automatically via CommitT`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; color: #111827; line-height: 1.6;">
+          <p style="font-size: 16px;">Hey there,</p>
+          
+          <p style="font-size: 16px;">
+            I committed to a task called <strong>"${instance.title}"</strong>, but I completely failed to follow through.
+          </p>
+          
+          <p style="font-size: 16px;">As my accountability partner, here is a message I left for you:</p>
+          
+          <blockquote style="margin: 0 0 24px 0; padding: 12px 16px; border-left: 4px solid #3B82F6; background-color: #F3F4F6; font-size: 16px; font-style: italic; color: #4B5563;">
+            "${emailBody || "I failed my commitment."}"
+          </blockquote>
+
+          <p style="font-size: 16px;">And as promised, here is my embarrassing photo forfeit attached to this email.</p>
+          
+          <p style="margin-top: 32px; font-size: 14px; color: #6B7280;">
+            — Sent automatically on my behalf via the CommitT app.
+          </p>
+        </div>
+      `
+    };
+
+    if (photoUrl) {
+      emailPayload.attachments = [
+        {
+          filename: "embarrassing_photo.jpg",
+          path: photoUrl
+        }
+      ];
+    }
+
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        from: "CommitT <noreply@hey-jarvis-accountability.store>",
-        to: toArray,
-        subject: emailSubject || "Hey, check this out",
-        text: `Hey!\n\nHope you've been doing well. Just wanted to drop a quick note and share this with you.\n\n${emailBody ? `${emailBody}\n\n` : ""}Here is the picture: ${photoUrl}\n\nCatch up soon!`,
-        html: `
-          <div style="font-family: Arial, sans-serif; font-size: 15px; color: #222; max-width: 600px;">
-            <p>Hey!</p>
-            
-            <p>Hope you've been doing well. Just wanted to drop a quick note and share this with you.</p>
-            
-            ${emailBody ? `
-            <p style="margin: 15px 0; color: #444;">
-              ${emailBody}
-            </p>
-            ` : ""}
-
-            <p>Here is the picture:</p>
-            
-            ${photoUrl ? `
-              <div style="margin: 20px 0;">
-                <img src="${photoUrl}" alt="Attached Photo" style="max-width: 100%; height: auto; border-radius: 4px;" />
-              </div>
-            ` : `
-              <p style="color: #888;">(No photo attached)</p>
-            `}
-            
-            <p>Catch up soon!</p>
-          </div>
-        `
-      })
+      body: JSON.stringify(emailPayload)
     });
 
     if (!response.ok) {
