@@ -163,6 +163,22 @@ export const runVerification = internalMutation({
        isFailed = evaluateGradingVerdict(instance);
     } else {
        console.log(`[runVerification] SKIP: Instance already in terminal state '${instance.status}'`);
+       
+       if (instance.status === "waived") {
+         // ** AUDIT LOG: Terminal State Verification (Waived) **
+         await ctx.scheduler.runAfter(0, internal.api.logs.mutations.createAuditLog, {
+           userId: instance.assignee_id,
+           taskId: instance.task_id,
+           instanceId: instance._id,
+           event_type: "waiver_completed",
+           message: `Verification check passed: Instance was already waived off, so no penalty will be executed.`,
+           metadata: {
+             timestamp: Date.now(),
+             timestamp_readable: new Date().toISOString(),
+           }
+         });
+       }
+       
        return;
     }
 

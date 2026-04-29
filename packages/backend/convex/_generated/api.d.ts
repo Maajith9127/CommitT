@@ -25,6 +25,7 @@ import type * as api_instances_waivers from "../api/instances/waivers.js";
 import type * as api_logs_mutations from "../api/logs/mutations.js";
 import type * as api_logs_queries from "../api/logs/queries.js";
 import type * as api_notifications_read from "../api/notifications/read.js";
+import type * as api_notifications_test_email from "../api/notifications/test_email.js";
 import type * as api_security_bond from "../api/security/bond.js";
 import type * as api_sync_delta from "../api/sync/delta.js";
 import type * as config_constants from "../config/constants.js";
@@ -94,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   "api/logs/mutations": typeof api_logs_mutations;
   "api/logs/queries": typeof api_logs_queries;
   "api/notifications/read": typeof api_notifications_read;
+  "api/notifications/test_email": typeof api_notifications_test_email;
   "api/security/bond": typeof api_security_bond;
   "api/sync/delta": typeof api_sync_delta;
   "config/constants": typeof config_constants;

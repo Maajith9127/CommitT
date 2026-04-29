@@ -3,6 +3,8 @@ import { View, TextInput, Pressable, KeyboardAvoidingView, Platform, Image, Text
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
+import { useAction } from "convex/react";
+import { api } from "@commit/backend/convex/_generated/api";
 
 import { ActionScreenLayout, HeaderTitle, BodyText, PrimaryButton } from "@/components/ui";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
@@ -31,6 +33,12 @@ export default function EmailSetupScreen() {
   // Local UI State
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
+  
+  const [testModalVisible, setTestModalVisible] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+
+  // Backend Action
+  const sendTestEmail = useAction(api.api.notifications.test_email.sendTestEmail);
 
   const handleDone = () => {
     // Basic validation for Email channel
@@ -76,6 +84,28 @@ export default function EmailSetupScreen() {
         singleButton={true}
         onConfirm={() => setModalVisible(false)}
         onCancel={() => setModalVisible(false)}
+      />
+
+      <ConfirmationModal
+        visible={testModalVisible}
+        title={`A test message with text "test message" will be sent to ${config.emailTo || "the receiver"}. Don't worry, this will just be a test message. Your penalty images or anything else won't be sent.`}
+        confirmText="Test Now"
+        cancelText="Cancel"
+        isLoading={isSendingTest}
+        onConfirm={async () => {
+          if (!config.emailTo) return;
+          setIsSendingTest(true);
+          try {
+            await sendTestEmail({ emailTo: config.emailTo });
+            console.log("Test email sent successfully");
+          } catch (error) {
+            console.error("Failed to send test email:", error);
+          } finally {
+            setIsSendingTest(false);
+            setTestModalVisible(false);
+          }
+        }}
+        onCancel={() => setTestModalVisible(false)}
       />
 
       <UKeyboardAvoidingView 
@@ -157,8 +187,8 @@ export default function EmailSetupScreen() {
           <UView className="w-full h-[1px] bg-[#222] my-8" />
 
           {/* TEST RECEIVER SANDBOX CARD */}
-          <UView className="bg-[#1A1A1A] border border-[#222] rounded-3xl px-4 py-5 mb-12">
-            <UView className="mb-4">
+          <UView className="bg-[#1A1A1A] border border-[#222] rounded-3xl py-5 mb-12">
+            <UView className="mb-4 px-4">
               <HeaderTitle className="text-xl text-[#E3E3E3]">Test the receiver</HeaderTitle>
               <BodyText className="text-[#888] text-sm mt-1">
                 Preview how the email will look in their inbox.
@@ -166,13 +196,13 @@ export default function EmailSetupScreen() {
             </UView>
 
             {/* FROM FIELD (TEST) */}
-            <UView className="flex-row items-center py-4 border-b border-[#2A2A2A]">
+            <UView className="flex-row items-center px-4 py-4 border-b border-[#2A2A2A]">
               <BodyText className="text-[#A0A0A0] w-20">From</BodyText>
               <BodyText className="flex-1 text-[#888]">forfeit@commit.com</BodyText>
             </UView>
 
             {/* TO FIELD (TEST) */}
-            <UView className="flex-row items-center py-4 border-b border-[#2A2A2A]">
+            <UView className="flex-row items-center px-4 py-4 border-b border-[#2A2A2A]">
               <BodyText className="text-[#A0A0A0] w-20">To</BodyText>
               <UTextInput
                 value={config.emailTo || "friend@example.com"}
@@ -183,7 +213,7 @@ export default function EmailSetupScreen() {
             </UView>
 
             {/* SUBJECT FIELD (TEST) */}
-            <UView className="flex-row items-center py-4 border-b border-[#2A2A2A]">
+            <UView className="flex-row items-center px-4 py-4 border-b border-[#2A2A2A]">
               <BodyText className="text-[#A0A0A0] w-20">Subject</BodyText>
               <UTextInput
                 value="beta test"
@@ -194,7 +224,7 @@ export default function EmailSetupScreen() {
             </UView>
 
             {/* MESSAGE AREA (TEST) */}
-            <UView className="flex-row items-start pt-4">
+            <UView className="flex-row items-start px-4 pt-4">
               <BodyText className="text-[#A0A0A0] w-20 mt-1">Message</BodyText>
               <UTextInput
                 value="test message"
@@ -205,12 +235,14 @@ export default function EmailSetupScreen() {
               />
             </UView>
             
-            <PrimaryButton 
-              className="mt-8 mb-2 h-14" 
-              onPress={() => console.log("Test Now")}
-            >
-              Test Now
-            </PrimaryButton>
+            <UView className="px-4">
+              <PrimaryButton 
+                className="mt-8 mb-2 h-14" 
+                onPress={() => setTestModalVisible(true)}
+              >
+                Test Now
+              </PrimaryButton>
+            </UView>
           </UView>
 
         </ActionScreenLayout>

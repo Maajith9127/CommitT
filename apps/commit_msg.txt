@@ -1,5 +1,8 @@
-perf(native): optimize navigation transitions and harden email delivery
+feat: implement E2E test email sandbox, auth middleware, and comprehensive waiver audit logs
 
-- Eliminate UI jitter and black-screen flashes on Android swipe-back by setting native windowBackground to #000000 and disabling the O(N^2) disk-logging polyfill.
-- Harden penalty emails against spam filters by using native MIME attachments (Resend API) instead of raw URLs and personalizing the sender identity to "Maajith".
-- Implement a 5-second short-circuit delay in the accountability arming logic for rapid production testing.
+- UI (email-setup): Added 'Test Receiver' sandbox with ConfirmationModal, dynamic email targeting, and network loading states.
+- API (test_email): Built `sendTestEmail` action to ping the Resend API with real payloads to verify deliverability.
+- Middleware (authedAction): Created `authedAction` wrapper in `middleware/index.ts` to securely resolve Better Auth sessions inside Convex actions via `getCurrentUser` internal queries.
+- Architecture: Added 'Refactor Target' debt comments to `test_email` for future decoupling into a dedicated notification dispatcher.
+- Auditing (waivers): Injected `createAuditLog` (event_type: "waiver_completed") into `submitChallenge` to permanently log when a user successfully waives their penalty and the fallback job is cancelled.
+- Auditing (runner): Added a terminal state check inside `runVerification` to explicitly log when the scheduler safely bypasses an already-waived task at window close.

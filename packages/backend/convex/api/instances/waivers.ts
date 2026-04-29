@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { verifyWaiverChallenge } from "../../core/waivers/dispatcher";
 import { Doc } from "../../_generated/dataModel";
+import { internal } from "../../_generated/api";
 import { armAccountabilityContract, evaluateGradingVerdict } from "../../execution/verification/runner";
 
 /**
@@ -53,6 +54,20 @@ export const submitChallenge = authedMutation({
       if (instance.enforcement_job_id) {
         try {
           await ctx.scheduler.cancel(instance.enforcement_job_id);
+          
+          // ** AUDIT LOG: Record Waiver Completion (Penalty Prevented) **
+          await ctx.scheduler.runAfter(0, internal.api.logs.mutations.createAuditLog, {
+            userId: user._id,
+            taskId: instance.task_id,
+            instanceId: args.instanceId,
+            event_type: "waiver_completed",
+            message: `Event ${instance.title || args.instanceId} was waived off successfully.`,
+            metadata: {
+              timestamp: Date.now(),
+              timestamp_readable: new Date().toISOString(),
+            }
+          });
+          
         } catch (e) {
           console.log(`[submitChallenge] Penalty job already executed or fired.`);
         }
