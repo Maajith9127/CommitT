@@ -1,8 +1,10 @@
-feat: implement E2E test email sandbox, auth middleware, and comprehensive waiver audit logs
+feat: implement email sandbox, auth middleware, and temporal sync audit logging
 
 - UI (email-setup): Added 'Test Receiver' sandbox with ConfirmationModal, dynamic email targeting, and network loading states.
 - API (test_email): Built `sendTestEmail` action to ping the Resend API with real payloads to verify deliverability.
-- Middleware (authedAction): Created `authedAction` wrapper in `middleware/index.ts` to securely resolve Better Auth sessions inside Convex actions via `getCurrentUser` internal queries.
-- Architecture: Added 'Refactor Target' debt comments to `test_email` for future decoupling into a dedicated notification dispatcher.
-- Auditing (waivers): Injected `createAuditLog` (event_type: "waiver_completed") into `submitChallenge` to permanently log when a user successfully waives their penalty and the fallback job is cancelled.
+- Middleware (authedAction): Created `authedAction` wrapper in `middleware/index.ts` to securely resolve sessions inside Convex actions via `getCurrentUser` internal queries.
+- Auditing (waivers): Injected `createAuditLog` into `submitChallenge` to permanently log when a penalty is successfully waived and the fallback job is cancelled.
 - Auditing (runner): Added a terminal state check inside `runVerification` to explicitly log when the scheduler safely bypasses an already-waived task at window close.
+- Config (enums): Registered `instance_scheduled` event type to `auditEventTypeEnum` to track recursive scheduling.
+- Core (scheduler): Injected `createAuditLog` into Phase 4 (Persistence) to dynamically log the precise formatted execution timestamp (e.g., "May 6, 2026, 5:30 PM") whenever a new recurrence window is locked.
+- UI (notifications): Upgraded the History tab to distinctively render `instance_scheduled` events using Brand Blue styling (#4FA0FF), `calendar-sync-outline` icons, and a bold 'Temporal Sync' title.

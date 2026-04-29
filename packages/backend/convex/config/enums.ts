@@ -181,4 +181,5 @@ export const auditEventTypeEnum = v.union(
   v.literal("penalty_executed"),     // A penalty was actually detonated (charged, sent, etc.)
   v.literal("penalty_failed"),       // Added: A penalty failed to execute (e.g. Resend API error)
   v.literal("waiver_completed"),     // A waiver was successfully completed
+  v.literal("instance_scheduled"),   // The system automatically scheduled the next task recurrence
 );

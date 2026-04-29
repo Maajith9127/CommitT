@@ -71,6 +71,9 @@ function NotificationListItem({ instance, tabType }: { instance: any, tabType: T
     if (instance.event_type === "penalty_executed" || instance.event_type === "penalty_failed") {
       iconName = "close-circle-outline";
       iconColor = "#FF4A4A"; // Red
+    } else if (instance.event_type === "instance_scheduled") {
+      iconName = "calendar-sync-outline";
+      iconColor = "#4FA0FF"; // Brand Blue
     } else {
       iconName = "check-decagram-outline";
       iconColor = "#4ADE80"; // Green
@@ -122,9 +125,15 @@ function NotificationListItem({ instance, tabType }: { instance: any, tabType: T
             </UView>
           ) : (
             <UView className="flex-col">
-              <BodyText className="text-gray-300 text-[15px] leading-5">
-                {instance.message}
-              </BodyText>
+              {instance.event_type === "instance_scheduled" ? (
+                <BodyText className="text-gray-300 text-[15px] leading-5">
+                  <BodyText className="font-bold text-white">Temporal Sync</BodyText> — {instance.message}
+                </BodyText>
+              ) : (
+                <BodyText className="text-gray-300 text-[15px] leading-5">
+                  {instance.message}
+                </BodyText>
+              )}
               <BodyText className="font-bold mt-1 text-[13px]" style={{ color: iconColor }}>
                 {dayjs(instance.created_at).format("MMM D, h:mm A")}
               </BodyText>
