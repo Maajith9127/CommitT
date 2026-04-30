@@ -95,24 +95,16 @@ export async function syncTaskSchedule(
 
   // ** AUDIT LOG: Record temporal recursion (next instance scheduled) **
   // Centralized here so it triggers on creation, modification, and heartbeat.
-  const formattedTime = new Date(nextInstance.end).toLocaleString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric', 
-    hour: 'numeric', 
-    minute: '2-digit', 
-    hour12: true 
-  });
-  
   await ctx.scheduler.runAfter(0, internal.api.logs.mutations.createAuditLog, {
     userId: nextInstance.assignee_id,
     taskId: nextInstance.task_id,
     instanceId: nextInstance._id,
     event_type: "instance_scheduled",
-    message: `System automatically scheduled the next job for this task on ${formattedTime}.`,
+    message: `System automatically scheduled the next recurrence window.`,
     metadata: {
       timestamp: Date.now(),
       timestamp_readable: new Date().toISOString(),
+      scheduled_for: nextInstance.end, // Pure UTC Milliseconds passed to frontend
     }
   });
 }

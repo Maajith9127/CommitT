@@ -127,7 +127,7 @@ function NotificationListItem({ instance, tabType }: { instance: any, tabType: T
             <UView className="flex-col">
               {instance.event_type === "instance_scheduled" ? (
                 <BodyText className="text-gray-300 text-[15px] leading-5">
-                  <BodyText className="font-bold text-white">Temporal Sync</BodyText> — {instance.message}
+                  <BodyText className="font-bold text-white">Temporal Sync</BodyText> — Scheduled for {instance.metadata?.scheduled_for ? dayjs(instance.metadata.scheduled_for).format('D MMM YYYY, h:mm A') : "upcoming window."}
                 </BodyText>
               ) : (
                 <BodyText className="text-gray-300 text-[15px] leading-5">
