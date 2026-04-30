@@ -2,5 +2,8 @@ adb logcat -v time -t 10000 --pid=$(adb shell pidof -s com.mono.commit) -d > app
 
 bun run android --variant release
 
+git reset --hard HEAD
+git clean -fd
+
 adb shell ls /sdcard/Documents/CommitT/logs/
 adb pull /sdcard/Documents/CommitT/logs/commit-logcat-2026-04-29.log apps/transformation_logs.txt
