@@ -37,7 +37,8 @@ import { v } from "convex/values";
 import { authedMutation } from "../../middleware";
 import { validateEvidence } from "../../core/verification/evidenceValidators";
 import { Doc } from "../../_generated/dataModel";
-import { evaluateGradingVerdict } from "../../execution/verification/runner";
+import { internal } from "../../_generated/api";
+import { evaluateGradingVerdictV2 } from "../../execution/verification/runner";
 
 export default authedMutation({
   args: {
@@ -189,6 +190,33 @@ export default authedMutation({
 
       // 4. Save back to the DB.
       await ctx.db.patch(args.instanceId, { checkpoints: updatedCheckpoints as any });
+
+      // ─────────────────────────────────────────────────────────────────────────────
+      // 5. ATOMIC SUCCESS EVALUATION (Production Grade)
+      // ─────────────────────────────────────────────────────────────────────────────
+      // We perform a real-time "What If" analysis. If the user has fulfilled 
+      // all required checkpoints for the entire task window, we trigger 
+      // the success audit log immediately. This ensures the History/Notification 
+      // feed reflects the win without waiting for the window-close heartbeat.
+      // ─────────────────────────────────────────────────────────────────────────────
+      const updatedInstance = { ...instance, checkpoints: updatedCheckpoints };
+      const { allVerified } = evaluateGradingVerdictV2(updatedInstance);
+
+      if (allVerified) {
+        console.log(`[verify] ALL_VERIFIED: Triggering immediate success log for ${instance._id}`);
+        await ctx.scheduler.runAfter(0, internal.api.logs.mutations.createAuditLog, {
+          userId: user._id,
+          taskId: instance.task_id,
+          instanceId: instance._id,
+          event_type: "verification_success",
+          message: `Successfully verified: ${instance.title || "Target habit"}`,
+          metadata: {
+            task_title: instance.title || "Target habit",
+            timestamp: Date.now(),
+            timestamp_readable: new Date().toISOString(),
+          }
+        });
+      }
 
       let finalMessage = result.passed ? `Checkpoint condition verified!` : ((result as any).reason ?? "Checkpoint failed.");
       return { success: result.passed, status: newStatus, message: finalMessage };

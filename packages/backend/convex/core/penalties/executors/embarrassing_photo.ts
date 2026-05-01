@@ -79,44 +79,73 @@ export async function execute(ctx: any, instance: Doc<"taskInstances">): Promise
     }
 
     // 2. Blast the email via Resend
-    const toArray = Array.isArray(emailTo) ? emailTo : [emailTo];
+    console.log(`[EXECUTOR:embarrassing_photo] Raw config.emailTo:`, emailTo);
+    
+    let toArray: string[] = [];
+    if (Array.isArray(emailTo)) {
+      toArray = emailTo;
+    } else if (typeof emailTo === "string") {
+      // Split by comma or whitespace and clean up (handles "mail1@test.com, mail2@test.com")
+      toArray = emailTo.split(/[,\s]+/).map(e => e.trim()).filter(e => e.length > 0);
+    } else if (emailTo) {
+      toArray = [String(emailTo)];
+    }
+
+    console.log(`[EXECUTOR:embarrassing_photo] Final recipient array for Resend:`, toArray);
+
+    if (toArray.length === 0) {
+      throw new Error("Recipient list (toArray) resulted in 0 valid email addresses.");
+    }
 
     const emailPayload: any = {
-      from: `Maajith <noreply@hey-jarvis-accountability.store>`,
+      from: `CommitT Accountability <noreply@hey-jarvis-accountability.store>`,
       to: toArray,
-      subject: emailSubject || `Maajith failed their commitment...`,
-      text: `Hey,\n\nI committed to a task ("${instance.title}") but I completely failed to follow through.\n\nHere is a message I left for you: "${emailBody || "I failed my commitment."}"\n\nI've attached my embarrassing photo to this email.\n\n- Sent automatically via CommitT`,
+      subject: emailSubject || `Formal Notification: Missed Commitment Protocol`,
+      text: `Formal Accountability Notification\n\nThis is a formal notification regarding a commitment made by the user through the CommitT platform.\n\nThe following task was not completed as scheduled: "${instance.title}"\n\nAs part of the user's pre-configured accountability protocol, they have requested that this message be delivered to you:\n\n"${emailBody || "The scheduled commitment was not fulfilled."}"\n\nA photographic record associated with this forfeit has been included as an attachment to this email for your verification.\n\nThis notification was generated automatically by the CommitT accountability enforcement system.`,
       html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; color: #111827; line-height: 1.6;">
-          <p style="font-size: 16px;">Hey there,</p>
+        <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1f2937; line-height: 1.7; border: 1px solid #e5e7eb; padding: 40px; border-radius: 8px;">
+          <h2 style="color: #111827; font-size: 20px; font-weight: 700; margin-bottom: 24px; border-bottom: 2px solid #3b82f6; padding-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">
+            Accountability Notification
+          </h2>
           
-          <p style="font-size: 16px;">
-            I committed to a task called <strong>"${instance.title}"</strong>, but I completely failed to follow through.
+          <p style="font-size: 16px; margin-bottom: 20px;">
+            This communication serves as a formal record of a missed commitment for the following task:
           </p>
           
-          <p style="font-size: 16px;">As my accountability partner, here is a message I left for you:</p>
+          <div style="background-color: #f9fafb; padding: 16px; border-radius: 6px; margin-bottom: 24px; border-left: 4px solid #9ca3af;">
+            <strong style="color: #111827; display: block; margin-bottom: 4px;">Task Identifier:</strong>
+            <span style="font-size: 16px; color: #374151;">${instance.title}</span>
+          </div>
           
-          <blockquote style="margin: 0 0 24px 0; padding: 12px 16px; border-left: 4px solid #3B82F6; background-color: #F3F4F6; font-size: 16px; font-style: italic; color: #4B5563;">
-            "${emailBody || "I failed my commitment."}"
-          </blockquote>
+          <p style="font-size: 16px; margin-bottom: 12px;">
+            In accordance with the user's accountability settings, the following statement has been issued for your review:
+          </p>
+          
+          <div style="margin: 0 0 32px 0; padding: 20px; background-color: #f3f4f6; border-radius: 8px; font-size: 16px; color: #1f2937; border: 1px solid #d1d5db;">
+            "${emailBody || "The scheduled commitment was not fulfilled."}"
+          </div>
 
-          <p style="font-size: 16px;">And as promised, here is my embarrassing photo forfeit attached to this email.</p>
-          
-          <p style="margin-top: 32px; font-size: 14px; color: #6B7280;">
-            — Sent automatically on my behalf via the CommitT app.
+          <p style="font-size: 16px; margin-bottom: 12px;">
+            A photographic forfeit associated with this failure has been processed and is displayed below for your verification:
           </p>
+
+          <div style="margin-bottom: 32px; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb; background-color: #f9fafb;">
+            <img src="${photoUrl}" alt="Accountability Evidence" style="width: 100%; height: auto; display: block;" />
+          </div>
+          
+          <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 32px 0;" />
+          
+          <div style="text-align: center;">
+            <p style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">
+              This is an automated transmission from the CommitT Accountability System.
+            </p>
+            <p style="font-size: 11px; color: #9ca3af; font-family: monospace;">
+              Reference ID: ${instance._id} | Issued: ${new Date().toISOString()}
+            </p>
+          </div>
         </div>
       `
     };
-
-    if (photoUrl) {
-      emailPayload.attachments = [
-        {
-          filename: "embarrassing_photo.jpg",
-          path: photoUrl
-        }
-      ];
-    }
 
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",

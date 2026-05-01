@@ -19,14 +19,20 @@ export default function CreateCommitLayout() {
   return (
     <Stack
       screenOptions={{
-        animation: "fade",
-        animationDuration: 150,
+        animation: "slide_from_right",
+        animationDuration: 250,
         presentation: "transparentModal",
         headerShown: false,
         headerShadowVisible: false,
         headerTransparent: true,
         contentStyle: { backgroundColor: "black" },
       }}
-    />
+    >
+      <Stack.Screen name="time-set" options={{ animation: "fade" }} />
+      <Stack.Screen name="location-set" options={{ animation: "fade" }} />
+      <Stack.Screen name="choose" options={{ animation: "fade" }} />
+      <Stack.Screen name="captcha-setup" options={{ animation: "fade" }} />
+      <Stack.Screen name="picture-set" options={{ animation: "fade" }} />
+    </Stack>
   );
 }

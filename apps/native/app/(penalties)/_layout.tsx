@@ -5,25 +5,14 @@ export default function PenaltiesLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: "black" },
+        contentStyle: { backgroundColor: "transparent" },
+        presentation: "transparentModal",
         animation: "slide_from_right",
-        animationDuration: 200,
+        animationDuration: 250,
       }}
     >
-      <Stack.Screen 
-        name="embarrassing-photo" 
-        options={{ 
-          presentation: "card",
-          animation: "slide_from_right"
-        }} 
-      />
-      <Stack.Screen 
-        name="email-setup" 
-        options={{ 
-          presentation: "card",
-          animation: "slide_from_right"
-        }} 
-      />
+      <Stack.Screen name="embarrassing-photo" />
+      <Stack.Screen name="email-setup" />
     </Stack>
   );
 }

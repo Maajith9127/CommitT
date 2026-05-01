@@ -5,8 +5,10 @@ export default function CaptchaLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: "black" },
+        contentStyle: { backgroundColor: "transparent" },
+        presentation: "transparentModal",
         animation: "slide_from_right",
+        animationDuration: 250,
       }}
     />
   );

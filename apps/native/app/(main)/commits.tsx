@@ -294,7 +294,7 @@ export default function CommitsScreen() {
                   subtitle="CommitT enforcement is disabled. Tap to fix."
                   iconColor={COLORS.danger}
                   className="border-[3px] border-[#FF3B30] bg-[#1A1A1A]"
-                  onPress={() => router.push("/(settings)/permissions")}
+                  onPress={() => router.navigate("/(settings)/permissions")}
                   showArrow={true}
                 />
               </UView>

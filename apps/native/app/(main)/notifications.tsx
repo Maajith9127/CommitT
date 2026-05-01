@@ -74,6 +74,9 @@ function NotificationListItem({ instance, tabType }: { instance: any, tabType: T
     } else if (instance.event_type === "instance_scheduled") {
       iconName = "calendar-sync-outline";
       iconColor = "#4FA0FF"; // Brand Blue
+    } else if (instance.event_type === "penalty_armed" || instance.event_type === "waiver_activated") {
+      iconName = "alert-rhombus-outline";
+      iconColor = "#FACC15"; // Yellow (Consistent with Schedules)
     } else {
       iconName = "check-decagram-outline";
       iconColor = "#4ADE80"; // Green

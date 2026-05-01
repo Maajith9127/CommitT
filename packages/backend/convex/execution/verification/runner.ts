@@ -56,6 +56,54 @@ export function evaluateGradingVerdict(instance: any): boolean {
 }
 
 /**
+ * evaluateGradingVerdictV2
+ * -----------------------------------------------------------------------------
+ * TIME-SMART GRADING ENGINE: Analyzes fulfillment relative to the current time.
+ * 
+ * Unlike V1 (which is terminal), V2 only considers checkpoints that have
+ * already ENDED. This allows for real-time success/failure checks during 
+ * an active window without being biased by future (pending) slots.
+ */
+export function evaluateGradingVerdictV2(instance: any): { isFailed: boolean; allVerified: boolean } {
+  const style = instance.config.verification_style;
+  const checkpoints = instance.checkpoints || [];
+  const now = Date.now();
+
+  // 1. EARLY FAILURE CHECK
+  const anyConditionFailed = (instance.conditions || []).some((c: any) => c.status === "failed");
+  if (anyConditionFailed) return { isFailed: true, allVerified: false };
+
+  // 2. LIGHTWEIGHT PROTOCOL
+  if (checkpoints.length === 0) return { isFailed: false, allVerified: true };
+
+  // Helper: Are ALL checkpoints in the entire task verified?
+  const areAllVerified = checkpoints.every((cp: any) => 
+    Object.values(cp.verification_status).every(s => s === "verified")
+  );
+
+  if (style === "stay_throughout") {
+    const config = instance.config.stay_throughout_config;
+    const maxMissed = config?.max_missed_checkins ?? 0;
+    
+    // TIME SMART: Only count checkpoints that have already CONCLUDED
+    const pastCheckpoints = checkpoints.filter((cp: any) => (cp.end ?? cp.window_end_time) <= now);
+    
+    const missedCount = pastCheckpoints.filter((cp: any) => 
+      Object.values(cp.verification_status).some(s => s === "pending" || s === "failed")
+    ).length;
+
+    const isFailed = missedCount > maxMissed;
+    return { isFailed, allVerified: areAllVerified };
+  } else {
+    // JUST_SHOW_UP: Success if ANY checkpoint is verified (past, present, or future)
+    const hasVerified = checkpoints.some((cp: any) => 
+      Object.values(cp.verification_status).every(s => s === "verified")
+    );
+    return { isFailed: !hasVerified && now > instance.end, allVerified: hasVerified };
+  }
+}
+
+/**
  * armAccountabilityContract
  * -----------------------------------------------------------------------------
  * Transitions a failed task instance into an active waiver/redemption session.
@@ -73,12 +121,11 @@ export async function armAccountabilityContract(
 ) {
   if (!instance.penalty || !instance.penalty_waiver) return;
 
-  const MIN_WAIVER_WINDOW_MINUTES = 60;
+  const MIN_WAIVER_WINDOW_MINUTES = 300; // 5 hours minimum
   const settingMinutes = instance.penalty_waiver.deadline_minutes ?? MIN_WAIVER_WINDOW_MINUTES;
   const deadlineMinutes = Math.max(settingMinutes, MIN_WAIVER_WINDOW_MINUTES);
   
-  // TESTING OVERRIDE: Set waiver deadline to 5 seconds for fast testing
-  const deadlineMs = 5000; // deadlineMinutes * 60 * 1000;
+  const deadlineMs = deadlineMinutes * 60 * 1000;
   const expiresAt = baseTime + deadlineMs;
 
   // Cleanup existing jobs to prevent duplicate enforcement (Safety Guard)
@@ -118,6 +165,23 @@ export async function armAccountabilityContract(
   }
 
   await ctx.db.patch(instance._id, patchData);
+
+  /*
+  // ** AUDIT LOG: Centralized Accountability Arming **
+  // Triggers on creation, modification, and heartbeat via this shared service.
+  await ctx.scheduler.runAfter(0, internal.api.logs.mutations.createAuditLog, {
+    userId: instance.assignee_id,
+    taskId: instance.task_id,
+    instanceId: instance._id,
+    event_type: "penalty_armed",
+    message: `Accountability Armed: Penalty enforcement scheduled for ${instance.title || instance._id}.`,
+    metadata: {
+      expires_at: expiresAt,
+      expires_at_readable: new Date(expiresAt).toISOString(),
+      timestamp: Date.now(),
+    }
+  });
+  */
 
   console.log(`[armAccountabilityContract] Accountability Armed for ${instance._id}. Expiration: ${new Date(expiresAt).toISOString()}`);
 }
