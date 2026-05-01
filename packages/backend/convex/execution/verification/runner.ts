@@ -266,7 +266,7 @@ export const runVerification = internalMutation({
         taskId: instance.task_id,
         instanceId: instance._id,
         event_type: "verification_success",
-        message: `Successfully verified: ${args.taskTitle || "Target habit"}`,
+        message: `${args.taskTitle || "Target habit"} is already verified`,
         metadata: {
           task_title: args.taskTitle || "Target habit",
           timestamp: Date.now(),
