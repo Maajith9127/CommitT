@@ -1,9 +1,1 @@
-feat(accountability): harden verification engine and centralize audit logging
-
-- Implemented `evaluateGradingVerdictV2`: a time-smart grading engine that only considers concluded checkpoints, enabling accurate real-time status reporting.
-- Upgraded the `verify` API to trigger immediate `verification_success` audit logs upon task fulfillment, providing instant user feedback in the history feed.
-- Enforced a strictly hardened 5-hour (300-minute) minimum accountability window to prevent waiver-period tampering.
-- Expanded the `auditEventTypeEnum` to officially support `penalty_armed` and `waiver_activated` events for comprehensive tracking.
-- Enhanced Notification UI: Integrated brand-consistent yellow (#FACC15) styling for active accountability events in the history feed.
-- Optimized end-of-window messaging: Refined the heartbeat success log to "[Task] is already verified" to clearly distinguish system-finalization from manual check-ins.
-- Centralized accountability arming logic: Prepared `armAccountabilityContract` for unified logging across manual and automated triggers.
+feat (checkpoint) : couldnt do any work today because of exams
