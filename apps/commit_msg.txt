@@ -22,4 +22,4 @@ production crashes during task transitions.
   another overlay. This restores BlockerAccessibilityService enforcement if 
   an alarm is bypassed or hidden.
 
-- chore(android): fix missing Intent import in scheduler modul
+- chore(android): fix missing Intent import in scheduler module
