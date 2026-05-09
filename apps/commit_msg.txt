@@ -23,3 +23,4 @@ production crashes during task transitions.
   an alarm is bypassed or hidden.
 
 - chore(android): fix missing Intent import in scheduler module
+
