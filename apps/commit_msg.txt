@@ -1,1 +1,25 @@
-feat (checkpoint) : couldnt do any work today because of exams 2
+fix(native): resolve alarm zombie states and react hook ordering violations
+
+This commit hardens the Android alarm infrastructure and stabilizes the React
+UI lifecycle to prevent silent background ringing, blocker suppression, and
+production crashes during task transitions.
+
+- fix(ui): eliminate React Hook violation in EventDetailTime.tsx
+  Moved `missedCount` useMemo to the component's top-level scope to prevent
+  "Rendered more hooks than during the previous render" errors. This crash 
+  previously occurred during task boundary transitions (e.g., 6AM/10PM) when 
+  the verification style flipped, changing the hook execution count.
+
+- fix(android): implement sequential alarm hot-swapping in AlarmActivity
+  Added `onNewIntent()` to handle back-to-back alarms delivered via 
+  FLAG_ACTIVITY_SINGLE_TOP. This ensures the previous MediaPlayer is released 
+  and the UI/audio are re-initialized for the new alarm, preventing the 
+  "phantom ringing" bug where audio loops with no visible way to dismiss.
+
+- fix(android): add Dead-Man's Switch to AlarmActivity lifecycle
+  Implemented `onStop()` to forcibly terminate hardware alerts and release the 
+  `is_alarm_active` global mutex if the alarm is backgrounded or covered by 
+  another overlay. This restores BlockerAccessibilityService enforcement if 
+  an alarm is bypassed or hidden.
+
+- chore(android): fix missing Intent import in scheduler module

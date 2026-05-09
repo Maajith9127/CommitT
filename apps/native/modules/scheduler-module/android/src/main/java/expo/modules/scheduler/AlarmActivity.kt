@@ -2,6 +2,7 @@ package expo.modules.scheduler
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.media.AudioAttributes
@@ -104,6 +105,83 @@ class AlarmActivity : Activity() {
         
         Log.i(TAG, "==== [WAKE DISPLAY RENDER COMPLETE] ====")
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PRODUCTION FIX: Sequential Alarm Hot-Swap
+    // (Incident: 2026-05-03 @ 07:20→07:30 AM — "Silent Background Alarm")
+    //
+    // ROOT CAUSE CHAIN:
+    // AlarmReceiver.kt launches this Activity with FLAG_ACTIVITY_SINGLE_TOP
+    // (line ~75 of AlarmReceiver). When a CHECKPOINT_ALARM fires at 07:20
+    // and the user hasn't dismissed it before the END_ALARM fires at 07:30,
+    // Android does NOT create a second AlarmActivity. Instead, the OS
+    // delivers the new Intent via onNewIntent() to the EXISTING Activity.
+    //
+    // WITHOUT THIS OVERRIDE:
+    // 1. onCreate() is never re-called → the new alarm's audio never starts
+    // 2. The OLD MediaPlayer keeps looping the checkpoint sound
+    // 3. The UI shows stale data from the first alarm
+    // 4. The dismiss button dismisses the old alarm, but the new alarm
+    //    has no UI representation → "phantom ringing" with no way to stop
+    // 5. The user must force-restart the phone to silence it
+    //
+    // CASCADING DAMAGE:
+    // Because the alarm was never properly dismissed, the global mutex
+    // `is_alarm_active` in SharedPreferences stayed `true`. This caused
+    // BlockerAccessibilityService.neutralizeViolationAttempt() (line ~260)
+    // to return SILENT_PASSTHROUGH for ALL apps, completely disabling
+    // the blocker enforcement engine until the next alarm naturally fired
+    // and properly dismissed (observed: ~2 hours of zero enforcement on
+    // 2026-05-02 between 20:00-21:52).
+    //
+    // FIX:
+    // This override cleanly tears down the previous alarm's hardware alerts
+    // (MediaPlayer + Vibrator), resets the dismiss guard, swaps the Intent,
+    // and fully re-initializes audio + UI for the new alarm. The user sees
+    // a seamless transition from "CHECKPOINT" to "TIME'S UP" with correct
+    // audio and a working dismiss button.
+    // ═══════════════════════════════════════════════════════════════════════
+    override fun onNewIntent(newIntent: Intent) {
+        super.onNewIntent(newIntent)
+        Log.i(TAG, "==== [WAKE ACTIVITY NEW INTENT — SEQUENTIAL ALARM] ====")
+        Log.w(TAG, "[NEW INTENT] A new alarm fired while this Activity was still visible. Performing hot-swap.")
+
+        // Phase 1: Tear down the previous alarm's audio/vibration to prevent
+        // zombie MediaPlayer instances stacking up in memory.
+        terminateHardwareAlerts()
+
+        // Phase 2: Reset the dismiss guard. Without this, onDestroy() would
+        // see hasScheduledNext=true from the OLD alarm and skip scheduling
+        // the next alarm in the chain, breaking the entire alarm schedule.
+        hasScheduledNext = false
+
+        // Phase 3: Replace the Activity's internal Intent reference.
+        // All subsequent calls to getIntent() (including the dismiss handler)
+        // will now return the NEW alarm's data instead of the stale one.
+        intent = newIntent
+
+        // Phase 4: Re-extract all parameters from the new alarm's Intent.
+        val taskInstanceId = newIntent.getStringExtra(EXTRA_INSTANCE_ID) ?: ""
+        val taskTitle = newIntent.getStringExtra(EXTRA_TITLE) ?: "Unknown Task"
+        val isPreAlarm = newIntent.getBooleanExtra(EXTRA_IS_PRE_ALARM, false)
+        val mainTimeMs = newIntent.getLongExtra(EXTRA_MAIN_TIME_MS, 0L)
+        val soundKey = newIntent.getStringExtra(EXTRA_SOUND_KEY) ?: "Default"
+        val alarmType = newIntent.getStringExtra(EXTRA_ALARM_TYPE) ?: if (isPreAlarm) "PRE_ALARM" else "MAIN_ALARM"
+        val isStayThroughout = newIntent.getBooleanExtra(EXTRA_IS_STAY_THROUGHOUT, false)
+
+        Log.i(TAG, "[NEW INTENT] Hot-swapping to: Type=[$alarmType], Title=[$taskTitle], ID=[$taskInstanceId]")
+
+        // Phase 5: Start the new alarm's audio with the correct sound key.
+        initiateHardwareAlerts(soundKey)
+
+        // Phase 6: Rebuild the entire native View tree (title, buttons, colors)
+        // to reflect the new alarm type. setContentView() inside this method
+        // replaces the old UI entirely.
+        constructVisualHierarchy(taskTitle, taskInstanceId, isPreAlarm, mainTimeMs, alarmType, isStayThroughout)
+
+        Log.i(TAG, "==== [WAKE HOT-SWAP COMPLETE] ====")
+    }
+
 
     /**
      * elevateWindowPermissions()
@@ -398,6 +476,71 @@ class AlarmActivity : Activity() {
         }
         alertMediaPlayer = null
         deviceVibrator?.cancel()
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // PRODUCTION FIX: Dead-Man's Switch for Backgrounded Alarms
+    // (Incidents: 2026-05-02 @ 20:00-21:52 PM — "Zombie Alarm";
+    //  2026-05-03 @ 05:27 AM — "Alarm Disappeared")
+    //
+    // ROOT CAUSE:
+    // The Android Activity lifecycle does NOT guarantee that onDestroy() is
+    // called promptly (or at all) when an Activity loses visibility. If:
+    //   a) Another app's alarm overlay covers our AlarmActivity, OR
+    //   b) The user presses Home to escape the alarm screen, OR
+    //   c) The OS moves our Activity to the background for memory pressure,
+    // then onStop() fires but onDestroy() may be delayed indefinitely.
+    //
+    // WITHOUT THIS OVERRIDE:
+    // 1. The MediaPlayer continues looping audio in the background (zombie)
+    // 2. The `is_alarm_active` SharedPreferences flag stays TRUE
+    // 3. BlockerAccessibilityService reads this flag every 5 seconds via
+    //    checkGlobalAlarmMutex() and enters SILENT_PASSTHROUGH mode
+    // 4. ALL app blocking ceases — the user can freely open Instagram,
+    //    YouTube, etc. with zero enforcement (observed for ~2 hours)
+    // 5. The user cannot dismiss the alarm because the UI is gone
+    // 6. Only a phone restart or the next scheduled alarm can break the
+    //    deadlock
+    //
+    // FIX:
+    // This Dead-Man's Switch fires the moment the Activity becomes invisible.
+    // It immediately: kills audio, resets the blocker mutex, schedules the
+    // next alarm in the chain, and self-destructs. The blocker resumes
+    // enforcement within the next 5-second pulse cycle.
+    //
+    // GUARD CONDITIONS:
+    // - `hasScheduledNext`: Prevents double-firing if the user already
+    //   dismissed the alarm properly via the on-screen button.
+    // - `isFinishing`: Prevents interference if finish() was already called
+    //   by the dismiss handler and Android is tearing down the Activity.
+    // ═══════════════════════════════════════════════════════════════════════
+    override fun onStop() {
+        super.onStop()
+        Log.i(TAG, "==== [WAKE ACTIVITY STOPPED] ====")
+
+        if (!hasScheduledNext && !isFinishing) {
+            Log.w(TAG, "[RECOVERY] UI backgrounded without dismissal. Force closing to prevent zombie audio & broken blocker.")
+
+            // Kill the MediaPlayer and Vibrator immediately — every millisecond
+            // of zombie audio is a user-facing bug.
+            terminateHardwareAlerts()
+
+            // Propagate the schedule chain BEFORE resetting the mutex, so the
+            // next alarm is guaranteed to be registered even if this process
+            // is killed by the OS after onStop() returns.
+            AlarmScheduler.scheduleNextAlarm(applicationContext)
+
+            // Release the blocker mutex. This is the critical line that
+            // re-enables BlockerAccessibilityService enforcement.
+            setAlarmActiveState(false)
+
+            // Prevent onDestroy() from duplicating any of the above work.
+            hasScheduledNext = true
+
+            // Self-destruct: remove this ghost Activity from the back stack
+            // so it can't be resurrected by the task manager.
+            finish()
+        }
     }
 
     /**

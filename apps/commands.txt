@@ -6,4 +6,4 @@ git reset --hard HEAD
 git clean -fd
 
 adb shell ls /sdcard/Documents/CommitT/logs/
-adb pull /sdcard/Documents/CommitT/logs/commit-logcat-2026-04-29.log apps/transformation_logs.txt
+adb pull /sdcard/Documents/CommitT/logs/commit-logcat-2026-05-03.log apps/transformation_logs.txt

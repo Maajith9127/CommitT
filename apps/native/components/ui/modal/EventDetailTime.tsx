@@ -88,6 +88,51 @@ export function EventDetailTime({
     return `${m}m`;
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PRODUCTION FIX: React Hook Ordering Violation — "Rendered more hooks
+  // than during the previous render" (Incidents: 2026-05-02 @ 06:00 AM,
+  // 10:00 PM; 2026-05-03 @ 07:30 AM)
+  //
+  // ROOT CAUSE:
+  // This `useMemo` was originally located INSIDE the `else if (isStayThroughout)`
+  // conditional block below (~line 138). React enforces a strict rule that hooks
+  // must be called in the EXACT same order on every render. When a user opened
+  // a "just_show_up" task, this hook was skipped (fewer hooks). When they then
+  // navigated to a "stay_throughout" task, this hook executed (more hooks).
+  // React detected the mismatch and threw a fatal error, crashing the entire
+  // task detail modal.
+  //
+  // WHY IT ONLY CRASHED AT SPECIFIC TIMES:
+  // The 6:00 AM and 10:00 PM crashes occurred because those are task boundary
+  // transitions — the active task's `verification_style` flipped from
+  // "just_show_up" to "stay_throughout" (or vice versa) as one task ended and
+  // another began. The component re-rendered with a different branch, changing
+  // the hook count mid-lifecycle.
+  //
+  // FIX:
+  // Moved `useMemo` to the top level of the component (unconditional scope).
+  // It now executes on EVERY render regardless of task type. For non-
+  // "stay_throughout" tasks, it harmlessly computes 0 and the result is unused.
+  // This guarantees a stable hook call order across all render paths.
+  // ═══════════════════════════════════════════════════════════════════════════
+  const missedCount = useMemo(() => {
+    let count = 0;
+    if (checkpoints && Array.isArray(checkpoints)) {
+      checkpoints.forEach((cp: any) => {
+        const endTime = cp.end ?? cp.window_end_time;
+        const isExpired = now > endTime;
+
+        // A checkpoint is "missed" if its window has closed AND not all
+        // verification conditions (e.g., location) have been satisfied.
+        const statusVals = Object.keys(cp.verification_status || {}).map((k: string) => cp.verification_status[k]);
+        const allVerified = statusVals.length > 0 && statusVals.every((v: any) => v === "verified");
+
+        if (isExpired && !allVerified) count++;
+      });
+    }
+    return count;
+  }, [checkpoints, now]);
+
   let timerLabel = '';
   let timerValue = '';
   let timerTextColor = '';
@@ -120,29 +165,6 @@ export function EventDetailTime({
 
     const maxMissed = config?.stay_throughout_config?.max_missed_checkins ?? 0;
     
-    /**
-     * Tally current missed checkpoints.
-     * A checkpoint is missed if: Current Time > Checkpoint End AND it hasn't been verified.
-     * This calculation is memoized to prevent unnecessary re-renders unless
-     * `checkpoints` or `now` (current time) changes.
-     */
-    const missedCount = useMemo(() => {
-      let count = 0;
-      if (checkpoints && Array.isArray(checkpoints)) {
-        checkpoints.forEach((cp: any) => {
-          const endTime = cp.end ?? cp.window_end_time;
-          const isExpired = now > endTime;
-          
-          // Check if ALL required conditions for this ping were met
-          const statusVals = Object.keys(cp.verification_status || {}).map((k: string) => cp.verification_status[k]);
-          const allVerified = statusVals.length > 0 && statusVals.every((v: any) => v === "verified");
-          
-          if (isExpired && !allVerified) count++;
-        });
-      }
-      return count;
-    }, [checkpoints, now]);
-
     timerLabel = 'Missed Check-ins';
     timerValue = `${missedCount} / ${maxMissed} Max`;
     // Determine text color based on missed count vs max allowed
