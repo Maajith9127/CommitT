@@ -35,29 +35,48 @@ object AlarmScheduler {
     private const val KEY_ALARMS_LIST = "AlarmsListV2"
 
     /**
-     * ** Cached READ-ONLY database connection (Production-Critical Architecture) **
+     * ** SQLite Connection Strategy (Production-Critical Architecture) **
      *
-     * This connection is intentionally READONLY and cached as a singleton to prevent
-     * two distinct failure modes:
+     * DATABASE CONNECTION STRATEGY — Historical Incident Log:
      *
-     * 1. POSIX Error 9 ("Bad file descriptor"): Rapidly opening and closing connections
-     *    on the Lenovo K12 Note's eMMC storage caused file descriptor exhaustion,
-     *    crashing the scheduler. Caching eliminates open/close churn.
+     * BUG 0 — POSIX Error 9 ("Bad file descriptor"):
+     *    Originally, opening and closing SQLite connections caused file descriptor 
+     *    exhaustion on the Lenovo K12's eMMC storage. The app crashed because it 
+     *    leaked handles during exceptions. We incorrectly blamed the frequency of 
+     *    open/close operations and introduced a `cachedVaultDb` singleton to "fix" it.
      *
-     * 2. WAL Journal Corruption (April 2026 Root Cause):
+     * BUG 1 — WAL Journal Corruption (April 15, 2026):
      *    This native Kotlin connection and expo-sqlite's JS connection both access
      *    the same `commit.db` file simultaneously. When BOTH were READWRITE, they
-     *    maintained competing WAL writer locks. On fast UFS storage (Samsung), the
-     *    transactions completed before overlap occurred. On slow eMMC (Lenovo K12),
-     *    the transactions overlapped, corrupting the WAL journal and producing fatal
+     *    maintained competing WAL writer locks. On slow eMMC (Lenovo K12), the
+     *    transactions overlapped, corrupting the WAL journal and producing fatal
      *    `database disk image is malformed` errors within seconds of first boot.
+     *    FIX: Connection is now READONLY. The only write (markInstanceProceeded)
+     *    uses a dedicated, short-lived READWRITE connection.
      *
-     *    FIX: This connection is now READONLY. SQLite's WAL architecture permits
-     *    unlimited concurrent readers alongside a single writer (expo-sqlite).
-     *    The only write operation (markInstanceProceeded) uses a dedicated,
-     *    short-lived READWRITE connection that immediately closes after use.
+     * BUG 2 — Stale WAL Snapshot (May 3–4, 2026):
+     *    Caching the READONLY connection as a singleton caused it to hold a frozen
+     *    WAL snapshot from whenever it was first opened. When the user rescheduled
+     *    an event at 10:35 PM (TemporalShift: 5 AM → 4 AM), expo-sqlite wrote
+     *    the new time to the WAL, but the cached Kotlin reader still saw the OLD
+     *    5 AM start. The AlarmScheduler set PRE_ALARM for 4:45 AM instead of
+     *    3:45 AM, so no alarm fired at the correct time. Phone restart required.
+     *    FIX: No more caching. A fresh READONLY connection is opened and closed
+     *    on every scheduleNextAlarm() call, guaranteeing a current WAL snapshot.
+     *
+     * BUG 3 — Infinite Heal Loop / Nuke & Pave Cascade (May 8, 2026 @ 09:09 AM):
+     *    DIRECT CONSEQUENCE OF THE READWRITE CONTENTION (BUG 1). After ~100 minutes
+     *    in the background, the app's HydrationSync detected a 6,063-second gap and
+     *    triggered a Resurrection. Convex sync initiated Saga:DeleteInstance, but the
+     *    local SQLite delete (expo-sqlite) collided with the BlockerAccessibilityService's
+     *    cached READWRITE connection. expo-sqlite threw database disk image is malformed.
+     *    The HealStore retried 15 times over ~30 seconds — each attempt failed identically.
+     *    After exhausting all retries, the system triggered a full Nuke & Pave (database
+     *    deletion + Schema v12 rebuild from Convex). A phone restart was needed to stabilize.
+     *    ROOT CAUSE: The Blocker's cached READWRITE connection held a competing WAL writer
+     *    lock, making it impossible for expo-sqlite to complete any write/delete transaction.
+     *    FIX: Blocker moved to READONLY. Scheduler already uses fresh-per-call READONLY.
      */
-    private var cachedVaultDb: SQLiteDatabase? = null
 
     /**
      * AUDIO RESOURCE MAP (Production Sound Pipeline)
@@ -114,27 +133,29 @@ object AlarmScheduler {
             return
         }
 
+        var database: SQLiteDatabase? = null
         try {
-            if (cachedVaultDb == null || !cachedVaultDb!!.isOpen) {
-                Log.d(TAG, "[DATABASE ACCESS] Unlocking SQLite Vault (READONLY) at path: ${dbFile.absolutePath}")
-                
-                /**
-                 * ** READONLY + WAL: The Safe Coexistence Formula **
-                 *
-                 * OPEN_READONLY ensures this native connection never acquires a WAL
-                 * writer lock, which would collide with expo-sqlite's writer on eMMC.
-                 * enableWriteAheadLogging() ensures this connection reads from the WAL
-                 * (matching expo-sqlite's journal_mode=wal) instead of forcing a
-                 * checkpoint that would block the JS-side writer mid-transaction.
-                 */
-                cachedVaultDb = SQLiteDatabase.openDatabase(
-                    dbFile.absolutePath, 
-                    null, 
-                    SQLiteDatabase.OPEN_READONLY
-                )
-                cachedVaultDb!!.enableWriteAheadLogging()
-            }
-            val database = cachedVaultDb!!
+            Log.d(TAG, "[DATABASE ACCESS] Opening FRESH SQLite Vault (READONLY) at path: ${dbFile.absolutePath}")
+            
+            /**
+             * ** FRESH READONLY + WAL: The Stale-Proof Formula **
+             *
+             * OPEN_READONLY ensures this native connection never acquires a WAL
+             * writer lock, which would collide with expo-sqlite's writer on eMMC.
+             * enableWriteAheadLogging() ensures this connection reads from the WAL
+             * (matching expo-sqlite's journal_mode=wal) instead of forcing a
+             * checkpoint that would block the JS-side writer mid-transaction.
+             *
+             * CRITICAL: We open a FRESH connection every time (no caching) so that
+             * we always get the latest WAL snapshot. A cached READONLY connection
+             * would freeze its view of the database at the moment it was first opened.
+             */
+            database = SQLiteDatabase.openDatabase(
+                dbFile.absolutePath, 
+                null, 
+                SQLiteDatabase.OPEN_READONLY
+            )
+            database.enableWriteAheadLogging()
             
             val currentTimeMs = System.currentTimeMillis()
             Log.d(TAG, "[TIME] Current System Time: $currentTimeMs (${formatTimestamp(currentTimeMs)})")
@@ -243,16 +264,14 @@ object AlarmScheduler {
         } catch (exception: Exception) {
             // Highly robust Exception Catching. If the DB blew up unexpectedly, just use the Sticky Note anyway!
             Log.e(TAG, "[SYSTEM FAILURE] SQLite evaluation chain completely broke down. Forcing fallback cache delegation. Exception output: ${exception.message}", exception)
-            
-            // Destroy the corrupt cache if a collision happens, allowing a fresh rebuild next pulse
-            try {
-                cachedVaultDb?.close()
-            } catch (ignored: Exception) {}
-            cachedVaultDb = null
-            
             scheduleFromStickyNote(context)
         } finally {
-            // DO NOT database?.close() here because we are natively caching the connection!
+            // ALWAYS close the connection to prevent stale WAL snapshots on next invocation.
+            // This is the core fix for the May 3–4 reschedule bug: a fresh connection
+            // every time guarantees we read the latest expo-sqlite writes.
+            try {
+                database?.close()
+            } catch (ignored: Exception) {}
             Log.i(TAG, "==== [MASTER SCHEDULING SEQUENCE COMPLETED] ====")
         }
     }
@@ -386,12 +405,9 @@ object AlarmScheduler {
      * 1. This function is called RARELY (only when user dismisses a MAIN alarm).
      * 2. The connection lives for ~2ms (one UPDATE statement), so there is no
      *    sustained overlap with expo-sqlite's writer.
-     * 3. Unlike the cached READONLY connection (which must survive the full app
-     *    lifecycle to prevent POSIX Error 9), a write connection that opens
-     *    and closes once per alarm dismiss has zero churn risk.
      *
-     * NOTE: This deliberately does NOT use cachedVaultDb. The cached connection
-     * is READONLY and cannot execute UPDATE statements.
+     * NOTE: scheduleNextAlarm() uses its own fresh READONLY connection per call.
+     * This write connection is separate because it needs READWRITE access.
      */
     fun markInstanceProceeded(context: Context, instanceId: String) {
         Log.i(TAG, "==== [MUTATION SEQUENCE INITIATED] ====")
