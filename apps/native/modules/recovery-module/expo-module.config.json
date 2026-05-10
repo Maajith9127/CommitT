@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["RecoveryModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.recoverymodule.RecoveryModule"]
+  }
+}

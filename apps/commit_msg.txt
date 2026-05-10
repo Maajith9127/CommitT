@@ -1,26 +1,16 @@
-fix(native): resolve alarm zombie states and react hook ordering violations
+fix(sync): resolve May 8th infinite heal loop & eliminate SQLite WAL corruption
 
-This commit hardens the Android alarm infrastructure and stabilizes the React
-UI lifecycle to prevent silent background ringing, blocker suppression, and
-production crashes during task transitions.
+This commit addresses a critical, stacked synchronization failure (the "Zombie Loop") where the React Native JS thread would become trapped in an infinite Forward-Heal retry loop due to underlying Native Android SQLite locking conflicts.
 
-- fix(ui): eliminate React Hook violation in EventDetailTime.tsx
-  Moved `missedCount` useMemo to the component's top-level scope to prevent
-  "Rendered more hooks than during the previous render" errors. This crash 
-  previously occurred during task boundary transitions (e.g., 6AM/10PM) when 
-  the verification style flipped, changing the hook execution count.
+Native Architecture Changes:
+- Refactored `BlockerAccessibilityService` to establish a `READONLY` SQLite connection.
+- Eliminated `SQLITE_BUSY` (5) locks and prevented WAL corruption (`database disk image is malformed`) caused by the background service fighting the React Native process for `READWRITE` access.
 
-- fix(android): implement sequential alarm hot-swapping in AlarmActivity
-  Added `onNewIntent()` to handle back-to-back alarms delivered via 
-  FLAG_ACTIVITY_SINGLE_TOP. This ensures the previous MediaPlayer is released 
-  and the UI/audio are re-initialized for the new alarm, preventing the 
-  "phantom ringing" bug where audio loops with no visible way to dismiss.
+React Native Sync Engine (Circuit Breaker):
+- Implemented a Circuit Breaker pattern inside `useTaskActions.ts` Sagas.
+- The Heal loop now automatically trips if it hits 15 failed retries (~30 seconds) or detects a `ERR_ACCESS_CLOSED_RESOURCE` (which occurs when the "Nuke & Pave" rebuild wipes the database handle from beneath an active JS loop).
 
-- fix(android): add Dead-Man's Switch to AlarmActivity lifecycle
-  Implemented `onStop()` to forcibly terminate hardware alerts and release the 
-  `is_alarm_active` global mutex if the alarm is backgrounded or covered by 
-  another overlay. This restores BlockerAccessibilityService enforcement if 
-  an alarm is bypassed or hidden.
-
-- chore(android): fix missing Intent import in scheduler module
-
+Native Recovery Module (The Nuclear Reset):
+- Built a brand new Expo native module: `recovery-module`.
+- Implemented `nuclearReset()`, executing `android.os.Process.killProcess()` to forcefully purge corrupted JS memory states.
+- Upgraded `HealOverlay.tsx` and `useHealStore.ts` to replace the infinite spinner with an un-dismissible custom `ConfirmationModal` that triggers this native OS-level reboot, allowing the Accessibility Service to auto-restart and the JS engine to grab a fresh SQLite handle upon next launch.

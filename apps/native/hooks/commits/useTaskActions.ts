@@ -25,7 +25,7 @@ import type { Task } from './useTasks';
 export function useTaskActions() {
   const router = useRouter();
   const convex = useConvex();
-  const { startHealing, stopHealing } = useHealStore();
+  const { startHealing, stopHealing, triggerCrash } = useHealStore();
   const setDraft = useTaskDraftStore((state) => state.setDraft);
   const resetDraft = useTaskDraftStore((state) => state.resetDraft);
   const setAssigner = useTaskDraftStore((state) => state.setAssigner);
@@ -129,8 +129,13 @@ export function useTaskActions() {
               Logger.info(`[TaskSaga] Fixed Forward-Heal successful for ${ctx.taskId} on attempt ${attempts}`);
               break;
 
-            } catch (error) {
+            } catch (error: any) {
               Logger.error(`[TaskSaga] Heal attempt ${attempts} failed:`, error);
+              if (String(error).includes('ERR_ACCESS_CLOSED_RESOURCE') || attempts >= 15) {
+                Logger.error(`[TaskSaga] Zombie handle or max attempts reached. Forcing reset.`);
+                triggerCrash("A persistent synchronization issue was detected. The app will now safely restart to recover.");
+                break;
+              }
               await new Promise(r => setTimeout(r, 2000));
             }
           }
@@ -264,8 +269,13 @@ export function useTaskActions() {
               Logger.info(`[InstanceSaga] Fixed Forward-Heal successful for instance ${ctx.instanceConvexId} on attempt ${attempts}`);
               break;
 
-            } catch (error) {
+            } catch (error: any) {
               Logger.error(`[InstanceSaga] Instance heal attempt ${attempts} failed:`, error);
+              if (String(error).includes('ERR_ACCESS_CLOSED_RESOURCE') || attempts >= 15) {
+                Logger.error(`[InstanceSaga] Zombie handle or max attempts reached. Forcing reset.`);
+                triggerCrash("A persistent synchronization issue was detected. The app will now safely restart to recover.");
+                break;
+              }
               await new Promise(r => setTimeout(r, 2000));
             }
           }
