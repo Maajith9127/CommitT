@@ -1,0 +1,250 @@
+================================================================================
+  CASE STUDY: The May 8th Infinite Heal Loop & Database Zombification
+================================================================================
+
+  Date of Incident:    May 8, 2026
+  Time of Incident:    09:08 AM – 13:36 PM
+  Primary Symptoms:    App stuck in an "Infinite" Synchronization loop
+                       (HealStore spinning up to Attempt 26+), UI locked,
+                       and backend sync failing locally.
+
+================================================================================
+  1. EXECUTIVE SUMMARY
+================================================================================
+
+  On May 8th, the CommitT app experienced a catastrophic synchronization
+  failure resulting in a seemingly infinite "Synchronization in Progress"
+  screen. The failure was not caused by a single bug, but rather TWO
+  STACKED ARCHITECTURAL BUGS that cascaded into each other.
+
+  Bug A (The Trigger):
+    A native Android service (BlockerAccessibilityService) was holding a
+    READWRITE lock on the SQLite database, causing the JS-side React
+    Native engine to fail with a "database disk image is malformed"
+    error when attempting to sync.
+
+  Bug B (The Death Loop):
+    When the JS engine's emergency recovery system ("Nuke & Pave") wiped
+    and rebuilt the database, the active sync retry loop kept a reference
+    to the OLD, DESTROYED database handle. This "Zombie Handle" meant
+    the loop could never succeed, even after the database was fixed.
+
+
+================================================================================
+  2. FULL FORENSIC TIMELINE
+================================================================================
+
+  [09:08:48]  USER OPENS APP
+              HydrationSync detects a 6,063-second gap (~100 min
+              in the background) and triggers a Resurrection.
+              Log: "[HydrationSync] Foreground transition. Gap: 6063s."
+
+  [09:08:55]  SAGA IHRKOK STARTS
+              Delete instance jh7d5...y1.
+              Phase 1 (Cloud delete on Convex) — SUCCEEDS.
+              Log: "Phase: Cloud Eradication (Convex Instance)"
+
+  [09:08:57]  PHASE 2 FAILS — WAL CORRUPTION
+              Local SQLite delete fails. The Blocker's native READWRITE
+              connection is holding a WAL Writer lock, corrupting the DB.
+              Log: "FATAL ERROR: database disk image is malformed"
+
+  [09:08:58]  FORWARD-HEAL TRIGGERED — SPINNING SCREEN APPEARS
+              Saga rolls back the cloud delete.
+              HealStore activates the "Synchronization in Progress" overlay.
+              Log: "[HealStore] startHealing triggered"
+
+  [09:08:59 – 09:09:25]  ATTEMPTS 1 THROUGH 11 — ALL FAIL
+              Every 2 seconds, the Heal loop retries and gets the same
+              "malformed" error. The Blocker's READWRITE lock is still
+              actively corrupting the WAL journal.
+              Log: "Instance heal attempt X failed: database disk image
+                    is malformed"
+
+  [09:09:25]  ATTEMPT 12 — NUKE & PAVE FIRES
+              The SyncEngine's emergency recovery detects structural
+              corruption and wipes the entire database. It rebuilds
+              a fresh Schema v12 from scratch.
+              Log: "Executing full Nuke & Pave rebuild..."
+              Log: "[LocalDB] Nuke & Pave complete. Schema v12 deployed."
+
+  [09:09:27 – 09:09:32]  ATTEMPTS 13 THROUGH 15 — ZOMBIE HANDLE
+              Still failing, but with a NEW error. The Nuke & Pave
+              destroyed the old DB file, but the Heal loop's closure
+              still holds a reference to the OLD, now-dead DB handle.
+              Log: "Call to function 'NativeDatabase.prepareAsync'
+                    has been rejected"
+
+  [09:09:33]  USER SWIPES APP AWAY
+              User gets frustrated and swipes the app to the Samsung
+              launcher. The app goes invisible.
+              Log: "WindowStopped on com.mono.commit... set to true"
+
+  [09:18:09]  USER REOPENS APP (~9 MINUTES LATER)
+              Fresh JS engine boot (Running "main").
+              Log: "Running main"
+
+  [09:18:10]  HEAL LOOP SURVIVES THE RESTART
+              The loop did NOT reset its attempt counter. It jumps
+              straight to Attempt 16, still using the dead DB reference.
+              Log: "Instance heal attempt 16 failed: Access to
+                    closed resource"
+
+  [09:18:10 – 09:18:32]  ATTEMPTS 16 THROUGH 26 — ZOMBIE SPINS
+              All fail with "Access to closed resource". The loop
+              is mathematically guaranteed to never succeed because
+              it is writing to a handle that no longer exists.
+              Log: "ERR_ACCESS_CLOSED_RESOURCE"
+
+  [09:18:34]  USER SWIPES APP AWAY AGAIN
+              Second WindowLeaked error.
+              Log: "WindowLeaked: Activity com.mono.commit.MainActivity
+                    has leaked window"
+
+  [09:18:34 – 13:36:36]  4-HOUR GAP
+              The user likely restarted the phone during this window.
+              No JS-side logs exist for this period.
+
+  [13:36:36]  FULL PROCESS RESTART — FRESH BOOT
+              New PID (2440). Brand new Convex client (Iteration 0).
+              Log: "CONVEX REBIRTH: Spawning fresh client..."
+
+  [13:36:42]  HYDRATION SYNC SUCCEEDS
+              Fresh DB handle. Ingests 54 instances successfully.
+              SyncEngine works perfectly on the rebuilt Schema v12.
+              Log: "[SyncEngine] Sync Complete."
+
+  [13:36:49]  HEAL LOOP FINALLY ENDS
+              Saga:ManualResync succeeds. stopHealing is called.
+              The spinning screen is gone. System is stable.
+              Log: "[HealStore] stopHealing triggered"
+
+
+================================================================================
+  3. IN-DEPTH ROOT CAUSE ANALYSIS
+================================================================================
+
+  ---- BUG A: The Native WAL Writer Lock (The Trigger) ----
+
+  File:
+    apps/native/modules/blocker-module/android/src/main/java/
+    expo/modules/blocker/BlockerAccessibilityService.kt
+
+  Previous State:
+    The service was holding a cached SQLiteDatabase instance opened
+    with OPEN_READWRITE (or default null mode).
+
+  The Issue:
+    By keeping a READWRITE connection open indefinitely, the native
+    Android module held a WAL (Write-Ahead Log) Writer lock. When
+    expo-sqlite (the JS thread) attempted to execute a DELETE
+    transaction during the Saga, the two writers collided on the
+    eMMC storage. SQLite's integrity checker correctly threw:
+    ERR_INTERNAL_SQLITE_ERROR: database disk image is malformed
+
+  Why It Happened:
+    The app was backgrounded for ~100 minutes. During that time, the
+    BlockerAccessibilityService kept its READWRITE connection alive
+    (it runs as an Android Service, independent of the app UI). When
+    the user returned and triggered a deletion, the JS thread's
+    expo-sqlite tried to write at the exact same time as the Blocker's
+    stale READWRITE handle, causing a WAL journal collision.
+
+
+  ---- BUG B: The React Native Zombie DB Handle (The Loop) ----
+
+  Files:
+    apps/native/hooks/commits/useTaskActions.ts
+      (inside deleteInstance and deleteTask Sagas)
+    apps/native/lib/sync-engine.ts
+      (inside ingestDeltaPayload)
+
+  The Issue:
+    The "while (true)" retry loop in the compensate block of the
+    Saga captures the "db" variable (const db = useSQLiteContext())
+    in its JavaScript closure at the time the component renders.
+
+  The Collision:
+    When ingestDeltaPayload caught the "malformed" error, it
+    successfully executed the "Nuke & Pave" protocol (deleting
+    the DB file and resetting it). However, the "while (true)"
+    loop in useTaskActions.ts was still running and still holding
+    the OLD "db" memory reference from the closure.
+
+  The Result:
+    Every attempt after Attempt 11 was trying to call
+    db.runAsync(...) on a destroyed database handle. This resulted
+    in ERR_ACCESS_CLOSED_RESOURCE. Because the loop has NO maximum
+    attempt limit, it spun endlessly — 26 attempts over ~10 minutes
+    before the user killed it, and it would have continued forever.
+
+
+================================================================================
+  4. FIXES IMPLEMENTED
+================================================================================
+
+  ---- Fix 1: Eliminating Bug A (Database Contention) ----
+
+  The Native Android modules have been entirely refactored to be
+  passive, READONLY observers.
+
+  BlockerAccessibilityService:
+    - Changed to SQLiteDatabase.OPEN_READONLY.
+    - Implemented a 5-second TTL cache (pulseRunnable) to ensure
+      freshness without handle exhaustion.
+    - The service can no longer hold a Writer lock under any
+      circumstances.
+
+  AlarmScheduler:
+    - Removed caching entirely.
+    - Opens a fresh OPEN_READONLY connection for every check.
+    - Uses a dedicated, tightly-scoped OPEN_READWRITE connection
+      ONLY when marking a task as proceeded (markInstanceProceeded).
+      This write window is ~2ms and immediately closed.
+
+  ---- Fix 2: Documenting the Architecture ----
+
+  Both BlockerAccessibilityService.kt and AlarmScheduler.kt now
+  contain extensive "Historical Incident Logs" in their file headers
+  detailing this exact May 8th incident to ensure future maintainers
+  do not revert the READONLY architecture.
+
+
+================================================================================
+  5. FUTURE RECOMMENDATIONS (Fixing Bug B)
+================================================================================
+
+  While Bug A (the trigger) has been entirely eradicated, Bug B
+  (the zombie loop) still exists in the JS architecture. If a
+  future, unrelated issue triggers a "Nuke & Pave", the infinite
+  loop could return.
+
+  Recommended Action 1 — Add an Attempt Cap:
+    Introduce a MAX_ATTEMPTS = 15 limit to the "while (true)" loop
+    in useTaskActions.ts. If it fails 15 times, call stopHealing(),
+    alert the user, and exit the loop gracefully.
+
+  Recommended Action 2 — Catch Closed Resources:
+    In the catch block of the Heal Loop, explicitly check for
+    ERR_ACCESS_CLOSED_RESOURCE. If detected, immediately break
+    the loop, as retrying on a dead handle will mathematically
+    never succeed.
+
+  Proposed Code Fix (useTaskActions.ts):
+  ────────────────────────────────────────
+    catch (error: any) {
+      if (String(error).includes('ERR_ACCESS_CLOSED_RESOURCE')) {
+         Logger.error('Zombie database handle detected.');
+         break;
+      }
+      if (attempts >= 15) {
+         Logger.error('Max heal attempts reached. Giving up.');
+         break;
+      }
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  ────────────────────────────────────────
+
+================================================================================
+  END OF REPORT
+================================================================================
