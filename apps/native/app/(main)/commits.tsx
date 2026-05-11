@@ -3,6 +3,7 @@ import { View, FlatList, Pressable, Text, ScrollView, LayoutAnimation, Platform,
 import { useRouter } from "expo-router"; // Essential for navigation
 import { withUniwind } from "uniwind";
 import Animated, { FadeInUp, FadeOutUp, LinearTransition } from 'react-native-reanimated';
+import { THEME } from "@/constants/theme";
 
 // UI Components
 import { HeaderTitle, FooterText } from "@/components/ui/text";
@@ -287,7 +288,7 @@ export default function CommitsScreen() {
               exiting={FadeOutUp.duration(200)}
               style={{ overflow: 'hidden' }}
             >
-              <UView className="bg-black px-4 pt-0 pb-0">
+              <UView className="px-4 pt-0 pb-0" style={{ backgroundColor: THEME.colors.pureBlack }}>
                 <ConditionCard
                   icon="alert-circle-outline"
                   title="Permissions Missing"
@@ -302,13 +303,13 @@ export default function CommitsScreen() {
           );
         case "quick":
           return (
-             <UView className={`bg-black px-4 pb-2 ${hasPermissionWarning ? "pt-0" : "pt-4"}`}>
+             <UView className={`px-4 pb-2 ${hasPermissionWarning ? "pt-0" : "pt-4"}`} style={{ backgroundColor: THEME.colors.pureBlack }}>
                 <VerificationCard className="mt-0" onPress={() => router.push("/verify")} />
             </UView>
           );
         case "schedules_title":
           return (
-            <UView className="bg-black px-4 py-2 pb-1">
+            <UView className="px-4 py-2 pb-1" style={{ backgroundColor: THEME.colors.pureBlack }}>
               <UView className="w-full flex-row items-center justify-between">
                 <HeaderTitle>CommitTs</HeaderTitle>
                 <AddButton onPress={() => session?.user?.id && handleCreateNew(session.user.id)} />
@@ -317,7 +318,7 @@ export default function CommitsScreen() {
           );
         case "task_item":
           return item.data ? (
-            <UView className="bg-black px-4 p-2">
+            <UView className="px-4 p-2" style={{ backgroundColor: THEME.colors.pureBlack }}>
               <CommitCard
                 title={item.data.title}
                 conditions={item.data.conditions?.length ?? 0}
@@ -365,7 +366,7 @@ export default function CommitsScreen() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <UView className="flex-1 bg-black">
+    <UView className="flex-1" style={{ backgroundColor: THEME.colors.pureBlack }}>
       {/* 1. Main Content List (Unified Scroll Element) */}
       <ScrollView
         showsVerticalScrollIndicator={false}

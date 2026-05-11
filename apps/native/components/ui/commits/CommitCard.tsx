@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRef } from "react";
 import { Pressable, View, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
+import { THEME } from "@/constants/theme";
 
 import { FooterText, HeaderTitle } from "@/components/ui/text";
 
@@ -43,9 +44,12 @@ export function CommitCard({
     <Pressable onPress={onPress}>
       {({ pressed }: { pressed: boolean }) => (
         <UView
-          className={`border- w-full rounded-3xl border px-4 py-5 ${className}`}
+          className={`w-full ${className}`}
           style={{
-            backgroundColor: pressed ? "#222222" : "#1A1A1A",
+            backgroundColor: pressed ? THEME.colors.surfaceElevated : THEME.colors.surface,
+            borderRadius: THEME.radii.card,
+            paddingHorizontal: THEME.spacing.lg,
+            paddingVertical: THEME.spacing.xl,
             transform: [{ scale: 1 }],
           }}
         >
@@ -57,9 +61,9 @@ export function CommitCard({
             {/* LEFT COLUMN — STATUS BADGE                                     */}
             {/* -------------------------------------------------------------- */}
             <UView className="w-[25%] items-start pt-1">
-              <UView className="flex-row items-center rounded-full bg-[#2A2A2A] px-3 py-1">
-                <MaterialCommunityIcons name="record-circle" size={16} color="#4FA0FF" />
-                <FooterText className="ml-1 font-semibold text-blue-400">{statusLabel}</FooterText>
+              <UView className="flex-row items-center" style={{ backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full, paddingHorizontal: THEME.spacing.md, paddingVertical: THEME.spacing.xs }}>
+                <MaterialCommunityIcons name="record-circle" size={16} color={THEME.colors.primary} />
+                <FooterText className="ml-1 font-semibold" style={{ color: THEME.colors.primary }}>{statusLabel}</FooterText>
               </UView>
             </UView>
 
@@ -67,7 +71,7 @@ export function CommitCard({
             {/* CENTER COLUMN — ICON + TITLE + CONDITIONS                      */}
             {/* -------------------------------------------------------------- */}
             <UView className="w-[50%] items-center">
-              <MaterialCommunityIcons name={iconName} size={45} color="#4FA0FF" />
+              <MaterialCommunityIcons name={iconName} size={45} color={THEME.colors.primary} />
               <HeaderTitle className="mt-2 text-center">{title}</HeaderTitle>
               <FooterText className="mt-1 text-center">{conditions} conditions</FooterText>
             </UView>
@@ -81,7 +85,7 @@ export function CommitCard({
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <View ref={dotsRef} collapsable={false}>
-                  <MaterialCommunityIcons name="dots-vertical" size={26} color="#A0A0A0" />
+                  <MaterialCommunityIcons name="dots-vertical" size={26} color={THEME.colors.textMuted} />
                 </View>
               </TouchableOpacity>
             </UView>
@@ -93,13 +97,13 @@ export function CommitCard({
           <UView className="mt-4 flex-row justify-center gap-6">
             {/* TIME ICON */}
             <UView className="flex-row items-center">
-              <MaterialCommunityIcons name="timer" size={16} color="#8A8A8A" />
+              <MaterialCommunityIcons name="timer" size={16} color={THEME.colors.textMuted} />
               <FooterText className="ml-1">•</FooterText>
             </UView>
 
             {/* PHONE ICON + COUNT */}
             <UView className="flex-row items-center">
-              <MaterialCommunityIcons name="cellphone" size={16} color="#8A8A8A" />
+              <MaterialCommunityIcons name="cellphone" size={16} color={THEME.colors.textMuted} />
               <FooterText className="ml-1">1</FooterText>
             </UView>
           </UView>

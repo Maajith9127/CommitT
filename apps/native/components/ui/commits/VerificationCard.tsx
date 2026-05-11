@@ -92,9 +92,9 @@ export function VerificationCard({
   return (
     <UView className={`mt-4 ${className}`}>
       {/* OUTER TOUCH AREA */}
-      <UView className="rounded-3xl">
+      <UView style={{ borderRadius: THEME.radii.card }}>
         {/* INNER CARD */}
-        <UView className="rounded-4xl px-4 pt-2 pb-4" style={{ backgroundColor: THEME.colors.surface }}>
+        <UView style={{ backgroundColor: THEME.colors.surface, borderRadius: THEME.radii.inner, paddingHorizontal: THEME.spacing.lg, paddingTop: THEME.spacing.sm, paddingBottom: THEME.spacing.lg }}>
           {/* TITLE ROW */}
           <UView className="mb-2 flex-row items-center justify-between">
             <HeaderTitle className="pt-3 text-white text-xl">{displayTitle}</HeaderTitle>
@@ -110,7 +110,7 @@ export function VerificationCard({
           </PrimaryButton>
 
           {/* CHALLENGE + TIME MERGED */}
-          <UView className="w-full flex-row items-center justify-between rounded-4xl border border-dashed px-6 py-3" style={{ backgroundColor: THEME.colors.surfaceElevated, borderColor: THEME.colors.primary }}>
+          <UView className="w-full flex-row items-center justify-between border border-dashed" style={{ backgroundColor: THEME.colors.surfaceElevated, borderColor: THEME.colors.primary, borderRadius: THEME.radii.inner, paddingHorizontal: THEME.spacing.xxl, paddingVertical: THEME.spacing.md }}>
             {!nextEvent && timeText === "Loading..." ? (
                 <>
                     <SkeletonBlock width={80} height={20} borderRadius={4} />

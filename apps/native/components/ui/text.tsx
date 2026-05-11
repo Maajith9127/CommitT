@@ -16,8 +16,8 @@ export function AuthTitle({
 }) {
   return (
     <UText 
-      className={`mb-2 text-center font-light text-base ${className}`}
-      style={{ color: THEME.colors.textMuted }}
+      className={`mb-2 text-center ${className}`}
+      style={{ color: THEME.colors.textMuted, fontSize: THEME.typography.size.base, fontWeight: THEME.typography.weight.light }}
     >
       {children}
     </UText>
@@ -36,8 +36,8 @@ export function AuthHeading({
 }) {
   return (
     <UText 
-      className={`mb-6 text-center font-medium text-3xl ${className}`}
-      style={{ color: THEME.colors.textMain }}
+      className={`mb-6 text-center ${className}`}
+      style={{ color: THEME.colors.textMain, fontSize: THEME.typography.size.xxxl, fontWeight: THEME.typography.weight.medium }}
     >
       {children}
     </UText>
@@ -56,7 +56,7 @@ export function FooterText({
   className?: string;
   style?: any;
 }) {
-  return <UText className={`mt-1 text-xs ${className}`} style={[{ color: THEME.colors.textMuted }, style]}>{children}</UText>;
+  return <UText className={`mt-1 ${className}`} style={[{ color: THEME.colors.textMuted, fontSize: THEME.typography.size.xs }, style]}>{children}</UText>;
 }
 
 // -----------------------------
@@ -72,7 +72,7 @@ export function HeaderTitle({
   style?: object;
 }) {
   return (
-    <UText className={`font-semibold text-xl ${className}`} style={[{ color: THEME.colors.textMain }, style]}>
+    <UText className={`${className}`} style={[{ color: THEME.colors.textMain, fontSize: THEME.typography.size.xl, fontWeight: THEME.typography.weight.semibold }, style]}>
       {children}
     </UText>
   );
@@ -94,8 +94,8 @@ export function BodyText({
 }) {
   return (
     <UText 
-      className={`text-base ${className}`} 
-      style={[{ color: THEME.colors.textMain }, style]}
+      className={`${className}`} 
+      style={[{ color: THEME.colors.textMain, fontSize: THEME.typography.size.base }, style]}
       numberOfLines={numberOfLines}
     >
       {children}

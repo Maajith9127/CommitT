@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { View, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
-import { HeaderTitle } from "@/components/ui/text";
+import { FooterText } from "@/components/ui/text";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
@@ -39,7 +40,7 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
   };
 
   return (
-    <UView className="flex-row justify-around py-4 pb-7 bg-black">
+    <UView className="flex-row justify-around py-4 pb-7" style={{ backgroundColor: THEME.colors.pureBlack }}>
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const isFocused = state.index === index;
@@ -82,11 +83,17 @@ export function BottomTabBar({ state, descriptors, navigation }: BottomTabBarPro
             <Ionicons 
               name={isFocused ? iconFilled : icon} 
               size={26} 
-              color={isFocused ? "#4FA0FF" : "#FFFFFF"} 
+              color={isFocused ? THEME.colors.primary : THEME.colors.textMuted} 
             />
-            <HeaderTitle className={`text-xs mt-1 ${isFocused ? "text-[#4FA0FF]" : "text-white"}`}>
+            <FooterText 
+              style={{ 
+                marginTop: THEME.spacing.xs, 
+                color: isFocused ? THEME.colors.primary : THEME.colors.textMuted,
+                fontWeight: isFocused ? THEME.typography.weight.semibold : THEME.typography.weight.normal
+              }}
+            >
               {label}
-            </HeaderTitle>
+            </FooterText>
           </UButton>
         );
       })}

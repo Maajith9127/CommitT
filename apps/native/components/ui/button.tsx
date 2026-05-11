@@ -23,12 +23,12 @@ type BtnProps = {
 export function PrimaryButton({ children, className = "", onPress, textClassName = "", disabled = false }: BtnProps) {
   return (
     <UHeroButton
-      className={`w-full items-center justify-center rounded-full ${className}`}
-      style={{ backgroundColor: THEME.colors.primary }}
+      className={`w-full items-center justify-center ${className}`}
+      style={{ backgroundColor: THEME.colors.primary, borderRadius: THEME.radii.full }}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
     >
-      <UText className={`font-semibold text-lg text-white ${textClassName}`}>{children}</UText>
+      <UText className={`${textClassName}`} style={{ fontSize: THEME.typography.size.lg, fontWeight: THEME.typography.weight.semibold, color: THEME.colors.textMain }}>{children}</UText>
     </UHeroButton>
   );
 }
@@ -39,11 +39,11 @@ export function PrimaryButton({ children, className = "", onPress, textClassName
 export function SecondaryButton({ children, className = "", onPress }: BtnProps) {
   return (
     <UHeroButton
-      className={`items-center rounded-xl px-4 py-3 ${className}`}
-      style={{ backgroundColor: THEME.colors.surfaceElevated }}
+      className={`items-center ${className}`}
+      style={{ backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.md, paddingHorizontal: THEME.spacing.lg, paddingVertical: THEME.spacing.md }}
       onPress={onPress}
     >
-      <UText className="font-medium text-base text-white">{children}</UText>
+      <UText style={{ fontSize: THEME.typography.size.base, fontWeight: THEME.typography.weight.medium, color: THEME.colors.textMain }}>{children}</UText>
     </UHeroButton>
   );
 }
@@ -53,8 +53,8 @@ export function SecondaryButton({ children, className = "", onPress }: BtnProps)
 // ---------------------------
 export function LinkButton({ children, className = "", onPress }: BtnProps) {
   return (
-    <UHeroButton className={`py-2 ${className}`} onPress={onPress}>
-      <UText className="text-base underline" style={{ color: THEME.colors.primary }}>{children}</UText>
+    <UHeroButton className={`${className}`} style={{ paddingVertical: THEME.spacing.sm }} onPress={onPress}>
+      <UText style={{ color: THEME.colors.primary, fontSize: THEME.typography.size.base, textDecorationLine: "underline" }}>{children}</UText>
     </UHeroButton>
   );
 }
@@ -72,8 +72,8 @@ export function AddButton({
 }) {
   return (
     <UPressable
-      className={`h-fit flex-row items-center rounded-full px-2.5 py-1 ${className}`}
-      style={{ backgroundColor: THEME.colors.surface }}
+      className={`h-fit flex-row items-center ${className}`}
+      style={{ backgroundColor: THEME.colors.surface, borderRadius: THEME.radii.full, paddingHorizontal: 10, paddingVertical: THEME.spacing.xs }}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
     >
@@ -96,7 +96,7 @@ export function AddButton({
       </Svg>
 
       {/* TEXT */}
-      <UText className="ml-[2px] font-semibold text-base" style={{ color: THEME.colors.primary }}>Add</UText>
+      <UText className="ml-[2px]" style={{ color: THEME.colors.primary, fontSize: THEME.typography.size.base, fontWeight: THEME.typography.weight.semibold }}>Add</UText>
     </UPressable>
   );
 }
