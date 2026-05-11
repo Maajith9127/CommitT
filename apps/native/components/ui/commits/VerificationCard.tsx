@@ -7,6 +7,7 @@ import { useCalendarStore } from "@/stores/useCalendarStore";
 import { useVerificationStore } from "@/stores/useVerificationStore";
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
+import { THEME } from "@/constants/theme";
 
 import { SkeletonBlock } from '@/components/ui/skeletons/SkeletonBlock';
 
@@ -93,12 +94,12 @@ export function VerificationCard({
       {/* OUTER TOUCH AREA */}
       <UView className="rounded-3xl">
         {/* INNER CARD */}
-        <UView className="rounded-4xl bg-[#1A1A1A] px-4 pt-2 pb-4">
+        <UView className="rounded-4xl px-4 pt-2 pb-4" style={{ backgroundColor: THEME.colors.surface }}>
           {/* TITLE ROW */}
           <UView className="mb-2 flex-row items-center justify-between">
             <HeaderTitle className="pt-3 text-white text-xl">{displayTitle}</HeaderTitle>
 
-            <MaterialCommunityIcons name="shield-alert-outline" size={22} color="#8A8A8A" />
+            <MaterialCommunityIcons name="shield-alert-outline" size={22} color={THEME.colors.primary} />
           </UView>
 
           <UText className="mb-4 text-base text-gray-400">Start your verification.</UText>
@@ -109,7 +110,7 @@ export function VerificationCard({
           </PrimaryButton>
 
           {/* CHALLENGE + TIME MERGED */}
-          <UView className="w-full flex-row items-center justify-between bg-[#2A2A2A] rounded-4xl border border-dashed border-white/30 px-6 py-3">
+          <UView className="w-full flex-row items-center justify-between rounded-4xl border border-dashed px-6 py-3" style={{ backgroundColor: THEME.colors.surfaceElevated, borderColor: THEME.colors.primary }}>
             {!nextEvent && timeText === "Loading..." ? (
                 <>
                     <SkeletonBlock width={80} height={20} borderRadius={4} />

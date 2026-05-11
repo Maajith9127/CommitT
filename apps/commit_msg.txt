@@ -1,16 +1,12 @@
-fix(sync): resolve May 8th infinite heal loop & eliminate SQLite WAL corruption
+refactor(ui): establish centralized Saffron & Obsidian design system
 
-This commit addresses a critical, stacked synchronization failure (the "Zombie Loop") where the React Native JS thread would become trapped in an infinite Forward-Heal retry loop due to underlying Native Android SQLite locking conflicts.
+This commit transitions the application from scattered, hardcoded Tailwind utility classes to a high-production, centralized Design System (Theme Tokens), laying the groundwork for the new "Saffron Command Center" aesthetic.
 
-Native Architecture Changes:
-- Refactored `BlockerAccessibilityService` to establish a `READONLY` SQLite connection.
-- Eliminated `SQLITE_BUSY` (5) locks and prevented WAL corruption (`database disk image is malformed`) caused by the background service fighting the React Native process for `READWRITE` access.
+Tooling Fixes:
+- fix(scripts): Updated the `connect-phone.ps1` script regex. It now uses a strict `Where-Object` filter to explicitly ignore "Not shared" states, resolving the false-positive WSL attachment bug.
 
-React Native Sync Engine (Circuit Breaker):
-- Implemented a Circuit Breaker pattern inside `useTaskActions.ts` Sagas.
-- The Heal loop now automatically trips if it hits 15 failed retries (~30 seconds) or detects a `ERR_ACCESS_CLOSED_RESOURCE` (which occurs when the "Nuke & Pave" rebuild wipes the database handle from beneath an active JS loop).
-
-Native Recovery Module (The Nuclear Reset):
-- Built a brand new Expo native module: `recovery-module`.
-- Implemented `nuclearReset()`, executing `android.os.Process.killProcess()` to forcefully purge corrupted JS memory states.
-- Upgraded `HealOverlay.tsx` and `useHealStore.ts` to replace the infinite spinner with an un-dismissible custom `ConfirmationModal` that triggers this native OS-level reboot, allowing the Accessibility Service to auto-restart and the JS engine to grab a fresh SQLite handle upon next launch.
+UI Architecture & Theming:
+- feat(theme): Created `constants/theme.ts` as the single source of truth for the app's aesthetic, introducing the new primary Saffron color (`#C6613F`) and deep Obsidian backgrounds.
+- refactor(buttons): Overhauled all shared button components (`PrimaryButton`, `SecondaryButton`, `AddButton`, `LinkButton`) in `button.tsx` to dynamically pull from `THEME.colors`.
+- refactor(typography): Updated `text.tsx` components to use `THEME.colors.textMain` and `textMuted` for seamless future-proofing.
+- style(VerificationCard): Refactored `VerificationCard.tsx` to utilize the new surface tokens. Applied the vibrant Saffron color to the dynamic status border and shield icon to distinctly differentiate the app's aesthetic from generic Play Store blockers.

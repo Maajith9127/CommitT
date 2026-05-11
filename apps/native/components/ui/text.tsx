@@ -1,5 +1,6 @@
 import { Text } from "react-native";
 import { withUniwind } from "uniwind";
+import { THEME } from "@/constants/theme";
 
 const UText = withUniwind(Text);
 
@@ -14,7 +15,10 @@ export function AuthTitle({
   className?: string;
 }) {
   return (
-    <UText className={`mb-2 text-center font-light text-base text-gray-300 ${className}`}>
+    <UText 
+      className={`mb-2 text-center font-light text-base ${className}`}
+      style={{ color: THEME.colors.textMuted }}
+    >
       {children}
     </UText>
   );
@@ -31,7 +35,10 @@ export function AuthHeading({
   className?: string;
 }) {
   return (
-    <UText className={`mb-6 text-center font-medium text-3xl text-white ${className}`}>
+    <UText 
+      className={`mb-6 text-center font-medium text-3xl ${className}`}
+      style={{ color: THEME.colors.textMain }}
+    >
       {children}
     </UText>
   );
@@ -49,7 +56,7 @@ export function FooterText({
   className?: string;
   style?: any;
 }) {
-  return <UText className={`mt-1 text-gray-400 text-xs ${className}`} style={style}>{children}</UText>;
+  return <UText className={`mt-1 text-xs ${className}`} style={[{ color: THEME.colors.textMuted }, style]}>{children}</UText>;
 }
 
 // -----------------------------
@@ -65,7 +72,7 @@ export function HeaderTitle({
   style?: object;
 }) {
   return (
-    <UText className={`font-semibold text-white text-xl ${className}`} style={style}>
+    <UText className={`font-semibold text-xl ${className}`} style={[{ color: THEME.colors.textMain }, style]}>
       {children}
     </UText>
   );
@@ -87,8 +94,8 @@ export function BodyText({
 }) {
   return (
     <UText 
-      className={`text-white text-base ${className}`} 
-      style={style}
+      className={`text-base ${className}`} 
+      style={[{ color: THEME.colors.textMain }, style]}
       numberOfLines={numberOfLines}
     >
       {children}
