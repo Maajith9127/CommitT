@@ -4,4 +4,4 @@ style: harden Saffron/Obsidian design system across Schedules and Modals
 - Synchronized `EventDetailModal` contrast with `surface` charcoal backgrounds and `surfaceElevated` dividers, matching the Preset Picker aesthetic.
 - Overhauled `Schedules` calendar engine: implemented `pureBlack` axis headers and time columns with a `surface` charcoal event grid.
 - Fully themed `CaptchaWaiverView` infrastructure, including primary Saffron progress bars and elevated input interaction containers.
-- Standardized all verification status pills and action icons in `EventDetailHeader` to pull directly from success/danger theme tokens.
+- Standardized all verification status pills and action icons in `EventDetailHeader` to pull directly from success/danger theme tokens
