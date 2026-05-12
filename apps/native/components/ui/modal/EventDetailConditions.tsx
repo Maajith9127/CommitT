@@ -3,6 +3,7 @@ import { View, ScrollView, Image } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText, FooterText } from '@/components/ui/text';
+import { THEME } from '@/constants/theme';
 import { AppListerModule } from '@/modules/app-lister-module';
 import { HorizontalAppSkeleton } from '@/components/ui/skeletons/HorizontalAppSkeleton';
 import Animated, { 
@@ -31,7 +32,7 @@ export const PENALTY_MAP: Record<string, { icon: any; title: string; subtitle: s
     icon: 'currency-inr', 
     title: 'Money Penalty', 
     subtitle: 'Lose a fixed amount when you miss',
-    color: '#FF3B30'
+    color: THEME.colors.danger
   },
   embarrassing_photo: { 
     icon: 'camera-enhance-outline', 
@@ -43,7 +44,7 @@ export const PENALTY_MAP: Record<string, { icon: any; title: string; subtitle: s
     icon: 'email-outline', 
     title: 'Shame Email', 
     subtitle: 'Send an automated shame email to recipients',
-    color: '#FF3B30'
+    color: THEME.colors.danger
   },
   commit_direct: { 
     icon: 'account-alert-outline', 
@@ -61,13 +62,13 @@ export const WAIVER_MAP: Record<string, { icon: any; title: string; subtitle: st
     icon: 'shield-check-outline', 
     title: 'Solve CAPTCHAs', 
     subtitle: 'Solve a set number of CAPTCHAs to waive off penalty',
-    color: '#4CD964'
+    color: THEME.colors.success
   },
   paragraph: { 
     icon: 'pencil-outline', 
     title: 'Type Paragraph', 
     subtitle: 'Accurately type a long paragraph to avoid penalty',
-    color: '#4CD964'
+    color: THEME.colors.success
   },
 };
 
@@ -121,13 +122,13 @@ const CountdownPill = ({ expiresAt }: { expiresAt: number }) => {
       style={[
         animatedStyle, 
         { 
-          backgroundColor: isUrgent ? 'rgba(255, 59, 48, 0.2)' : 'rgba(79, 160, 255, 0.2)',
+          backgroundColor: isUrgent ? THEME.colors.danger + '33' : THEME.colors.primary + '33',
           borderWidth: 1,
-          borderColor: isUrgent ? '#FF3B30' : '#4FA0FF',
-          paddingHorizontal: 8,
+          borderColor: isUrgent ? THEME.colors.danger : THEME.colors.primary,
+          paddingHorizontal: THEME.spacing.sm,
           paddingVertical: 2,
-          borderRadius: 8,
-          marginLeft: 8,
+          borderRadius: THEME.radii.base,
+          marginLeft: THEME.spacing.sm,
           flexDirection: 'row',
           alignItems: 'center'
         }
@@ -136,10 +137,10 @@ const CountdownPill = ({ expiresAt }: { expiresAt: number }) => {
       <MaterialCommunityIcons 
         name="clock-outline" 
         size={10} 
-        color={isUrgent ? '#FF3B30' : '#4FA0FF'} 
+        color={isUrgent ? THEME.colors.danger : THEME.colors.primary} 
         style={{ marginRight: 4 }} 
       />
-      <BodyText style={{ color: isUrgent ? '#FF3B30' : '#4FA0FF', fontSize: 10, fontWeight: 'bold' }}>
+      <BodyText style={{ color: isUrgent ? THEME.colors.danger : THEME.colors.primary, fontSize: 10, fontWeight: 'bold' }}>
         {timeStr}
       </BodyText>
     </Animated.View>
@@ -172,7 +173,10 @@ export const InfoSection = ({
   expiresAt?: number;
   onPress?: () => void;
 }) => (
-  <UView className="border-b border-white/20 flex-row p-6 items-center">
+  <UView 
+    className="border-b flex-row p-6 items-center"
+    style={{ borderBottomColor: THEME.colors.surfaceElevated }}
+  >
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
     <UView className="flex-1 mr-4 overflow-hidden">
       <View className="flex-row items-center">
@@ -339,7 +343,10 @@ export const BlocklistSection = ({ event, onPress }: { event: any; onPress?: () 
   if (!blockCondition || appIds.length === 0) return null;
 
   return (
-    <UView className="border-b border-white/20 p-6">
+    <UView 
+      className="border-b p-6"
+      style={{ borderBottomColor: THEME.colors.surfaceElevated }}
+    >
       {/* ── HEADER ROW ── */}
       <UView className="flex-row items-center mb-5">
         <MaterialCommunityIcons name="cellphone-lock" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
@@ -372,7 +379,7 @@ export const BlocklistSection = ({ event, onPress }: { event: any; onPress?: () 
                 {app.icon ? (
                   <Image
                     source={{ uri: app.icon }}
-                    style={{ width: 32, height: 32, borderRadius: 8 }}
+                    style={{ width: 32, height: 32, borderRadius: THEME.radii.base }}
                   />
                 ) : (
                   /* Fallback icon if app was uninstalled but remains in history */
@@ -416,7 +423,10 @@ export const ConfigSection = ({ event }: { event: any }) => {
   if (!verificationStyle && !alarms && graceMinutes === 0) return null;
 
   return (
-    <UView className="p-6 border-b border-white/20">
+    <UView 
+      className="p-6 border-b"
+      style={{ borderBottomColor: THEME.colors.surfaceElevated }}
+    >
       {/* Verification Type */}
       {verificationStyle && (
         <UView className="flex-row items-center justify-between mb-6">

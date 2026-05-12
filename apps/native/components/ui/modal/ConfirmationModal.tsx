@@ -58,35 +58,48 @@ export function ConfirmationModal({
       >
         {/* Modal Content */}
         <UView 
-          className="w-full rounded-3xl p-5 shadow-xl"
-          style={{ backgroundColor: THEME.colors.surfaceElevated }}
+          className="w-full shadow-xl"
+          style={{ 
+            backgroundColor: THEME.colors.surfaceElevated, 
+            borderRadius: THEME.radii.card, 
+            padding: THEME.spacing.xxl 
+          }}
         >
           {/* 1. Title Area */}
-          <HeaderTitle className="text-center text-xl font-bold mb-2" style={{ color: THEME.colors.textMain }}>
+          <HeaderTitle 
+            className="text-center text-xl font-bold" 
+            style={{ color: THEME.colors.textMain, marginBottom: THEME.spacing.sm }}
+          >
             {title}
           </HeaderTitle>
 
           {/* Message — shown below the title when provided */}
           {message && (
-            <FooterText className="text-center text-base mb-4" style={{ color: THEME.colors.textMuted }}>
+            <FooterText 
+              className="text-center text-base" 
+              style={{ color: THEME.colors.textMuted, marginBottom: THEME.spacing.lg }}
+            >
               {message}
             </FooterText>
           )}
 
           {/* Optional custom children */}
           {children && (
-            <UView className="mb-4">
+            <UView style={{ marginBottom: THEME.spacing.lg }}>
               {children}
             </UView>
           )}
 
           {/* Buttons Row - RIGHT ALIGNED (or centered if single button) */}
-          <UView className={`flex-row ${singleButton ? "justify-center" : "justify-end"} space-x-6 gap-8`}>
+          <UView 
+            className={`flex-row ${singleButton ? "justify-center" : "justify-end"}`}
+            style={{ gap: THEME.spacing.xxl }}
+          >
             {/* 2. Cancel Button - only show if not single button mode */}
             {!singleButton && (
               <UPressable onPress={onCancel} hitSlop={10} disabled={isLoading}>
                   <FooterText 
-                      className="text-base font-bold uppercase"
+                      className="text-xl font-bold uppercase"
                       style={{ color: cancelColor, opacity: isLoading ? 0.5 : 1 }}
                   >
                       {cancelText}
@@ -100,7 +113,7 @@ export function ConfirmationModal({
                   <ActivityIndicator size="small" color={confirmColor} />
                 ) : (
                   <FooterText 
-                      className="text-base font-bold uppercase"
+                      className="text-xl font-bold uppercase"
                       style={{ color: confirmColor }}
                   >
                       {confirmText}

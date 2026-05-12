@@ -4,6 +4,7 @@ import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { GoogleMaps } from 'expo-maps';
 import { BodyText } from '@/components/ui/text';
+import { THEME } from '@/constants/theme';
 import { useLocation } from "@/hooks/useLocation";
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 import { useMutation } from 'convex/react';
@@ -260,7 +261,10 @@ export const LocationSection = React.memo(({
     };
 
     return (
-        <UView className="border-b border-white/20 flex-col pb-6"> 
+        <UView 
+          className="border-b flex-col pb-6"
+          style={{ borderBottomColor: THEME.colors.surfaceElevated }}
+        > 
             {/* Top Row: Icon + Address */}
             <UView className="px-6 py-6 flex-row items-center">
                 <MaterialCommunityIcons name="map-marker-outline" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
@@ -295,7 +299,7 @@ export const LocationSection = React.memo(({
                 onTouchEnd={onMapTouchEnd}
                 onTouchCancel={onMapTouchEnd}
             >
-            <UView className="w-full h-48 relative items-center justify-center bg-gray-700">
+            <UView className="w-full h-48 relative items-center justify-center" style={{ backgroundColor: THEME.colors.surfaceElevated }}>
                     {Platform.OS === 'android' ? (
                         <View style={{ flex: 1, width: '100%' }}>
                             <GoogleMaps.View
@@ -340,7 +344,7 @@ export const LocationSection = React.memo(({
                                                 radius,
                                             ).reverse(),
                                             ],
-                                            color: "#4FA0FF40",
+                                            color: `${THEME.colors.primary}40`,
                                             lineWidth: 0,
                                         },
                                         ]
@@ -350,8 +354,8 @@ export const LocationSection = React.memo(({
                                     {
                                         center: { latitude: displayLat, longitude: displayLng },
                                         radius: radius,
-                                        color: isInverse ? "transparent" : "#4FA0FF40",
-                                        lineColor: "#4FA0FF",
+                                        color: isInverse ? "transparent" : `${THEME.colors.primary}40`,
+                                        lineColor: THEME.colors.primary,
                                         lineWidth: 12,
                                     },
                                 ]}

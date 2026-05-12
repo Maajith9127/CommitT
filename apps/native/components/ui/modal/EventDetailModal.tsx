@@ -28,6 +28,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView } from 'react-native';
 import { withUniwind } from 'uniwind';
+import { THEME } from '@/constants/theme';
 
 // ── Core Infrastructure ────────────────────────────────────────────────────
 import { BaseDrawerModal } from './BaseDrawerModal';
@@ -100,7 +101,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
 
         {/* ── Scrollable Content ── */}
         <UScroll
-          className="flex-1 bg-[#1A1A1A]"
+          className="flex-1"
+          style={{ backgroundColor: THEME.colors.surface }}
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
@@ -170,7 +172,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         title="Delete this instance?"
         confirmText="Delete"
         cancelText="Cancel"
-        confirmColor="#FF3B30"
+        confirmColor={THEME.colors.danger}
         onConfirm={state.confirmDelete}
         onCancel={() => state.setDeleteConfirmVisible(false)}
         isLoading={state.isDeleting}
@@ -182,7 +184,7 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         title={state.failureModal.title}
         message={state.failureModal.message}
         confirmText="OK"
-        confirmColor="#FF3B30"
+        confirmColor={THEME.colors.danger}
         singleButton={true}
         onConfirm={() => state.setFailureModal({ visible: false, title: '', message: '' })}
         onCancel={() => state.setFailureModal({ visible: false, title: '', message: '' })}
@@ -208,8 +210,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         title={`Hey Do u want to start a Waive off session for this task?\n\n(if started you will have to finish within the delay, also don't worry if waiver session is enabled you can still verify the task)`}
         confirmText="Start"
         cancelText="Cancel"
-        confirmColor="#4FA0FF"
-        cancelColor="#FF3B30"
+        confirmColor={THEME.colors.primary}
+        cancelColor={THEME.colors.danger}
         isLoading={state.isStartingWaiver}
         onConfirm={state.handleStartWaiver}
         onCancel={() => state.setWaiverConfirmVisible(false)}
@@ -221,8 +223,8 @@ export const EventDetailModal = React.memo(function EventDetailModal() {
         title={`Activate Strict Mode?\n(You won't be able to edit or delete this task until it ends)`}
         confirmText="Activate"
         cancelText="Cancel"
-        confirmColor="#4FA0FF"
-        cancelColor="#FF3B30"
+        confirmColor={THEME.colors.primary}
+        cancelColor={THEME.colors.danger}
         isLoading={state.isLocking}
         onConfirm={state.handleActivateStrict}
         onCancel={() => state.setStrictConfirmVisible(false)}

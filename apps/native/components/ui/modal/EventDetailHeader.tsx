@@ -19,6 +19,7 @@ import { View, Pressable } from 'react-native';
 import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AuthHeading, BodyText } from '@/components/ui/text';
+import { THEME } from '@/constants/theme';
 
 // ── Uniwind-wrapped primitives ──────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -54,14 +55,14 @@ export function EventDetailHeader({
   let displayString = status?.replace('_', ' ');
 
   if (status === 'proceeded' || status === 'waived') {
-    borderColor = 'rgba(76, 217, 100, 0.4)';
-    bgColor = 'rgba(76, 217, 100, 0.1)';
-    textColor = '#4CD964';
+    borderColor = `${THEME.colors.success}66`; // 40% alpha
+    bgColor = `${THEME.colors.success}1A`; // 10% alpha
+    textColor = THEME.colors.success;
     if (status === 'waived') displayString = 'waived off';
   } else if (status === 'failed' || status === 'penalized') {
-    borderColor = 'rgba(255, 59, 48, 0.4)';
-    bgColor = 'rgba(255, 59, 48, 0.1)';
-    textColor = '#FF3B30';
+    borderColor = `${THEME.colors.danger}66`;
+    bgColor = `${THEME.colors.danger}1A`;
+    textColor = THEME.colors.danger;
   } else if (status === 'waiver_active') {
     borderColor = 'rgba(255, 159, 10, 0.4)';
     bgColor = 'rgba(255, 159, 10, 0.1)';
@@ -73,7 +74,7 @@ export function EventDetailHeader({
       {/* ── Top Row Actions (Close & More) ── */}
       <UView className="flex-row justify-between items-center px-4 py-4 pt-6">
         <UPressable onPress={onClose} hitSlop={10}>
-          <MaterialCommunityIcons name="close" size={24} color="white" />
+          <MaterialCommunityIcons name="close" size={24} color={THEME.colors.textMain} />
         </UPressable>
 
         <UPressable 
@@ -85,7 +86,7 @@ export function EventDetailHeader({
           }} 
           hitSlop={10}
         >
-          <MaterialCommunityIcons name="dots-vertical" size={24} color="white" />
+          <MaterialCommunityIcons name="dots-vertical" size={24} color={THEME.colors.textMain} />
         </UPressable>
       </UView>
 
