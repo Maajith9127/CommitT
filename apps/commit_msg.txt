@@ -1,7 +1,7 @@
-feat(ui): harden commitment setup and settings with design system tokens
+feat(ui): harden email setup screen with design system tokens
 
-- **Permissions**: Migrated status indicators and card surfaces to THEME tokens; standardized background to `pureBlack` for OLED high-fidelity.
-- **Penalties & Waivers**: Applied semantic color mapping (danger for penalties, success for waivers) across the selection UI, replacing hardcoded hex values.
-- **Digital Forfeit**: Hardened the "Embarrassing Photo" screen with theme-compliant card surfaces and radii.
-- **Fixes**: Resolved an image rendering issue in the forfeit setup by restoring standard `Image` components with explicit re-render keys for Convex signed URLs.
-- **Visual Polish**: Unified global backgrounds and component borders across all commitment configuration screens.
+- **Layout**: Migrated global backgrounds to `pureBlack` and `background` tokens.
+- **Fields**: Standardized field separators and input borders using `surfaceElevated` tokens.
+- **Typography**: Unified all labels, placeholders, and test-preview text to `textMuted`.
+- **Surfaces**: Optimized the image preview and test sandbox card with `surface` backgrounds, themed borders, and `radii` tokens.
+- **Icons**: Standardized header and action iconography to match the design system's text palette.

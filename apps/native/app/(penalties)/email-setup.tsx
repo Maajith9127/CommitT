@@ -9,6 +9,7 @@ import { api } from "@commit/backend/convex/_generated/api";
 import { ActionScreenLayout, HeaderTitle, BodyText, PrimaryButton } from "@/components/ui";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { usePenaltySync } from "@/hooks/commits/usePenaltySync";
+import { THEME } from "@/constants/theme";
 
 import { useFreshPhotoUrl } from "@/hooks/useFreshPhotoUrl";
 
@@ -58,22 +59,22 @@ export default function EmailSetupScreen() {
   };
 
   return (
-    <UView className="flex-1 bg-black">
+    <UView className="flex-1" style={{ backgroundColor: THEME.colors.pureBlack }}>
       {/* FIXED HEADER - Exact Spec */}
       <UView className="flex-row items-center justify-between px-4 py-4 pt-12">
         <UView className="flex-row items-center">
           <UPressable onPress={() => router.back()} className="mr-6">
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#E3E3E3" />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={THEME.colors.textMain} />
           </UPressable>
-          <HeaderTitle className="text-xl text-[#E3E3E3]">Preview</HeaderTitle>
+          <HeaderTitle className="text-xl" style={{ color: THEME.colors.textMain }}>Preview</HeaderTitle>
         </UView>
 
         <UView className="flex-row items-center gap-6">
-          <MaterialCommunityIcons name="attachment" size={24} color="#E3E3E3" />
+          <MaterialCommunityIcons name="attachment" size={24} color={THEME.colors.textMain} />
           <UPressable onPress={handleDone}>
-            <MaterialCommunityIcons name="send" size={24} color="#E3E3E3" />
+            <MaterialCommunityIcons name="send" size={24} color={THEME.colors.textMain} />
           </UPressable>
-          <MaterialCommunityIcons name="dots-vertical" size={24} color="#E3E3E3" />
+          <MaterialCommunityIcons name="dots-vertical" size={24} color={THEME.colors.textMain} />
         </UView>
       </UView>
 
@@ -114,59 +115,69 @@ export default function EmailSetupScreen() {
       >
         <ActionScreenLayout
           paddingHorizontal={16}
-          className="bg-black"
+          style={{ backgroundColor: THEME.colors.background }}
         >
           {/* FROM FIELD */}
-          <UView className="flex-row items-center py-4 border-b border-[#1A1A1A]">
-            <BodyText className="text-[#A0A0A0] w-20">From</BodyText>
-            <BodyText className="flex-1 text-[#888]">forfeit@commit.com</BodyText>
+          <UView className="flex-row items-center py-4 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
+            <BodyText className="w-20" style={{ color: THEME.colors.textMuted }}>From</BodyText>
+            <BodyText className="flex-1" style={{ color: THEME.colors.textMuted }}>forfeit@commit.com</BodyText>
           </UView>
 
           {/* TO FIELD - Direct Bind */}
-          <UView className="flex-row items-center py-4 border-b border-[#1A1A1A]">
-            <BodyText className="text-[#A0A0A0] w-20">To</BodyText>
+          <UView className="flex-row items-center py-4 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
+            <BodyText className="w-20" style={{ color: THEME.colors.textMuted }}>To</BodyText>
             <UTextInput
               value={config.emailTo || ""}
               onChangeText={(text) => syncToDraft({ emailTo: text })}
               placeholder="friend@example.com"
-              placeholderTextColor="#444"
-              className="flex-1 text-white text-base py-0"
+              placeholderTextColor={THEME.colors.textMuted}
+              className="flex-1 text-base py-0"
+              style={{ color: THEME.colors.textMain }}
               autoCapitalize="none"
               multiline={false}
             />
-            <MaterialCommunityIcons name="chevron-down" size={20} color="#A0A0A0" />
+            <MaterialCommunityIcons name="chevron-down" size={20} color={THEME.colors.textMuted} />
           </UView>
 
           {/* SUBJECT FIELD - Direct Bind */}
-          <UView className="flex-row items-center py-4 border-b border-[#1A1A1A]">
-            <BodyText className="text-[#A0A0A0] w-20">Subject</BodyText>
+          <UView className="flex-row items-center py-4 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
+            <BodyText className="w-20" style={{ color: THEME.colors.textMuted }}>Subject</BodyText>
             <UTextInput
               value={config.emailSubject || "I failed my commitment!"}
               onChangeText={(text) => syncToDraft({ emailSubject: text })}
               placeholder="Add a subject"
-              placeholderTextColor="#444"
-              className="flex-1 text-white text-base py-0 font-medium"
+              placeholderTextColor={THEME.colors.textMuted}
+              className="flex-1 text-base py-0 font-medium"
+              style={{ color: THEME.colors.textMain }}
             />
           </UView>
 
           {/* MESSAGE AREA - Direct Bind to description */}
-          <UView className="flex-row items-start py-4 border-b border-[#1A1A1A] min-h-[120px]">
-            <BodyText className="text-[#A0A0A0] w-20 mt-1">Message</BodyText>
+          <UView className="flex-row items-start py-4 border-b min-h-[120px]" style={{ borderColor: THEME.colors.surfaceElevated }}>
+            <BodyText className="w-20 mt-1" style={{ color: THEME.colors.textMuted }}>Message</BodyText>
             <UTextInput
               value={config.description || ""}
               onChangeText={(text) => syncToDraft({ description: text, emailBody: text })}
               placeholder="Start typing..."
-              placeholderTextColor="#444"
+              placeholderTextColor={THEME.colors.textMuted}
               multiline
               textAlignVertical="top"
-              className="flex-1 text-white text-base py-0 leading-6"
+              className="flex-1 text-base py-0 leading-6"
+              style={{ color: THEME.colors.textMain }}
             />
           </UView>
 
           <UView className="py-6">
             {/* INLINE IMAGE PREVIEW (X/Post Style) */}
             {freshUrl && (
-              <UView className="relative w-full aspect-square rounded-2xl overflow-hidden border border-[#333] bg-[#1A1A1A]">
+              <UView 
+                className="relative w-full aspect-square overflow-hidden border"
+                style={{ 
+                  backgroundColor: THEME.colors.surface, 
+                  borderRadius: THEME.radii.lg,
+                  borderColor: THEME.colors.surfaceElevated 
+                }}
+              >
                 <UImage source={{ uri: freshUrl }} className="w-full h-full" resizeMode="cover" />
                 
                 {/* Close Button Overlay */}
@@ -184,54 +195,64 @@ export default function EmailSetupScreen() {
           {/* ───────────────────────────────────────────────────────────── */}
           {/* HARD VISUAL SEPARATOR */}
           {/* ───────────────────────────────────────────────────────────── */}
-          <UView className="w-full h-[1px] bg-[#222] my-8" />
+          <UView className="w-full h-[1px] my-8" style={{ backgroundColor: THEME.colors.border }} />
 
           {/* TEST RECEIVER SANDBOX CARD */}
-          <UView className="bg-[#1A1A1A] border border-[#222] rounded-3xl py-5 mb-12">
+          <UView 
+            className="border py-5 mb-12"
+            style={{ 
+              backgroundColor: THEME.colors.surface, 
+              borderColor: THEME.colors.border,
+              borderRadius: THEME.radii.card 
+            }}
+          >
             <UView className="mb-4 px-4">
-              <HeaderTitle className="text-xl text-[#E3E3E3]">Test the receiver</HeaderTitle>
-              <BodyText className="text-[#888] text-sm mt-1">
+              <HeaderTitle className="text-xl" style={{ color: THEME.colors.textMain }}>Test the receiver</HeaderTitle>
+              <BodyText className="text-sm mt-1" style={{ color: THEME.colors.textMuted }}>
                 Preview how the email will look in their inbox.
               </BodyText>
             </UView>
 
             {/* FROM FIELD (TEST) */}
-            <UView className="flex-row items-center px-4 py-4 border-b border-[#2A2A2A]">
-              <BodyText className="text-[#A0A0A0] w-20">From</BodyText>
-              <BodyText className="flex-1 text-[#888]">forfeit@commit.com</BodyText>
+            <UView className="flex-row items-center px-4 py-4 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
+              <BodyText className="w-20" style={{ color: THEME.colors.textMuted }}>From</BodyText>
+              <BodyText className="flex-1" style={{ color: THEME.colors.textMuted }}>forfeit@commit.com</BodyText>
             </UView>
 
             {/* TO FIELD (TEST) */}
-            <UView className="flex-row items-center px-4 py-4 border-b border-[#2A2A2A]">
-              <BodyText className="text-[#A0A0A0] w-20">To</BodyText>
+            <UView className="flex-row items-center px-4 py-4 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
+              <BodyText className="w-20" style={{ color: THEME.colors.textMuted }}>To</BodyText>
               <UTextInput
                 value={config.emailTo || "friend@example.com"}
                 editable={false}
-                placeholderTextColor="#444"
-                className="flex-1 text-[#888] text-base py-0"
+                placeholderTextColor={THEME.colors.textMuted}
+                className="flex-1 text-base py-0"
+                style={{ color: THEME.colors.textMuted }}
               />
             </UView>
 
             {/* SUBJECT FIELD (TEST) */}
-            <UView className="flex-row items-center px-4 py-4 border-b border-[#2A2A2A]">
-              <BodyText className="text-[#A0A0A0] w-20">Subject</BodyText>
+            <UView className="flex-row items-center px-4 py-4 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
+              <BodyText className="w-20" style={{ color: THEME.colors.textMuted }}>Subject</BodyText>
               <UTextInput
                 value="beta test"
                 editable={false}
-                placeholderTextColor="#444"
-                className="flex-1 text-[#888] text-base py-0 font-medium"
+                placeholderTextColor={THEME.colors.textMuted}
+                className="flex-1 text-base py-0 font-medium"
+                style={{ color: THEME.colors.textMuted }}
               />
             </UView>
 
             {/* MESSAGE AREA (TEST) */}
             <UView className="flex-row items-start px-4 pt-4">
-              <BodyText className="text-[#A0A0A0] w-20 mt-1">Message</BodyText>
+              <BodyText className="w-20 mt-1" style={{ color: THEME.colors.textMuted }}>Message</BodyText>
               <UTextInput
                 value="test message"
                 editable={false}
                 multiline
                 textAlignVertical="top"
-                className="flex-1 text-[#888] text-base py-0 leading-6"
+                className="flex-1 text-base py-0 leading-6"
+                style={{ color: THEME.colors.textMuted }}
               />
             </UView>
             
