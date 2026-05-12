@@ -1,12 +1,7 @@
-style(ui): unify modal design and harden interactive button primitives
+style: harden Saffron/Obsidian design system across Schedules and Modals
 
-Completed the Saffron & Obsidian migration for global modal systems and overhauled the button interaction engine for precise visual feedback.
-
-Key Changes:
-- Button Interaction Engine: Replaced `heroui-native` with standard `Pressable` in `button.tsx`, utilizing React state (`onPressIn/Out`) to ensure the new `primaryLight` saffron shade flashes correctly during interaction (fixing a transparent-style bug with the previous HOC).
-- Theme Extension: Added the `primaryLight` token (`#E27E5A`) to `theme.ts` to provide a mathematically consistent lighter tint for active button states.
-- Modal Hardening: Fully tokenized `ConfirmationModal`, mapping backgrounds to `surfaceElevated`, primary actions to Saffron, and typography to `textMain`/`textMuted`.
-- Dropdown Polish: Darkened the `ActionMenu` (3-dots popup) to use the `surface` token, increased icon/text scale for better readability, and restored the subtle `surfaceLight` border.
-- Typography Scaling: Scaled up global confirmation titles to `text-xl` to improve the visual hierarchy during destructive actions.
-
-This work ensures that even the most subtle micro-interactions—like a button press or a dropdown menu—are strictly governed by the central design system.
+- Tokenized `ConfirmationModal` geometry and typography, increasing action button scale to `text-xl` for better HUD legibility.
+- Synchronized `EventDetailModal` contrast with `surface` charcoal backgrounds and `surfaceElevated` dividers, matching the Preset Picker aesthetic.
+- Overhauled `Schedules` calendar engine: implemented `pureBlack` axis headers and time columns with a `surface` charcoal event grid.
+- Fully themed `CaptchaWaiverView` infrastructure, including primary Saffron progress bars and elevated input interaction containers.
+- Standardized all verification status pills and action icons in `EventDetailHeader` to pull directly from success/danger theme tokens.

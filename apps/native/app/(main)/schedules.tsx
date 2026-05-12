@@ -24,6 +24,7 @@ import { useCalendarStore } from '@/stores/useCalendarStore';
 import { CalendarShimmer } from '@/components/ui/skeletons/CalendarShimmer';
 import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
 import Animated from 'react-native-reanimated';
+import { THEME } from '@/constants/theme';
 
 // Import domain-specific hooks and configuration
 import { INITIAL_LOCALES, CUSTOM_THEME } from '@/components/calendar/CalendarConfig';
@@ -108,14 +109,26 @@ export default function SchedulesScreen() {
 
     return (
       <UView className="flex-1 p-2 items-start justify-start">
-        <UText className="text-white font-bold text-[14px]" numberOfLines={2}>
+        <UText 
+          className="font-bold text-[14px]" 
+          style={{ color: THEME.colors.textMain }}
+          numberOfLines={2}
+        >
           {event.title}
         </UText>
-        <UText className="text-white text-[12px] opacity-80 mt-1" numberOfLines={1}>
+        <UText 
+          className="text-[12px] mt-1" 
+          style={{ color: THEME.colors.textMain, opacity: 0.8 }}
+          numberOfLines={1}
+        >
           {timeStr}
         </UText>
         {isEdited && (
-          <UText className="text-red-500 font-bold text-[10px] mt-1 uppercase" numberOfLines={1}>
+          <UText 
+            className="font-bold text-[10px] mt-1 uppercase" 
+            style={{ color: THEME.colors.danger }}
+            numberOfLines={1}
+          >
             Edited
           </UText>
         )}
@@ -326,11 +339,11 @@ export default function SchedulesScreen() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <UView className="flex-1 bg-black relative">
+      <UView className="flex-1 relative" style={{ backgroundColor: THEME.colors.background }}>
           
           {/* Static Time Marker Axis (Floating Header) */}
           <UView className="absolute top-5 left-0 w-[17%] items-center z-10 pointer-events-none">
-               <UText className="text-white font-bold ">Time</UText>
+               <UText className="font-bold" style={{ color: THEME.colors.textMain }}>Time</UText>
           </UView>
 
           <CalendarKit
@@ -382,8 +395,8 @@ export default function SchedulesScreen() {
             onConfirm={dragConfirm.isOverlapError ? () => setDragConfirm({ visible: false }) : executeEventUpdate}
             onCancel={() => setDragConfirm({ visible: false })}
             confirmText={dragConfirm.isOverlapError ? "OK" : "Update"}
-            confirmColor="#4FA0FF"
-            cancelColor="#FF3B30"
+            confirmColor={THEME.colors.primary}
+            cancelColor={THEME.colors.danger}
             singleButton={dragConfirm.isOverlapError}
             isLoading={dragConfirm.isLoading}
           />

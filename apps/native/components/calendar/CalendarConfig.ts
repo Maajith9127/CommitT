@@ -1,3 +1,5 @@
+import { THEME } from '@/constants/theme';
+
 /**
  * Calendar Configuration
  * 
@@ -7,7 +9,7 @@
 
 // Color palette for cycling through task colors.
 export const TASK_COLORS = [
-  '#4FA0FF', 
+  THEME.colors.primary, 
 ];
 
 // Buffer threshold for infinite scrolling.
@@ -25,35 +27,34 @@ export const INITIAL_LOCALES = {
 // CalendarKit Custom Theme (Dark Mode)
 export const CUSTOM_THEME = {
   colors: {
-    primary: '#4FA0FF',
-    onPrimary: '#ffffff',
-    background: '#1A1A1A',
-    onBackground: '#ffffff',
-    border: '#000000',
-    text: '#ffffff',
-    surface: '#1A1A1A',
-    onSurface: '#cccccc',
+    primary: THEME.colors.primary,
+    onPrimary: THEME.colors.pureWhite,
+    background: THEME.colors.surface,
+    onBackground: THEME.colors.textMain,
+    border: THEME.colors.pureBlack,
+    text: THEME.colors.textMain,
+    surface: THEME.colors.surface,
+    onSurface: THEME.colors.textMuted,
   },
 
-  hourBackgroundColor: '#000000',
-  minuteBackgroundColor: '#000000',
-  headerBackgroundColor: '#000000',
+  hourBackgroundColor: THEME.colors.pureBlack,
+  minuteBackgroundColor: THEME.colors.pureBlack,
+  headerBackgroundColor: THEME.colors.pureBlack,
 
-  hourBorderColor: '#000000',
-  headerBorderColor: '#000000',
-  dayBarBorderColor: '#000000',
+  hourBorderColor: THEME.colors.pureBlack,
+  headerBorderColor: THEME.colors.pureBlack,
+  dayBarBorderColor: THEME.colors.pureBlack,
 
-  nowIndicatorColor: 'red',
+  nowIndicatorColor: THEME.colors.primary,
 
+  dayName: { color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold' },
+  dayNumber: { color: THEME.colors.textMain, fontSize: 25, fontWeight: 'bold' },
+  hourTextStyle: { color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold' },
 
-  dayName: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
-  dayNumber: { color: '#ffffff', fontSize: 25, fontWeight: 'bold' },
-  hourTextStyle: { color: '#ffffff', fontSize: 13, fontWeight: 'bold' },
-
-  eventContainerStyle: { borderRadius: 0, padding: 10 },
+  eventContainerStyle: { borderRadius: THEME.radii.sm, padding: 8 },
   eventTitleStyle: {
     fontSize: 15,
-    color: "#ffffff"
+    color: THEME.colors.pureWhite
   },
 
   /**
@@ -63,24 +64,24 @@ export const CUSTOM_THEME = {
    */
 
   dayContainer: {
-    borderRightWidth: 2,
-    borderColor: '#000000',
+    borderRightWidth: 1.5,
+    borderColor: THEME.colors.pureBlack,
   },
 
   singleDayContainer: {
-    borderRightWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: '#000000',
+    borderRightWidth: 1.5,
+    borderBottomWidth: 1.5,
+    borderColor: THEME.colors.pureBlack,
   },
 
   unavailableHourContainerStyle: {
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderColor: '#000000',
+    borderBottomWidth: 1.5,
+    borderRightWidth: 1.5,
+    borderColor: THEME.colors.pureBlack,
   },
 
   headerContainer: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#000000',
+    borderBottomWidth: 1.5,
+    borderBottomColor: THEME.colors.pureBlack,
   },
 };

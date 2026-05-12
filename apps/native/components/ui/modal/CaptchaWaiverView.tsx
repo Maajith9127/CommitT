@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useMutation } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import { formatRelativeDuration } from '@/lib/time';
+import { THEME } from '@/constants/theme';
 
 import { ConfirmationModal } from './ConfirmationModal';
 
@@ -278,15 +279,15 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
       contentContainerStyle={{ flex: 1 }} 
       keyboardShouldPersistTaps="always" 
       scrollEnabled={false}
-      className="bg-[#121212]"
+      style={{ backgroundColor: THEME.colors.background }}
     >
       <UView className="flex-1">
       {/* Header */}
       <UView className="flex-row items-center px-4 pt-12 pb-4">
         <UPressable onPress={handleClose} className="mr-6">
-          <MaterialCommunityIcons name="arrow-left" size={24} color="white" />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={THEME.colors.textMain} />
         </UPressable>
-        <HeaderTitle className="text-xl text-white">Solve captcha</HeaderTitle>
+        <HeaderTitle className="text-xl" style={{ color: THEME.colors.textMain }}>Solve captcha</HeaderTitle>
       </UView>
 
       {/* Progress Tracker (Sticky at Top) */}
@@ -300,7 +301,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
               <BodyText 
                 className="font-bold text-xs" 
-                style={{ color: isUrgent ? '#FF3B30' : '#888' }}
+                style={{ color: isUrgent ? THEME.colors.danger : THEME.colors.textMuted }}
               >
                 {timeLeft} REMAINING
               </BodyText>
@@ -308,10 +309,13 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
           ) : null}
         </UView>
         
-        <UView className="w-full h-2 bg-[#2A2A2A] rounded-full overflow-hidden">
+        <UView 
+          className="w-full h-2 rounded-full overflow-hidden"
+          style={{ backgroundColor: THEME.colors.surfaceElevated }}
+        >
           <UView 
-              className="h-full bg-blue-500 rounded-full" 
-              style={{ width: `${percentage}%` }}
+              className="h-full rounded-full" 
+              style={{ width: `${percentage}%`, backgroundColor: THEME.colors.primary }}
             />
         </UView>
       </UView>
@@ -323,7 +327,8 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
             const { width, height } = e.nativeEvent.layout;
             setContainerDims({ width, height });
           }}
-          className="w-full h-full bg-[#fdfdfd] rounded-3xl overflow-hidden justify-center items-center shadow-2xl border border-[#2A2A2A]"
+          className="w-full h-full bg-[#fdfdfd] overflow-hidden justify-center items-center shadow-2xl border"
+          style={{ borderRadius: THEME.radii.card, borderColor: THEME.colors.surfaceElevated }}
         >
             {currentChallenge && containerDims.width > 0 ? (
               <LiveCaptcha 
@@ -340,14 +345,18 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
 
       {/* Interaction Bar */}
       <AnimatedReanimated.View style={animatedInputBarStyle}>
-        <UView className="px-4 py-3 bg-[#121212]">
-          <UView className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-4 h-14">
-            <MaterialCommunityIcons name="robot-outline" size={20} color="#888" />
+        <UView className="px-4 py-3" style={{ backgroundColor: THEME.colors.background }}>
+          <UView 
+            className="flex-row items-center px-4 h-14"
+            style={{ backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.lg }}
+          >
+            <MaterialCommunityIcons name="robot-outline" size={20} color={THEME.colors.textMuted} />
             <Input
               innerRef={inputRef}
-              className="flex-1 ml-2 text-white text-lg bg-transparent p-0"
+              className="flex-1 ml-2 text-lg bg-transparent p-0"
+              style={{ color: THEME.colors.textMain }}
               placeholder="Type the solution"
-              placeholderTextColor="#666"
+              placeholderTextColor={THEME.colors.textMuted}
               value={solution}
               onChangeText={setSolution}
               returnKeyType="send"
@@ -361,9 +370,9 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
               className={`ml-2 ${(!isSubmitting && solution.length > 0) ? 'opacity-100' : 'opacity-30'}`}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color="#3B82F6" />
+                <ActivityIndicator size="small" color={THEME.colors.primary} />
               ) : (
-                <MaterialCommunityIcons name="arrow-up-circle" size={32} color="#3B82F6" />
+                <MaterialCommunityIcons name="arrow-up-circle" size={32} color={THEME.colors.primary} />
               )}
             </UPressable>
           </UView>
@@ -375,7 +384,7 @@ export function CaptchaWaiverView({ event, onClose }: { event: any; onClose: () 
         visible={errorVisible}
         title={errorTitle}
         confirmText="Try again"
-        confirmColor="#4FA0FF"
+        confirmColor={THEME.colors.primary}
         singleButton={true}
         onConfirm={() => {
             setErrorVisible(false);
