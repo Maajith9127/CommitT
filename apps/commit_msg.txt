@@ -1,12 +1,12 @@
-refactor(ui): establish centralized Saffron & Obsidian design system
+style: harden Saffron design system and tokenized UI architecture
 
-This commit transitions the application from scattered, hardcoded Tailwind utility classes to a high-production, centralized Design System (Theme Tokens), laying the groundwork for the new "Saffron Command Center" aesthetic.
+Unified the application's visual identity by replacing hardcoded styling with a centralized THEME system.
 
-Tooling Fixes:
-- fix(scripts): Updated the `connect-phone.ps1` script regex. It now uses a strict `Where-Object` filter to explicitly ignore "Not shared" states, resolving the false-positive WSL attachment bug.
+Key Changes:
+- Theme Expansion: Integrated granular spacing, typography scale, and 'pureBlack' OLED tokens in `theme.ts`.
+- Background Unification: Replaced all 'bg-black' instances with `THEME.colors.pureBlack` for high-contrast OLED depth.
+- Card Refactoring: Migrated `CommitCard`, `VerificationCard`, and `ConditionCard` to use the new Warm Charcoal (`#1F1F1E`) surface token.
+- Creation Flow Migration: Fully themed the `(create-commit)` final screen, ensuring all icons, toggles (CustomSwitch), and mini-cards pull from centralized theme tokens.
+- Component Hardening: Stripped Tailwind utility classes for colors and radii from core UI components in favor of dynamic theme-driven inline styles.
 
-UI Architecture & Theming:
-- feat(theme): Created `constants/theme.ts` as the single source of truth for the app's aesthetic, introducing the new primary Saffron color (`#C6613F`) and deep Obsidian backgrounds.
-- refactor(buttons): Overhauled all shared button components (`PrimaryButton`, `SecondaryButton`, `AddButton`, `LinkButton`) in `button.tsx` to dynamically pull from `THEME.colors`.
-- refactor(typography): Updated `text.tsx` components to use `THEME.colors.textMain` and `textMuted` for seamless future-proofing.
-- style(VerificationCard): Refactored `VerificationCard.tsx` to utilize the new surface tokens. Applied the vibrant Saffron color to the dynamic status border and shield icon to distinctly differentiate the app's aesthetic from generic Play Store blockers.
+This ensures a consistent, premium HUD aesthetic across both the main dashboard and the commitment creation pipeline.

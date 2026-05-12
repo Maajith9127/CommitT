@@ -16,6 +16,8 @@ interface CustomSwitchProps {
   thumbColor?: string;
 }
 
+import { THEME } from "@/constants/theme";
+
 /**
  * CustomSwitch — High-performance Reanimated 3 implementation.
  * 
@@ -26,9 +28,9 @@ interface CustomSwitchProps {
 export function CustomSwitch({
   value,
   onValueChange,
-  activeColor = "#4FA0FF",
-  inactiveColor = "#3A3A3C",
-  thumbColor = "#FFFFFF",
+  activeColor = THEME.colors.primary,
+  inactiveColor = THEME.colors.surfaceElevated,
+  thumbColor = THEME.colors.textMain,
 }: CustomSwitchProps) {
   const progress = useSharedValue(value ? 1 : 0);
 

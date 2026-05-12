@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { View, Pressable } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText } from "@/components/ui/text";
+import { THEME } from "@/constants/theme";
 import { DigitalCommitItem } from "./DigitalCommitItem";
 
 const UView = withUniwind(View);
@@ -22,7 +23,7 @@ export function CommitCard({
   selectedCount = 0,
 }: Props) {
   return (
-    <UView className={`w-full rounded-3xl bg-[#1A1A1A] px-5 py-1 ${className}`}>
+    <UView className={`w-full ${className}`} style={{ backgroundColor: THEME.colors.surface, borderRadius: THEME.radii.card, paddingHorizontal: 20, paddingVertical: 4 }}>
       {/* APPLICATIONS */}
       <DigitalCommitItem
         title="Applications"
@@ -41,23 +42,23 @@ export function CommitCard({
         }
         icons={
           <>
-            <MaterialCommunityIcons name="grid" size={18} color="#4FA0FF" />
-            <FooterText className="ml-1 text-blue-400">0</FooterText>
+            <MaterialCommunityIcons name="grid" size={18} color={THEME.colors.primary} />
+            <FooterText className="ml-1" style={{ color: THEME.colors.primary }}>0</FooterText>
 
             <MaterialCommunityIcons
               name="cellphone"
               size={18}
-              color="#4FA0FF"
+              color={THEME.colors.primary}
               style={{ marginLeft: 12 }}
             />
-            <FooterText className="ml-1 text-blue-400">
+            <FooterText className="ml-1" style={{ color: THEME.colors.primary }}>
               {selectedCount}
             </FooterText>
           </>
         }
       />
 
-      <UView className="h-[2px] bg-black -mx-5" />
+      <UView className="h-[2px] -mx-5" style={{ backgroundColor: THEME.colors.pureBlack }} />
 
       {/* WEBSITES */}
       <DigitalCommitItem
@@ -82,13 +83,13 @@ export function CommitCard({
         ]}
         icons={
           <>
-            <MaterialCommunityIcons name="web" size={18} color="#4FA0FF" />
-            <FooterText className="ml-1 text-blue-400">3</FooterText>
+            <MaterialCommunityIcons name="web" size={18} color={THEME.colors.primary} />
+            <FooterText className="ml-1" style={{ color: THEME.colors.primary }}>3</FooterText>
           </>
         }
       />
 
-      <UView className="h-[2px] bg-black -mx-5" />
+      <UView className="h-[2px] -mx-5" style={{ backgroundColor: THEME.colors.pureBlack }} />
 
       {/* DESCRIBE TO AI */}
       <DigitalCommitItem
@@ -101,8 +102,8 @@ export function CommitCard({
         showBorder={false}
         icons={
           <>
-            <MaterialCommunityIcons name="robot-outline" size={18} color="#4FA0FF" />
-            <FooterText className="ml-1 text-blue-400">2</FooterText>
+            <MaterialCommunityIcons name="robot-outline" size={18} color={THEME.colors.primary} />
+            <FooterText className="ml-1" style={{ color: THEME.colors.primary }}>2</FooterText>
           </>
         }
       />

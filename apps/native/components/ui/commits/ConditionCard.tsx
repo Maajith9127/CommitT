@@ -3,6 +3,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TouchableOpacity, View, GestureResponderEvent } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText, HeaderTitle } from "@/components/ui/text";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
@@ -30,10 +31,10 @@ export function ConditionCard({
   onPress,
   className = "",
   width,
-  iconColor = "#4FA0FF",
-  titleColor = "#FFFFFF",
+  iconColor = THEME.colors.primary,
+  titleColor = THEME.colors.textMain,
   selected = false,
-  selectionColor = "#4FA0FF",
+  selectionColor = THEME.colors.primary,
   showArrow = false,
   onClear,
   children,
@@ -42,11 +43,12 @@ export function ConditionCard({
     <UButton
       onPress={onPress}
       style={[
+        { backgroundColor: THEME.colors.surface, borderRadius: THEME.radii.card, padding: THEME.spacing.lg },
         width ? { width } : undefined,
         selected ? { borderWidth: 3, borderColor: selectionColor } : undefined,
         { overflow: "visible" }
       ]}
-      className={`mb-4 rounded-3xl bg-[#1A1A1A] px-4 py-4 ${className}`}
+      className={`mb-4 ${className}`}
       activeOpacity={0.8}
     >
       {/* 1. CLEAR BUTTON (Optional) — Positioned at Top Right */}
@@ -56,8 +58,9 @@ export function ConditionCard({
              e.stopPropagation();
              onClear();
           }}
-          className="absolute -top-2 -right-2 z-20 h-7 w-7 items-center justify-center rounded-full bg-[#2A2A2A]"
+          className="absolute -top-2 -right-2 z-20 h-7 w-7 items-center justify-center rounded-full"
           style={{ 
+            backgroundColor: THEME.colors.surfaceElevated,
             shadowColor: "#000", 
             shadowOffset: { width: 0, height: 1 }, 
             shadowOpacity: 0.3, 
@@ -66,14 +69,14 @@ export function ConditionCard({
           }}
           hitSlop={12}
         >
-          <MaterialCommunityIcons name="close" size={16} color="#A0A0A0" />
+          <MaterialCommunityIcons name="close" size={16} color={THEME.colors.textMuted} />
         </UButton>
       )}
 
       <UView className="flex-row items-center">
         {/* ICON */}
         <MaterialCommunityIcons
-          name={icon}
+          name={icon as any}
           size={30}
           color={iconColor}
           style={{ marginRight: 12 }}
@@ -81,11 +84,11 @@ export function ConditionCard({
 
         {/* TITLE + SUBTITLE */}
         <UView className={`flex-1 ${children ? "pr-14" : ""}`}>
-          <HeaderTitle className="text-lg" style={{ color: titleColor }}>
+          <HeaderTitle style={{ color: titleColor }}>
             {title}
           </HeaderTitle>
 
-          <FooterText className="mt-1 text-gray-400 text-sm">{subtitle}</FooterText>
+          <FooterText style={{ marginTop: 4, color: THEME.colors.textMuted, fontSize: THEME.typography.size.sm }}>{subtitle}</FooterText>
         </UView>
 
         {/* RIGHT ARROW */}
@@ -93,7 +96,7 @@ export function ConditionCard({
           <MaterialCommunityIcons
             name="chevron-right"
             size={24}
-            color="#8E8E93"
+            color={THEME.colors.textMuted}
           />
         )}
       </UView>

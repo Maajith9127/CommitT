@@ -26,7 +26,8 @@ import type { TaskDraft, Condition as StoreCondition } from "@/stores/useTaskDra
  * Constants, types, settings schema builder, and display resolvers
  * are co-located in `_lib/` (excluded from Expo Router via underscore prefix).
  */
-import { CONDITION_CONFIGS, LAYOUT, COLORS, type ResolvedApp, type ModalState } from "./_lib/constants";
+import { CONDITION_CONFIGS, LAYOUT, type ResolvedApp, type ModalState } from "./_lib/constants";
+import { THEME } from "@/constants/theme";
 import { useSettingsItems } from "./_lib/useSettingsItems";
 import { getPenaltyDisplay, getWaiverDisplay } from "./_lib/displayHelpers";
 
@@ -342,7 +343,7 @@ export default function FinalScreen() {
           <MaterialCommunityIcons
             name="book"
             size={75}
-            color={COLORS.primary}
+            color={THEME.colors.primary}
             style={{ marginBottom: 16 }}
           />
           <Input
@@ -368,7 +369,7 @@ export default function FinalScreen() {
                 width={cardWidth}
                 className={`h-20 ${index < CONDITION_CONFIGS.length - 1 ? "mr-2" : ""}`}
                 selected={isConditionSelected(config.title)}
-                selectionColor={COLORS.primary}
+                selectionColor={THEME.colors.primary}
                 onPress={() => config.route && router.push(config.route as any)}
                 onClear={getClearHandler(config.title)}
               />
@@ -398,13 +399,13 @@ export default function FinalScreen() {
 
         <ConditionCard
           icon={penaltyDisplay.icon}
-          iconColor={COLORS.danger}
+          iconColor={THEME.colors.danger}
           title={penaltyDisplay.title}
           subtitle={penaltyDisplay.subtitle}
           onPress={() => router.push("/(create-commit)/penalties")}
           className="h-28 pb-4"
           selected={!!draft.penalty}
-          selectionColor={COLORS.danger}
+          selectionColor={THEME.colors.danger}
           onClear={() => setDraft({ penalty: null })}
         />
 
@@ -415,13 +416,13 @@ export default function FinalScreen() {
 
         <ConditionCard
           icon={waiverDisplay.icon}
-          iconColor={COLORS.success}
+          iconColor={THEME.colors.success}
           title={waiverDisplay.title}
           subtitle={waiverDisplay.subtitle}
           onPress={() => router.push("/(create-commit)/penaltywaivers")}
           className="h-28 pb-4"
           selected={!!draft.penalty_waiver}
-          selectionColor={COLORS.success}
+          selectionColor={THEME.colors.success}
           onClear={() => setDraft({ penalty_waiver: null })}
         />
 
@@ -463,8 +464,8 @@ export default function FinalScreen() {
         title={isEditMode ? "Update this CommitT?" : "Create this CommitT?"}
         confirmText={isEditMode ? "Update" : "Commit"}
         cancelText="Cancel"
-        confirmColor={COLORS.primary}
-        cancelColor={COLORS.danger}
+        confirmColor={THEME.colors.primary}
+        cancelColor={THEME.colors.danger}
         onConfirm={submitTask}
         onCancel={() => setConfirmModalVisible(false)}
         isLoading={isSubmitting}

@@ -6,7 +6,7 @@ export const THEME = {
 
     // Backgrounds
     background: "#080808", // Obsidian Black
-    surface: "#212120ff", // Warm Charcoal
+    surface: "#171717ff", // Warm Charcoal
     surfaceElevated: "#2A2A2A", // Lighter Gray (Inner elements)
     pureBlack: "#000000", // OLED Black for boundaries
 

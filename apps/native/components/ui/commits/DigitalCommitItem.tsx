@@ -4,6 +4,7 @@ import { withUniwind } from "uniwind";
 import { FooterText, HeaderTitle } from "@/components/ui/text";
 import { HorizontalAppSkeleton } from "@/components/ui/skeletons/HorizontalAppSkeleton";
 import { SkeletonBlock } from "@/components/ui/skeletons/SkeletonBlock";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UPress = withUniwind(View);
@@ -34,8 +35,8 @@ export function DigitalCommitItem({
   items,
   icons,
   showBorder = true,
-  accentColor = "#4FA0FF",
-  titleColor = "#FFFFFF",
+  accentColor = THEME.colors.primary,
+  titleColor = THEME.colors.textMain,
   onPress,
   isLoading = false,
 }: Props) {
@@ -44,7 +45,7 @@ export function DigitalCommitItem({
       {/* TITLE ROW - Wrapped in Pressable to avoid scroll conflicts */}
       <Pressable onPress={onPress}>
         <UView className="flex-row items-center justify-between">
-          <HeaderTitle className="text-lg" style={{ color: titleColor }}>
+          <HeaderTitle style={{ color: titleColor }}>
             {title}
           </HeaderTitle>
 
@@ -82,7 +83,7 @@ export function DigitalCommitItem({
                   />
                 ) : null}
 
-                <FooterText className="ml-3 text-gray-400 text-sm">{item.name}</FooterText>
+                <FooterText className="ml-3" style={{ color: THEME.colors.textMuted, fontSize: THEME.typography.size.sm }}>{item.name}</FooterText>
               </UView>
             ))
           )}
