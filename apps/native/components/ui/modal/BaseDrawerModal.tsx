@@ -21,6 +21,7 @@
 import React from 'react';
 import { Modal, View, Pressable, StyleSheet } from 'react-native';
 import { withUniwind } from 'uniwind';
+import { THEME } from '@/constants/theme';
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
@@ -73,8 +74,13 @@ export function BaseDrawerModal({
 
         {/* Drawer Container */}
         <UView
-          className="bg-[#1A1A1A] w-full absolute bottom-0 rounded-t-3xl overflow-hidden"
-          style={{ height }}
+          className="w-full absolute bottom-0 overflow-hidden"
+          style={{ 
+            height, 
+            backgroundColor: THEME.colors.surface,
+            borderTopLeftRadius: THEME.radii.card,
+            borderTopRightRadius: THEME.radii.card,
+          }}
         >
           {children}
         </UView>

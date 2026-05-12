@@ -1,6 +1,7 @@
 import React from "react";
 import { View, ScrollView } from "react-native";
 import { withUniwind } from "uniwind";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
@@ -72,7 +73,7 @@ export function ActionScreenLayout({
   children,
   header,
   footer,
-  paddingHorizontal = 16,
+  paddingHorizontal = THEME.spacing.lg,
   className = "",
   scrollClassName = "",
   footerClassName = "",
@@ -99,7 +100,10 @@ export function ActionScreenLayout({
   );
 
   return (
-    <UView className={`flex-1 bg-black ${className}`}>
+    <UView 
+      className={`flex-1 ${className}`} 
+      style={{ backgroundColor: THEME.colors.pureBlack }}
+    >
       {/* ZONE 0: FIXED HEADER */}
       {header && (
         <UView style={{ paddingHorizontal }}>
