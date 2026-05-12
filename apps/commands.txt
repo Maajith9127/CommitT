@@ -7,3 +7,6 @@ git clean -fd
 
 adb shell ls /sdcard/Documents/CommitT/logs/
 adb pull /sdcard/Documents/CommitT/logs/commit-logcat-2026-05-08.log apps/transformation_logs.txt
+
+
+cp "/mnt/c/Users/maaji/Downloads/PhotoshopPreview_Image.png" /home/maajith/mono/apps/native/assets/images/PhotoshopPreview_Image.png

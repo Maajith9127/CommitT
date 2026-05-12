@@ -10,9 +10,16 @@ export function Input({ className = "", innerRef, ...props }: TextInputProps & {
     <UInput
       ref={innerRef}
       placeholderTextColor={THEME.colors.textMuted}
-      className={`w-full rounded-4xl p-4 font-semibold text-xl ${className}`}
+      className={`w-full p-4 font-semibold text-xl ${className}`}
       {...props}
-      style={[{ backgroundColor: THEME.colors.surfaceElevated, color: THEME.colors.textMain }, props.style]}
+      style={[
+        { 
+          backgroundColor: THEME.colors.surfaceElevated, 
+          color: THEME.colors.textMain,
+          borderRadius: THEME.radii.inner 
+        }, 
+        props.style
+      ]}
     />
   );
 }

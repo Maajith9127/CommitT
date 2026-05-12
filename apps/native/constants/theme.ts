@@ -46,6 +46,7 @@ export const THEME = {
       lg: 18,
       xl: 20,
       xxxl: 30, // 3xl
+      display: 48, // 5xl
     },
     weight: {
       light: "300",

@@ -1,16 +1,17 @@
 import { useRootNavigationState, useRouter, usePathname } from "expo-router";
 import { useEffect } from "react";
-import { Image, ImageBackground, Text, View } from "react-native";
+import { Image, StyleSheet, View, Text } from "react-native";
+import Svg, { Defs, LinearGradient, Stop, Rect } from "react-native-svg";
 import Animated, { FadeInDown, FadeInUp, ZoomIn } from "react-native-reanimated";
 import { withUniwind } from "uniwind";
 
-import { AuthHeading, AuthTitle, PrimaryButton, ScreenContainer } from "@/components/ui";
+import { AuthHeading, AuthTitle, BrandTitle, PrimaryButton, ScreenContainer } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
+import { THEME } from "@/constants/theme";
 
 // UNIWINDS: Styled primitive wrappers for tailwind/uniwind integration
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
-const UImageBackground = withUniwind(ImageBackground);
 
 /**
  * OnboardingIndex Component
@@ -46,11 +47,11 @@ export default function Index() {
     if (session && pathname === "/") {
       console.log("[CommitT] Session active at root. Transferring control to dashboard...");
       
-      const redirectTimer = setTimeout(() => {
-        router.replace("/(main)/commits");
-      }, 0);
+      // const redirectTimer = setTimeout(() => {
+      //   router.replace("/(main)/commits");
+      // }, 0);
 
-      return () => clearTimeout(redirectTimer);
+      // return () => clearTimeout(redirectTimer);
     }
   }, [session, isPending, router, rootNavigationState?.key, pathname]);
 
@@ -61,18 +62,26 @@ export default function Index() {
 
   // --- 3. RENDER: ONBOARDING VIEW ---
   return (
-    <UImageBackground
-      source={require("../assets/images/onboarding.png")}
-      resizeMode="cover"
-      className="flex-1"
-    >
+    <View style={{ flex: 1 }}>
+      {/* PROGRAMMATIC ATMOSPHERIC GRADIENT */}
+      <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <LinearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor={THEME.colors.primary} stopOpacity="0.8" />
+            <Stop offset="55%" stopColor={THEME.colors.pureBlack} stopOpacity="1" />
+            <Stop offset="100%" stopColor={THEME.colors.pureBlack} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad)" />
+      </Svg>
+
       <ScreenContainer>
         {/* BRAND IDENTITY: Manifesto Block */}
         <Animated.View 
           entering={FadeInDown.duration(800).delay(200)}
           className="mt-12 items-center px-6"
         >
-          <AuthTitle className="text-5xl tracking-tighter">CommitT</AuthTitle>
+          <BrandTitle className="tracking-tighter">CommitT</BrandTitle>
           <AuthHeading className="text-center mt-2 opacity-80">
             Regain absolute control{"\n"}over your habit loops.
           </AuthHeading>
@@ -109,7 +118,7 @@ export default function Index() {
           </UText>
         </Animated.View>
       </ScreenContainer>
-    </UImageBackground>
+    </View>
   );
 }
 
@@ -119,11 +128,17 @@ export default function Index() {
  */
 function LoadingSkeleton() {
   return (
-    <UImageBackground
-      source={require("../assets/images/onboarding.png")}
-      resizeMode="cover"
-      className="flex-1"
-    >
+    <View style={{ flex: 1 }}>
+      <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <LinearGradient id="grad_skeleton" x1="0%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor={THEME.colors.primary} stopOpacity="0.8" />
+            <Stop offset="55%" stopColor={THEME.colors.pureBlack} stopOpacity="1" />
+            <Stop offset="100%" stopColor={THEME.colors.pureBlack} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad_skeleton)" />
+      </Svg>
       <ScreenContainer>
         <UView className="flex-1 items-center justify-center">
           <UText className="text-white text-lg font-bold opacity-30 tracking-widest uppercase">
@@ -131,6 +146,6 @@ function LoadingSkeleton() {
           </UText>
         </UView>
       </ScreenContainer>
-    </UImageBackground>
+    </View>
   );
 }

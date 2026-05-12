@@ -5,6 +5,7 @@ import { ActionScreenLayout, HeaderTitle, AuthTitle } from "@/components/ui";
 import { CaptchaWaiverContent } from "@/components/ui/waivers/CaptchaWaiverContent";
 import { useWaiverSync } from "@/hooks/commits/useWaiverSync";
 import { withUniwind } from "uniwind";
+import { THEME } from "@/constants/theme";
 
 const UPressable = withUniwind(Pressable);
 const UText = withUniwind(Text);
@@ -46,16 +47,20 @@ export default function CaptchaSetupScreen() {
   return (
     <ActionScreenLayout
       paddingHorizontal={16}
-      className="bg-black pt-20"
+      className="pt-20"
+      style={{ backgroundColor: THEME.colors.background }}
       footer={
         <UPressable 
           onPress={handleConfirm}
           onPressIn={() => setIsPressed(true)}
           onPressOut={() => setIsPressed(false)}
-          className="w-full h-14 items-center justify-center rounded-full"
-          style={{ backgroundColor: isPressed ? "#5EE676" : "#4CD964" }}
+          className="w-full h-14 items-center justify-center"
+          style={{ 
+            backgroundColor: isPressed ? THEME.colors.success + 'DD' : THEME.colors.success,
+            borderRadius: THEME.radii.full 
+          }}
         >
-          <UText className="text-white font-bold text-lg">
+          <UText className="font-bold text-lg" style={{ color: THEME.colors.textMain }}>
             Confirm Captchas
           </UText>
         </UPressable>
@@ -63,9 +68,9 @@ export default function CaptchaSetupScreen() {
     >
       {/* HEADER SECTION (Inside scroll for unified physics) */}
       <View className="mb-8">
-        <HeaderTitle className="text-3xl text-green-400">Solve Captchas</HeaderTitle>
+        <HeaderTitle className="text-3xl" style={{ color: THEME.colors.success }}>Solve Captchas</HeaderTitle>
 
-        <AuthTitle className="mt-1 mb-0 text-left text-gray-400">
+        <AuthTitle className="mt-1 mb-0 text-left" style={{ color: THEME.colors.textMuted }}>
           Solve these many number of captchas to waive of a penalty if occurred
         </AuthTitle>
       </View>

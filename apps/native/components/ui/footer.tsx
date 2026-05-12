@@ -1,5 +1,6 @@
 import { Text, TouchableOpacity, View } from "react-native";
 import { withUniwind } from "uniwind";
+import { THEME } from "@/constants/theme";
 
 const UText = withUniwind(Text);
 const UView = withUniwind(View);
@@ -15,7 +16,7 @@ export function AuthMemberPrompt({
   text?: string;
   className?: string;
 }) {
-  return <UText className={`mb-4 text-center text-base text-gray-300 ${className}`}>{text}</UText>;
+  return <UText className={`mb-4 text-center text-base ${className}`} style={{ color: THEME.colors.textMuted }}>{text}</UText>;
 }
 
 // -----------------------------
@@ -32,7 +33,7 @@ export function FooterLink({
 }) {
   return (
     <UButton onPress={onPress}>
-      <UText className={`text-base text-blue-400 underline ${className}`}>{children}</UText>
+      <UText className={`text-base underline ${className}`} style={{ color: THEME.colors.primary }}>{children}</UText>
     </UButton>
   );
 }
@@ -57,11 +58,11 @@ export function AuthFooterLegal({
 }) {
   return (
     <UView className={`items-center ${className}`}>
-      <UText className="mb-1 text-center text-gray-400 text-sm">{prefixText}</UText>
+      <UText className="mb-1 text-center text-sm" style={{ color: THEME.colors.textMuted }}>{prefixText}</UText>
 
       <UView className="flex-row space-x-2">
         <FooterLink onPress={onPressPrivacy}>{privacyText}</FooterLink>
-        <UText className="text-gray-400">and</UText>
+        <UText style={{ color: THEME.colors.textMuted }}>and</UText>
         <FooterLink onPress={onPressTerms}>{termsText}</FooterLink>
       </UView>
     </UView>

@@ -1,7 +1,11 @@
-feat(ui): harden email setup screen with design system tokens
+feat(ui): harden authentication flow and implement programmatic atmospheric gradients
 
-- **Layout**: Migrated global backgrounds to `pureBlack` and `background` tokens.
-- **Fields**: Standardized field separators and input borders using `surfaceElevated` tokens.
-- **Typography**: Unified all labels, placeholders, and test-preview text to `textMuted`.
-- **Surfaces**: Optimized the image preview and test sandbox card with `surface` backgrounds, themed borders, and `radii` tokens.
-- **Icons**: Standardized header and action iconography to match the design system's text palette.
+-   **Atmospheric Background System**: Replaced static assets with high-fidelity, programmatic SVG linear gradients in `index.tsx`, `signin.tsx`, and `welcome.tsx`. Transitions from Saffron brand highlight (55% offset) to Obsidian Black.
+-   **Typography Expansion**: 
+    -   Added `display` (48px) size to `THEME.typography.size`.
+    -   Implemented `BrandTitle` component in `text.tsx` for bold, high-impact brand identity.
+-   **UI Token Migration (Hardening)**:
+    -   **AuthForm**: Migrated all hardcoded backgrounds, borders, and margins to semantic theme tokens.
+    -   **Inputs & Buttons**: Unified geometry using `THEME.radii.inner` (32px) for a consistent "card-style" form aesthetic.
+    -   **Footer**: Standardized legal disclaimers and links to use `THEME.colors.textMuted` and brand-consistent Saffron.
+-   **Optimization**: Removed redundant `ImageBackground` wrappers and static image dependencies from the auth flow to reduce memory overhead and ensure layout predictability.

@@ -17,6 +17,7 @@ import { api } from "@commit/backend/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
 import type { AuthFormErrors, AuthMode } from "./types";
 import { Platform } from "react-native";
+import { THEME } from "@/constants/theme";
 
 export function AuthForm() {
   const router = useRouter();
@@ -200,45 +201,58 @@ export function AuthForm() {
   };
 
   return (
-    <ImageBackground
-      source={require("../../assets/images/signinbg.png")}
-      resizeMode="cover"
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1 }}>
       <ScreenContainer>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="mt-30">
-            <AuthHeading className="mb-10 text-4xl">Get started with commitT</AuthHeading>
+          <View style={{ marginTop: THEME.spacing.xxxl * 2 }}>
+            <AuthHeading className="text-4xl" style={{ marginBottom: THEME.spacing.xxxl }}>Get started with commitT</AuthHeading>
           </View>
 
-          <View className="mb-6 flex-row rounded-4xl bg-[#1A1A1A] p-1">
+          <View 
+            className="flex-row p-1"
+            style={{ 
+              backgroundColor: THEME.colors.surfaceElevated, 
+              borderRadius: THEME.radii.inner,
+              marginBottom: THEME.spacing.xxl 
+            }}
+          >
             <TouchableOpacity
-              className={`flex-1 rounded-3xl px-4 py-3 ${mode === "signin" ? "bg-[#4FA0FF]" : ""}`}
+              className="flex-1 px-4 py-3"
+              style={[
+                { borderRadius: THEME.radii.card },
+                mode === "signin" && { backgroundColor: THEME.colors.primary }
+              ]}
               onPress={() => handleModeChange("signin")}
             >
               <Text
-                className={`text-center font-semibold text-lg ${mode === "signin" ? "text-white" : "text-gray-400"}`}
+                className="text-center font-semibold text-lg"
+                style={{ color: mode === "signin" ? THEME.colors.textMain : THEME.colors.textMuted }}
               >
                 Sign In
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className={`flex-1 rounded-3xl px-4 py-3 ${mode === "signup" ? "bg-[#4FA0FF]" : ""}`}
+              className="flex-1 px-4 py-3"
+              style={[
+                { borderRadius: THEME.radii.card },
+                mode === "signup" && { backgroundColor: THEME.colors.primary }
+              ]}
               onPress={() => handleModeChange("signup")}
             >
               <Text
-                className={`text-center font-semibold text-lg ${mode === "signup" ? "text-white" : "text-gray-400"}`}
+                className="text-center font-semibold text-lg"
+                style={{ color: mode === "signup" ? THEME.colors.textMain : THEME.colors.textMuted }}
               >
                 Sign Up
               </Text>
             </TouchableOpacity>
           </View>
 
-          <View className="mb-4">
+          <View style={{ marginBottom: THEME.spacing.lg }}>
             <Input
               placeholder="Email"
               value={email}
@@ -250,10 +264,10 @@ export function AuthForm() {
               autoCapitalize="none"
               autoCorrect={false}
             />
-            {errors.email && <Text className="mt-1 ml-4 text-red-400 text-sm">{errors.email}</Text>}
+            {errors.email && <Text className="mt-1 ml-4 text-sm" style={{ color: THEME.colors.danger }}>{errors.email}</Text>}
           </View>
 
-          <View className="mb-4">
+          <View style={{ marginBottom: THEME.spacing.lg }}>
             <Input
               placeholder="Password"
               value={password}
@@ -266,7 +280,7 @@ export function AuthForm() {
               autoCorrect={false}
             />
             {errors.password && (
-              <Text className="mt-1 ml-4 text-red-400 text-sm">{errors.password}</Text>
+              <Text className="mt-1 ml-4 text-sm" style={{ color: THEME.colors.danger }}>{errors.password}</Text>
             )}
           </View>
 
@@ -284,13 +298,13 @@ export function AuthForm() {
                 autoCorrect={false}
               />
               {errors.confirmPassword && (
-                <Text className="mt-1 ml-4 text-red-400 text-sm">{errors.confirmPassword}</Text>
+                <Text className="mt-1 ml-4 text-sm" style={{ color: THEME.colors.danger }}>{errors.confirmPassword}</Text>
               )}
             </View>
           )}
 
           {errors.general && (
-            <Text className="mb-4 text-center text-red-400 text-sm">{errors.general}</Text>
+            <Text className="mb-4 text-center text-sm" style={{ color: THEME.colors.danger }}>{errors.general}</Text>
           )}
 
           <PrimaryButton className="mb-6" onPress={loading ? undefined : handleEmailAuth}>
@@ -298,12 +312,16 @@ export function AuthForm() {
           </PrimaryButton>
 
           <View className="mb-6 flex-row items-center">
-            <View className="h-px flex-1 bg-gray-600" />
-            <Text className="mx-4 text-gray-400">or</Text>
-            <View className="h-px flex-1 bg-gray-600" />
+            <View className="h-px flex-1" style={{ backgroundColor: THEME.colors.border }} />
+            <Text className="mx-4" style={{ color: THEME.colors.textMuted }}>or</Text>
+            <View className="h-px flex-1" style={{ backgroundColor: THEME.colors.border }} />
           </View>
 
-          <PrimaryButton className="mb-3 bg-[#1E1E1E]" onPress={handleGoogle}>
+          <PrimaryButton 
+            className="mb-3" 
+            style={{ backgroundColor: THEME.colors.surfaceElevated }}
+            onPress={handleGoogle}
+          >
             {loading ? "Signing in..." : "Continue with Google"}
           </PrimaryButton>
 
@@ -324,12 +342,12 @@ export function AuthForm() {
         visible={showHardwareLockedModal}
         title={hardwareLockedMessage}
         confirmText="OK"
-        confirmColor="#4FA0FF"
+        confirmColor={THEME.colors.primary}
         singleButton={true}
         onConfirm={() => setShowHardwareLockedModal(false)}
         onCancel={() => setShowHardwareLockedModal(false)}
       />
 
-    </ImageBackground>
+    </View>
   );
 }

@@ -5,7 +5,32 @@ import { THEME } from "@/constants/theme";
 const UText = withUniwind(Text);
 
 // -----------------------------
-// 1. Small Title (Welcome to Commit)
+// 1. Brand Title (CommitT Main)
+// -----------------------------
+export function BrandTitle({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <UText 
+      className={`mb-2 text-center ${className}`}
+      style={{ 
+        color: THEME.colors.textMain, 
+        fontSize: THEME.typography.size.display, 
+        fontWeight: THEME.typography.weight.bold,
+        letterSpacing: -2 
+      }}
+    >
+      {children}
+    </UText>
+  );
+}
+
+// -----------------------------
+// 2. Small Title (Welcome to Commit)
 // -----------------------------
 export function AuthTitle({
   children,

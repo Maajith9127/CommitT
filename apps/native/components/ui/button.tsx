@@ -28,7 +28,7 @@ export function PrimaryButton({ children, className = "", onPress, textClassName
       onPressOut={() => setIsPressed(false)}
       style={{ 
         backgroundColor: isPressed && !disabled ? THEME.colors.primaryLight : THEME.colors.primary, 
-        borderRadius: THEME.radii.full,
+        borderRadius: THEME.radii.inner,
         opacity: disabled ? 0.5 : 1
       }}
       onPress={disabled ? undefined : onPress}

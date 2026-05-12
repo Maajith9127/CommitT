@@ -1,9 +1,11 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, ImageBackground, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
+import Svg, { Defs, LinearGradient, Stop, Rect } from "react-native-svg";
 import { AuthHeading, PrimaryButton, ScreenContainer } from "@/components/ui";
 import { authClient } from "@/lib/auth-client";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { THEME } from "@/constants/theme";
 
 export default function Welcome() {
   const router = useRouter();
@@ -28,51 +30,66 @@ export default function Welcome() {
 
   if (isPending) {
     return (
-      <ImageBackground
-        source={require("../../assets/images/signinbg.png")}
-        resizeMode="cover"
-        style={{ flex: 1 }}
-      >
+      <View style={{ flex: 1 }}>
+        <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+          <Defs>
+            <LinearGradient id="grad_welcome_loading" x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor={THEME.colors.primary} stopOpacity="0.8" />
+              <Stop offset="55%" stopColor={THEME.colors.pureBlack} stopOpacity="1" />
+              <Stop offset="100%" stopColor={THEME.colors.pureBlack} stopOpacity="1" />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad_welcome_loading)" />
+        </Svg>
         <ScreenContainer>
           <View className="flex-1 items-center justify-center">
-            <Text className="text-white text-lg">Loading...</Text>
+            <Text style={{ color: THEME.colors.textMain, fontSize: THEME.typography.size.lg }}>Loading...</Text>
           </View>
         </ScreenContainer>
-      </ImageBackground>
+      </View>
     );
   }
 
   return (
-    <ImageBackground
-      source={require("../../assets/images/signinbg.png")}
-      resizeMode="cover"
-      style={{ flex: 1 }}
-    >
+    <View style={{ flex: 1 }}>
+      {/* PROGRAMMATIC ATMOSPHERIC GRADIENT */}
+      <Svg height="100%" width="100%" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <LinearGradient id="grad_welcome" x1="0%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor={THEME.colors.primary} stopOpacity="0.8" />
+            <Stop offset="55%" stopColor={THEME.colors.pureBlack} stopOpacity="1" />
+            <Stop offset="100%" stopColor={THEME.colors.pureBlack} stopOpacity="1" />
+          </LinearGradient>
+        </Defs>
+        <Rect x="0" y="0" width="100%" height="100%" fill="url(#grad_welcome)" />
+      </Svg>
+
       <ScreenContainer>
-        <View className="mt-12 items-center px-3">
+        <View style={{ marginTop: THEME.spacing.xxxl * 2, alignItems: "center", paddingHorizontal: THEME.spacing.sm }}>
           <AuthHeading>
-            Welcome to CommitT <Text style={{ color: "#4FA0FF" }}>{userName}</Text>
+            Welcome to CommitT <Text style={{ color: THEME.colors.primary }}>{userName}</Text>
           </AuthHeading>
         </View>
 
         <View className="items-center">
           <Image
             source={require("../../assets/images/logo.png")}
-            style={{ width: 430, height: 430, marginVertical: 10 }}
+            style={{ width: 430, height: 430, marginVertical: THEME.spacing.md }}
             resizeMode="contain"
           />
         </View>
 
         <View className="flex-1" />
 
-        <View className="mx-4 mb-4">
+        <View style={{ marginHorizontal: THEME.spacing.lg, marginBottom: THEME.spacing.lg }}>
           <PrimaryButton onPress={handleSignOut}>Sign Out</PrimaryButton>
         </View>
 
-        <View className="mx-4 mb-4">
+        <View style={{ marginHorizontal: THEME.spacing.lg, marginBottom: THEME.spacing.lg }}>
           <PrimaryButton onPress={() => router.push("/(main)/commits")}>Get started</PrimaryButton>
         </View>
       </ScreenContainer>
-    </ImageBackground>
+    </View>
   );
 }
+
