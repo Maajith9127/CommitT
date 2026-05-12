@@ -1,7 +1,7 @@
-style: harden Saffron/Obsidian design system across Schedules and Modals
+feat(ui): harden Presets Hub and Notifications with design system tokens
 
-- Tokenized `ConfirmationModal` geometry and typography, increasing action button scale to `text-xl` for better HUD legibility.
-- Synchronized `EventDetailModal` contrast with `surface` charcoal backgrounds and `surfaceElevated` dividers, matching the Preset Picker aesthetic.
-- Overhauled `Schedules` calendar engine: implemented `pureBlack` axis headers and time columns with a `surface` charcoal event grid.
-- Fully themed `CaptchaWaiverView` infrastructure, including primary Saffron progress bars and elevated input interaction containers.
-- Standardized all verification status pills and action icons in `EventDetailHeader` to pull directly from success/danger theme tokens
+- **Presets Hub**: Standardized "Rule DNA" chips with THEME tokens, increasing data density and visual parity with picker modals.
+- **Notifications**: Migrated feed to Obsidian design system, implementing saffron highlights for upcoming deadlines and semantic color synchronization for history items.
+- **Input Components**: Fixed style-merging logic in `Input` to prevent theme color overrides and enforced white text visibility in dark mode across all editing flows (Digital, Location, Rule).
+- **TabsBar**: Standardized typography and active-state highlights using theme-compliant Saffron tokens.
+- **Visual Polish**: Unified backgrounds using `pureBlack` and `background` tokens and hardened component borders across the alerts and presets dashboards.
