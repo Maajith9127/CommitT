@@ -628,7 +628,7 @@ function RulePresetCard({
   onMorePress: (x: number, y: number) => void;
 }) {
   const isStay = preset.config?.verification_style === "stay_throughout";
-  const intensityColor = preset.intensity === "strict" ? THEME.colors.danger : THEME.colors.primary;
+  const intensity = preset.config?.stay_throughout_config?.intensity || "moderate";
 
   return (
     <UView className="border-b p-6" style={{ borderBottomColor: THEME.colors.surfaceElevated }}>
@@ -671,39 +671,39 @@ function RulePresetCard({
           </BodyText>
     <UView className="flex-row flex-wrap gap-2">
             <UView 
-              className="px-4 py-1.5 border"
-              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
+              className="px-5 py-2.5 border"
+              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight, borderRadius: THEME.radii.full }}
             >
-              <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
+              <BodyText style={{ color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>
                 {preset.config?.verification_style === 'stay_throughout' ? "Stay Throughout" : "Just Show Up"}
               </BodyText>
             </UView>
             {isStay && (
               <UView 
-                className="px-4 py-1.5 border"
-                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
+                className="px-5 py-2.5 border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight, borderRadius: THEME.radii.full }}
               >
-                <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   Max Miss: {preset.config?.stay_throughout_config?.max_missed_checkins || 3}
                 </BodyText>
               </UView>
             )}
             {isStay && (
               <UView 
-                className="px-4 py-1.5 border"
-                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
+                className="px-5 py-2.5 border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight, borderRadius: THEME.radii.full }}
               >
-                <BodyText style={{ color: intensityColor, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   {preset.config?.stay_throughout_config?.intensity || "Moderate"}
                 </BodyText>
               </UView>
             )}
             {!isStay && (
               <UView 
-                className="px-4 py-1.5 border"
-                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
+                className="px-5 py-2.5 border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight, borderRadius: THEME.radii.full }}
               >
-                <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   {preset.config?.grace_period_minutes || 0}m Grace
                 </BodyText>
               </UView>
@@ -721,19 +721,19 @@ function RulePresetCard({
           </BodyText>
           <UView className="flex-row flex-wrap gap-2">
             <UView 
-              className="px-4 py-1.5 border"
-              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
+              className="px-5 py-2.5 border"
+              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight, borderRadius: THEME.radii.full }}
             >
-              <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
+              <BodyText style={{ color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>
                 {preset.config?.alarms?.lead_time_minutes || 0} mins before
               </BodyText>
             </UView>
             {preset.config?.alarms?.interval_minutes > 0 && (
               <UView 
-                className="px-4 py-1.5 border"
-                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
+                className="px-5 py-2.5 border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight, borderRadius: THEME.radii.full }}
               >
-                <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   every {preset.config?.alarms?.interval_minutes} mins
                 </BodyText>
               </UView>
