@@ -1,12 +1,11 @@
-style: theme Location Picker, geofences, and shared status indicators
+style: polish scheduling flow typography and component depth
 
-Unified the location selection flow and shared verification components with the Saffron design system tokens.
+Finalized the visual refinements for the commitment scheduling UI, focusing on typographic hierarchy and component elevation.
 
 Key Changes:
-- Theme Expansion: Added `surfaceLight` (subtle overlay) token to `theme.ts` for enhanced depth on status badges and popovers.
-- Location Modal: Refactored `LocationPresetPickerModal` to use `THEME.colors.surface` and updated Google Static Maps API logic to inject Saffron (`THEME.colors.primary`) for geofence paths and markers.
-- Status Indicator: Overhauled `VerificationStatusCircle` with the new Saffron palette, thickened borders (1.5px), and restored tactile depth using the `surfaceLight` background token.
-- Popover Menu: Tokenized `ActionMenu` by mapping its floating container to `surfaceElevated`, adding a crisp `surfaceLight` border, and syncing destructive actions with `THEME.colors.danger`.
-- Global UI: Replaced hardcoded grays and whites across location list items with `textMain` and `textMuted` tokens.
+- Typography Refinement: Resized the "Active Time" screen header to `xxxl` (30px) to restore its premium prominence.
+- Time Slot Optimization: Swapped the time-range display in `TimeSlotCard` to `HeaderTitle` in white (`textMain`) and tuned its size to `base` (16px) for better balance.
+- Component Fixes: Resolved a ReferenceError by correctly importing `HeaderTitle` into `TimeSlotCard.tsx`.
+- Visual Depth: Polished the `VerificationStatusCircle` by thickening its border to 1.5px and applying the new `surfaceLight` background token to create a tactical HUD look.
 
-This ensures that modal pickers and status badges maintain a premium, consistent HUD aesthetic throughout the commitment creation flow.
+This completes the visual hardening of the commitment creation flow, ensuring all schedule-related UI is high-contrast and on-theme.

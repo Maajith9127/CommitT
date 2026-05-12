@@ -310,7 +310,7 @@ export default function TimeSetScreen() {
       >
         {/* Header */}
         <UView className="mb-8">
-          <HeaderTitle className="text-3xl" style={{ color: THEME.colors.primary }}>Active Time</HeaderTitle>
+          <HeaderTitle style={{ color: THEME.colors.primary, fontSize: THEME.typography.size.xxxl }}>Active Time</HeaderTitle>
           <UText className="mt-1 mb-0 text-left text-base" style={{ color: THEME.colors.textMuted }}>
             Choose when this commitment is active
           </UText>

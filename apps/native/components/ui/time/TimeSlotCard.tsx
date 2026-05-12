@@ -9,7 +9,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 
-import { AuthTitle, BodyText, FooterText } from "@/components/ui/text";
+import { AuthTitle, BodyText, FooterText, HeaderTitle } from "@/components/ui/text";
 import { useAppStore } from "@/stores/useAppStore";
 import { THEME } from "@/constants/theme";
 
@@ -132,9 +132,9 @@ export function TimeSlotCard({
           <MaterialCommunityIcons name="clock-outline" size={18} color="black" />
         </UView>
 
-        <AuthTitle className="mb-0 flex-1 text-left font-medium text-base text-white">
+        <HeaderTitle className="flex-1 text-left" style={{ fontSize: THEME.typography.size.base }}>
           {startTime} – {endTime}
-        </AuthTitle>
+        </HeaderTitle>
 
         {(hasLocation || hasDigital) && (
           <UView className="ml-2 mr-0 w-2 h-2 rounded-full" style={{ backgroundColor: THEME.colors.danger }} />
