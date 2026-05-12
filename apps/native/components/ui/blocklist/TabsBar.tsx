@@ -7,7 +7,7 @@ import Animated, {
   withTiming 
 } from "react-native-reanimated";
 import { withUniwind } from "uniwind";
-import { AuthTitle } from "@/components/ui/text";
+import { AuthTitle, BodyText } from "@/components/ui/text";
 import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
@@ -92,12 +92,16 @@ export function TabsBar({ tabs, activeTab, onChange }: TabsBarProps) {
             activeOpacity={1} // Prevent default button feedback so the indicator is the focus
           >
             <UView className="py-3 items-center">
-              <AuthTitle
-                className="mb-0 text-xl font-medium transition-colors duration-200"
-                style={{ color: isActive ? THEME.colors.primary : THEME.colors.textMuted }}
+              <BodyText
+                className="mb-0"
+                style={{ 
+                  color: isActive ? THEME.colors.primary : THEME.colors.textMuted,
+                  fontSize: THEME.typography.size.base,
+                  fontWeight: isActive ? THEME.typography.weight.bold : THEME.typography.weight.medium,
+                }}
               >
                 {tab.label}
-              </AuthTitle>
+              </BodyText>
             </UView>
           </UPress>
         );

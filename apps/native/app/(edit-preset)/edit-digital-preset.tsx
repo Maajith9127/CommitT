@@ -11,7 +11,7 @@
  *   satisfying rather than tedious.
  */
 import React, { useState, useMemo } from "react";
-import { View, Text, Alert, FlatList, Platform } from "react-native";
+import { View, Text, Alert, FlatList, Platform, Pressable, TextInput } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { withUniwind } from "uniwind";
 import { TopBar, TabsBar, InlineAddBar, SelectableListItem } from "@/components/ui/blocklist";
@@ -24,7 +24,6 @@ import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
 import { THEME } from "@/constants/theme";
-
 const UView = withUniwind(View);
 
 type Tab = "apps" | "webs" | "ai";
@@ -59,8 +58,6 @@ export default function EditDigitalPresetScreen() {
   const [inlineText, setInlineText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const [presetName, setPresetName] = useState(params.name || "My Blocklist");
-  const [isEditingName, setIsEditingName] = useState(false);
 
   // ── Apps Data (via Global Store) ──
   const discoveredApps = useAppStore((s: any) => s.apps);
@@ -117,13 +114,13 @@ export default function EditDigitalPresetScreen() {
           id: presetId,
           apps: finalApps,
           websites: finalWebs,
-          name: presetName,
+          name: params.name || "My Blocklist",
         });
       } else {
         await createPreset({
           apps: finalApps,
           websites: finalWebs,
-          name: presetName,
+          name: params.name || "My Blocklist",
         });
       }
       router.back();
@@ -146,33 +143,7 @@ export default function EditDigitalPresetScreen() {
       />
 
       <UView className="mb-4">
-        {isEditingName ? (
-           <UView 
-           className="flex-row items-center rounded-2xl px-3 h-12 mt-3"
-           style={{ backgroundColor: THEME.colors.surfaceElevated }}
-         >
-           <UInput
-             value={presetName}
-             onChangeText={setPresetName}
-             onBlur={() => setIsEditingName(false)}
-             autoFocus
-             className="flex-1 bg-transparent p-0 font-semibold text-white text-base"
-             style={{ color: "#FFFFFF" }}
-             placeholder="Edit blocklist name..."
-             placeholderTextColor={THEME.colors.textMuted}
-           />
-           <UPress onPress={() => setIsEditingName(false)} className="ml-2">
-             <MaterialCommunityIcons name="close-circle" size={20} color={THEME.colors.textMuted} />
-           </UPress>
-         </UView>
-        ) : (
-          <UView className="flex-row items-center justify-between mt-3">
-            <HeaderTitle className="text-3xl">{presetName}</HeaderTitle>
-            <UPress onPress={() => setIsEditingName(true)}>
-              <MaterialCommunityIcons name="pencil" size={24} color={THEME.colors.textMain} />
-            </UPress>
-          </UView>
-        )}
+        <HeaderTitle className="text-3xl mt-3">Edit Blocklist</HeaderTitle>
       </UView>
 
       <TabsBar 
