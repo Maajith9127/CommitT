@@ -23,6 +23,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 // Components
 import { ActionScreenLayout, AddButton, PrimaryButton } from "@/components/ui";
 import { HeaderTitle } from "@/components/ui/text";
+import { THEME } from "@/constants/theme";
 import { DaySelector } from "@/components/ui/time/DaySelector";
 import { TimePicker } from "@/components/ui/time/TimePicker";
 import { TimeSlotCard } from "@/components/ui/time/TimeSlotCard";
@@ -295,7 +296,8 @@ export default function TimeSetScreen() {
     <>
       <ActionScreenLayout
         paddingHorizontal={16}
-        className="bg-black pt-20"
+        className="pt-20"
+        style={{ backgroundColor: THEME.colors.pureBlack }}
         footer={
           <PrimaryButton 
             onPress={() => router.back()}
@@ -308,8 +310,8 @@ export default function TimeSetScreen() {
       >
         {/* Header */}
         <UView className="mb-8">
-          <HeaderTitle className="text-3xl text-blue-400">Active Time</HeaderTitle>
-          <UText className="mt-1 mb-0 text-left text-base text-gray-400">
+          <HeaderTitle className="text-3xl" style={{ color: THEME.colors.primary }}>Active Time</HeaderTitle>
+          <UText className="mt-1 mb-0 text-left text-base" style={{ color: THEME.colors.textMuted }}>
             Choose when this commitment is active
           </UText>
         </UView>
@@ -325,10 +327,13 @@ export default function TimeSetScreen() {
           >
             <HeaderTitle>Repeat</HeaderTitle>
             <UView
-              className={`h-6 w-6 rounded-md border-2 ${
-                isRepeatEnabled ? "border-[#4FA0FF] bg-[#4FA0FF]" : "border-gray-600"
-              }`}
-              style={{ justifyContent: "center", alignItems: "center" }}
+              className="h-6 w-6 rounded-md border-2"
+              style={{ 
+                justifyContent: "center", 
+                alignItems: "center",
+                borderColor: isRepeatEnabled ? THEME.colors.primary : THEME.colors.surfaceElevated,
+                backgroundColor: isRepeatEnabled ? THEME.colors.primary : 'transparent'
+              }}
             >
               {isRepeatEnabled && (
                 <MaterialCommunityIcons name="check" size={18} color="black" />

@@ -1,12 +1,12 @@
-style: harden Saffron design system and tokenized UI architecture
+style: tokenize TimeSet flow and schedule picker components
 
-Unified the application's visual identity by replacing hardcoded styling with a centralized THEME system.
+Refactored the commitment scheduling UI to align with the Saffron design system, removing all remaining legacy blue and hardcoded gray values.
 
 Key Changes:
-- Theme Expansion: Integrated granular spacing, typography scale, and 'pureBlack' OLED tokens in `theme.ts`.
-- Background Unification: Replaced all 'bg-black' instances with `THEME.colors.pureBlack` for high-contrast OLED depth.
-- Card Refactoring: Migrated `CommitCard`, `VerificationCard`, and `ConditionCard` to use the new Warm Charcoal (`#1F1F1E`) surface token.
-- Creation Flow Migration: Fully themed the `(create-commit)` final screen, ensuring all icons, toggles (CustomSwitch), and mini-cards pull from centralized theme tokens.
-- Component Hardening: Stripped Tailwind utility classes for colors and radii from core UI components in favor of dynamic theme-driven inline styles.
+- Screen Theming: Migrated `time-set.tsx` to use `THEME.colors.pureBlack` for the layout background and Saffron accents for the screen title and repeat toggle.
+- Component Extraction: Updated `DaySelector` to utilize theme-based background and text tokens for both active and inactive day bubbles.
+- Picker Overhaul: Refactored `TimePicker` modal to utilize `THEME.colors.surface` for the card body and matched inactive tab backgrounds for a seamless visual flow.
+- Slot Card Polish: Hardened `TimeSlotCard` by mapping its interactive elements, borders, and drawer sub-sections (Location, App Block, Rules) to central theme spacing and color tokens.
+- Typography: Swapped all hardcoded `text-gray-400` utility classes within the time flow for the `THEME.colors.textMuted` token.
 
-This ensures a consistent, premium HUD aesthetic across both the main dashboard and the commitment creation pipeline.
+This ensures that the entire scheduling experience remains visually consistent with the primary commitment dashboard.

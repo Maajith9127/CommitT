@@ -21,6 +21,7 @@
 import React, { useState, useCallback } from "react";
 import { Modal, Pressable, ScrollView, Text, View, StyleSheet } from "react-native";
 import { withUniwind } from "uniwind";
+import { THEME } from "@/constants/theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Styled Components
@@ -35,13 +36,13 @@ const UScroll = withUniwind(ScrollView);
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** App brand color */
-const ACCENT_COLOR = "#4FA0FF";
+const ACCENT_COLOR = THEME.colors.primary;
 
 /** Background colors */
 const COLORS = {
-  background: "#1A1A1A",
-  tabInactive: "#374151",
-  pressed: "#333",
+  background: THEME.colors.surface,
+  tabInactive: THEME.colors.surface,
+  pressed: THEME.colors.surfaceElevated,
   overlay: "rgba(0,0,0,0.7)",
 } as const;
 
@@ -105,9 +106,11 @@ function PickerItem({ label, isSelected, onPress }: PickerItemProps) {
       })}
     >
       <UText
-        className={`text-center text-lg ${
-          isSelected ? "font-bold text-white" : "text-gray-400"
-        }`}
+        className="text-center text-lg"
+        style={{
+          fontWeight: isSelected ? "bold" : "normal",
+          color: isSelected ? THEME.colors.textMain : THEME.colors.textMuted
+        }}
       >
         {label}
       </UText>
@@ -135,9 +138,11 @@ function TabButton({ label, isActive, onPress }: TabButtonProps) {
       })}
     >
       <UText
-        className={`text-center font-bold text-lg ${
-          isActive ? "text-white" : "text-gray-400"
-        }`}
+        className="text-center text-lg"
+        style={{
+          fontWeight: "bold",
+          color: isActive ? THEME.colors.textMain : THEME.colors.textMuted
+        }}
       >
         {label}
       </UText>
@@ -230,7 +235,7 @@ export function TimePicker({ visible, onClose, onSave, initialFrom, initialTo }:
     >
       <View style={styles.overlay}>
         {/* Picker Card */}
-        <UView className="w-[85%] overflow-hidden rounded-2xl bg-[#1A1A1A] shadow-2xl">
+        <UView className="w-[85%] overflow-hidden rounded-2xl shadow-2xl" style={{ backgroundColor: THEME.colors.surface }}>
           
           {/* Tab Bar */}
           <UView className="flex-row">
@@ -247,19 +252,19 @@ export function TimePicker({ visible, onClose, onSave, initialFrom, initialTo }:
           </UView>
 
           {/* Time Display */}
-          <UView className="items-center bg-[#4FA0FF] py-8">
-            <UText className="font-light text-6xl text-white">
+          <UView className="items-center py-8" style={{ backgroundColor: THEME.colors.primary }}>
+            <UText className="font-light text-6xl" style={{ color: THEME.colors.textMain }}>
               {currentTime.hour}:{formatMinute(currentTime.minute)}{" "}
-              <UText className="text-4xl text-white/70">{currentTime.period}</UText>
+              <UText className="text-4xl" style={{ color: THEME.colors.textMain, opacity: 0.7 }}>{currentTime.period}</UText>
             </UText>
           </UView>
 
           {/* Picker Columns */}
-          <UView className="flex-row bg-[#1A1A1A] px-2 py-4">
+          <UView className="flex-row px-2 py-4" style={{ backgroundColor: THEME.colors.surface }}>
             
             {/* Hour Picker */}
             <UView className="flex-1 items-center">
-              <UText className="mb-2 font-semibold text-gray-400 text-xs">HOUR</UText>
+              <UText className="mb-2 font-semibold text-xs" style={{ color: THEME.colors.textMuted }}>HOUR</UText>
               <UScroll className="h-40" showsVerticalScrollIndicator={false}>
                 {HOURS.map((h) => (
                   <PickerItem
@@ -274,7 +279,7 @@ export function TimePicker({ visible, onClose, onSave, initialFrom, initialTo }:
 
             {/* Minute Picker */}
             <UView className="flex-1 items-center">
-              <UText className="mb-2 font-semibold text-gray-400 text-xs">MINUTE</UText>
+              <UText className="mb-2 font-semibold text-xs" style={{ color: THEME.colors.textMuted }}>MINUTE</UText>
               <UScroll className="h-40" showsVerticalScrollIndicator={false}>
                 {MINUTES.map((m) => (
                   <PickerItem
@@ -289,7 +294,7 @@ export function TimePicker({ visible, onClose, onSave, initialFrom, initialTo }:
 
             {/* Period Picker (AM/PM) */}
             <UView className="flex-1 items-center">
-              <UText className="mb-2 font-semibold text-gray-400 text-xs">PERIOD</UText>
+              <UText className="mb-2 font-semibold text-xs" style={{ color: THEME.colors.textMuted }}>PERIOD</UText>
               <UView className="h-40 justify-center">
                 <View style={{ marginBottom: 12 }}>
                   <PickerItem
@@ -308,18 +313,18 @@ export function TimePicker({ visible, onClose, onSave, initialFrom, initialTo }:
           </UView>
 
           {/* Footer Buttons */}
-          <UView className="flex-row justify-end border-gray-800 border-t bg-[#1A1A1A] px-6 py-4">
+          <UView className="flex-row justify-end border-t px-6 py-4" style={{ backgroundColor: THEME.colors.surface, borderColor: THEME.colors.surfaceElevated }}>
             <Pressable
               onPress={onClose}
               style={styles.footerButton}
             >
-              <UText className="font-semibold text-base text-gray-400">CANCEL</UText>
+              <UText className="font-semibold text-base" style={{ color: THEME.colors.textMuted }}>CANCEL</UText>
             </Pressable>
             <Pressable
               onPress={handleSave}
               style={[styles.footerButton, { marginLeft: 16 }]}
             >
-              <UText className="font-semibold text-[#4FA0FF] text-base">OK</UText>
+              <UText className="font-semibold text-base" style={{ color: THEME.colors.primary }}>OK</UText>
             </Pressable>
           </UView>
         </UView>

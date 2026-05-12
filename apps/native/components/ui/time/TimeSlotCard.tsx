@@ -11,6 +11,7 @@ import Animated, {
 
 import { AuthTitle, BodyText, FooterText } from "@/components/ui/text";
 import { useAppStore } from "@/stores/useAppStore";
+import { THEME } from "@/constants/theme";
 
 export type TimeSlotCardProps = {
   startTime: string;
@@ -119,14 +120,15 @@ export function TimeSlotCard({
   const hasRule = !!ruleLabel;
 
   return (
-    <UView className="mb-3 w-full rounded-3xl bg-[#1A1A1A] overflow-hidden">
+    <UView className="mb-3 w-full overflow-hidden" style={{ backgroundColor: THEME.colors.surface, borderRadius: THEME.radii.card }}>
       {/* ── TIME HEADER ── */}
       <UPressable 
         onPress={onPress}
         activeOpacity={0.7}
-        className="w-full flex-row items-center px-4 py-3.5"
+        className="w-full flex-row items-center"
+        style={{ paddingHorizontal: THEME.spacing.lg, paddingVertical: THEME.spacing.md }}
       >
-        <UView className="mr-3 h-8 w-8 items-center justify-center rounded-full bg-[#4FA0FF]">
+        <UView className="items-center justify-center rounded-full" style={{ width: 32, height: 32, marginRight: THEME.spacing.md, backgroundColor: THEME.colors.primary }}>
           <MaterialCommunityIcons name="clock-outline" size={18} color="black" />
         </UView>
 
@@ -135,7 +137,7 @@ export function TimeSlotCard({
         </AuthTitle>
 
         {(hasLocation || hasDigital) && (
-          <UView className="ml-2 mr-0 w-2 h-2 rounded-full bg-[#FF3B30]" />
+          <UView className="ml-2 mr-0 w-2 h-2 rounded-full" style={{ backgroundColor: THEME.colors.danger }} />
         )}
 
         <UPressable 
@@ -146,7 +148,7 @@ export function TimeSlotCard({
            <MaterialCommunityIcons 
              name={isExpanded ? "chevron-up" : "chevron-down"} 
              size={22} 
-             color="#A1A1A1" 
+             color={THEME.colors.textMuted} 
            />
         </UPressable>
       </UPressable>
@@ -157,23 +159,24 @@ export function TimeSlotCard({
           onLayout={onContentLayout}
           style={{ position: 'absolute', width: '100%' }}
         >
-          <UView className="border-t border-white/20">
+          <UView className="border-t" style={{ borderColor: THEME.colors.surfaceElevated }}>
             {/* ── Location Row ── */}
             <UPressable 
               onPress={onLocationPress}
-              className="flex-row items-center px-4 py-3 border-b border-white/20"
+              className="flex-row items-center border-b"
+              style={{ borderColor: THEME.colors.surfaceElevated, paddingHorizontal: THEME.spacing.lg, paddingVertical: THEME.spacing.md }}
             >
               <MaterialCommunityIcons 
                 name="map-marker-outline" 
                 size={28} 
-                color="#9CA3AF" 
-                style={{ marginRight: 16 }} 
+                color={THEME.colors.textMuted} 
+                style={{ marginRight: THEME.spacing.lg }} 
               />
               <UView className="flex-1">
                 <UView className="flex-row items-center justify-between">
                   <BodyText className="mt-0 text-gray-400 text-sm">Location</BodyText>
                   {locationSubLabel && (
-                    <BodyText className="text-[10px] text-blue-400/80 font-bold uppercase tracking-wider">{locationSubLabel}</BodyText>
+                    <BodyText className="text-[10px] font-bold uppercase tracking-wider" style={{ color: THEME.colors.primary }}>{locationSubLabel}</BodyText>
                   )}
                 </UView>
                 <BodyText className={`text-base mt-0.5 ${hasLocation ? 'text-white' : 'text-gray-500'}`} numberOfLines={1}>
@@ -185,19 +188,20 @@ export function TimeSlotCard({
             {/* ── App Block Row ── */}
             <UPressable 
               onPress={onDigitalPress}
-              className="flex-row items-center px-4 py-3 border-b border-white/20"
+              className="flex-row items-center border-b"
+              style={{ borderColor: THEME.colors.surfaceElevated, paddingHorizontal: THEME.spacing.lg, paddingVertical: THEME.spacing.md }}
             >
               <MaterialCommunityIcons 
                 name="cellphone-lock" 
                 size={28} 
-                color="#9CA3AF" 
-                style={{ marginRight: 16 }} 
+                color={THEME.colors.textMuted} 
+                style={{ marginRight: THEME.spacing.lg }} 
               />
               <UView className="flex-1">
                 <UView className="flex-row items-center justify-between">
                   <BodyText className="mt-0 text-gray-400 text-sm">App block</BodyText>
                   {digitalSubLabel && (
-                    <BodyText className="text-[10px] text-blue-400/80 font-bold uppercase tracking-wider">{digitalSubLabel}</BodyText>
+                    <BodyText className="text-[10px] font-bold uppercase tracking-wider" style={{ color: THEME.colors.primary }}>{digitalSubLabel}</BodyText>
                   )}
                 </UView>
                 
@@ -227,19 +231,20 @@ export function TimeSlotCard({
             {/* ── Rules Row ── */}
             <UPressable 
               onPress={onRulePress}
-              className="flex-row items-center px-4 py-3 border-b border-white/20"
+              className="flex-row items-center border-b"
+              style={{ borderColor: THEME.colors.surfaceElevated, paddingHorizontal: THEME.spacing.lg, paddingVertical: THEME.spacing.md }}
             >
               <MaterialCommunityIcons 
                 name="format-list-checks" 
                 size={28} 
-                color="#9CA3AF" 
-                style={{ marginRight: 16 }} 
+                color={THEME.colors.textMuted} 
+                style={{ marginRight: THEME.spacing.lg }} 
               />
               <UView className="flex-1">
                 <UView className="flex-row items-center justify-between">
                   <BodyText className="mt-0 text-gray-400 text-sm">Rules</BodyText>
                   {ruleSubLabel && (
-                    <BodyText className="text-[10px] text-blue-400/80 font-bold uppercase tracking-wider">{ruleSubLabel}</BodyText>
+                    <BodyText className="text-[10px] font-bold uppercase tracking-wider" style={{ color: THEME.colors.primary }}>{ruleSubLabel}</BodyText>
                   )}
                 </UView>
                 <BodyText className={`text-base mt-0.5 ${hasRule ? 'text-white' : 'text-gray-500'}`} numberOfLines={1}>
@@ -251,10 +256,11 @@ export function TimeSlotCard({
             {/* ── Delete Slot Action ── */}
             <UPressable 
               onPress={onRemove}
-              className="flex-row items-center justify-center py-3 gap-2"
+              className="flex-row items-center justify-center gap-2"
+              style={{ paddingVertical: THEME.spacing.md }}
             >
-              <MaterialCommunityIcons name="delete-outline" size={26} color="#FF3B30" />
-              <BodyText className="text-[#FF3B30] text-sm">Remove</BodyText>
+              <MaterialCommunityIcons name="delete-outline" size={26} color={THEME.colors.danger} />
+              <BodyText className="text-sm" style={{ color: THEME.colors.danger }}>Remove</BodyText>
             </UPressable>
           </UView>
         </View>

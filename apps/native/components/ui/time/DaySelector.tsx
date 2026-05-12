@@ -1,6 +1,7 @@
 import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import { withUniwind } from "uniwind";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UText = withUniwind(Text);
@@ -37,15 +38,15 @@ export function DaySelector() {
           >
             {({ pressed }: { pressed: boolean }) => (
               <UView
-                className={`h-11 w-11 items-center justify-center rounded-full ${
-                  isActive ? "bg-[#4FA0FF]" : "bg-[#1A1A1A]"
-                }`}
+                className="h-11 w-11 items-center justify-center rounded-full"
                 style={{
+                  backgroundColor: isActive ? THEME.colors.primary : THEME.colors.surface,
                   opacity: pressed ? 0.7 : 1
                 }}
               >
                 <UText
-                  className={`font-semibold text-sm ${isActive ? "text-white" : "text-gray-300"}`}
+                  className="font-semibold"
+                  style={{ color: isActive ? THEME.colors.textMain : THEME.colors.textMuted, fontSize: THEME.typography.size.sm }}
                 >
                   {label}
                 </UText>
