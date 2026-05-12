@@ -41,6 +41,7 @@ import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText } from '@/components/ui/text';
 import Svg, { Circle } from 'react-native-svg';
+import { THEME } from '@/constants/theme';
 
 // ── Uniwind-wrapped primitives ──────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -78,8 +79,9 @@ export function VerificationStatusCircle({
 }: VerificationCircleProps) {
 
   // Shared styling for the outer circle container
-  const baseOuterClass = "w-12 h-12 rounded-full border border-white/20 justify-center items-center bg-white/5 overflow-hidden";
-  const iconColor = "#D1D5DB"; // Tailwind gray-300
+  const baseOuterClass = "w-12 h-12 rounded-full justify-center items-center overflow-hidden";
+  const baseOuterStyle = { borderWidth: 1.5, borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight };
+  const iconColor = THEME.colors.textMuted;
 
   // ── 📊 Progress Ring logic: If we have a ratio or percentage, we draw the SVG ring
   const effectivePercentage = ratio ? (ratio.current / ratio.total) * 100 : percentage;
@@ -109,7 +111,7 @@ export function VerificationStatusCircle({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={ratio ? "#4FA0FF" : iconColor}
+          stroke={ratio ? THEME.colors.primary : iconColor}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
@@ -136,18 +138,18 @@ export function VerificationStatusCircle({
 
     if (onPress) {
       return (
-        <UPressable className={baseOuterClass} onPress={onPress}>
+        <UPressable className={baseOuterClass} style={baseOuterStyle} onPress={onPress}>
           {content}
         </UPressable>
       );
     }
-    return <UView className={baseOuterClass}>{content}</UView>;
+    return <UView className={baseOuterClass} style={baseOuterStyle}>{content}</UView>;
   }
 
   // ── Loading state
   if (isLoading) {
     return (
-      <UView className={baseOuterClass}>
+      <UView className={baseOuterClass} style={baseOuterStyle}>
         <ActivityIndicator size="small" color={iconColor} />
       </UView>
     );
@@ -159,22 +161,22 @@ export function VerificationStatusCircle({
       <View className="items-center justify-center">
         {renderRing()}
         <View className="flex-row items-baseline">
-          <BodyText className="text-white font-bold" style={{ fontSize: 13 }}>{ratio.current}</BodyText>
-          <BodyText className="text-gray-400" style={{ fontSize: 9 }}>/{ratio.total}</BodyText>
+          <BodyText className="font-bold" style={{ fontSize: 13, color: THEME.colors.textMain }}>{ratio.current}</BodyText>
+          <BodyText style={{ fontSize: 9, color: THEME.colors.textMuted }}>/{ratio.total}</BodyText>
         </View>
       </View>
     );
     if (onPress) {
-      return <UPressable className={baseOuterClass} onPress={onPress}>{content}</UPressable>;
+      return <UPressable className={baseOuterClass} style={baseOuterStyle} onPress={onPress}>{content}</UPressable>;
     }
-    return <UView className={baseOuterClass}>{content}</UView>;
+    return <UView className={baseOuterClass} style={baseOuterStyle}>{content}</UView>;
   }
 
   // ── Verified state
   if (status === 'verified') {
     const verifiedContent = (
-      <UView className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: '#4CD964', backgroundColor: 'rgba(76, 217, 100, 0.1)' }}>
-        <MaterialCommunityIcons name="check" size={24} color="#4CD964" />
+      <UView className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: THEME.colors.success, backgroundColor: 'rgba(76, 217, 100, 0.1)' }}>
+        <MaterialCommunityIcons name="check" size={24} color={THEME.colors.success} />
       </UView>
     );
 
@@ -192,14 +194,14 @@ export function VerificationStatusCircle({
   if (status === 'failed') {
     if (onPress) {
       return (
-        <UPressable className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: '#FF3B30', backgroundColor: 'rgba(255, 59, 48, 0.1)' }} onPress={onPress}>
-          <MaterialCommunityIcons name="refresh" size={24} color="#FF3B30" />
+        <UPressable className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: THEME.colors.danger, backgroundColor: 'rgba(255, 59, 48, 0.1)' }} onPress={onPress}>
+          <MaterialCommunityIcons name="refresh" size={24} color={THEME.colors.danger} />
         </UPressable>
       );
     }
     return (
-      <UView className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: '#FF3B30', backgroundColor: 'rgba(255, 59, 48, 0.1)' }}>
-        <MaterialCommunityIcons name="close" size={24} color="#FF3B30" />
+      <UView className="w-12 h-12 rounded-full border justify-center items-center" style={{ borderColor: THEME.colors.danger, backgroundColor: 'rgba(255, 59, 48, 0.1)' }}>
+        <MaterialCommunityIcons name="close" size={24} color={THEME.colors.danger} />
       </UView>
     );
   }
@@ -207,7 +209,7 @@ export function VerificationStatusCircle({
   // ── Dots state (Management/More state) ──
   if (status === 'dots') {
     const dotsContent = (
-      <UView className={baseOuterClass}>
+      <UView className={baseOuterClass} style={baseOuterStyle}>
         <MaterialCommunityIcons name="dots-vertical" size={24} color={iconColor} />
       </UView>
     );
@@ -220,7 +222,7 @@ export function VerificationStatusCircle({
   // ── Applied / Waived states
   if (status === 'applied') {
     return (
-      <UView className={baseOuterClass}>
+      <UView className={baseOuterClass} style={baseOuterStyle}>
         <MaterialCommunityIcons name="flag-checkered" size={24} color={iconColor} />
       </UView>
     );
@@ -228,7 +230,7 @@ export function VerificationStatusCircle({
 
   if (status === 'waived') {
     return (
-      <UView className={baseOuterClass}>
+      <UView className={baseOuterClass} style={baseOuterStyle}>
         <MaterialCommunityIcons name="shield-check-outline" size={24} color={iconColor} />
       </UView>
     );
@@ -237,7 +239,7 @@ export function VerificationStatusCircle({
   // ── Percentage state
   if (status === 'percentage') {
     return (
-      <UView className={baseOuterClass}>
+      <UView className={baseOuterClass} style={baseOuterStyle}>
         {renderRing()}
         <MaterialCommunityIcons name="percent" size={16} color={iconColor} />
       </UView>
@@ -247,7 +249,7 @@ export function VerificationStatusCircle({
   // ── Neutral state
   const neutralIcon = <MaterialCommunityIcons name="cursor-pointer" size={24} color={iconColor} />;
   if (onPress) {
-    return <UPressable className={baseOuterClass} onPress={onPress}>{neutralIcon}</UPressable>;
+    return <UPressable className={baseOuterClass} style={baseOuterStyle} onPress={onPress}>{neutralIcon}</UPressable>;
   }
-  return <UView className={baseOuterClass}>{neutralIcon}</UView>;
+  return <UView className={baseOuterClass} style={baseOuterStyle}>{neutralIcon}</UView>;
 }

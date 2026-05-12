@@ -8,6 +8,7 @@ export const THEME = {
     background: "#080808", // Obsidian Black
     surface: "#171717ff", // Warm Charcoal
     surfaceElevated: "#2A2A2A", // Lighter Gray (Inner elements)
+    surfaceLight: "rgba(255, 255, 255, 0.05)", // Subtle overlay for badges/circles
     pureBlack: "#000000", // OLED Black for boundaries
 
     // Text & Icons

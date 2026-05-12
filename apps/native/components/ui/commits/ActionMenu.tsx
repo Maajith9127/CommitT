@@ -3,6 +3,7 @@ import { Modal, Pressable, View, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
 
 import { FooterText } from "@/components/ui/text";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 
@@ -34,7 +35,7 @@ const defaultItems: ActionMenuItem[] = [
   {
     icon: "delete-outline",
     label: "Delete",
-    color: "#4FA0FF",
+    color: THEME.colors.danger,
     onPress: () => {},
   },
 ];
@@ -65,16 +66,18 @@ export function ActionMenu({
             position: "absolute",
             top: (anchorPosition?.y ?? 200) + 10,
             right: 20,
-            backgroundColor: "#151515",
-            borderRadius: 12,
+            backgroundColor: THEME.colors.surfaceElevated,
+            borderRadius: THEME.radii.md,
             paddingVertical: 8,
             paddingHorizontal: 4,
             minWidth: 160,
-            shadowColor: "#000",
+            shadowColor: THEME.colors.pureBlack,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
             shadowRadius: 8,
             elevation: 8,
+            borderWidth: 1,
+            borderColor: THEME.colors.surfaceLight,
           }}
         >
           {items.map((item, index) => (
@@ -95,11 +98,11 @@ export function ActionMenu({
               <MaterialCommunityIcons
                 name={item.icon as any}
                 size={22}
-                color={item.color || "#FFFFFF"}
+                color={item.color || THEME.colors.textMain}
               />
               <FooterText
                 className="ml-3 text-base"
-                style={{ color: item.color || "#FFFFFF" }}
+                style={{ color: item.color || THEME.colors.textMain }}
               >
                 {item.label}
               </FooterText>

@@ -1,12 +1,12 @@
-style: tokenize TimeSet flow and schedule picker components
+style: theme Location Picker, geofences, and shared status indicators
 
-Refactored the commitment scheduling UI to align with the Saffron design system, removing all remaining legacy blue and hardcoded gray values.
+Unified the location selection flow and shared verification components with the Saffron design system tokens.
 
 Key Changes:
-- Screen Theming: Migrated `time-set.tsx` to use `THEME.colors.pureBlack` for the layout background and Saffron accents for the screen title and repeat toggle.
-- Component Extraction: Updated `DaySelector` to utilize theme-based background and text tokens for both active and inactive day bubbles.
-- Picker Overhaul: Refactored `TimePicker` modal to utilize `THEME.colors.surface` for the card body and matched inactive tab backgrounds for a seamless visual flow.
-- Slot Card Polish: Hardened `TimeSlotCard` by mapping its interactive elements, borders, and drawer sub-sections (Location, App Block, Rules) to central theme spacing and color tokens.
-- Typography: Swapped all hardcoded `text-gray-400` utility classes within the time flow for the `THEME.colors.textMuted` token.
+- Theme Expansion: Added `surfaceLight` (subtle overlay) token to `theme.ts` for enhanced depth on status badges and popovers.
+- Location Modal: Refactored `LocationPresetPickerModal` to use `THEME.colors.surface` and updated Google Static Maps API logic to inject Saffron (`THEME.colors.primary`) for geofence paths and markers.
+- Status Indicator: Overhauled `VerificationStatusCircle` with the new Saffron palette, thickened borders (1.5px), and restored tactile depth using the `surfaceLight` background token.
+- Popover Menu: Tokenized `ActionMenu` by mapping its floating container to `surfaceElevated`, adding a crisp `surfaceLight` border, and syncing destructive actions with `THEME.colors.danger`.
+- Global UI: Replaced hardcoded grays and whites across location list items with `textMain` and `textMuted` tokens.
 
-This ensures that the entire scheduling experience remains visually consistent with the primary commitment dashboard.
+This ensures that modal pickers and status badges maintain a premium, consistent HUD aesthetic throughout the commitment creation flow.
