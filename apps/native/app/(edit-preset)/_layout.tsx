@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { THEME } from "@/constants/theme";
 
 /**
  * EditPresetLayout
@@ -16,7 +17,7 @@ export default function EditPresetLayout() {
         animation: "fade",
         presentation: "transparentModal",
         headerShown: false,
-        contentStyle: { backgroundColor: "black" },
+        contentStyle: { backgroundColor: THEME.colors.background },
       }}
     />
   );

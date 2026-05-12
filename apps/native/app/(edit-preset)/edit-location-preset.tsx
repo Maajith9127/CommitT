@@ -15,6 +15,7 @@ import { PrimaryButton } from "@/components/ui/button";
 import { CustomSlider } from "@/components/ui/CustomSlider";
 import { Input } from "@/components/ui/input";
 import { usePresetEditStore } from "@/stores/usePresetEditStore";
+import { THEME } from "@/constants/theme";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MATHEMATICAL UTILITIES
@@ -286,7 +287,7 @@ export default function EditLocationPresetScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "black" }}>
+    <View style={{ flex: 1, backgroundColor: THEME.colors.background }}>
       <GoogleMaps.View
         ref={mapRef}
         style={{ flex: 1 }}
@@ -326,8 +327,8 @@ export default function EditLocationPresetScreen() {
           {
             center: { latitude: storeLat, longitude: storeLng },
             radius: storeRadius,
-            color: "#4FA0FF40",
-            lineColor: "#4FA0FF",
+            color: `${THEME.colors.primary}40`,
+            lineColor: THEME.colors.primary,
             lineWidth: 12,
           },
         ]}
@@ -387,9 +388,15 @@ function PresetEditPanel({
   const [isEditingName, setIsEditingName] = useState(false);
 
   return (
-    <UView className="m-4 mb-8 rounded-3xl bg-[#1A1A1A] px-4 py-4">
+    <UView 
+      className="m-4 mb-8 rounded-3xl px-4 py-4"
+      style={{ backgroundColor: THEME.colors.surface }}
+    >
       {isEditingName ? (
-        <UView className="flex-row items-center bg-[#2A2A2A] rounded-2xl px-3 h-12">
+        <UView 
+          className="flex-row items-center rounded-2xl px-3 h-12"
+          style={{ backgroundColor: THEME.colors.surfaceElevated }}
+        >
           <Input
             value={address}
             onChangeText={onAddressChange}
@@ -399,22 +406,22 @@ function PresetEditPanel({
             placeholder="Edit preset name..."
           />
           <UButton onPress={() => Keyboard.dismiss()} className="ml-2">
-            <MaterialCommunityIcons name="close-circle" size={20} color="#666" />
+            <MaterialCommunityIcons name="close-circle" size={20} color={THEME.colors.textMuted} />
           </UButton>
         </UView>
       ) : (
         <UView className="flex-row items-center justify-between">
           <UButton onPress={onCenterPress} activeOpacity={0.7} className="flex-1">
-            <HeaderTitle className="text-base text-[#4FA0FF]" numberOfLines={1}>
+            <HeaderTitle className="text-base" style={{ color: THEME.colors.textMain }} numberOfLines={1}>
               {address}
             </HeaderTitle>
           </UButton>
           <UView className="flex-row items-center">
             <UButton onPress={() => setIsEditingName(true)} className="ml-2" activeOpacity={0.7}>
-              <MaterialCommunityIcons name="pencil" size={20} color="white" />
+              <MaterialCommunityIcons name="pencil" size={20} color={THEME.colors.textMain} />
             </UButton>
             <UButton onPress={onSearchPress} className="ml-2" activeOpacity={0.7}>
-               <MaterialCommunityIcons name="magnify" size={22} color="white" />
+               <MaterialCommunityIcons name="magnify" size={22} color={THEME.colors.textMain} />
             </UButton>
           </UView>
         </UView>
@@ -423,7 +430,7 @@ function PresetEditPanel({
       <UView className="mt-4">
         <UView className="flex-row justify-between items-center">
           <HeaderTitle className="text-sm">Radius</HeaderTitle>
-          <FooterText className="text-[#4FA0FF]">{radius} m</FooterText>
+          <FooterText style={{ color: THEME.colors.primary }}>{radius} m</FooterText>
         </UView>
 
         <CustomSlider

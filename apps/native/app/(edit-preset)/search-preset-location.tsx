@@ -9,6 +9,7 @@ import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { env } from "@commit/env/native";
 
 import { usePresetEditStore } from "@/stores/usePresetEditStore";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
@@ -78,15 +79,16 @@ export default function SearchPresetLocationScreen() {
   };
 
   return (
-    <ScreenContainer className="bg-black">
+    <ScreenContainer style={{ backgroundColor: THEME.colors.background }}>
       <UView className="flex-1">
         <UView className="flex-row items-center pt-4">
           <UButton
             onPress={() => router.back()}
-            className="h-12 w-12 items-center justify-center rounded-full bg-[#1A1A1A]"
+            className="h-12 w-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: THEME.colors.surface }}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#4FA0FF" />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={THEME.colors.primary} />
           </UButton>
 
           <UView className="ml-3 flex-1">
@@ -95,7 +97,8 @@ export default function SearchPresetLocationScreen() {
               autoFocus
               value={query}
               onChangeText={setQuery}
-              className="h-12 py-0 bg-[#1A1A1A]"
+              className="h-12 py-0"
+              style={{ backgroundColor: THEME.colors.surface }}
             />
           </UView>
         </UView>
@@ -105,13 +108,13 @@ export default function SearchPresetLocationScreen() {
             <UButton
               key={item.place_id}
               onPress={() => handleSelect(item)}
-              className="w-full mb-2 p-3 rounded-2xl active:bg-[#1A1A1A]"
-              activeOpacity={0.5}
+              className="w-full mb-2 p-3 rounded-2xl"
+              activeOpacity={0.6}
             >
               <HeaderTitle className="text-lg leading-tight">
                 {item.structured_formatting.main_text}
               </HeaderTitle>
-              <FooterText className="mt-1 text-base text-gray-400">
+              <FooterText className="mt-1 text-base" style={{ color: THEME.colors.textMuted }}>
                 {item.structured_formatting.secondary_text}
               </FooterText>
             </UButton>

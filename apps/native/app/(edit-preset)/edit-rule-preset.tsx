@@ -10,6 +10,7 @@ import { SelectionSheet, type SelectionOption } from "@/components/ui/modal/Sele
 import { useMutation } from 'convex/react';
 import { api } from '@commit/backend/convex/_generated/api';
 import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
+import { THEME } from '@/constants/theme';
 
 /** Selection options for advanced settings (Mirrored from final.tsx) */
 const SETTINGS_OPTIONS = {
@@ -264,12 +265,12 @@ export default function EditRulePresetScreen() {
   return (
     <>
       <ActionScreenLayout
-        className="bg-black"
+        style={{ backgroundColor: THEME.colors.background }}
         header={
           <View className="pt-16">
             <View className="px-4 pb-4 flex-row items-center justify-between">
               <TouchableOpacity onPress={() => router.back()} className="h-10 w-10 items-center justify-center">
-                <MaterialCommunityIcons name="chevron-left" size={24} color="#666" />
+                <MaterialCommunityIcons name="chevron-left" size={24} color={THEME.colors.textMuted} />
               </TouchableOpacity>
               <HeaderTitle className="flex-1 text-center font-bold">Edit Rule</HeaderTitle>
               <View className="w-10" />
@@ -294,13 +295,14 @@ export default function EditRulePresetScreen() {
             <MaterialCommunityIcons
               name="format-list-checks"
               size={75}
-              color="#4FA0FF"
+              color={THEME.colors.primary}
               className="mb-4"
             />
             <Input
               value={name}
               onChangeText={(t: string) => setName(t)}
               placeholder="Rule Name"
+              style={{ backgroundColor: THEME.colors.surface }}
             />
           </View>
 
@@ -344,7 +346,7 @@ export default function EditRulePresetScreen() {
         visible={showConfirm}
         title={params.presetId ? "Update This Rule?" : "Save New Rule?"}
         confirmText="Confirm"
-        cancelColor="#FF3B30"
+        cancelColor={THEME.colors.danger}
         isLoading={isSaving}
         onConfirm={executeSave}
         onCancel={() => setShowConfirm(false)}

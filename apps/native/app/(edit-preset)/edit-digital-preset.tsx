@@ -23,7 +23,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { useMutation } from "convex/react";
 import { api } from "@commit/backend/convex/_generated/api";
-import { COLORS } from "@/config/theme";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 
@@ -222,7 +222,7 @@ export default function EditDigitalPresetScreen() {
       {/* ── AI Tab (Placeholder) ── */}
       {activeTab === "ai" && (
         <UView className="py-10 items-center">
-          <FooterText className="text-gray-500 text-center">
+          <FooterText style={{ color: THEME.colors.textMuted, textAlign: 'center' }}>
             AI-generated rules will appear here
           </FooterText>
         </UView>
@@ -233,7 +233,7 @@ export default function EditDigitalPresetScreen() {
         title="Save your selection? This will update your preset library."
         confirmText="Save"
         cancelText="Discard"
-        cancelColor="#FF3B30"
+        cancelColor={THEME.colors.danger}
         isLoading={isSaving}
         onConfirm={handleSave}
         onCancel={() => setShowSaveConfirm(false)}

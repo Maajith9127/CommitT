@@ -212,7 +212,7 @@ export default function PresetsScreen() {
 
                 {locations !== undefined && locations.length === 0 && (
                   <UView className="py-20 items-center justify-center px-8">
-                    <MaterialCommunityIcons name="map-marker-off-outline" size={48} color="white" />
+                    <MaterialCommunityIcons name="map-marker-off-outline" size={48} color={THEME.colors.textMain} />
                     <HeaderTitle className="mt-4 text-center text-lg">
                       No saved locations yet. Create a commitment with a location to see it here.
                     </HeaderTitle>
@@ -247,7 +247,7 @@ export default function PresetsScreen() {
 
                 {digitalPresets !== undefined && digitalPresets.length === 0 && (
                   <UView className="py-20 items-center justify-center px-8">
-                    <MaterialCommunityIcons name="shield-off-outline" size={48} color="white" />
+                    <MaterialCommunityIcons name="shield-off-outline" size={48} color={THEME.colors.textMain} />
                     <HeaderTitle className="mt-4 text-center text-lg">
                       No saved blocklists yet. Create a commitment with app-blocking to see it here.
                     </HeaderTitle>
@@ -274,7 +274,7 @@ export default function PresetsScreen() {
                <UView className="pb-24">
                 {rulePresets !== undefined && rulePresets.length === 0 && (
                   <UView className="py-20 items-center justify-center px-8">
-                    <MaterialCommunityIcons name="playlist-remove" size={48} color="white" />
+                    <MaterialCommunityIcons name="playlist-remove" size={48} color={THEME.colors.textMain} />
                     <HeaderTitle className="mt-4 text-center text-lg">
                       No saved behavioral rules yet. Create one to define your focus protocols.
                     </HeaderTitle>
@@ -299,7 +299,7 @@ export default function PresetsScreen() {
             showsVerticalScrollIndicator={false}
           >
             <UView className="px-6 py-20 items-center justify-center">
-                <MaterialCommunityIcons name="image-multiple-outline" size={48} color="white" />
+                <MaterialCommunityIcons name="image-multiple-outline" size={48} color={THEME.colors.textMain} />
                 <HeaderTitle className="mt-4 text-center text-lg">Reference photo presets coming soon.</HeaderTitle>
             </UView>
           </UScroll>
@@ -663,42 +663,47 @@ function RulePresetCard({
         
         {/* Module 1: Type */}
         <UView className="mb-6">
-          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Type</BodyText>
+          <BodyText 
+            className="text-[11px] font-bold uppercase tracking-widest mb-2"
+            style={{ color: THEME.colors.textMuted }}
+          >
+            Type
+          </BodyText>
     <UView className="flex-row flex-wrap gap-2">
             <UView 
-              className="px-4 py-1.5 rounded-full border"
-              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+              className="px-4 py-1.5 border"
+              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
             >
-              <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
+              <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
                 {preset.config?.verification_style === 'stay_throughout' ? "Stay Throughout" : "Just Show Up"}
               </BodyText>
             </UView>
             {isStay && (
               <UView 
-                className="px-4 py-1.5 rounded-full border"
-                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+                className="px-4 py-1.5 border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
               >
-                <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   Max Miss: {preset.config?.stay_throughout_config?.max_missed_checkins || 3}
                 </BodyText>
               </UView>
             )}
             {isStay && (
               <UView 
-                className="px-4 py-1.5 rounded-full border"
-                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+                className="px-4 py-1.5 border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
               >
-                <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                <BodyText style={{ color: intensityColor, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   {preset.config?.stay_throughout_config?.intensity || "Moderate"}
                 </BodyText>
               </UView>
             )}
             {!isStay && (
               <UView 
-                className="px-4 py-1.5 rounded-full border"
-                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+                className="px-4 py-1.5 border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
               >
-                <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   {preset.config?.grace_period_minutes || 0}m Grace
                 </BodyText>
               </UView>
@@ -708,22 +713,27 @@ function RulePresetCard({
 
         {/* Module 2: Alarms */}
         <UView className="mb-6">
-          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Alarms</BodyText>
+          <BodyText 
+            className="text-[11px] font-bold uppercase tracking-widest mb-2"
+            style={{ color: THEME.colors.textMuted }}
+          >
+            Alarms
+          </BodyText>
           <UView className="flex-row flex-wrap gap-2">
             <UView 
-              className="px-4 py-1.5 rounded-full border"
-              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+              className="px-4 py-1.5 border"
+              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
             >
-              <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
+              <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
                 {preset.config?.alarms?.lead_time_minutes || 0} mins before
               </BodyText>
             </UView>
             {preset.config?.alarms?.interval_minutes > 0 && (
               <UView 
-                className="px-4 py-1.5 rounded-full border"
-                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+                className="px-4 py-1.5 border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full }}
               >
-                <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   every {preset.config?.alarms?.interval_minutes} mins
                 </BodyText>
               </UView>
