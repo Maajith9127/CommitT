@@ -47,11 +47,11 @@ export default function Index() {
     if (session && pathname === "/") {
       console.log("[CommitT] Session active at root. Transferring control to dashboard...");
       
-      // const redirectTimer = setTimeout(() => {
-      //   router.replace("/(main)/commits");
-      // }, 0);
+      const redirectTimer = setTimeout(() => {
+        router.replace("/(main)/commits");
+      }, 0);
 
-      // return () => clearTimeout(redirectTimer);
+      return () => clearTimeout(redirectTimer);
     }
   }, [session, isPending, router, rootNavigationState?.key, pathname]);
 
