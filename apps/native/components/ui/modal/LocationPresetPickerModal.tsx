@@ -17,6 +17,7 @@ import { HeaderTitle, BodyText } from '@/components/ui/text';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 import { ActionMenu } from '@/components/ui/commits/ActionMenu';
 import { type LocationPreset } from '@/stores/usePresetStore';
+import { THEME } from '@/constants/theme';
 
 // ── Uniwind primitives ──────────────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -46,7 +47,8 @@ function createCirclePath(lat: number, lng: number, radius: number, points: numb
     coords.push(`${pLat.toFixed(6)},${pLng.toFixed(6)}`);
   }
   coords.push(coords[0]);
-  return `path=color:0x4FA0FFff|weight:5|fillcolor:0x4FA0FF40|${coords.join('|')}`;
+  const primaryHex = THEME.colors.primary.replace('#', '0x');
+  return `path=color:${primaryHex}ff|weight:5|fillcolor:${primaryHex}40|${coords.join('|')}`;
 }
 
 /**
@@ -55,7 +57,8 @@ function createCirclePath(lat: number, lng: number, radius: number, points: numb
  */
 function getStaticMapUrl(lat: number, lng: number, radius: number, zoom: number = 18): string {
   const circlePath = createCirclePath(lat, lng, radius);
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=600x256&maptype=hybrid&${circlePath}&markers=size:tiny|color:0x4FA0FF|${lat},${lng}&key=${MAPS_API_KEY}`;
+  const primaryHex = THEME.colors.primary.replace('#', '0x');
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=600x256&maptype=hybrid&${circlePath}&markers=size:tiny|color:${primaryHex}|${lat},${lng}&key=${MAPS_API_KEY}`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,38 +95,39 @@ export function LocationPresetPickerModal({
   return (
     <BaseDrawerModal visible={visible} onClose={onClose} height="78%">
       {/* ── Header ── */}
-      <UView className="px-6 py-6 pt-8 border-b border-white/10">
+      <UView className="px-6 py-6 pt-8 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
         <UView className="flex-row items-center justify-between">
           <UView className="flex-row items-center gap-3">
-            <MaterialCommunityIcons name="bookmark-outline" size={28} color="#9CA3AF" />
-            <HeaderTitle className="text-2xl">Saved Locations</HeaderTitle>
+            <MaterialCommunityIcons name="bookmark-outline" size={28} color={THEME.colors.textMuted} />
+            <HeaderTitle className="text-2xl" style={{ color: THEME.colors.textMain }}>Saved Locations</HeaderTitle>
           </UView>
           <UPressable onPress={onClose} hitSlop={10}>
-            <MaterialCommunityIcons name="close" size={24} color="white" />
+            <MaterialCommunityIcons name="close" size={24} color={THEME.colors.textMain} />
           </UPressable>
         </UView>
-        <BodyText className="text-gray-400 mt-2 ml-1">
+        <BodyText className="mt-2 ml-1" style={{ color: THEME.colors.textMuted }}>
           Select a location to attach to this time slot
         </BodyText>
       </UView>
 
       {/* ── Scrollable Preset List ── */}
       <UScroll
-        className="flex-1 bg-[#1A1A1A]"
+        className="flex-1"
+        style={{ backgroundColor: THEME.colors.surface }}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
         {isLoading && (
           <UView className="py-20 items-center justify-center">
-            <ActivityIndicator size="large" color="#9CA3AF" />
-            <BodyText className="text-gray-500 mt-4">Loading your locations...</BodyText>
+            <ActivityIndicator size="large" color={THEME.colors.textMuted} />
+            <BodyText className="mt-4" style={{ color: THEME.colors.textMuted }}>Loading your locations...</BodyText>
           </UView>
         )}
 
         {isEmpty && (
           <UView className="py-20 items-center justify-center px-8">
-            <MaterialCommunityIcons name="map-marker-off-outline" size={48} color="#333" />
-            <BodyText className="text-gray-500 mt-4 text-center">
+            <MaterialCommunityIcons name="map-marker-off-outline" size={48} color={THEME.colors.surfaceElevated} />
+            <BodyText className="mt-4 text-center" style={{ color: THEME.colors.textMuted }}>
               No saved locations yet. Create a commitment with a location to see it here.
             </BodyText>
           </UView>
@@ -169,7 +173,7 @@ export function LocationPresetPickerModal({
           {
             icon: "delete-outline",
             label: "Delete",
-            color: "#FF3B30",
+            color: THEME.colors.danger,
             onPress: () => {
               setMenuVisible(false);
               setShowDeleteConfirm(true);
@@ -182,7 +186,7 @@ export function LocationPresetPickerModal({
         visible={showDeleteConfirm}
         title="Delete this preset?"
         confirmText="Delete"
-        confirmColor="#FF3B30"
+        confirmColor={THEME.colors.danger}
         isLoading={isDeleting}
         onConfirm={async () => {
           if (!activePreset) return;
@@ -221,19 +225,19 @@ function LocationPresetCard({
   const staticMapUri = getStaticMapUrl(preset.lat, preset.lng, preset.radius);
 
   return (
-    <UView className="border-b border-white/10">
+    <UView className="border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
       <UView className="px-6 py-5 flex-row items-center">
         <MaterialCommunityIcons
           name="map-marker-outline"
           size={28}
-          color="#9CA3AF"
+          color={THEME.colors.textMuted}
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1 mr-4 overflow-hidden">
-          <BodyText className="text-white text-base" numberOfLines={1}>
+          <BodyText className="text-base" style={{ color: THEME.colors.textMain }} numberOfLines={1}>
             {preset.address || "Unnamed Location"}
           </BodyText>
-          <BodyText className="text-gray-400 text-sm mt-1">
+          <BodyText className="text-sm mt-1" style={{ color: THEME.colors.textMuted }}>
             Within {preset.radius}m · Used {preset.usage_count}x
           </BodyText>
         </UView>
@@ -253,7 +257,7 @@ function LocationPresetCard({
         </UView>
       </UView>
 
-      <UView className="w-full h-32 bg-[#2A2A2A]">
+      <UView className="w-full h-32" style={{ backgroundColor: THEME.colors.surfaceElevated }}>
         <Image
           source={{ uri: staticMapUri }}
           style={{ width: '100%', height: '100%' }}
@@ -261,9 +265,9 @@ function LocationPresetCard({
           onLoad={() => setImageLoaded(true)}
         />
         {!imageLoaded && (
-          <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A2A2A' }}>
-            <ActivityIndicator size="small" color="#9CA3AF" />
-            <BodyText className="text-gray-500 text-xs mt-2">Initializing Preview...</BodyText>
+          <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: THEME.colors.surfaceElevated }}>
+            <ActivityIndicator size="small" color={THEME.colors.textMuted} />
+            <BodyText className="text-xs mt-2" style={{ color: THEME.colors.textMuted }}>Initializing Preview...</BodyText>
           </View>
         )}
       </UView>
