@@ -18,17 +18,12 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { HeaderTitle, BodyText } from '@/components/ui/text';
 import { VerificationStatusCircle } from '@/components/ui/commits/VerificationStatusCircle';
 import { ActionMenu } from '@/components/ui/commits/ActionMenu';
+import { THEME } from '@/constants/theme';
 
 // ── Uniwind primitives ──────────────────────────────────────────────────────
 const UView = withUniwind(View);
 const UScroll = withUniwind(ScrollView);
 const UPressable = withUniwind(Pressable);
-
-const COLORS = {
-  primary: "#4FA0FF",
-  danger: "#FF3B30",
-  textSecondary: "#9CA3AF",
-};
 
 export interface RulePresetPickerModalProps {
   visible: boolean;
@@ -73,36 +68,37 @@ export function RulePresetPickerModal({
   return (
     <BaseDrawerModal visible={visible} onClose={onClose} height="78%">
       {/* ── Header ── */}
-      <UView className="px-6 py-6 pt-8 border-b border-white/10">
+      <UView className="px-6 py-6 pt-8 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
         <UView className="flex-row items-center justify-between">
           <UView className="flex-row items-center gap-3">
-            <MaterialCommunityIcons name="format-list-checks" size={28} color="#9CA3AF" />
-            <HeaderTitle className="text-2xl">Behavioral Rules</HeaderTitle>
+            <MaterialCommunityIcons name="format-list-checks" size={28} color={THEME.colors.textMuted} />
+            <HeaderTitle className="text-2xl" style={{ color: THEME.colors.textMain }}>Behavioral Rules</HeaderTitle>
           </UView>
           <UPressable onPress={onClose} hitSlop={10}>
-            <MaterialCommunityIcons name="close" size={24} color="white" />
+            <MaterialCommunityIcons name="close" size={24} color={THEME.colors.textMain} />
           </UPressable>
         </UView>
-        <BodyText className="text-gray-400 mt-2 ml-1">
+        <BodyText className="mt-2 ml-1" style={{ color: THEME.colors.textMuted }}>
           Select a behavioral rule to bind to this time slot
         </BodyText>
       </UView>
 
       {/* ── Content Container (Rule DNA List) ── */}
       <UScroll
-        className="flex-1 bg-[#1A1A1A]"
+        className="flex-1"
+        style={{ backgroundColor: THEME.colors.surface }}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
         {rulePresets === undefined && (
           <UView className="p-10 items-center justify-center">
-             <BodyText className="text-gray-500">Loading Presets...</BodyText>
+             <BodyText style={{ color: THEME.colors.textMuted }}>Loading Presets...</BodyText>
           </UView>
         )}
 
         {rulePresets !== undefined && rulePresets.length === 0 && (
           <UView className="p-10 items-center justify-center">
-             <BodyText className="text-gray-500">No behavioral rules saved yet.</BodyText>
+             <BodyText style={{ color: THEME.colors.textMuted }}>No behavioral rules saved yet.</BodyText>
           </UView>
         )}
 
@@ -160,7 +156,7 @@ export function RulePresetPickerModal({
           {
             icon: "delete-outline",
             label: "Delete",
-            color: COLORS.danger,
+            color: THEME.colors.danger,
             onPress: () => {
               setMenuVisible(false);
               setShowDeleteConfirm(true);
@@ -173,7 +169,7 @@ export function RulePresetPickerModal({
         visible={showDeleteConfirm}
         title="Delete this rule preset?"
         confirmText="Delete"
-        confirmColor={COLORS.danger}
+        confirmColor={THEME.colors.danger}
         isLoading={isDeleting}
         onConfirm={async () => {
           setIsDeleting(true);
@@ -225,20 +221,21 @@ function RulePresetCard({
           onMorePress(e.nativeEvent.pageX, e.nativeEvent.pageY);
         }
       }}
-      className="border-b border-white/10 p-6"
+      className="border-b p-6"
+      style={{ borderColor: THEME.colors.surfaceElevated }}
     >
       <UView className="flex-row items-center mb-4">
         <MaterialCommunityIcons
           name="format-list-checks"
           size={28}
-          color={isSelected ? COLORS.primary : COLORS.textSecondary}
+          color={isSelected ? THEME.colors.primary : THEME.colors.textMuted}
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1 mr-4 overflow-hidden">
-          <BodyText className="text-white text-base font-medium" numberOfLines={1}>
+          <BodyText className="font-medium" style={{ color: THEME.colors.textMain, fontSize: THEME.typography.size.base }} numberOfLines={1}>
             {preset.title || preset.name}
           </BodyText>
-          <BodyText className="text-gray-400 text-sm mt-1">
+          <BodyText className="mt-1" style={{ color: THEME.colors.textMuted, fontSize: THEME.typography.size.sm }}>
             {isStay ? "Continuous Guard" : "Arrival Check"} · Used {preset.usage_count || 0}x
           </BodyText>
         </UView>
@@ -253,30 +250,30 @@ function RulePresetCard({
         
         {/* Module 1: Type */}
         <UView className="mb-6">
-          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Type</BodyText>
+          <BodyText className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: THEME.colors.textMuted }}>Type</BodyText>
           <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+            <UView className="px-4 py-1.5 rounded-full border" style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight }}>
+              <BodyText className="text-[12px] font-bold uppercase" style={{ color: THEME.colors.textMain }}>
                 {isStay ? "Stay Throughout" : "Just Show Up"}
               </BodyText>
             </UView>
             {isStay && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+              <UView className="px-4 py-1.5 rounded-full border" style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight }}>
+                <BodyText className="text-[12px] font-bold uppercase" style={{ color: THEME.colors.textMain }}>
                   Max Miss: {preset.config?.stay_throughout_config?.max_missed_checkins || 3}
                 </BodyText>
               </UView>
             )}
             {isStay && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+              <UView className="px-4 py-1.5 rounded-full border" style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight }}>
+                <BodyText className="text-[12px] font-bold uppercase" style={{ color: THEME.colors.textMain }}>
                   {preset.config?.stay_throughout_config?.intensity || "Moderate"}
                 </BodyText>
               </UView>
             )}
             {!isStay && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+              <UView className="px-4 py-1.5 rounded-full border" style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight }}>
+                <BodyText className="text-[12px] font-bold uppercase" style={{ color: THEME.colors.textMain }}>
                   {preset.config?.grace_period_minutes || 0}m Grace
                 </BodyText>
               </UView>
@@ -286,16 +283,16 @@ function RulePresetCard({
 
         {/* Module 2: Alarms */}
         <UView className="mb-6">
-          <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Alarms</BodyText>
+          <BodyText className="text-[11px] font-bold uppercase tracking-widest mb-2" style={{ color: THEME.colors.textMuted }}>Alarms</BodyText>
           <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+            <UView className="px-4 py-1.5 rounded-full border" style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight }}>
+              <BodyText className="text-[12px] font-bold uppercase" style={{ color: THEME.colors.textMain }}>
                 {preset.config?.alarms?.lead_time_minutes || 0} mins before
               </BodyText>
             </UView>
             {preset.config?.alarms?.interval_minutes > 0 && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+              <UView className="px-4 py-1.5 rounded-full border" style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surfaceLight }}>
+                <BodyText className="text-[12px] font-bold uppercase" style={{ color: THEME.colors.textMain }}>
                   every {preset.config.alarms.interval_minutes} mins
                 </BodyText>
               </UView>

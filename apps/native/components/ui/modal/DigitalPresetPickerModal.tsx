@@ -18,6 +18,7 @@ import { VerificationStatusCircle } from '@/components/ui/commits/VerificationSt
 import { ActionMenu } from '@/components/ui/commits/ActionMenu';
 import { type DigitalPreset } from '@/stores/usePresetStore';
 import { useAppStore } from '@/stores/useAppStore';
+import { THEME } from '@/constants/theme';
 
 // ── Uniwind primitives ──────────────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -70,38 +71,39 @@ export function DigitalPresetPickerModal({
       height="78%"
     >
       {/* ── Header ── */}
-      <UView className="px-6 py-6 pt-8 border-b border-white/10">
+      <UView className="px-6 py-6 pt-8 border-b" style={{ borderColor: THEME.colors.surfaceElevated }}>
         <UView className="flex-row items-center justify-between">
           <UView className="flex-row items-center gap-3">
-            <MaterialCommunityIcons name="bookmark-outline" size={28} color="#9CA3AF" />
-            <HeaderTitle className="text-2xl">App Blocklists</HeaderTitle>
+            <MaterialCommunityIcons name="bookmark-outline" size={28} color={THEME.colors.textMuted} />
+            <HeaderTitle className="text-2xl" style={{ color: THEME.colors.textMain }}>App Blocklists</HeaderTitle>
           </UView>
           <UPressable onPress={onClose} hitSlop={10}>
-            <MaterialCommunityIcons name="close" size={24} color="white" />
+            <MaterialCommunityIcons name="close" size={24} color={THEME.colors.textMain} />
           </UPressable>
         </UView>
-        <BodyText className="text-gray-400 mt-2 ml-1">
+        <BodyText className="mt-2 ml-1" style={{ color: THEME.colors.textMuted }}>
           Select an app blocklist to attach to this time slot
         </BodyText>
       </UView>
 
       {/* ── Scrollable Preset List ── */}
       <UScroll
-        className="flex-1 bg-[#1A1A1A]"
+        className="flex-1"
+        style={{ backgroundColor: THEME.colors.surface }}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
         {isLoading && (
           <UView className="py-20 items-center justify-center">
-            <ActivityIndicator size="large" color="#9CA3AF" />
-            <BodyText className="text-gray-500 mt-4">Loading your blocklists...</BodyText>
+            <ActivityIndicator size="large" color={THEME.colors.textMuted} />
+            <BodyText className="mt-4" style={{ color: THEME.colors.textMuted }}>Loading your blocklists...</BodyText>
           </UView>
         )}
 
         {isEmpty && (
           <UView className="py-20 items-center justify-center px-8">
-            <MaterialCommunityIcons name="shield-off-outline" size={48} color="#333" />
-            <BodyText className="text-gray-500 mt-4 text-center">
+            <MaterialCommunityIcons name="shield-off-outline" size={48} color={THEME.colors.surfaceElevated} />
+            <BodyText className="mt-4 text-center" style={{ color: THEME.colors.textMuted }}>
               No saved blocklists yet. Create a commitment with app blocking to see it here.
             </BodyText>
           </UView>
@@ -149,7 +151,7 @@ export function DigitalPresetPickerModal({
           {
             icon: "delete-outline",
             label: "Delete",
-            color: "#FF3B30",
+            color: THEME.colors.danger,
             onPress: () => {
               setMenuVisible(false);
               setShowDeleteConfirm(true);
@@ -163,7 +165,7 @@ export function DigitalPresetPickerModal({
         visible={showDeleteConfirm}
         title="Delete this preset?"
         confirmText="Delete"
-        confirmColor="#FF3B30"
+        confirmColor={THEME.colors.danger}
         isLoading={isDeleting}
         onConfirm={async () => {
           if (!activePreset) return;
@@ -215,19 +217,20 @@ function DigitalPresetCard({
 
   return (
     <UView
-      className="border-b border-white/10 p-6"
+      className="border-b p-6"
+      style={{ borderColor: THEME.colors.surfaceElevated }}
     >
       {/* ── Header Row ── */}
       <UView className="flex-row items-center mb-4">
         <MaterialCommunityIcons
           name="cellphone-lock"
           size={28}
-          color="#9CA3AF"
+          color={THEME.colors.textMuted}
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1">
-          <BodyText className="text-white text-base">{displayName}</BodyText>
-          <BodyText className="text-gray-400 text-sm mt-1">
+          <BodyText className="text-base" style={{ color: THEME.colors.textMain }}>{displayName}</BodyText>
+          <BodyText className="text-sm mt-1" style={{ color: THEME.colors.textMuted }}>
             Used {preset.usage_count}x
           </BodyText>
         </UView>
@@ -264,13 +267,13 @@ function DigitalPresetCard({
                 />
               ) : (
                 <UView
-                  className="items-center justify-center bg-[#2A2A2A] rounded-xl"
-                  style={{ width: 36, height: 36 }}
+                  className="items-center justify-center rounded-xl"
+                  style={{ width: 36, height: 36, backgroundColor: THEME.colors.surfaceElevated }}
                 >
-                  <MaterialCommunityIcons name="apps" size={20} color="#666" />
+                  <MaterialCommunityIcons name="apps" size={20} color={THEME.colors.textMuted} />
                 </UView>
               )}
-              <Text style={{ color: '#6B7280', fontSize: 10, marginTop: 4 }} numberOfLines={1}>
+              <Text style={{ color: THEME.colors.textMuted, fontSize: 10, marginTop: 4 }} numberOfLines={1}>
                 {app.name}
               </Text>
             </UView>
