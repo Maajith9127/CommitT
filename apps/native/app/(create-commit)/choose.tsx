@@ -38,6 +38,7 @@ import { useAppStore } from "@/stores/useAppStore";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { DigitalPresetPickerModal } from "@/components/ui/modal/DigitalPresetPickerModal";
 import { type DigitalPreset } from "@/stores/usePresetStore";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
@@ -248,13 +249,13 @@ export default function ChooseScreen() {
       />
 
       <UView className="mb-4 flex-row items-center justify-between">
-        <HeaderTitle className="text-3xl mt-3">Blocklist</HeaderTitle>
+        <HeaderTitle className="mt-3" style={{ color: THEME.colors.primary, fontSize: THEME.typography.size.xxxl }}>Blocklist</HeaderTitle>
         <UPressable 
           onPress={() => setHistoryModalVisible(true)} 
           className="mt-3"
           hitSlop={12}
         >
-          <MaterialCommunityIcons name="clock-check-outline" size={26} color="#A1A1A1" />
+          <MaterialCommunityIcons name="clock-check-outline" size={26} color={THEME.colors.textMuted} />
         </UPressable>
       </UView>
 
@@ -266,6 +267,7 @@ export default function ChooseScreen() {
   return (
     <ActionScreenLayout
       className="pt-10"
+      style={{ backgroundColor: THEME.colors.pureBlack }}
       header={headerContent}
       scrollable={false} // We handle our own paging ScrollView below
       fullWidthContent={true} // Allow horizontal paging to touch edges
@@ -359,7 +361,7 @@ export default function ChooseScreen() {
                   onSubmit={handleAddInline}
                 />
                 <UView className="py-10 items-center">
-                  <FooterText className="text-gray-500 text-center">
+                  <FooterText className="text-center" style={{ color: THEME.colors.textMuted }}>
                     AI-generated rules will appear here
                   </FooterText>
                 </UView>

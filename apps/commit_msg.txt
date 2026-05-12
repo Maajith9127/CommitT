@@ -1,11 +1,13 @@
-style: polish scheduling flow typography and component depth
+style(ui): global hardening of (create-commit) flow & shared status components
 
-Finalized the visual refinements for the commitment scheduling UI, focusing on typographic hierarchy and component elevation.
+Complete elimination of legacy hex codes (#4FA0FF, #9CA3AF) and hardcoded Tailwind utility colors across all configuration modals and picker screens. This migration centralizes the visual authority to the Saffron & Obsidian (THEME) token architecture.
 
-Key Changes:
-- Typography Refinement: Resized the "Active Time" screen header to `xxxl` (30px) to restore its premium prominence.
-- Time Slot Optimization: Swapped the time-range display in `TimeSlotCard` to `HeaderTitle` in white (`textMain`) and tuned its size to `base` (16px) for better balance.
-- Component Fixes: Resolved a ReferenceError by correctly importing `HeaderTitle` into `TimeSlotCard.tsx`.
-- Visual Depth: Polished the `VerificationStatusCircle` by thickening its border to 1.5px and applying the new `surfaceLight` background token to create a tactical HUD look.
+Technical Changes:
+- Shared Primitives: Updated `VerificationStatusCircle` and `ActionMenu` to use dynamic `surfaceLight` and `surfaceElevated` tokens, restoring tactical depth and high-contrast borders (1.5px).
+- Blocklist Orchestration: Refactored `choose.tsx` and its internal module tree (`TabsBar`, `TopBar`, `InlineAddBar`, `SelectableListItem`) to map all interactive states and layouts to the centralized design system.
+- Preset Pickers: Tokenized `DigitalPresetPickerModal` and `RulePresetPickerModal` to standardize background-level surfaces, empty states, and destructive action color mappings.
+- Typography: Synchronized `HeaderTitle` and `AuthTitle` usage across modals to ensure consistent font scaling and legibility on high-density displays.
+- Asset Integration: Injected dynamic theme color parsing into Google Maps Static API requests within the location selection logic.
 
-This completes the visual hardening of the commitment creation flow, ensuring all schedule-related UI is high-contrast and on-theme
+Impact:
+Ensures 100% aesthetic consistency across the commitment creation lifecycle and facilitates instant global rebranding via the `theme.ts` authority.

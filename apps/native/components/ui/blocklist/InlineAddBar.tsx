@@ -1,6 +1,7 @@
 import { View, Pressable, TextInput } from "react-native";
 import { withUniwind } from "uniwind";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UPress = withUniwind(Pressable);
@@ -15,16 +16,17 @@ type InlineAddBarProps = {
 
 export function InlineAddBar({ placeholder, value, onChange, onSubmit }: InlineAddBarProps) {
   return (
-    <UView className="flex-row items-center border-b border-[#2A2A2A] py-3 -mx-4 px-4">
+    <UView className="flex-row items-center border-b py-3 -mx-4 px-4" style={{ borderColor: THEME.colors.surfaceElevated }}>
       <UInput
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor="#777"
-        className="flex-1 text-white text-base p-0"
+        placeholderTextColor={THEME.colors.textMuted}
+        className="flex-1 text-base p-0"
+        style={{ color: THEME.colors.textMain }}
       />
       <UPress onPress={onSubmit}>
-        <MaterialCommunityIcons name="arrow-up" size={22} color="#4FA0FF" />
+        <MaterialCommunityIcons name="arrow-up" size={22} color={THEME.colors.primary} />
       </UPress>
     </UView>
   );

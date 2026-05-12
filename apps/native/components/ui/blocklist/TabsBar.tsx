@@ -8,6 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { withUniwind } from "uniwind";
 import { AuthTitle } from "@/components/ui/text";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UPress = withUniwind(Pressable);
@@ -62,7 +63,8 @@ export function TabsBar({ tabs, activeTab, onChange }: TabsBarProps) {
 
   return (
     <UView 
-      className="flex-row border-b border-[#2A2A2A] -mx-4 relative" 
+      className="flex-row border-b -mx-4 relative" 
+      style={{ borderColor: THEME.colors.surfaceElevated }}
       onLayout={onLayout}
     >
       {/* ── Sliding Indicator (Native Animated Layer) ── */}
@@ -72,7 +74,7 @@ export function TabsBar({ tabs, activeTab, onChange }: TabsBarProps) {
             position: 'absolute',
             bottom: -1, // Sits exactly on the bottom border
             height: 3,
-            backgroundColor: '#4FA0FF',
+            backgroundColor: THEME.colors.primary,
             zIndex: 10,
           },
           animatedIndicatorStyle
@@ -91,9 +93,8 @@ export function TabsBar({ tabs, activeTab, onChange }: TabsBarProps) {
           >
             <UView className="py-3 items-center">
               <AuthTitle
-                className={`mb-0 text-xl font-medium transition-colors duration-200 ${
-                  isActive ? "text-[#4FA0FF]" : "text-gray-400"
-                }`}
+                className="mb-0 text-xl font-medium transition-colors duration-200"
+                style={{ color: isActive ? THEME.colors.primary : THEME.colors.textMuted }}
               >
                 {tab.label}
               </AuthTitle>

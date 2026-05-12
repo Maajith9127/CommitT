@@ -1,6 +1,7 @@
 import { View, Pressable, TextInput } from "react-native";
 import { withUniwind } from "uniwind";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UPress = withUniwind(Pressable);
@@ -26,7 +27,7 @@ export function TopBar({
   return (
     <UView className="flex-row items-center mb-2">
       <UPress onPress={onBack}>
-        <MaterialCommunityIcons name="arrow-left" size={26} color="#fff" />
+        <MaterialCommunityIcons name="arrow-left" size={26} color={THEME.colors.textMain} />
       </UPress>
 
       <UView className="flex-1 mx-4">
@@ -36,15 +37,16 @@ export function TopBar({
             value={searchText}
             onChangeText={onSearchChange}
             placeholder="Filter applications"
-            placeholderTextColor="#777"
-            className="text-white text-lg p-0"
+            placeholderTextColor={THEME.colors.textMuted}
+            className="text-lg p-0"
+            style={{ color: THEME.colors.textMain }}
           />
         )}
       </UView>
 
       {enableSearch && (
         <UPress onPress={onSearchToggle}>
-          <MaterialCommunityIcons name={searchOpen ? "close" : "magnify"} size={26} color="#fff" />
+          <MaterialCommunityIcons name={searchOpen ? "close" : "magnify"} size={26} color={THEME.colors.textMain} />
         </UPress>
       )}
     </UView>
