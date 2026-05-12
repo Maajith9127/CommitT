@@ -8,4 +8,4 @@ Key Changes:
 - Component Fixes: Resolved a ReferenceError by correctly importing `HeaderTitle` into `TimeSlotCard.tsx`.
 - Visual Depth: Polished the `VerificationStatusCircle` by thickening its border to 1.5px and applying the new `surfaceLight` background token to create a tactical HUD look.
 
-This completes the visual hardening of the commitment creation flow, ensuring all schedule-related UI is high-contrast and on-theme.
+This completes the visual hardening of the commitment creation flow, ensuring all schedule-related UI is high-contrast and on-theme
