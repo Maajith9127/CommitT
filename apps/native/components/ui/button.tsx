@@ -1,11 +1,9 @@
-import { Button as HeroButton } from "heroui-native";
-import type { ReactNode } from "react";
+import React, { type ReactNode, useState } from "react";
 import { Pressable, Text } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { withUniwind } from "uniwind";
 import { THEME } from "@/constants/theme";
 
-const UHeroButton = withUniwind(HeroButton);
 const UPressable = withUniwind(Pressable);
 const UText = withUniwind(Text);
 
@@ -21,15 +19,23 @@ type BtnProps = {
 // PRIMARY BUTTON
 // ---------------------------
 export function PrimaryButton({ children, className = "", onPress, textClassName = "", disabled = false }: BtnProps) {
+  const [isPressed, setIsPressed] = useState(false);
+
   return (
-    <UHeroButton
-      className={`w-full items-center justify-center ${className}`}
-      style={{ backgroundColor: THEME.colors.primary, borderRadius: THEME.radii.full }}
+    <UPressable
+      className={`w-full items-center justify-center py-4 ${className}`}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      style={{ 
+        backgroundColor: isPressed && !disabled ? THEME.colors.primaryLight : THEME.colors.primary, 
+        borderRadius: THEME.radii.full,
+        opacity: disabled ? 0.5 : 1
+      }}
       onPress={disabled ? undefined : onPress}
       disabled={disabled}
     >
       <UText className={`${textClassName}`} style={{ fontSize: THEME.typography.size.lg, fontWeight: THEME.typography.weight.semibold, color: THEME.colors.textMain }}>{children}</UText>
-    </UHeroButton>
+    </UPressable>
   );
 }
 
@@ -37,14 +43,22 @@ export function PrimaryButton({ children, className = "", onPress, textClassName
 // SECONDARY BUTTON
 // ---------------------------
 export function SecondaryButton({ children, className = "", onPress }: BtnProps) {
+  const [isPressed, setIsPressed] = useState(false);
+
   return (
-    <UHeroButton
-      className={`items-center ${className}`}
-      style={{ backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.md, paddingHorizontal: THEME.spacing.lg, paddingVertical: THEME.spacing.md }}
+    <UPressable
+      className={`items-center justify-center py-3 ${className}`}
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      style={{ 
+        backgroundColor: isPressed ? THEME.colors.surfaceLight : THEME.colors.surfaceElevated, 
+        borderRadius: THEME.radii.md, 
+        paddingHorizontal: THEME.spacing.lg 
+      }}
       onPress={onPress}
     >
       <UText style={{ fontSize: THEME.typography.size.base, fontWeight: THEME.typography.weight.medium, color: THEME.colors.textMain }}>{children}</UText>
-    </UHeroButton>
+    </UPressable>
   );
 }
 
@@ -52,10 +66,21 @@ export function SecondaryButton({ children, className = "", onPress }: BtnProps)
 // LINK BUTTON
 // ---------------------------
 export function LinkButton({ children, className = "", onPress }: BtnProps) {
+  const [isPressed, setIsPressed] = useState(false);
+
   return (
-    <UHeroButton className={`${className}`} style={{ paddingVertical: THEME.spacing.sm }} onPress={onPress}>
+    <UPressable 
+      className={`items-center justify-center ${className}`} 
+      onPressIn={() => setIsPressed(true)}
+      onPressOut={() => setIsPressed(false)}
+      style={{ 
+        paddingVertical: THEME.spacing.sm,
+        opacity: isPressed ? 0.7 : 1
+      }} 
+      onPress={onPress}
+    >
       <UText style={{ color: THEME.colors.primary, fontSize: THEME.typography.size.base, textDecorationLine: "underline" }}>{children}</UText>
-    </UHeroButton>
+    </UPressable>
   );
 }
 

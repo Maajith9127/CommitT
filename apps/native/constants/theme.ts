@@ -2,6 +2,7 @@ export const THEME = {
   colors: {
     // Brand Colors
     primary: "#C6613F", // Saffron / Burnt Orange
+    primaryLight: "#E27E5A", // Lighter Saffron for button press states
     primaryDark: "#A84C2E",
 
     // Backgrounds

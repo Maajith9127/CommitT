@@ -2,6 +2,7 @@ import React from "react";
 import { Modal, Pressable, View, Text, ActivityIndicator } from "react-native";
 import { withUniwind } from "uniwind";
 import { FooterText, HeaderTitle } from "@/components/ui/text";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UPressable = withUniwind(Pressable);
@@ -28,8 +29,8 @@ export function ConfirmationModal({
   message,
   confirmText = "Confirm",
   cancelText = "Cancel",
-  confirmColor = "#4FA0FF",
-  cancelColor = "#4FA0FF", // Default cancel to blue
+  confirmColor = THEME.colors.primary,
+  cancelColor = THEME.colors.primary, // Default cancel to primary
   singleButton = false,
   isLoading = false,
   onConfirm,
@@ -56,15 +57,18 @@ export function ConfirmationModal({
         }}
       >
         {/* Modal Content */}
-        <UView className="w-full rounded-3xl bg-[#252525] p-5 shadow-xl">
+        <UView 
+          className="w-full rounded-3xl p-5 shadow-xl"
+          style={{ backgroundColor: THEME.colors.surfaceElevated }}
+        >
           {/* 1. Title Area */}
-          <HeaderTitle className="text-center text-lg font-bold text-white mb-2">
+          <HeaderTitle className="text-center text-xl font-bold mb-2" style={{ color: THEME.colors.textMain }}>
             {title}
           </HeaderTitle>
 
           {/* Message — shown below the title when provided */}
           {message && (
-            <FooterText className="text-center text-sm text-gray-400 mb-4">
+            <FooterText className="text-center text-base mb-4" style={{ color: THEME.colors.textMuted }}>
               {message}
             </FooterText>
           )}

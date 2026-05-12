@@ -66,7 +66,7 @@ export function ActionMenu({
             position: "absolute",
             top: (anchorPosition?.y ?? 200) + 10,
             right: 20,
-            backgroundColor: THEME.colors.surfaceElevated,
+            backgroundColor: THEME.colors.surface,
             borderRadius: THEME.radii.md,
             paddingVertical: 8,
             paddingHorizontal: 4,
@@ -97,11 +97,11 @@ export function ActionMenu({
             >
               <MaterialCommunityIcons
                 name={item.icon as any}
-                size={22}
+                size={26}
                 color={item.color || THEME.colors.textMain}
               />
               <FooterText
-                className="ml-3 text-base"
+                className="ml-4 text-xl"
                 style={{ color: item.color || THEME.colors.textMain }}
               >
                 {item.label}
