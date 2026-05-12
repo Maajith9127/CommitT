@@ -209,7 +209,10 @@ export function VerificationStatusCircle({
   // ── Dots state (Management/More state) ──
   if (status === 'dots') {
     const dotsContent = (
-      <UView className={baseOuterClass} style={baseOuterStyle}>
+      <UView 
+        className={baseOuterClass} 
+        style={[baseOuterStyle, { borderColor: THEME.colors.surfaceLight }]}
+      >
         <MaterialCommunityIcons name="dots-vertical" size={24} color={iconColor} />
       </UView>
     );

@@ -14,6 +14,7 @@ import { ConfirmationModal } from '@/components/ui/modal/ConfirmationModal';
 import { type LocationPreset, type DigitalPreset } from '@/stores/usePresetStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { LocationPresetSkeleton, DigitalPresetSkeleton } from "@/components/ui/skeletons/PresetCardSkeleton";
+import { THEME } from "@/constants/theme";
 
 import { ActionScreenLayout } from "@/components/ui/ActionScreenLayout";
 
@@ -26,14 +27,12 @@ const UScroll = withUniwind(ScrollView);
 const UButton = withUniwind(TouchableOpacity);
 const MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-// Design System Tokens
-const COLORS = {
-  primary: "#4FA0FF",
-  danger: "#FF3B30",
-  bgCard: "#2A2A2A",
-  border: "rgba(255, 255, 255, 0.1)",
-  textSecondary: "#9CA3AF",
-};
+// ── Design System Tokens ──
+// We derive map colors from the primary theme to ensure brand consistency
+const MAP_PRIMARY_HEX = THEME.colors.primary.replace('#', '');
+const MAP_MARKER_COLOR = `0x${MAP_PRIMARY_HEX}`;
+const MAP_PATH_COLOR = `0x${MAP_PRIMARY_HEX}ff`;
+const MAP_FILL_COLOR = `0x${MAP_PRIMARY_HEX}40`; // 25% opacity
 
 type Tab = "location" | "blocks" | "rules" | "photos";
 
@@ -66,7 +65,7 @@ function createCirclePath(lat: number, lng: number, radius: number, points: numb
     coords.push(`${pLat.toFixed(6)},${pLng.toFixed(6)}`);
   }
   coords.push(coords[0]);
-  return `path=color:0x4FA0FFff|weight:5|fillcolor:0x4FA0FF40|${coords.join('|')}`;
+  return `path=color:${MAP_PATH_COLOR}|weight:5|fillcolor:${MAP_FILL_COLOR}|${coords.join('|')}`;
 }
 
 /**
@@ -78,7 +77,7 @@ function getStaticMapUrl(lat: number, lng: number, radius: number, zoom: number 
   const circlePath = createCirclePath(lat, lng, radius);
   const size = "600x256";
   const mapType = "hybrid";
-  const marker = `size:tiny|color:0x4FA0FF|${lat},${lng}`;
+  const marker = `size:tiny|color:${MAP_MARKER_COLOR}|${lat},${lng}`;
   return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=${zoom}&size=${size}&maptype=${mapType}&${circlePath}&markers=${marker}&key=${MAPS_API_KEY}`;
 }
 
@@ -174,7 +173,7 @@ export default function PresetsScreen() {
 
   return (
     <ActionScreenLayout
-      className="bg-black"
+      style={{ backgroundColor: THEME.colors.background }}
       header={
         <UView className="pt-2">
           <TabsBar 
@@ -362,7 +361,7 @@ export default function PresetsScreen() {
           {
             icon: "delete-outline",
             label: "Delete",
-            color: COLORS.danger,
+            color: THEME.colors.danger,
             onPress: () => {
               setMenuVisible(false);
               setShowDeleteConfirm(true);
@@ -375,7 +374,7 @@ export default function PresetsScreen() {
         visible={showDeleteConfirm}
         title="Delete this preset?"
         confirmText="Delete"
-        confirmColor={COLORS.danger}
+        confirmColor={THEME.colors.danger}
         isLoading={isDeleting}
         onConfirm={executeDeletion}
         onCancel={() => setShowDeleteConfirm(false)}
@@ -444,10 +443,14 @@ export default function PresetsScreen() {
               });
           }
         }}
-        className="absolute bottom-8 right-6 h-14 w-14 items-center justify-center rounded-full bg-[#1A1A1A] shadow-lg shadow-black/50 border border-white/10"
+        className="absolute bottom-8 right-6 h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-black/50 border"
+        style={{ 
+          backgroundColor: THEME.colors.surfaceLight, 
+          borderColor: THEME.colors.surfaceElevated 
+        }}
         activeOpacity={0.8}
       >
-        <MaterialCommunityIcons name="plus" size={32} color={COLORS.primary} />
+        <MaterialCommunityIcons name="plus" size={32} color={THEME.colors.primary} />
       </UButton>
     </ActionScreenLayout>
   );
@@ -471,12 +474,12 @@ function LocationPresetCard({
   const staticMapUri = getStaticMapUrl(preset.lat, preset.lng, preset.radius);
 
   return (
-    <UView className="border-b border-white/10">
+    <UView className="border-b" style={{ borderBottomColor: THEME.colors.surfaceElevated }}>
       <UView className="px-6 py-5 flex-row items-center">
         <MaterialCommunityIcons
           name="map-marker-outline"
           size={28}
-          color={COLORS.textSecondary}
+          color={THEME.colors.textMuted}
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1 mr-4 overflow-hidden">
@@ -494,11 +497,11 @@ function LocationPresetCard({
             onMorePress(e.nativeEvent.pageX, e.nativeEvent.pageY);
           }}
         >
-          <VerificationStatusCircle status="dots" onPress={() => {}} />
+          <VerificationStatusCircle status="dots" onPress={undefined} />
         </UView>
       </UView>
 
-      <View style={{ width: '100%', height: 160, backgroundColor: COLORS.bgCard }}>
+      <View style={{ width: '100%', height: 160, backgroundColor: THEME.colors.surface }}>
         <Image
           source={{ uri: staticMapUri }}
           style={{ width: '100%', height: '100%' }}
@@ -512,10 +515,10 @@ function LocationPresetCard({
           <View style={{ 
             position: 'absolute', inset: 0, 
             alignItems: 'center', justifyContent: 'center', 
-            backgroundColor: COLORS.bgCard 
+            backgroundColor: THEME.colors.surface 
           }}>
-            <ActivityIndicator size="small" color={COLORS.textSecondary} />
-            <BodyText className="text-gray-500 text-xs mt-2">Initializing Preview...</BodyText>
+            <ActivityIndicator size="small" color={THEME.colors.textMuted} />
+            <BodyText style={{ color: THEME.colors.textMuted, fontSize: 10, marginTop: 8 }}>Initializing Preview...</BodyText>
           </View>
         )}
       </View>
@@ -553,12 +556,12 @@ function DigitalPresetCard({
   const displayName = preset.name || `${preset.apps.length} Apps Blocked`;
 
   return (
-    <UView className="border-b border-white/10 p-6">
+    <UView className="border-b p-6" style={{ borderBottomColor: THEME.colors.surfaceElevated }}>
       <UView className="flex-row items-center mb-4">
         <MaterialCommunityIcons
           name="cellphone-lock"
           size={28}
-          color={COLORS.textSecondary}
+          color={THEME.colors.textMuted}
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1">
@@ -574,7 +577,7 @@ function DigitalPresetCard({
             onMorePress(e.nativeEvent.pageX, e.nativeEvent.pageY);
           }}
         >
-          <VerificationStatusCircle status="dots" onPress={() => {}} />
+          <VerificationStatusCircle status="dots" onPress={undefined} />
         </UView>
       </UView>
 
@@ -595,13 +598,13 @@ function DigitalPresetCard({
                 />
               ) : (
                 <UView
-                  className="items-center justify-center bg-[#2A2A2A] rounded-xl"
-                  style={{ width: 36, height: 36 }}
+                  className="items-center justify-center rounded-xl"
+                  style={{ width: 36, height: 36, backgroundColor: THEME.colors.surfaceElevated }}
                 >
-                  <MaterialCommunityIcons name="apps" size={20} color="#666" />
+                  <MaterialCommunityIcons name="apps" size={20} color={THEME.colors.textMuted} />
                 </UView>
               )}
-              <BodyText className="text-[#6B7280] text-[10px] mt-1 max-w-[64px] text-center" numberOfLines={1}>
+              <BodyText style={{ color: THEME.colors.textMuted, fontSize: 10, marginTop: 4, maxWidth: 64, textAlign: 'center' }} numberOfLines={1}>
                 {app.name}
               </BodyText>
             </UView>
@@ -625,15 +628,15 @@ function RulePresetCard({
   onMorePress: (x: number, y: number) => void;
 }) {
   const isStay = preset.config?.verification_style === "stay_throughout";
-  const intensityColor = preset.intensity === "strict" ? COLORS.danger : COLORS.primary;
+  const intensityColor = preset.intensity === "strict" ? THEME.colors.danger : THEME.colors.primary;
 
   return (
-    <UView className="border-b border-white/10 p-6">
+    <UView className="border-b p-6" style={{ borderBottomColor: THEME.colors.surfaceElevated }}>
       <UView className="flex-row items-center mb-4">
         <MaterialCommunityIcons
           name="format-list-checks"
           size={28}
-          color={COLORS.textSecondary}
+          color={THEME.colors.textMuted}
           style={{ marginRight: 16 }}
         />
         <UView className="flex-1 mr-4 overflow-hidden">
@@ -651,7 +654,7 @@ function RulePresetCard({
             onMorePress(event.nativeEvent.pageX, event.nativeEvent.pageY);
           }}
         >
-          <VerificationStatusCircle status="dots" onPress={() => {}} />
+          <VerificationStatusCircle status="dots" onPress={undefined} />
         </UView>
       </UView>
 
@@ -661,29 +664,41 @@ function RulePresetCard({
         {/* Module 1: Type */}
         <UView className="mb-6">
           <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Type</BodyText>
-          <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+    <UView className="flex-row flex-wrap gap-2">
+            <UView 
+              className="px-4 py-1.5 rounded-full border"
+              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+            >
+              <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
                 {preset.config?.verification_style === 'stay_throughout' ? "Stay Throughout" : "Just Show Up"}
               </BodyText>
             </UView>
             {isStay && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+              <UView 
+                className="px-4 py-1.5 rounded-full border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+              >
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   Max Miss: {preset.config?.stay_throughout_config?.max_missed_checkins || 3}
                 </BodyText>
               </UView>
             )}
             {isStay && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+              <UView 
+                className="px-4 py-1.5 rounded-full border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+              >
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   {preset.config?.stay_throughout_config?.intensity || "Moderate"}
                 </BodyText>
               </UView>
             )}
             {!isStay && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+              <UView 
+                className="px-4 py-1.5 rounded-full border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+              >
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   {preset.config?.grace_period_minutes || 0}m Grace
                 </BodyText>
               </UView>
@@ -695,14 +710,20 @@ function RulePresetCard({
         <UView className="mb-6">
           <BodyText className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mb-2">Alarms</BodyText>
           <UView className="flex-row flex-wrap gap-2">
-            <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-              <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+            <UView 
+              className="px-4 py-1.5 rounded-full border"
+              style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+            >
+              <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
                 {preset.config?.alarms?.lead_time_minutes || 0} mins before
               </BodyText>
             </UView>
             {preset.config?.alarms?.interval_minutes > 0 && (
-              <UView className="px-4 py-1.5 rounded-full border border-white/20 bg-white/5">
-                <BodyText className="text-gray-300 text-[12px] font-bold uppercase">
+              <UView 
+                className="px-4 py-1.5 rounded-full border"
+                style={{ borderColor: THEME.colors.surfaceElevated, backgroundColor: THEME.colors.surface }}
+              >
+                <BodyText style={{ color: THEME.colors.textMain, fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase' }}>
                   every {preset.config?.alarms?.interval_minutes} mins
                 </BodyText>
               </UView>

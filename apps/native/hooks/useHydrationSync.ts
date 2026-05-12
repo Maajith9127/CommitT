@@ -176,7 +176,11 @@ export function useHydrationSync() {
         /** Phase 4: Atomic Ingestion **/
         if (payload.tasks.length > 0 || payload.instances.length > 0) {
           Logger.info(`[HydrationSync] Ingesting: ${payload.tasks.length} tasks, ${payload.instances.length} instances.`);
+          
+          if (!isMountedRef.current) return;
+
           await syncLock.execute("Engine:Hydrate", async () => {
+            if (!isMountedRef.current) return;
             await ingestDeltaPayload(db, payload);
             consecutiveAmnesiaRef.current = 0;
             scheduleNextAlarm();
