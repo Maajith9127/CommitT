@@ -1,6 +1,7 @@
 import { View, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
@@ -19,10 +20,11 @@ export function LocationMapNavBar({
       {/* BACK */}
       <UButton
         onPress={onBack}
-        className="h-11 w-11 items-center justify-center rounded-full bg-[#1A1A1A]"
+        className="h-11 w-11 items-center justify-center rounded-full"
+        style={{ backgroundColor: THEME.colors.surfaceElevated }}
         activeOpacity={0.8}
       >
-        <MaterialCommunityIcons name="arrow-left" size={22} color="#4FA0FF" />
+        <MaterialCommunityIcons name="arrow-left" size={22} color={THEME.colors.primary} />
       </UButton>
 
       {/* RIGHT ACTIONS */}
@@ -30,19 +32,21 @@ export function LocationMapNavBar({
         {/* CURRENT LOCATION */}
         <UButton
           onPress={onLocate}
-          className="h-11 w-11 items-center justify-center rounded-full bg-[#1A1A1A]"
+          className="h-11 w-11 items-center justify-center rounded-full"
+          style={{ backgroundColor: THEME.colors.surfaceElevated }}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="crosshairs-gps" size={22} color="#4FA0FF" />
+          <MaterialCommunityIcons name="crosshairs-gps" size={22} color={THEME.colors.primary} />
         </UButton>
 
         {/* SEARCH */}
         <UButton
           onPress={onSearch}
-          className="h-11 w-11 items-center justify-center rounded-full bg-[#1A1A1A]"
+          className="h-11 w-11 items-center justify-center rounded-full"
+          style={{ backgroundColor: THEME.colors.surfaceElevated }}
           activeOpacity={0.8}
         >
-          <MaterialCommunityIcons name="magnify" size={22} color="#4FA0FF" />
+          <MaterialCommunityIcons name="magnify" size={22} color={THEME.colors.primary} />
         </UButton>
       </UView>
     </UView>

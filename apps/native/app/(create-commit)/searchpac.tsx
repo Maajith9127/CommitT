@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Input } from "@/components/ui/input";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
+import { THEME } from "@/constants/theme";
 
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { env } from "@commit/env/native";
@@ -85,16 +86,17 @@ export default function SearchPacScreen() {
   };
 
   return (
-    <ScreenContainer className="bg-black">
+    <ScreenContainer style={{ backgroundColor: THEME.colors.pureBlack }}>
       <UView className="flex-1">
         {/* SEARCH BAR ROW */}
         <UView className="flex-row items-center pt-4">
           <UButton
             onPress={() => router.back()}
-            className="h-12 w-12 items-center justify-center rounded-full bg-[#1A1A1A]"
+            className="h-12 w-12 items-center justify-center rounded-full"
+            style={{ backgroundColor: THEME.colors.surfaceElevated }}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#4FA0FF" />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={THEME.colors.primary} />
           </UButton>
 
           <UView className="ml-3 flex-1">
@@ -103,7 +105,7 @@ export default function SearchPacScreen() {
               autoFocus
               value={query}
               onChangeText={setQuery}
-              className="h-12 py-0 bg-[#1A1A1A]"
+              className="h-12 py-0"
             />
           </UView>
         </UView>
@@ -114,13 +116,14 @@ export default function SearchPacScreen() {
             <UButton
               key={item.place_id}
               onPress={() => handleSelect(item)}
-              className="w-full mb-2 p-3 rounded-2xl active:bg-[#1A1A1A]"
+              className="w-full mb-2 p-3"
+              style={{ borderRadius: THEME.radii.lg }}
               activeOpacity={0.5}
             >
-              <HeaderTitle className="text-lg leading-tight">
+              <HeaderTitle className="text-lg leading-tight" style={{ color: THEME.colors.textMain }}>
                 {item.structured_formatting.main_text}
               </HeaderTitle>
-              <FooterText className="mt-1 text-base text-gray-400">
+              <FooterText className="mt-1 text-base" style={{ color: THEME.colors.textMuted }}>
                 {item.structured_formatting.secondary_text}
               </FooterText>
             </UButton>

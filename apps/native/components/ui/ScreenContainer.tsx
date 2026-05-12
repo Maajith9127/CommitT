@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 import { withUniwind } from "uniwind";
 import { HeaderTitle } from "./text"; // using your existing titles
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 
@@ -13,18 +14,20 @@ type ScreenContainerProps = {
   children: ReactNode;
   center?: boolean;
   className?: string;
+  style?: any;
 };
 
 export function ScreenContainer({
   children,
   center = false,
   className = "",
+  style,
 }: ScreenContainerProps) {
   const baseClasses = "flex-1 px-6 py-6 w-full";
   const centerClasses = center ? "justify-center items-center" : "";
   const combinedClasses = `${baseClasses} ${centerClasses} ${className}`.trim();
 
-  return <UView className={combinedClasses}>{children}</UView>;
+  return <UView className={combinedClasses} style={style}>{children}</UView>;
 }
 
 // ------------------------------------------
@@ -44,7 +47,8 @@ export function ScreenHeader({
   return (
     <USafeAreaView
       edges={['top']}
-      className={`bg-black pr-4 pb-5 pl-4 ${className}`}
+      className={`pr-4 pb-5 pl-4 ${className}`}
+      style={{ backgroundColor: THEME.colors.pureBlack }}
     >
       {children}
     </USafeAreaView>

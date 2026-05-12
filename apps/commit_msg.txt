@@ -1,13 +1,12 @@
-style(ui): global hardening of (create-commit) flow & shared status components
+style(ui): theme location search flow and shared input primitives
 
-Complete elimination of legacy hex codes (#4FA0FF, #9CA3AF) and hardcoded Tailwind utility colors across all configuration modals and picker screens. This migration centralizes the visual authority to the Saffron & Obsidian (THEME) token architecture.
+Finalized the design system migration for the location discovery flow and hardened the shared Input component for application-wide consistency.
 
-Technical Changes:
-- Shared Primitives: Updated `VerificationStatusCircle` and `ActionMenu` to use dynamic `surfaceLight` and `surfaceElevated` tokens, restoring tactical depth and high-contrast borders (1.5px).
-- Blocklist Orchestration: Refactored `choose.tsx` and its internal module tree (`TabsBar`, `TopBar`, `InlineAddBar`, `SelectableListItem`) to map all interactive states and layouts to the centralized design system.
-- Preset Pickers: Tokenized `DigitalPresetPickerModal` and `RulePresetPickerModal` to standardize background-level surfaces, empty states, and destructive action color mappings.
-- Typography: Synchronized `HeaderTitle` and `AuthTitle` usage across modals to ensure consistent font scaling and legibility on high-density displays.
-- Asset Integration: Injected dynamic theme color parsing into Google Maps Static API requests within the location selection logic.
+Key Changes:
+- Shared Input Hardening: Refactored `Input.tsx` to utilize `surfaceElevated` and `textMuted` tokens, ensuring all search and form fields across the app share the same Obsidian aesthetic.
+- Search Flow Migration: Tokenized `searchpac.tsx` to use `pureBlack` for the root container and `primary` (Saffron) for navigation icons.
+- List Item Refinement: Updated location suggestion rows to use `textMain` and `textMuted` for typographic hierarchy, with border radii now bound to `THEME.radii.lg`.
+- Layout Consistency: Patched `ScreenContainer.tsx` to support the `style` prop, enabling pixel-perfect background color management via theme tokens.
+- Navigation: Standardized the back button in the search flow to use `surfaceElevated` backgrounds with Saffron tints.
 
-Impact:
-Ensures 100% aesthetic consistency across the commitment creation lifecycle and facilitates instant global rebranding via the `theme.ts` authority.
+This completes the visual integration of the location selection and search modules into the Saffron design language.

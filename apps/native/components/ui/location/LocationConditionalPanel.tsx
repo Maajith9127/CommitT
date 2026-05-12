@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { PrimaryButton } from "@/components/ui/button";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { THEME } from "@/constants/theme";
 
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { CustomSlider } from "@/components/ui/CustomSlider";
@@ -77,10 +78,13 @@ export function LocationConditionPanel({
   };
 
   return (
-    <UView className="absolute bottom-4 left-4 right-4 rounded-3xl bg-[#1A1A1A] px-4 py-4">
+    <UView 
+      className="absolute bottom-4 left-4 right-4 rounded-3xl px-4 py-4"
+      style={{ backgroundColor: THEME.colors.surfaceElevated }}
+    >
       {/* LOCATION */}
       <UButton onPress={onCenterPress} activeOpacity={0.7}>
-        <HeaderTitle className="text-base text-[#4FA0FF]">{address}</HeaderTitle>
+        <HeaderTitle className="text-base" style={{ color: THEME.colors.textMain }}>{address}</HeaderTitle>
       </UButton>
 
       {/* RADIUS */}
@@ -88,7 +92,7 @@ export function LocationConditionPanel({
         <UView className="flex-row justify-between items-center">
           <HeaderTitle className="text-sm">Radius</HeaderTitle>
 
-          <FooterText className="text-[#4FA0FF]">{localRadius} m</FooterText>
+          <FooterText style={{ color: THEME.colors.primary }}>{localRadius} m</FooterText>
         </UView>
 
         <CustomSlider
@@ -109,7 +113,7 @@ export function LocationConditionPanel({
         <Switch
           value={isInverse}
           onValueChange={handleInverseToggle}
-          trackColor={{ false: "#3A3A3C", true: "#4FA0FF" }}
+          trackColor={{ false: "#3A3A3C", true: THEME.colors.primary }}
           thumbColor="#FFFFFF"
         />
       </UView>

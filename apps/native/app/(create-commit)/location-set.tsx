@@ -7,6 +7,7 @@ import { LocationConditionPanel } from "@/components/ui/location/LocationConditi
 import { LocationMapNavBar } from "@/components/ui/location/LocationMapNavBar";
 import { useLocation } from "@/hooks/useLocation";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { THEME } from "@/constants/theme";
 
 /**
  * ═════════════════════════════════════════════════════════════════════════════
@@ -121,7 +122,7 @@ export default function LocationSetScreen() {
           localRadius
         ).reverse(),
       ],
-      color: "#4FA0FF40",
+      color: `${THEME.colors.primary}40`,
       lineWidth: 0,
     }];
   }, [location?.latitude, location?.longitude, location?.isInverse, localRadius]);
@@ -132,8 +133,8 @@ export default function LocationSetScreen() {
     return [{
       center: { latitude: location.latitude, longitude: location.longitude },
       radius: localRadius,
-      color: location.isInverse ? "transparent" : "#4FA0FF40",
-      lineColor: "#4FA0FF",
+      color: location.isInverse ? "transparent" : `${THEME.colors.primary}40`,
+      lineColor: THEME.colors.primary,
       lineWidth: 12,
     }];
   }, [location?.latitude, location?.longitude, location?.isInverse, localRadius]);
