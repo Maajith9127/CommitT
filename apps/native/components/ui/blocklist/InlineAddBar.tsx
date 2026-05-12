@@ -22,7 +22,7 @@ export function InlineAddBar({ placeholder, value, onChange, onSubmit }: InlineA
         onChangeText={onChange}
         placeholder={placeholder}
         placeholderTextColor={THEME.colors.textMuted}
-        className="flex-1 text-base p-0"
+        className="flex-1 text-base p-0 text-white"
         style={{ color: THEME.colors.textMain }}
       />
       <UPress onPress={onSubmit}>

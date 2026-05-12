@@ -59,6 +59,8 @@ export default function EditDigitalPresetScreen() {
   const [inlineText, setInlineText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [presetName, setPresetName] = useState(params.name || "My Blocklist");
+  const [isEditingName, setIsEditingName] = useState(false);
 
   // ── Apps Data (via Global Store) ──
   const discoveredApps = useAppStore((s: any) => s.apps);
@@ -115,13 +117,13 @@ export default function EditDigitalPresetScreen() {
           id: presetId,
           apps: finalApps,
           websites: finalWebs,
-          name: params.name || "My Blocklist",
+          name: presetName,
         });
       } else {
         await createPreset({
           apps: finalApps,
           websites: finalWebs,
-          name: params.name || "My Blocklist",
+          name: presetName,
         });
       }
       router.back();
@@ -144,7 +146,33 @@ export default function EditDigitalPresetScreen() {
       />
 
       <UView className="mb-4">
-        <HeaderTitle className="text-3xl mt-3">Edit Blocklist</HeaderTitle>
+        {isEditingName ? (
+           <UView 
+           className="flex-row items-center rounded-2xl px-3 h-12 mt-3"
+           style={{ backgroundColor: THEME.colors.surfaceElevated }}
+         >
+           <UInput
+             value={presetName}
+             onChangeText={setPresetName}
+             onBlur={() => setIsEditingName(false)}
+             autoFocus
+             className="flex-1 bg-transparent p-0 font-semibold text-white text-base"
+             style={{ color: "#FFFFFF" }}
+             placeholder="Edit blocklist name..."
+             placeholderTextColor={THEME.colors.textMuted}
+           />
+           <UPress onPress={() => setIsEditingName(false)} className="ml-2">
+             <MaterialCommunityIcons name="close-circle" size={20} color={THEME.colors.textMuted} />
+           </UPress>
+         </UView>
+        ) : (
+          <UView className="flex-row items-center justify-between mt-3">
+            <HeaderTitle className="text-3xl">{presetName}</HeaderTitle>
+            <UPress onPress={() => setIsEditingName(true)}>
+              <MaterialCommunityIcons name="pencil" size={24} color={THEME.colors.textMain} />
+            </UPress>
+          </UView>
+        )}
       </UView>
 
       <TabsBar 

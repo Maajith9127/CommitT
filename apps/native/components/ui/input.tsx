@@ -11,8 +11,8 @@ export function Input({ className = "", innerRef, ...props }: TextInputProps & {
       ref={innerRef}
       placeholderTextColor={THEME.colors.textMuted}
       className={`w-full rounded-4xl p-4 font-semibold text-xl ${className}`}
-      style={{ backgroundColor: THEME.colors.surfaceElevated, color: THEME.colors.textMain }}
       {...props}
+      style={[{ backgroundColor: THEME.colors.surfaceElevated, color: THEME.colors.textMain }, props.style]}
     />
   );
 }

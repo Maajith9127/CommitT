@@ -38,7 +38,7 @@ export function TopBar({
             onChangeText={onSearchChange}
             placeholder="Filter applications"
             placeholderTextColor={THEME.colors.textMuted}
-            className="text-lg p-0"
+            className="text-lg p-0 text-white"
             style={{ color: THEME.colors.textMain }}
           />
         )}
