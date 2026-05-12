@@ -4,6 +4,7 @@ import { ActionScreenLayout, ScreenHeader } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { AuthTitle, HeaderTitle } from "@/components/ui/text";
 import { useWaiverSync } from "@/hooks/commits/useWaiverSync";
+import { THEME } from "@/constants/theme";
 
 /**
  * PenaltyWaiversScreen
@@ -32,13 +33,13 @@ export default function PenaltyWaiversScreen() {
   return (
     <ActionScreenLayout
       paddingHorizontal={16}
-      className="bg-black"
+      style={{ backgroundColor: THEME.colors.background }}
     >
       {/* HEADER SECTION (Inside scroll for unified physics) */}
       <View className="mb-6">
-        <HeaderTitle className="mt-16 text-3xl text-green-400">Penalty Waivers</HeaderTitle>
+        <HeaderTitle className="mt-16 text-3xl" style={{ color: THEME.colors.success }}>Penalty Waivers</HeaderTitle>
 
-        <AuthTitle className="mt-1 mb-0 text-left text-gray-400">
+        <AuthTitle className="mt-1 mb-0 text-left" style={{ color: THEME.colors.textMuted }}>
           Choose how you want to EARN your penalty waiver
         </AuthTitle>
       </View>
@@ -46,48 +47,48 @@ export default function PenaltyWaiversScreen() {
       {/* 1 — SOLVE CAPTCHAS */}
       <ConditionCard
         icon="shield-check-outline"
-        iconColor="#4CD964"
+        iconColor={THEME.colors.success}
         title="Solve CAPTCHAs"
         subtitle="Solve a set number of CAPTCHAs to waive your penalty"
         onPress={() => handleWaiverSelect("captcha")}
         selected={selectedWaiverType === "captcha"}
-        selectionColor="#4CD964"
+        selectionColor={THEME.colors.success}
         showArrow={true}
       />
 
       {/* 2 — TYPE A LONG PARAGRAPH */}
       <ConditionCard
         icon="pencil-outline"
-        iconColor="#4CD964"
+        iconColor={THEME.colors.success}
         title="Write a Long Paragraph"
         subtitle="Type a 3000-word paragraph to earn a waiver"
         onPress={() => handleWaiverSelect("paragraph")}
         selected={selectedWaiverType === "paragraph"}
-        selectionColor="#4CD964"
+        selectionColor={THEME.colors.success}
         showArrow={true}
       />
 
       {/* 3 — REDO COMMITMENT WITH INTENSITY */}
       <ConditionCard
         icon="fire"
-        iconColor="#4CD964"
+        iconColor={THEME.colors.success}
         title="Redo With More Intensity"
         subtitle="Repeat tomorrow with a harder version"
         onPress={() => handleWaiverSelect("intense")}
         selected={selectedWaiverType === "intense"}
-        selectionColor="#4CD964"
+        selectionColor={THEME.colors.success}
         showArrow={true}
       />
 
       {/* 4 — RUN 5 KM */}
       <ConditionCard
         icon="run-fast"
-        iconColor="#4CD964"
+        iconColor={THEME.colors.success}
         title="Run 5 KM"
         subtitle="Choose a location and complete the run"
         onPress={() => handleWaiverSelect("run")}
         selected={selectedWaiverType === "run"}
-        selectionColor="#4CD964"
+        selectionColor={THEME.colors.success}
         showArrow={true}
       />
     </ActionScreenLayout>

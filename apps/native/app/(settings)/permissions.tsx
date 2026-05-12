@@ -3,6 +3,7 @@ import { ScrollView, View } from "react-native";
 import { withUniwind } from "uniwind";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { FooterText, HeaderTitle } from "@/components/ui/index";
+import { THEME } from "@/constants/theme";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { Enforcement } from "@/modules/enforcement-module";
@@ -14,7 +15,7 @@ export default function PermissionsPage() {
   const { permissions, isLoading, refresh } = usePermissions();
 
   /** State-based color mapping: Fail-Closed is Red, Enforcement-Ready is Green. */
-  const getColor = (granted: boolean) => (granted ? "#4CD964" : "#FF3B30");
+  const getColor = (granted: boolean) => (granted ? THEME.colors.success : THEME.colors.danger);
 
   const handleOpenSettings = (type: string) => {
     console.log(`[DEBUG] Attempting to open settings for: ${type}`);
@@ -35,10 +36,10 @@ export default function PermissionsPage() {
   const adminGranted = permissions.admin;
 
   return (
-    <UScroll showsVerticalScrollIndicator={false} className="flex-1 bg-black px-5 pt-12">
+    <UScroll showsVerticalScrollIndicator={false} className="flex-1 px-5 pt-12" style={{ backgroundColor: THEME.colors.pureBlack }}>
       {/* TOP HEADER BLOCK */}
       <UView className="mb-10 items-center">
-        <MaterialCommunityIcons name="cog-outline" size={100} color="#4FA0FF" />
+        <MaterialCommunityIcons name="cog-outline" size={100} color={THEME.colors.primary} />
 
         <HeaderTitle className="mt-4 text-3xl text-white">8 Permissions Needed</HeaderTitle>
       </UView>
@@ -50,7 +51,7 @@ export default function PermissionsPage() {
         subtitle="Required for live photo & video verification"
         iconColor={getColor(cameraGranted)}
         titleColor={getColor(cameraGranted)}
-        className="bg-[#1A1A1A]"
+        style={{ backgroundColor: THEME.colors.surface }}
         showArrow={true}
         onPress={() => handleOpenSettings("camera")}
       />
@@ -61,7 +62,7 @@ export default function PermissionsPage() {
         subtitle="Needed for 5km run and location-based tasks"
         iconColor={getColor(locationGranted)}
         titleColor={getColor(locationGranted)}
-        className="bg-[#1A1A1A]"
+        style={{ backgroundColor: THEME.colors.surface }}
         showArrow={true}
         onPress={() => handleOpenSettings("location")}
       />
@@ -72,7 +73,7 @@ export default function PermissionsPage() {
         subtitle="For reminders and randomized checks"
         iconColor={getColor(notificationsGranted)}
         titleColor={getColor(notificationsGranted)}
-        className="bg-[#1A1A1A]"
+        style={{ backgroundColor: THEME.colors.surface }}
         showArrow={true}
         onPress={() => handleOpenSettings("notifications")}
       />
@@ -83,7 +84,7 @@ export default function PermissionsPage() {
         subtitle="Needed for wake-up commitments & schedules"
         iconColor={getColor(alarmsGranted)}
         titleColor={getColor(alarmsGranted)}
-        className="bg-[#1A1A1A]"
+        style={{ backgroundColor: THEME.colors.surface }}
         showArrow={true}
         onPress={() => handleOpenSettings("alarms")}
       />
@@ -94,7 +95,7 @@ export default function PermissionsPage() {
         subtitle="Disable to allow background tasks to run"
         iconColor={getColor(batteryGranted)}
         titleColor={getColor(batteryGranted)}
-        className="bg-[#1A1A1A]"
+        style={{ backgroundColor: THEME.colors.surface }}
         showArrow={true}
         onPress={() => handleOpenSettings("battery")}
       />
@@ -105,7 +106,7 @@ export default function PermissionsPage() {
         subtitle="Required for anti-skip verification overlay"
         iconColor={getColor(appearGranted)}
         titleColor={getColor(appearGranted)}
-        className="bg-[#1A1A1A]"
+        style={{ backgroundColor: THEME.colors.surface }}
         showArrow={true}
         onPress={() => handleOpenSettings("overlay")}
       />
@@ -116,7 +117,7 @@ export default function PermissionsPage() {
         subtitle="Needed for app blocking & strict mode features"
         iconColor={getColor(accessibilityGranted)}
         titleColor={getColor(accessibilityGranted)}
-        className="bg-[#1A1A1A]"
+        style={{ backgroundColor: THEME.colors.surface }}
         showArrow={true}
         onPress={() => handleOpenSettings("accessibility")}
       />
@@ -127,7 +128,7 @@ export default function PermissionsPage() {
         subtitle="Required to block any bypass attempt to remove the app."
         iconColor={getColor(adminGranted)}
         titleColor={getColor(adminGranted)}
-        className="bg-[#1A1A1A]"
+        style={{ backgroundColor: THEME.colors.surface }}
         showArrow={true}
         onPress={() => handleOpenSettings("admin")}
       />

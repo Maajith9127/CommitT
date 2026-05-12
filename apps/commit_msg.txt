@@ -1,7 +1,7 @@
-feat(ui): harden Presets Hub and Notifications with design system tokens
+feat(ui): harden commitment setup and settings with design system tokens
 
-- **Presets Hub**: Standardized "Rule DNA" chips with THEME tokens, increasing data density and visual parity with picker modals.
-- **Notifications**: Migrated feed to Obsidian design system, implementing saffron highlights for upcoming deadlines and semantic color synchronization for history items.
-- **Input Components**: Fixed style-merging logic in `Input` to prevent theme color overrides and enforced white text visibility in dark mode across all editing flows (Digital, Location, Rule).
-- **TabsBar**: Standardized typography and active-state highlights using theme-compliant Saffron tokens.
-- **Visual Polish**: Unified backgrounds using `pureBlack` and `background` tokens and hardened component borders across the alerts and presets dashboards.
+- **Permissions**: Migrated status indicators and card surfaces to THEME tokens; standardized background to `pureBlack` for OLED high-fidelity.
+- **Penalties & Waivers**: Applied semantic color mapping (danger for penalties, success for waivers) across the selection UI, replacing hardcoded hex values.
+- **Digital Forfeit**: Hardened the "Embarrassing Photo" screen with theme-compliant card surfaces and radii.
+- **Fixes**: Resolved an image rendering issue in the forfeit setup by restoring standard `Image` components with explicit re-render keys for Convex signed URLs.
+- **Visual Polish**: Unified global backgrounds and component borders across all commitment configuration screens.

@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { ActionScreenLayout } from "@/components/ui";
 import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { AuthTitle, HeaderTitle } from "@/components/ui/text";
+import { THEME } from "@/constants/theme";
 
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 
@@ -14,13 +15,14 @@ export default function PenaltiesScreen() {
   return (
     <ActionScreenLayout
       paddingHorizontal={16}
-      className="bg-black pt-20"
+      className="pt-20"
+      style={{ backgroundColor: THEME.colors.background }}
     >
       {/* HEADER SECTION (Inside scroll for unified physics) */}
       <View className="mb-8">
-        <HeaderTitle className="text-3xl text-red-400">Penalties</HeaderTitle>
+        <HeaderTitle className="text-3xl" style={{ color: THEME.colors.danger }}>Penalties</HeaderTitle>
 
-        <AuthTitle className="mt-1 mb-0 text-left text-gray-400">
+        <AuthTitle className="mt-1 mb-0 text-left" style={{ color: THEME.colors.textMuted }}>
           Choose what consequence activates when you fail
         </AuthTitle>
       </View>
@@ -28,11 +30,11 @@ export default function PenaltiesScreen() {
       {/* 1 — MONEY PENALTY */}
       <ConditionCard
         icon="currency-inr"
-        iconColor="#FF3B30"
+        iconColor={THEME.colors.danger}
         title="Money Penalty"
         subtitle="Lose a fixed amount when you miss"
         selected={draft.penalty?.type === "money"}
-        selectionColor="#FF3B30"
+        selectionColor={THEME.colors.danger}
         onPress={() => {
           router.push("/(penalties)/money");
         }}
@@ -42,11 +44,11 @@ export default function PenaltiesScreen() {
       {/* 2 — EMBARRASSING PHOTO */}
       <ConditionCard
         icon="camera-enhance-outline"
-        iconColor="#FF3B30"
+        iconColor={THEME.colors.danger}
         title="Embarrassing Photo"
         subtitle="Send a cringe picture to someone"
         selected={draft.penalty?.type === "embarrassing_photo"}
-        selectionColor="#FF3B30"
+        selectionColor={THEME.colors.danger}
         onPress={() => {
           router.push("/(penalties)/embarrassing-photo");
         }}
@@ -56,11 +58,11 @@ export default function PenaltiesScreen() {
       {/* 3 — CRINGE MESSAGE */}
       <ConditionCard
         icon="message-alert-outline"
-        iconColor="#FF3B30"
+        iconColor={THEME.colors.danger}
         title="Cringe Message"
         subtitle="A shameful message gets sent to a contact"
         selected={draft.penalty?.type === "cringe_message"}
-        selectionColor="#FF3B30"
+        selectionColor={THEME.colors.danger}
         onPress={() => {
           router.push("/(create-commit)/penalty-message");
         }}
@@ -70,11 +72,11 @@ export default function PenaltiesScreen() {
       {/* 4 — BLOCK FAVOURITE APP */}
       <ConditionCard
         icon="cellphone-off"
-        iconColor="#FF3B30"
+        iconColor={THEME.colors.danger}
         title="Block Favourite App"
         subtitle="Your chosen app gets blocked temporarily"
         selected={draft.penalty?.type === "block_app"}
-        selectionColor="#FF3B30"
+        selectionColor={THEME.colors.danger}
         onPress={() => {
           router.push("/(create-commit)/penalty-blockapp");
         }}

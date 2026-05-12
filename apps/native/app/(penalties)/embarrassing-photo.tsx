@@ -11,6 +11,7 @@ import { ConditionCard } from "@/components/ui/commits/ConditionCard";
 import { ConfirmationModal } from "@/components/ui/modal/ConfirmationModal";
 import { usePenaltySync } from "@/hooks/commits/usePenaltySync";
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
+import { THEME } from "@/constants/theme";
 
 import { useFreshPhotoUrl } from "@/hooks/useFreshPhotoUrl";
 
@@ -93,7 +94,8 @@ export default function EmbarrassingPhotoScreen() {
     <>
       <ActionScreenLayout
         paddingHorizontal={16}
-        className="bg-black pt-20"
+        className="pt-20"
+        style={{ backgroundColor: THEME.colors.background }}
         footer={
           <PrimaryButton onPress={handleLockConsequence}>Lock Consequence</PrimaryButton>
         }
@@ -101,7 +103,7 @@ export default function EmbarrassingPhotoScreen() {
         {/* TOP TITLE */}
         <UView className="mb-8">
           <HeaderTitle className="text-3xl">Digital Forfeit</HeaderTitle>
-          <FooterText className="mt-2 text-sm text-gray-400">
+          <FooterText className="mt-2 text-sm" style={{ color: THEME.colors.textMuted }}>
             Upload a cringe photo that will be sent if you fail.
           </FooterText>
         </UView>
@@ -110,19 +112,29 @@ export default function EmbarrassingPhotoScreen() {
         <UView className="mt-4">
           <UView className="flex-row items-center mb-4 gap-2">
             <HeaderTitle className="text-2xl">The Evidence</HeaderTitle>
-            <MaterialCommunityIcons name="chevron-down-circle" size={24} color="#4FA0FF" />
+            <MaterialCommunityIcons name="chevron-down-circle" size={24} color={THEME.colors.primary} />
           </UView>
 
           <UPressable 
             onPress={handlePickImage}
-            className="w-full aspect-square rounded-3xl bg-[#1A1A1A] items-center justify-center border-2 border-dashed border-[#333] overflow-hidden"
+            className="w-full aspect-square items-center justify-center border-2 border-dashed overflow-hidden"
+            style={{ 
+              backgroundColor: THEME.colors.surface, 
+              borderRadius: THEME.radii.card,
+              borderColor: THEME.colors.surfaceElevated 
+            }}
           >
             {freshUrl ? (
-              <UImage source={{ uri: freshUrl }} className="w-full h-full" />
+              <Image 
+                key={freshUrl}
+                source={{ uri: freshUrl }} 
+                style={{ width: '100%', height: '100%' }}
+                resizeMode="cover"
+              />
             ) : (
               <UView className="items-center">
-                <MaterialCommunityIcons name="camera-plus-outline" size={48} color="#4FA0FF" />
-                <FooterText className="mt-2 text-gray-500 font-bold uppercase">Upload Photo</FooterText>
+                <MaterialCommunityIcons name="camera-plus-outline" size={48} color={THEME.colors.primary} />
+                <FooterText className="mt-2 font-bold uppercase" style={{ color: THEME.colors.textMuted }}>Upload Photo</FooterText>
               </UView>
             )}
           </UPressable>
@@ -132,17 +144,25 @@ export default function EmbarrassingPhotoScreen() {
         <UView className="mt-8">
           <UView className="flex-row items-center mb-4 gap-2">
             <HeaderTitle className="text-2xl">Self Deprecation</HeaderTitle>
-            <MaterialCommunityIcons name="chevron-down-circle" size={24} color="#4FA0FF" />
+            <MaterialCommunityIcons name="chevron-down-circle" size={24} color={THEME.colors.primary} />
           </UView>
           
-          <UView className="w-full rounded-2xl bg-[#1A1A1A] p-4 min-h-[120px] border border-[#333]">
+          <UView 
+            className="w-full p-4 min-h-[120px] border"
+            style={{ 
+              backgroundColor: THEME.colors.surface, 
+              borderRadius: THEME.radii.lg,
+              borderColor: THEME.colors.surfaceElevated 
+            }}
+          >
             <UTextInput
               placeholder="Describe why this photo is so bad..."
-              placeholderTextColor="#666"
+              placeholderTextColor={THEME.colors.textMuted}
               multiline
               value={config.description || ""}
               onChangeText={(text: string) => syncToDraft({ description: text, emailBody: text })}
-              className="text-white text-base font-medium flex-1 text-top"
+              className="text-base font-medium flex-1 text-top"
+              style={{ color: THEME.colors.textMain }}
               textAlignVertical="top"
             />
           </UView>
@@ -151,7 +171,7 @@ export default function EmbarrassingPhotoScreen() {
         {/* SEND VIA ROW */}
         <UView className="flex-row items-center mt-8 gap-2">
           <HeaderTitle className="text-2xl">Send via</HeaderTitle>
-          <MaterialCommunityIcons name="chevron-down-circle" size={24} color="#4FA0FF" />
+          <MaterialCommunityIcons name="chevron-down-circle" size={24} color={THEME.colors.primary} />
         </UView>
 
         <UView className="mt-4 mb-4">
