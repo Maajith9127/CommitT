@@ -46,7 +46,52 @@ export function CommitCard({
     }
   };
 
-  const hasEnforcements = recurrence?.time_windows?.length > 0 || conditionsData?.some(c => ["location", "digital_commitment"].includes(c.metric_key));
+  /**
+   * ** ENFORCEMENT ENGINE — INHERITANCE & OVERRIDE RESOLUTION **
+   * 
+   * This logic determines the "Effective Enforcement" state for a commitment. 
+   * Ruleset:
+   * 1. If a Time Window has internal 'conditions', it provides a "Surgical Override" 
+   *    and ignores all Root Node conditions for that slot.
+   * 2. If a Time Window is empty, it "Inherits" all Root Node conditions.
+   * 3. 'hasLocationRisk' is true ONLY if a Physical Constraint (Location) exists 
+   *    in the effective ruleset AND a Penalty is present.
+   */
+  const effectiveEnforcements = useMemo(() => {
+    const rootConditions = conditionsData || [];
+    const slots = recurrence?.time_windows || [];
+
+    // ** RESOLVE: Does the current configuration include a physical location risk? **
+    let locationIsActive = false;
+
+    if (slots.length > 0) {
+      // Check each slot for effective location
+      locationIsActive = slots.some((slot: any) => {
+        const hasOverrides = slot.conditions && slot.conditions.length > 0;
+        if (hasOverrides) {
+          // ** OVERRIDE: Check only internal slot conditions **
+          return slot.conditions.some((c: any) => c.metric_key === "location" && c.target?.value?.lat);
+        } else {
+          // ** INHERIT: Check root conditions **
+          return rootConditions.some(c => c.metric_key === "location" && c.target?.value?.lat);
+        }
+      });
+    } else {
+      // ** FALLBACK: Root-only enforcement **
+      locationIsActive = rootConditions.some(c => c.metric_key === "location" && c.target?.value?.lat);
+    }
+
+    // ** RESOLVE: General enforcement presence for bottom-row shading **
+    const hasDigital = slots.some((s: any) => s.conditions?.some((c: any) => c.metric_key === "digital_commitment")) || rootConditions.some(c => c.metric_key === "digital_commitment");
+    const hasTime = slots.length > 0;
+
+    return {
+      locationIsActive,
+      hasDigital,
+      hasTime,
+      showRisk: !!penalty && locationIsActive
+    };
+  }, [conditionsData, recurrence, penalty]);
 
   return (
     <Pressable onPress={onPress}>
@@ -72,7 +117,7 @@ export function CommitCard({
               <MaterialCommunityIcons 
                 name="skull-scan" 
                 size={22} 
-                color={penalty ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+                color={effectiveEnforcements.showRisk ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
               />
             </UView>
 
@@ -87,7 +132,7 @@ export function CommitCard({
             {/* -------------------------------------------------------------- */}
             {/* RIGHT COLUMN — OPTIONS MENU (3 DOTS)                           */}
             {/* -------------------------------------------------------------- */}
-            <UView className="w-[25%] items-end pt-1 pr-1">
+            <UView className="w-[20%] items-end pt-1 pr-1">
               <TouchableOpacity
                 onPress={handleOptionsPress}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -112,71 +157,40 @@ export function CommitCard({
           {/* BOTTOM ROW — ENFORCEMENT DASHBOARD (Static Set)                */}
           {/* ---------------------------------------------------------------- */}
           <UView className="mt-4 flex-row justify-center gap-6">
-            {/* Helper to scan all condition locations */}
-            {(() => {
-              const hasCondition = (key: string) => {
-                // 1. Check Global Conditions
-                const globalMatch = conditionsData.find(c => c.metric_key === key);
-                if (globalMatch) {
-                  const val = globalMatch.target?.value;
-                  if (key === "location" && val?.lat && val?.lng) return true;
-                  if (key === "digital_commitment" && val?.apps?.length > 0) return true;
-                  if (val) return true; // Fallback for other keys
-                }
+            {/* 1. TIME */}
+            <MaterialCommunityIcons 
+              name="clock" 
+              size={30} 
+              color={effectiveEnforcements.hasTime ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+            />
 
-                // 2. Check Per-Time-Slot Conditions
-                const slotMatch = recurrence?.time_windows?.some((w: any) => 
-                  w.conditions?.some((c: any) => {
-                    if (c.metric_key !== key) return false;
-                    const val = c.target?.value;
-                    if (key === "location" && val?.lat && val?.lng) return true;
-                    if (key === "digital_commitment" && val?.apps?.length > 0) return true;
-                    return !!val;
-                  })
-                );
-                
-                return !!slotMatch;
-              };
+            {/* 2. LOCATION */}
+            <MaterialCommunityIcons 
+              name="map-marker" 
+              size={30} 
+              color={effectiveEnforcements.locationIsActive ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+            />
 
-              return (
-                <>
-                  {/* 1. TIME */}
-                  <MaterialCommunityIcons 
-                    name="clock" 
-                    size={30} 
-                    color={recurrence?.time_windows?.length > 0 ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
-                  />
+            {/* 3. APP LOCK */}
+            <MaterialCommunityIcons 
+              name="cellphone-lock" 
+              size={30} 
+              color={effectiveEnforcements.hasDigital ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+            />
 
-                  {/* 2. LOCATION */}
-                  <MaterialCommunityIcons 
-                    name="map-marker" 
-                    size={30} 
-                    color={hasCondition("location") ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
-                  />
+            {/* 4. CAMERA */}
+            <MaterialCommunityIcons 
+              name="camera" 
+              size={30} 
+              color={"rgba(255, 255, 255, 0.1)"} // Static for now based on rules
+            />
 
-                  {/* 3. APP LOCK */}
-                  <MaterialCommunityIcons 
-                    name="cellphone-lock" 
-                    size={30} 
-                    color={hasCondition("digital_commitment") ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
-                  />
-
-                  {/* 4. CAMERA */}
-                  <MaterialCommunityIcons 
-                    name="camera" 
-                    size={30} 
-                    color={hasCondition("camera") ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
-                  />
-
-                  {/* 5. ACC PARTNER */}
-                  <MaterialCommunityIcons 
-                    name="account-group" 
-                    size={30} 
-                    color={hasCondition("accountability") ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
-                  />
-                </>
-              );
-            })()}
+            {/* 5. ACC PARTNER */}
+            <MaterialCommunityIcons 
+              name="account-group" 
+              size={30} 
+              color={"rgba(255, 255, 255, 0.1)"} // Static for now based on rules
+            />
           </UView>
         </UView>
       )}

@@ -1,6 +1,7 @@
-feat(ui): standardize DigitalCommitment separators and harden ADB reset script
+feat(ui): implement Inheritance & Override engine for Commitment HUD
 
-- Replace 2px black lines in DigitalCommitment card with 1px border-toned dividers
-- Harden connect-phone.ps1 with forced Windows ADB purge and '--force' USB bind
-- Resolve 'Device Busy' and 'Stale ADB' deadlocks in mirrored networking environments
-- Align configuration card geometry across the final commitment confirmation screen
+- Implement production-level resolution logic for root vs. per-time-slot enforcements
+- Add 'skull-scan' Threat Monitor HUD that glows only on effective physical risk
+- Enable surgical overrides where slot-specific conditions bypass global root rules
+- Synchronize dashboard icons with the resolved enforcement chain
+- Pass 'penalty' data from dashboard to Commitment cards for real-time risk auditing
