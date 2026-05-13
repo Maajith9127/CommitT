@@ -23,6 +23,7 @@ import { ConditionCardSkeleton } from "@/components/ui/skeletons/ConditionCardSk
 import { useTaskStore } from "@/stores/useTaskStore";
 import { updateStrictModeInLocalDb } from "@/lib/local-db-commits";
 import { scheduleNextAlarm } from "@/modules/scheduler-module";
+import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
 
@@ -193,10 +194,11 @@ export default function StrictModeSetupScreen() {
   return (
     <>
       <ActionScreenLayout
-        paddingHorizontal={16}
-        className="bg-black pt-20"
+        paddingHorizontal={THEME.spacing.lg}
+        style={{ backgroundColor: THEME.colors.background }}
+        className="pt-20"
         footer={
-          <UView>
+          <UView style={{ paddingBottom: THEME.spacing.xl }}>
             <PrimaryButton 
               onPress={handleActivatePress}
               disabled={isActivating}
@@ -211,9 +213,9 @@ export default function StrictModeSetupScreen() {
       >
         {/* 1. HEADER SECTION */}
         <View className="mb-8">
-          <HeaderTitle className="text-3xl text-[#4FA0FF]">Strict Mode</HeaderTitle>
-          <AuthTitle className="mt-1 mb-0 text-left text-gray-400">
-            Locking <AuthTitle className="text-white font-bold">"{title || task?.title || 'this task'}"</AuthTitle> makes it immutable across all future instances till chosen duration.
+          <HeaderTitle className="text-3xl" style={{ color: THEME.colors.primary }}>Strict Mode</HeaderTitle>
+          <AuthTitle className="mt-1 mb-0 text-left" style={{ color: THEME.colors.textMuted }}>
+            Locking <AuthTitle style={{ color: THEME.colors.textMain, fontWeight: '700' }}>"{title || task?.title || 'this task'}"</AuthTitle> makes it immutable across all future instances till chosen duration.
           </AuthTitle>
 
           {/* 
@@ -233,7 +235,7 @@ export default function StrictModeSetupScreen() {
                 title="VAULT ACTIVE"
                 subtitle={`Locked until ${currentExpiryDate}`}
                 selected={true}
-                selectionColor="#4FA0FF"
+                selectionColor={THEME.colors.primary}
               />
             </Animated.View>
           ) : null}
@@ -241,7 +243,7 @@ export default function StrictModeSetupScreen() {
 
         {/* 2. CONFIGURATION SECTION - Always visible per user request */}
         <UView className="mt-4 mb-2">
-           <HeaderTitle>Lock Duration</HeaderTitle>
+           <HeaderTitle style={{ color: THEME.colors.textMain }}>Lock Duration</HeaderTitle>
         </UView>
         <SettingsToggleCard items={durationItems} />
       </ActionScreenLayout>
@@ -262,7 +264,7 @@ export default function StrictModeSetupScreen() {
         title={isCurrentlyLocked ? `Extend Lock until ${targetExpiryString}?` : `Lock until ${targetExpiryString}?`}
         confirmText={isCurrentlyLocked ? "Extend Lock" : "Seal Vault"}
         cancelText="Cancel"
-        cancelColor="#FF3B30"
+        cancelColor={THEME.colors.danger}
         onConfirm={executeLock}
         onCancel={() => setConfirmVisible(false)}
         isLoading={isActivating}

@@ -1,7 +1,6 @@
-feat(ui): harden CommitCard with deep-scan enforcement dashboard
+feat(ui): harden Strict Mode flow with Saffron tokens and synchronized animations
 
-- Replace metadata labels with a sleek, edge-to-edge structural divider (1px border tone)
-- Implement 'Deep-Scan' logic to audit both global and per-time-slot condition arrays
-- Add fixed Enforcement Dashboard row with solid 30px icons (Time, Location, Digital Lock, Camera, Partner)
-- Programmatically shade active enforcements in Saffron primary color
-- Wire dashboard data to pass recurrence and condition objects to cards
+- Implement Hardened Saffron & Obsidian styling in Strict Mode setup (spacing, tokens, palette)
+- Synchronize navigation animations with create-commit flow (250ms slide_from_right)
+- Register strict-mode group in root layout with transparentModal presentation for snappy transitions
+- Fix ReferenceError by adding missing THEME import in setup.tsx
