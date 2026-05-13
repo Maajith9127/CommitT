@@ -68,12 +68,11 @@ export function CommitCard({
             </UView>
 
             {/* -------------------------------------------------------------- */}
-            {/* CENTER COLUMN — ICON + TITLE + CONDITIONS                      */}
+            {/* CENTER COLUMN — ICON + TITLE                                   */}
             {/* -------------------------------------------------------------- */}
             <UView className="w-[50%] items-center">
               <MaterialCommunityIcons name={iconName} size={45} color={THEME.colors.primary} />
               <HeaderTitle className="mt-2 text-center">{title}</HeaderTitle>
-              <FooterText className="mt-1 text-center">{conditions} conditions</FooterText>
             </UView>
 
             {/* -------------------------------------------------------------- */}
@@ -91,19 +90,28 @@ export function CommitCard({
             </UView>
           </UView>
 
+          {/* Standard Settings-Style Divider (Edge-to-Edge) */}
+          <UView 
+            className="h-[1px] mt-6" 
+            style={{ 
+              backgroundColor: THEME.colors.border,
+              marginHorizontal: -THEME.spacing.lg // Bleed to edges
+            }} 
+          />
+
           {/* ---------------------------------------------------------------- */}
           {/* BOTTOM ROW — EXTRA INFO (TIMER / PHONE)                        */}
           {/* ---------------------------------------------------------------- */}
           <UView className="mt-4 flex-row justify-center gap-6">
             {/* TIME ICON */}
             <UView className="flex-row items-center">
-              <MaterialCommunityIcons name="timer" size={16} color={THEME.colors.textMuted} />
+              <MaterialCommunityIcons name="clock-outline" size={26} color={THEME.colors.textMuted} />
               <FooterText className="ml-1">•</FooterText>
             </UView>
 
             {/* PHONE ICON + COUNT */}
             <UView className="flex-row items-center">
-              <MaterialCommunityIcons name="cellphone" size={16} color={THEME.colors.textMuted} />
+              <MaterialCommunityIcons name="cellphone" size={26} color={THEME.colors.textMuted} />
               <FooterText className="ml-1">1</FooterText>
             </UView>
           </UView>

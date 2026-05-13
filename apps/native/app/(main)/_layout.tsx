@@ -144,7 +144,7 @@ export default function MainLayout() {
     if (pathname.includes("/profile")) return { title: "Profile", icon: "account-outline" };
     
     // Fallback default is the main Commits screen
-    return { title: "CommitTs", icon };
+    return { title: "CommitT", icon };
   };
 
   const { title, icon, rightAction } = getHeaderConfig();
