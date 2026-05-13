@@ -1,29 +1,29 @@
 /**
  * ╔══════════════════════════════════════════════════════════════════════════════╗
- * ║  VerificationStatusCircle — Per-Condition Status Indicator                  ║
+ * ║  VerificationStatusCircle — Per-Condition Status Indicator                   ║
  * ╠══════════════════════════════════════════════════════════════════════════════╣
- * ║                                                                             ║
- * ║  A small circular badge that shows the verification status of a single      ║
- * ║  condition (time, location, photo, etc.). Used in EventDetailModal next     ║
- * ║  to each condition row.                                                     ║
- * ║                                                                             ║
- * ║  VISUAL STATES:                                                             ║
- * ║  ┌────────────┬───────────────────────────────────────────────────────┐     ║
- * ║  │ Status     │ What the user sees                                   │     ║
- * ║  ├────────────┼───────────────────────────────────────────────────────┤     ║
- * ║  │ isLoading  │ Spinner (ActivityIndicator) — request in flight      │     ║
- * ║  │ verified   │ ✓ Check mark — condition passed (final, not tappable)│     ║
- * ║  │ failed     │ ↻ Refresh icon (tappable for retry) or ✕ (static)   │     ║
- * ║  │ applied    │ 🏁 Flag — system auto-applied                        │     ║
- * ║  │ waived     │ 🛡 Shield — user completed a waiver bypass           │     ║
- * ║  │ percentage │ % — partial progress                                 │     ║
- * ║  │ neutral    │ 👆 Pointer icon (tappable to start verification)     │     ║
- * ║  └────────────┴───────────────────────────────────────────────────────┘     ║
- * ║                                                                             ║
- * ║  INTERACTIVE BEHAVIOR:                                                      ║
- * ║  • `onPress` makes "neutral" and "failed" states tappable (Pressable).     ║
- * ║  • "failed" + onPress shows a "refresh" icon (retry affordance).           ║
- * ║  • "verified" is NEVER tappable — success is final.                        ║
+ * ║                                                                              ║
+ * ║  A small circular badge that shows the verification status of a single       ║
+ * ║  condition (time, location, photo, etc.). Used in EventDetailModal next      ║
+ * ║  to each condition row.                                                      ║
+ * ║                                                                              ║
+ * ║  VISUAL STATES:                                                              ║
+ * ║  ┌────────────┬───────────────────────────────────────────────────────┐      ║
+ * ║  │ Status     │ What the user sees                                   │       ║ 
+ * ║  ├────────────┼───────────────────────────────────────────────────────┤      ║
+ * ║  │ isLoading  │ Spinner (ActivityIndicator) — request in flight      │       ║
+ * ║  │ verified   │ ✓ Check mark — condition passed (final, not tappable)│       ║
+ * ║  │ failed     │ ↻ Refresh icon (tappable for retry) or ✕ (static)   │       ║
+ * ║  │ applied    │ 🏁 Flag — system auto-applied                        │       ║
+ * ║  │ waived     │ 🛡 Shield — user completed a waiver bypass           │       ║
+ * ║  │ percentage │ % — partial progress                                 │       ║
+ * ║  │ neutral    │ 👆 Pointer icon (tappable to start verification)     │      ║
+ * ║  └────────────┴───────────────────────────────────────────────────────┘      ║
+ * ║                                                                              ║
+ * ║  INTERACTIVE BEHAVIOR:                                                       ║
+ * ║  • `onPress` makes "neutral" and "failed" states tappable (Pressable).       ║
+ * ║  • "failed" + onPress shows a "refresh" icon (retry affordance).             ║
+ * ║  • "verified" is NEVER tappable — success is final.                          ║
  * ║                                                                             ║
  * ║  USAGE:                                                                     ║
  * ║    <VerificationStatusCircle                                                ║

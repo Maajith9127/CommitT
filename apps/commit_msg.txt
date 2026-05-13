@@ -1,11 +1,8 @@
-feat(ui): harden authentication flow and implement programmatic atmospheric gradients
+design(ui): harden Saffron & Obsidian system and tokenize selection components
 
--   **Atmospheric Background System**: Replaced static assets with high-fidelity, programmatic SVG linear gradients in `index.tsx`, `signin.tsx`, and `welcome.tsx`. Transitions from Saffron brand highlight (55% offset) to Obsidian Black.
--   **Typography Expansion**: 
-    -   Added `display` (48px) size to `THEME.typography.size`.
-    -   Implemented `BrandTitle` component in `text.tsx` for bold, high-impact brand identity.
--   **UI Token Migration (Hardening)**:
-    -   **AuthForm**: Migrated all hardcoded backgrounds, borders, and margins to semantic theme tokens.
-    -   **Inputs & Buttons**: Unified geometry using `THEME.radii.inner` (32px) for a consistent "card-style" form aesthetic.
-    -   **Footer**: Standardized legal disclaimers and links to use `THEME.colors.textMuted` and brand-consistent Saffron.
--   **Optimization**: Removed redundant `ImageBackground` wrappers and static image dependencies from the auth flow to reduce memory overhead and ensure layout predictability.
+- Refined the core 'Hardened Saffron' theme in `theme.ts` with optimized typography weights, expanded spacing tiers, and sophisticated border opacities (8%).
+- Re-architected `SelectionSheet.tsx` to fully utilize THEME tokens, replacing all hardcoded hex values and blue accents.
+- Standardized selection modal geometry with `THEME.radii.inner` and optimized safe-area padding for the bottom action button.
+- Integrated `PrimaryButton` into selection modals for high-energy brand consistency.
+- Hardened `SettingsToggleCard.tsx` by migrating all text colors and row separators to design system constants.
+- Standardized active selection indicators across all commitment configuration pickers (Intensity, Missed Check-ins, etc.).

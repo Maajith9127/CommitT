@@ -3,6 +3,8 @@ import { Modal, Pressable, ScrollView, View, TouchableOpacity } from "react-nati
 import { withUniwind } from "uniwind";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { THEME } from "@/constants/theme";
+import { PrimaryButton } from "@/components/ui/button";
 
 const UView = withUniwind(View);
 const UPress = withUniwind(Pressable);
@@ -42,13 +44,29 @@ export function SelectionSheet({
       <UView className="flex-1 justify-end bg-black/60">
         <UPress className="flex-1" onPress={onClose} />
         
-        <UView className="bg-[#1C1C1E] rounded-t-[32px] px-6 pb-12 pt-4">
+        <UView 
+          className="rounded-t-[32px] pt-4"
+          style={{ 
+            backgroundColor: THEME.colors.surfaceElevated,
+            borderTopLeftRadius: THEME.radii.inner,
+            borderTopRightRadius: THEME.radii.inner,
+            paddingHorizontal: THEME.spacing.xxl,
+            paddingBottom: 40, // Explicit safe-area lift
+          }}
+        >
           {/* Handle */}
-          <UView className="w-12 h-1.5 bg-[#3A3A3C] rounded-full self-center mb-6" />
+          <UView 
+            className="w-12 h-1.5 rounded-full self-center mb-6" 
+            style={{ backgroundColor: THEME.colors.surfaceLight }}
+          />
           
-          <HeaderTitle className="text-2xl mb-6 text-white">{title}</HeaderTitle>
+          <HeaderTitle className="text-2xl mb-6">{title}</HeaderTitle>
           
-          <UScroll className="max-h-[400px]">
+          <UScroll 
+            className="max-h-[400px]" 
+            indicatorStyle="white"
+            showsVerticalScrollIndicator={true}
+          >
             {options.map((option, index) => (
               <UButton
                 key={option.value.toString()}
@@ -57,33 +75,43 @@ export function SelectionSheet({
                   onClose();
                 }}
                 className={`flex-row items-center justify-between py-4 ${
-                  index < options.length - 1 ? "border-b border-[#2C2C2E]" : ""
+                  index < options.length - 1 ? "border-b" : ""
                 }`}
+                style={index < options.length - 1 ? { borderBottomColor: THEME.colors.border } : {}}
               >
                 <UView className="flex-1 mr-4">
-                  <FooterText className={`text-lg ${selectedValue === option.value ? "text-[#4FA0FF] font-semibold" : "text-white"}`}>
+                  <FooterText 
+                    className="text-lg"
+                    style={{ 
+                      color: selectedValue === option.value ? THEME.colors.primary : THEME.colors.textMain,
+                      fontWeight: selectedValue === option.value ? "600" : "400"
+                    }}
+                  >
                     {option.label}
                   </FooterText>
                   {option.description && (
-                    <FooterText className="text-sm text-[#8E8E93] mt-1">
+                    <FooterText 
+                      className="text-sm mt-1"
+                      style={{ color: THEME.colors.textMuted }}
+                    >
                       {option.description}
                     </FooterText>
                   )}
                 </UView>
                 
                 {selectedValue === option.value && (
-                  <MaterialCommunityIcons name="check" size={24} color="#4FA0FF" />
+                  <MaterialCommunityIcons name="check" size={24} color={THEME.colors.primary} />
                 )}
               </UButton>
             ))}
           </UScroll>
           
-          <UButton 
+          <PrimaryButton 
             onPress={onClose}
-            className="mt-6 bg-[#2C2C2E] py-4 rounded-2xl items-center"
+            className="mt-6"
           >
-            <FooterText className="text-white font-semibold text-lg">Cancel</FooterText>
-          </UButton>
+            Cancel
+          </PrimaryButton>
         </UView>
       </UView>
     </Modal>

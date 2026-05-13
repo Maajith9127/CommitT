@@ -1,25 +1,25 @@
 export const THEME = {
   colors: {
-    // Brand Colors
-    primary: "#C6613F", // Saffron / Burnt Orange
-    primaryLight: "#E27E5A", // Lighter Saffron for button press states
-    primaryDark: "#A84C2E",
+    // Brand Colors (Hardened Saffron)
+    primary: "#C6613F", 
+    primaryLight: "#E27E5A", 
+    primaryDark: "#8A3B22", // Deepened Saffron
 
-    // Backgrounds
-    background: "#080808", // Obsidian Black
-    surface: "#171717ff", // Warm Charcoal
-    surfaceElevated: "#2A2A2A", // Lighter Gray (Inner elements)
-    surfaceLight: "rgba(255, 255, 255, 0.05)", // Subtle overlay for badges/circles
-    pureBlack: "#000000", // OLED Black for boundaries
+    // Backgrounds (Obsidian Core)
+    background: "#080808",
+    surface: "#171717", 
+    surfaceElevated: "#222222", 
+    surfaceLight: "rgba(255, 255, 255, 0.03)", 
+    pureBlack: "#000000", 
 
     // Text & Icons
     textMain: "#FFFFFF",
-    textMuted: "#8A8A8A",
+    textMuted: "#949494", 
     
-    // Status
+    // Status & Utility
     danger: "#FF3B30",
-    success: "#4CD964",
-    border: "rgba(255, 255, 255, 0.3)",
+    success: "#34C759", 
+    border: "rgba(255, 255, 255, 0.08)", // Premium subtle borders
   },
   spacing: {
     xs: 4,

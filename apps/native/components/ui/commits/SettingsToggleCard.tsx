@@ -42,7 +42,7 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
                 {item.icon && (
                   <MaterialCommunityIcons name={item.icon} size={30} color={THEME.colors.primary} style={{ marginRight: 12 }} />
                 )}
-                <HeaderTitle className="text-lg text-white">
+                <HeaderTitle className="text-lg" style={{ color: THEME.colors.textMain }}>
                   {item.title}
                 </HeaderTitle>
               </UView>
@@ -57,7 +57,7 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
                 {item.icon && (
                   <MaterialCommunityIcons name={item.icon} size={30} color={THEME.colors.primary} style={{ marginRight: 12 }} />
                 )}
-                <HeaderTitle className="text-lg text-white">
+                <HeaderTitle className="text-lg" style={{ color: THEME.colors.textMain }}>
                   {item.title}
                 </HeaderTitle>
               </UView>
@@ -68,7 +68,7 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
             </UView>
           )}
           {index < items.length - 1 && (
-            <UView className="h-[2px]" style={{ backgroundColor: THEME.colors.pureBlack }} />
+            <UView className="h-[1px]" style={{ backgroundColor: THEME.colors.border }} />
           )}
         </UView>
       ))}
