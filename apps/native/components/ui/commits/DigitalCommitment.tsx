@@ -58,7 +58,7 @@ export function CommitCard({
         }
       />
 
-      <UView className="h-[2px] -mx-5" style={{ backgroundColor: THEME.colors.pureBlack }} />
+      <UView className="h-[1px] -mx-5" style={{ backgroundColor: THEME.colors.border }} />
 
       {/* WEBSITES */}
       <DigitalCommitItem
@@ -89,7 +89,7 @@ export function CommitCard({
         }
       />
 
-      <UView className="h-[2px] -mx-5" style={{ backgroundColor: THEME.colors.pureBlack }} />
+      <UView className="h-[1px] -mx-5" style={{ backgroundColor: THEME.colors.border }} />
 
       {/* DESCRIBE TO AI */}
       <DigitalCommitItem

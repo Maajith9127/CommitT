@@ -1,6 +1,6 @@
-feat(ui): harden Strict Mode flow with Saffron tokens and synchronized animations
+feat(ui): standardize DigitalCommitment separators and harden ADB reset script
 
-- Implement Hardened Saffron & Obsidian styling in Strict Mode setup (spacing, tokens, palette)
-- Synchronize navigation animations with create-commit flow (250ms slide_from_right)
-- Register strict-mode group in root layout with transparentModal presentation for snappy transitions
-- Fix ReferenceError by adding missing THEME import in setup.tsx
+- Replace 2px black lines in DigitalCommitment card with 1px border-toned dividers
+- Harden connect-phone.ps1 with forced Windows ADB purge and '--force' USB bind
+- Resolve 'Device Busy' and 'Stale ADB' deadlocks in mirrored networking environments
+- Align configuration card geometry across the final commitment confirmation screen
