@@ -17,6 +17,8 @@ export type CommitCardProps = {
   className?: string;
   onPress?: () => void;
   onOptionsPress?: (position: { x: number; y: number }) => void;
+  recurrence?: any;
+  conditionsData?: any[];
 };
 
 export function CommitCard({
@@ -27,6 +29,8 @@ export function CommitCard({
   className = "",
   onPress,
   onOptionsPress,
+  recurrence,
+  conditionsData = [],
 }: CommitCardProps) {
   const dotsRef = useRef<View>(null);
 
@@ -100,20 +104,58 @@ export function CommitCard({
           />
 
           {/* ---------------------------------------------------------------- */}
-          {/* BOTTOM ROW — EXTRA INFO (TIMER / PHONE)                        */}
+          {/* BOTTOM ROW — ENFORCEMENT DASHBOARD (Static Set)                */}
           {/* ---------------------------------------------------------------- */}
           <UView className="mt-4 flex-row justify-center gap-6">
-            {/* TIME ICON */}
-            <UView className="flex-row items-center">
-              <MaterialCommunityIcons name="clock-outline" size={26} color={THEME.colors.textMuted} />
-              <FooterText className="ml-1">•</FooterText>
-            </UView>
+            {/* Helper to scan all condition locations */}
+            {(() => {
+              const hasCondition = (key: string) => {
+                // Check Global
+                if (conditionsData.some(c => c.metric_key === key)) return true;
+                // Check Per-Time-Slot
+                if (recurrence?.time_windows?.some((w: any) => w.conditions?.some((c: any) => c.metric_key === key))) return true;
+                return false;
+              };
 
-            {/* PHONE ICON + COUNT */}
-            <UView className="flex-row items-center">
-              <MaterialCommunityIcons name="cellphone" size={26} color={THEME.colors.textMuted} />
-              <FooterText className="ml-1">1</FooterText>
-            </UView>
+              return (
+                <>
+                  {/* 1. TIME */}
+                  <MaterialCommunityIcons 
+                    name="clock" 
+                    size={30} 
+                    color={recurrence?.time_windows?.length > 0 ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+                  />
+
+                  {/* 2. LOCATION */}
+                  <MaterialCommunityIcons 
+                    name="map-marker" 
+                    size={30} 
+                    color={hasCondition("location") ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+                  />
+
+                  {/* 3. APP LOCK */}
+                  <MaterialCommunityIcons 
+                    name="cellphone-lock" 
+                    size={30} 
+                    color={hasCondition("digital_commitment") ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+                  />
+
+                  {/* 4. CAMERA */}
+                  <MaterialCommunityIcons 
+                    name="camera" 
+                    size={30} 
+                    color={hasCondition("camera") ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+                  />
+
+                  {/* 5. ACC PARTNER */}
+                  <MaterialCommunityIcons 
+                    name="account-group" 
+                    size={30} 
+                    color={hasCondition("accountability") ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+                  />
+                </>
+              );
+            })()}
           </UView>
         </UView>
       )}

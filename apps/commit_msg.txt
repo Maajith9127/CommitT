@@ -1,8 +1,7 @@
-design(ui): harden Saffron & Obsidian system and tokenize selection components
+feat(ui): harden CommitCard with deep-scan enforcement dashboard
 
-- Refined the core 'Hardened Saffron' theme in `theme.ts` with optimized typography weights, expanded spacing tiers, and sophisticated border opacities (8%).
-- Re-architected `SelectionSheet.tsx` to fully utilize THEME tokens, replacing all hardcoded hex values and blue accents.
-- Standardized selection modal geometry with `THEME.radii.inner` and optimized safe-area padding for the bottom action button.
-- Integrated `PrimaryButton` into selection modals for high-energy brand consistency.
-- Hardened `SettingsToggleCard.tsx` by migrating all text colors and row separators to design system constants.
-- Standardized active selection indicators across all commitment configuration pickers (Intensity, Missed Check-ins, etc.).
+- Replace metadata labels with a sleek, edge-to-edge structural divider (1px border tone)
+- Implement 'Deep-Scan' logic to audit both global and per-time-slot condition arrays
+- Add fixed Enforcement Dashboard row with solid 30px icons (Time, Location, Digital Lock, Camera, Partner)
+- Programmatically shade active enforcements in Saffron primary color
+- Wire dashboard data to pass recurrence and condition objects to cards
