@@ -19,6 +19,7 @@ export type CommitCardProps = {
   onOptionsPress?: (position: { x: number; y: number }) => void;
   recurrence?: any;
   conditionsData?: any[];
+  penalty?: any;
 };
 
 export function CommitCard({
@@ -31,6 +32,7 @@ export function CommitCard({
   onOptionsPress,
   recurrence,
   conditionsData = [],
+  penalty,
 }: CommitCardProps) {
   const dotsRef = useRef<View>(null);
 
@@ -43,6 +45,8 @@ export function CommitCard({
       onOptionsPress?.({ x: 0, y: 200 });
     }
   };
+
+  const hasEnforcements = recurrence?.time_windows?.length > 0 || conditionsData?.some(c => ["location", "digital_commitment"].includes(c.metric_key));
 
   return (
     <Pressable onPress={onPress}>
@@ -62,19 +66,20 @@ export function CommitCard({
           {/* ---------------------------------------------------------------- */}
           <UView className="flex-row justify-between">
             {/* -------------------------------------------------------------- */}
-            {/* LEFT COLUMN — STATUS BADGE                                     */}
+            {/* LEFT COLUMN — THREAT MONITOR HUD (SKULL-SCAN)                 */}
             {/* -------------------------------------------------------------- */}
-            <UView className="w-[25%] items-start pt-1">
-              <UView className="flex-row items-center" style={{ backgroundColor: THEME.colors.surfaceElevated, borderRadius: THEME.radii.full, paddingHorizontal: THEME.spacing.md, paddingVertical: THEME.spacing.xs }}>
-                <MaterialCommunityIcons name="record-circle" size={16} color={THEME.colors.primary} />
-                <FooterText className="ml-1 font-semibold" style={{ color: THEME.colors.primary }}>{statusLabel}</FooterText>
-              </UView>
+            <UView className="w-[20%] items-start pt-1">
+              <MaterialCommunityIcons 
+                name="skull-scan" 
+                size={22} 
+                color={penalty ? THEME.colors.primary : "rgba(255, 255, 255, 0.1)"} 
+              />
             </UView>
 
             {/* -------------------------------------------------------------- */}
             {/* CENTER COLUMN — ICON + TITLE                                   */}
             {/* -------------------------------------------------------------- */}
-            <UView className="w-[50%] items-center">
+            <UView className="w-[60%] items-center">
               <MaterialCommunityIcons name={iconName} size={45} color={THEME.colors.primary} />
               <HeaderTitle className="mt-2 text-center">{title}</HeaderTitle>
             </UView>
@@ -110,11 +115,27 @@ export function CommitCard({
             {/* Helper to scan all condition locations */}
             {(() => {
               const hasCondition = (key: string) => {
-                // Check Global
-                if (conditionsData.some(c => c.metric_key === key)) return true;
-                // Check Per-Time-Slot
-                if (recurrence?.time_windows?.some((w: any) => w.conditions?.some((c: any) => c.metric_key === key))) return true;
-                return false;
+                // 1. Check Global Conditions
+                const globalMatch = conditionsData.find(c => c.metric_key === key);
+                if (globalMatch) {
+                  const val = globalMatch.target?.value;
+                  if (key === "location" && val?.lat && val?.lng) return true;
+                  if (key === "digital_commitment" && val?.apps?.length > 0) return true;
+                  if (val) return true; // Fallback for other keys
+                }
+
+                // 2. Check Per-Time-Slot Conditions
+                const slotMatch = recurrence?.time_windows?.some((w: any) => 
+                  w.conditions?.some((c: any) => {
+                    if (c.metric_key !== key) return false;
+                    const val = c.target?.value;
+                    if (key === "location" && val?.lat && val?.lng) return true;
+                    if (key === "digital_commitment" && val?.apps?.length > 0) return true;
+                    return !!val;
+                  })
+                );
+                
+                return !!slotMatch;
               };
 
               return (

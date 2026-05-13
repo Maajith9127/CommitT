@@ -326,6 +326,7 @@ export default function CommitsScreen() {
                 statusLabel={item.data.status === "active" ? "Active" : "Done"}
                 recurrence={item.data.recurrence}
                 conditionsData={item.data.conditions}
+                penalty={item.data.penalty}
                 onPress={() => {
                   if (item.data!._id.startsWith("default_")) {
                     // Treat as template/example: Create new from this
