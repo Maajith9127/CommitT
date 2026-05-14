@@ -45,7 +45,7 @@ export const CUSTOM_THEME = {
   headerBorderColor: THEME.colors.pureBlack,
   dayBarBorderColor: THEME.colors.pureBlack,
 
-  nowIndicatorColor: THEME.colors.primary,
+  nowIndicatorColor: THEME.colors.danger,
 
   dayName: { color: THEME.colors.textMain, fontSize: 13, fontWeight: 'bold' },
   dayNumber: { color: THEME.colors.textMain, fontSize: 25, fontWeight: 'bold' },
