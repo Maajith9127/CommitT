@@ -41,7 +41,7 @@ export function PremiumToggle({
     const backgroundColor = interpolateColor(
       progress.value,
       [0, 1],
-      [THEME.colors.surfaceElevated, activeColor]
+      ["#3A3A3C", activeColor]
     );
     return { backgroundColor };
   });

@@ -1,4 +1,4 @@
-import { View, Switch, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { withUniwind } from "uniwind";
 import { useRouter } from "expo-router";
 import { HeaderTitle, FooterText } from "@/components/ui/text";

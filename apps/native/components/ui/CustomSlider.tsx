@@ -1,4 +1,5 @@
 import Slider, { SliderProps } from "@react-native-community/slider";
+import * as Haptics from "expo-haptics";
 
 import { THEME } from "@/constants/theme";
 
@@ -17,16 +18,24 @@ interface CustomSliderProps extends Omit<
  */
 export function CustomSlider({
   minimumTrackTintColor = THEME.colors.primary,
-  maximumTrackTintColor = THEME.colors.surfaceElevated,
+  maximumTrackTintColor = "#3A3A3C",
   thumbTintColor = "#FFFFFF",
   ...props
 }: CustomSliderProps) {
+  const handleValueChange = (val: number) => {
+    if (props.onValueChange) {
+      Haptics.selectionAsync();
+      props.onValueChange(val);
+    }
+  };
+
   return (
     <Slider
       minimumTrackTintColor={minimumTrackTintColor}
       maximumTrackTintColor={maximumTrackTintColor}
       thumbTintColor={thumbTintColor}
       {...props}
+      onValueChange={handleValueChange}
     />
   );
 }
