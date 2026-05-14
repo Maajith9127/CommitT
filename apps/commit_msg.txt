@@ -1,7 +1,9 @@
-feat(ui): implement Inheritance & Override engine for Commitment HUD
+feat(native/alarm): harden AlarmActivity UI and stabilize lifecycle enforcement
 
-- Implement production-level resolution logic for root vs. per-time-slot enforcements
-- Add 'skull-scan' Threat Monitor HUD that glows only on effective physical risk
-- Enable surgical overrides where slot-specific conditions bypass global root rules
-- Synchronize dashboard icons with the resolved enforcement chain
-- Pass 'penalty' data from dashboard to Commitment cards for real-time risk auditing
+- Fix 'Orientation Death' bug by locking AlarmActivity to portrait in manifest.
+- This prevents Activity recreation during rotation, bypassing the accidental triggering of the background-safety 'Dead-Man's Switch'.
+- Synchronize native Alarm UI with 'Hardened Saffron & Obsidian' design system.
+- Implement 'NativeTheme' object in Kotlin to mirror TypeScript design tokens.
+- Update visual hierarchy with premium Saffron (#C6613F) and Obsidian (#080808) core colors.
+- Harden 'connect-phone.ps1' with aggressive port-5037 purging and ADB reset logic.
+- Resolve WSL mirrored networking lag by disabling Generic Receive Offload (GRO) on eth1.
