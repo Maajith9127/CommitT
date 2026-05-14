@@ -1,9 +1,10 @@
-feat(native/alarm): harden AlarmActivity UI and stabilize lifecycle enforcement
+style: harden modal & native UI with Obsidian design tokens
 
-- Fix 'Orientation Death' bug by locking AlarmActivity to portrait in manifest.
-- This prevents Activity recreation during rotation, bypassing the accidental triggering of the background-safety 'Dead-Man's Switch'.
-- Synchronize native Alarm UI with 'Hardened Saffron & Obsidian' design system.
-- Implement 'NativeTheme' object in Kotlin to mirror TypeScript design tokens.
-- Update visual hierarchy with premium Saffron (#C6613F) and Obsidian (#080808) core colors.
-- Harden 'connect-phone.ps1' with aggressive port-5037 purging and ADB reset logic.
-- Resolve WSL mirrored networking lag by disabling Generic Receive Offload (GRO) on eth1.
+- Refactor EventDetailModal separators to use THEME.colors.border
+- Fix missing THEME import in EventDetailTime component
+- Synchronize EventDetailConditions icons with THEME.colors.textMuted
+- Surgically harden BlockerOverlayActivity (Kotlin) with brand tokens:
+  - Replace generic blue (#4FA0FF) with Saffron (#C6613F)
+  - Deepen background from BLACK to Obsidian (#080808)
+  - Align muted text with #949494 design token
+- Upgrade connect.sh with smart ADB discovery & auto-port bridging (8082)

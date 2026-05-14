@@ -17,6 +17,7 @@ import { withUniwind } from 'uniwind';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BodyText } from '@/components/ui/text';
 import dayjs from 'dayjs';
+import { THEME } from '@/constants/theme';
 
 // ── Uniwind-wrapped primitives ──────────────────────────────────────────────
 const UView = withUniwind(View);
@@ -197,7 +198,10 @@ export function EventDetailTime({
   }
 
   return (
-    <UView className="border-t border-b border-white/20 mt-6 py-6 px-6">
+    <UView 
+      className="border-t border-b mt-6 py-6 px-6"
+      style={{ borderColor: THEME.colors.border }}
+    >
 
       {/* Ticker Row */}
       <UView className="flex-row items-center mb-6">

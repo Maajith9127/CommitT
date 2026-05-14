@@ -175,7 +175,7 @@ export const InfoSection = ({
 }) => (
   <UView 
     className="border-b flex-row p-6 items-center"
-    style={{ borderBottomColor: THEME.colors.surfaceElevated }}
+    style={{ borderBottomColor: THEME.colors.border }}
   >
     <MaterialCommunityIcons name={icon} size={28} color={color} style={{ marginRight: 16 }} />
     <UView className="flex-1 mr-4 overflow-hidden">
@@ -345,11 +345,11 @@ export const BlocklistSection = ({ event, onPress }: { event: any; onPress?: () 
   return (
     <UView 
       className="border-b p-6"
-      style={{ borderBottomColor: THEME.colors.surfaceElevated }}
+      style={{ borderBottomColor: THEME.colors.border }}
     >
       {/* ── HEADER ROW ── */}
       <UView className="flex-row items-center mb-5">
-        <MaterialCommunityIcons name="cellphone-lock" size={28} color="#9CA3AF" style={{ marginRight: 16 }} />
+        <MaterialCommunityIcons name="cellphone-lock" size={28} color={THEME.colors.textMuted} style={{ marginRight: 16 }} />
         <UView className="flex-1">
           <BodyText className="text-white text-base">Digital Commitment</BodyText>
           <BodyText className="text-gray-400 text-sm mt-1">These apps are blocked</BodyText>
@@ -383,7 +383,7 @@ export const BlocklistSection = ({ event, onPress }: { event: any; onPress?: () 
                   />
                 ) : (
                   /* Fallback icon if app was uninstalled but remains in history */
-                  <MaterialCommunityIcons name="apps" size={24} color="#666" />
+                  <MaterialCommunityIcons name="apps" size={24} color={THEME.colors.textMuted} />
                 )}
               </UView>
             ))
@@ -425,7 +425,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
   return (
     <UView 
       className="p-6 border-b"
-      style={{ borderBottomColor: THEME.colors.surfaceElevated }}
+      style={{ borderBottomColor: THEME.colors.border }}
     >
       {/* Verification Type */}
       {verificationStyle && (
@@ -434,7 +434,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
             <MaterialCommunityIcons
               name={verificationStyle === 'stay_throughout' ? 'repeat' : 'bullseye-arrow'}
               size={30}
-              color="#9CA3AF"
+              color={THEME.colors.textMuted}
               style={{ marginRight: 12 }}
             />
             <BodyText className="text-gray-300 text-base">Type</BodyText>
@@ -456,7 +456,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
             <MaterialCommunityIcons
               name="speedometer"
               size={30}
-              color="#9CA3AF"
+              color={THEME.colors.textMuted}
               style={{ marginRight: 12 }}
             />
             <BodyText className="text-gray-300 text-base">Intensity</BodyText>
@@ -474,7 +474,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
             <MaterialCommunityIcons
               name="alert-circle-outline"
               size={30}
-              color="#9CA3AF"
+              color={THEME.colors.textMuted}
               style={{ marginRight: 12 }}
             />
             <BodyText className="text-gray-300 text-base">Allowed Misses</BodyText>
@@ -492,7 +492,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
             <MaterialCommunityIcons
               name="timer-sand"
               size={30}
-              color="#9CA3AF"
+              color={THEME.colors.textMuted}
               style={{ marginRight: 12 }}
             />
             <BodyText className="text-gray-300 text-base">Grace</BodyText>
@@ -510,7 +510,7 @@ export const ConfigSection = ({ event }: { event: any }) => {
             <MaterialCommunityIcons
               name="alarm"
               size={30}
-              color="#9CA3AF"
+              color={THEME.colors.textMuted}
               style={{ marginRight: 12 }}
             />
             <BodyText className="text-gray-300 text-base">Alarm</BodyText>
