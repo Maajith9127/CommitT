@@ -1,5 +1,7 @@
 import Slider, { SliderProps } from "@react-native-community/slider";
 
+import { THEME } from "@/constants/theme";
+
 interface CustomSliderProps extends Omit<
   SliderProps,
   "minimumTrackTintColor" | "maximumTrackTintColor" | "thumbTintColor"
@@ -11,11 +13,11 @@ interface CustomSliderProps extends Omit<
 
 /**
  * A reusable slider component with consistent styling across the app.
- * Uses the blue color (#4FA0FF) as the default track color.
+ * Uses the brand saffron color as the default track color.
  */
 export function CustomSlider({
-  minimumTrackTintColor = "#4FA0FF",
-  maximumTrackTintColor = "#3A3A3C",
+  minimumTrackTintColor = THEME.colors.primary,
+  maximumTrackTintColor = THEME.colors.surfaceElevated,
   thumbTintColor = "#FFFFFF",
   ...props
 }: CustomSliderProps) {

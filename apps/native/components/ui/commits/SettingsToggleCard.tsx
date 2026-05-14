@@ -3,7 +3,7 @@ import { View, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { withUniwind } from "uniwind";
 import { HeaderTitle, FooterText } from "@/components/ui/text";
-import { CustomSwitch } from "../buttons/CustomSwitch";
+import { PremiumToggle } from "@/components/ui/PremiumToggle";
 import { THEME } from "@/constants/theme";
 
 const UView = withUniwind(View);
@@ -61,7 +61,7 @@ export function SettingsToggleCard({ items, className = "" }: Props) {
                   {item.title}
                 </HeaderTitle>
               </UView>
-              <CustomSwitch
+              <PremiumToggle
                 value={item.value || false}
                 onValueChange={item.onValueChange || (() => {})}
               />

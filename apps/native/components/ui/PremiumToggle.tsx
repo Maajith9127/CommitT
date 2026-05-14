@@ -8,13 +8,15 @@ import Animated, {
 } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 
+import { THEME } from "@/constants/theme";
+
 /**
  * PremiumToggle — A high-fidelity, kinetic toggle switch.
  */
 export function PremiumToggle({ 
   value, 
   onValueChange, 
-  activeColor = "#4FA0FF" 
+  activeColor = THEME.colors.primary 
 }: { 
   value: boolean; 
   onValueChange: (val: boolean) => void;
@@ -39,7 +41,7 @@ export function PremiumToggle({
     const backgroundColor = interpolateColor(
       progress.value,
       [0, 1],
-      ["#3A3A3C", activeColor]
+      [THEME.colors.surfaceElevated, activeColor]
     );
     return { backgroundColor };
   });

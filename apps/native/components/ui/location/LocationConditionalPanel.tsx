@@ -8,6 +8,7 @@ import { THEME } from "@/constants/theme";
 
 import { useTaskDraftStore } from "@/stores/useTaskDraftStore";
 import { CustomSlider } from "@/components/ui/CustomSlider";
+import { PremiumToggle } from "@/components/ui/PremiumToggle";
 
 const UView = withUniwind(View);
 const UButton = withUniwind(TouchableOpacity);
@@ -110,11 +111,9 @@ export function LocationConditionPanel({
       <UView className="mt-4 flex-row items-center justify-between">
         <HeaderTitle className="text-sm">Inverse radius</HeaderTitle>
 
-        <Switch
+        <PremiumToggle
           value={isInverse}
           onValueChange={handleInverseToggle}
-          trackColor={{ false: "#3A3A3C", true: THEME.colors.primary }}
-          thumbColor="#FFFFFF"
         />
       </UView>
 
