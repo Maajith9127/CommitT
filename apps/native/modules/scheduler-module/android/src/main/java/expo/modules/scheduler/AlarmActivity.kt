@@ -62,6 +62,14 @@ class AlarmActivity : Activity() {
         // Global Mutex for Module-to-Module Communication
         private const val PREFS_ENFORCEMENT = "CommitTEnforcementState"
         private const val KEY_ALARM_ACTIVE = "is_alarm_active"
+
+        // ** NATIVE DESIGN SYSTEM (Mirrored from theme.ts) **
+        object NativeTheme {
+            val PRIMARY = Color.parseColor("#C6613F")       // Hardened Saffron
+            val BACKGROUND = Color.parseColor("#080808")    // Obsidian Core
+            val TEXT_MUTED = Color.parseColor("#949494")    // Muted Secondary
+            val DANGER = Color.parseColor("#FF3B30")        // Standard Red
+        }
     }
 
     /**
@@ -245,11 +253,11 @@ class AlarmActivity : Activity() {
             ).toInt()
         }
 
-        // Base layout — pure black, centered content
+        // Base layout — Obsidian core background, centered content
         val rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.BLACK)
+            setBackgroundColor(NativeTheme.BACKGROUND)
             setPadding(dp(32f), dp(48f), dp(32f), dp(48f))
         }
 
@@ -268,7 +276,7 @@ class AlarmActivity : Activity() {
             }
             "END_ALARM" -> {
                 statusLabel = "TIME'S UP"
-                statusColor = Color.parseColor("#FF6B6B")
+                statusColor = NativeTheme.DANGER
             }
             else -> {
                 statusLabel = "TIME TO START"
@@ -315,7 +323,7 @@ class AlarmActivity : Activity() {
                 text = subtitleContent
                 typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-                setTextColor(Color.parseColor("#BBBBBB"))
+                setTextColor(NativeTheme.TEXT_MUTED)
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(48f))
             }
@@ -327,7 +335,7 @@ class AlarmActivity : Activity() {
 
         Log.d(TAG, "[UI CONSTRUCTION] Render -> $alarmType")
 
-        // ── Primary action: Dismiss button (pill shape, primary blue) ──
+        // ── Primary action: Dismiss button (pill shape, Hardened Saffron) ──
         val dismissalButton = Button(this).apply {
             text = "Dismiss"
             typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
@@ -337,7 +345,7 @@ class AlarmActivity : Activity() {
             val shape = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 cornerRadius = dp(100f).toFloat()
-                setColor(Color.parseColor("#4FA0FF"))
+                setColor(NativeTheme.PRIMARY)
             }
             background = shape
 
