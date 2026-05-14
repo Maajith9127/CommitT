@@ -10,3 +10,6 @@ adb pull /sdcard/Documents/CommitT/logs/commit-logcat-2026-05-08.log apps/transf
 
 
 cp "/mnt/c/Users/maaji/Downloads/PhotoshopPreview_Image.png" /home/maajith/mono/apps/native/assets/images/PhotoshopPreview_Image.png
+
+
+sudo /home/maajith/Android/Sdk/platform-tools/adb reverse tcp:8082 tcp:8082
