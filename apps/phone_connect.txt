@@ -2,7 +2,7 @@
 First of all if stuck do revoke usb authoriation 
 
 
-You have the **"Permission Wall."** 🧱
+You have the **"Permission Wall."** 
 
 Linux sees your phone (`RZCW30N0EJF`), but it doesn't trust your user account to "talk" to the raw USB hardware. This is why it says **`no permissions (missing udev rules?)`**.
 

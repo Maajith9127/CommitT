@@ -1,0 +1,3062 @@
+commit 41021ae77546308e73446cbca5cb1cf27d6f6153
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 21:10:54 2026 +0530
+
+    build: lock application orientation to portrait mode
+    
+    - Updated app.config.js to set orientation to 'portrait'.
+    - Disabled horizontal tilt to ensure a consistent vertical user experience across all screens.
+    - Requires native rebuild (prebuild + run:android) to apply manifest changes.
+
+commit 55d901e0e23f6ef1176e56eeb77d3ee2ed366037
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 21:00:21 2026 +0530
+
+    feat: implement surgical time slot editing and validation recovery
+    
+    - Upgraded TimeSlotCard with interactive hit-testing and surgical selection support.
+    - Enhanced TimePicker with state hydration via initialFrom/initialTo manifests and reactive reset logic.
+    - Implemented editingSlotIndex in time-set.tsx to enable direct-manipulation updates of existing time windows.
+    - Added pendingTimes validation cache to prevent UI resets during error correction, preserving user intent across modal transitions.
+    - Refactored state cleanup logic to protect editing context during validation fault loops.
+    - Resolved structural syntax inconsistencies and missing utility imports in the time configuration conduit.
+
+commit 9f2bd4086e4ba5a278b35e92197a3b1e5c90ee1d
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 19:51:19 2026 +0530
+
+    feat: implement surgical permissions dashboard and identity rotation conduit
+    
+    - Created usePermissions hook to programmatically probe OS/hardware authorization status (GPS, Camera, Notifications).
+    - Transformed Profile screen into a high-fidelity "System Manifest" dashboard with real-time color-coded health metrics.
+    - Integrated handleSignOut conduit on Profile and Welcome screens to purge both app sessions and Google SSO hardware tokens, enabling seamless Gmail identity rotation.
+    - Migrated GoogleSignin configuration to root _layout.tsx to resolve critical "apiClient is null" race conditions during session persistence.
+    - Revitalized onboarding entry logic with premium cinematic animations and high-contrast typography.
+    - Standardized hardware permission subtitles for clear user guidance ("Permission active" vs "Needed for gates").
+
+commit 18838c6bbb72c28e453a5bf4bbdfab11886a2957
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 19:31:16 2026 +0530
+
+    feat: implement sovereign grading engine and telemetry-aware waiver guards
+    
+    ### The Problem
+    The verification and waiver subsystems relied on root-level 'status' fields which could become stale or misaligned with actual telemetry data. This created scenarios where users could attempt redemption (waivers) for tasks practically fulfilled via telemetry, or where grading logic was duplicated across the heartbeat and API layers.
+    
+    ### The Fix
+    This commit establishes a **Unified Sovereign Grading Engine** and migrates the accountability system to a **Telemetry-First Integrity** model:
+    
+    - **Sovereign Grading Engine**: Extracted habit fulfillment logic into a centralized `evaluateGradingVerdict()` function. It performs deep analysis of style-specific checkpoints (Stay Throughout vs. Just Show Up) to determine the mathematical pass/fail state independent of the master status field.
+    - **Deep Waiver Integrity**: Integrated the grading engine into the `waivers:startSession` API. The system now performs a real-time telemetry check before allowing a redemption window to open, blocking "Waiver Sniping" on successful but un-finalized tasks.
+    - **Graceful Error Handling**: Refactored the waivers state machine to return structured failure responses (`{ success: false }`) instead of throwing server-side exceptions. This ensures a clean production log and professional user feedback.
+    - **Reactive UI Feedback**: Updated the mobile `EventDetailModal` to handle API-level rejections gracefully, presenting specific fulfillment reasons to the user via the failure modal.
+    - **Production-Grade Standard**: Standardized internal documentation (JSDoc) across the execution pipeline and normalized log formats for high-reliability monitoring.
+    
+    ### Technical Changes
+    - **runner.ts**: Implemented and exported the core `evaluateGradingVerdict` engine.
+    - **waivers.ts**: Implemented telemetry-based fulfillment guards in `startSession` with graceful response patterns.
+    - **EventDetailModal.tsx**: Enhanced the waiver activation conduit with robust result parsing and failure modal integration.
+    - **verify.ts / update.ts**: Refined internal documentation to reflect the shift toward telemetry-authoritative grading.
+
+commit 68126fe97b3aab78b0223cc53d81e6d28bdb750b
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 18:56:59 2026 +0530
+
+    feat: implement sovereign grading engine and style-aware verification
+    
+    ### The Problem
+    The verification runner was performing a naive binary check on the root instance status. It failed to account for complex habit styles like "Stay Throughout" (which requires ongoing presence) or "Just Show Up" (which requires a single check-in within a window), relying instead on external processes to update the status before the window closed.
+    
+    ### The Fix
+    This commit introduces a "Sovereign Grading Engine" that performs deep telemetry analysis of checkpoints to determine fulfillment independent of external state updates:
+    
+    - **Modular Grading Logic**: Extracted verification rules into `evaluateGradingVerdict()`, separating the "Judgment" (logic) from the "Enforcement" (mutations).
+    - **Style-Aware Telemetry**:
+        - **Stay Throughout**: Now analyzes checkpoint arrays and counts 'missed' windows. It enforces a threshold based on `max_missed_checkins`, allowing for defined tolerance in habit adherence.
+        - **Just Show Up**: Evaluates checkpoints for a terminal 'verified' state across at least one window, ensuring point-in-time commitments are honored.
+    - **Production-Grade Observability**: Standardized log formats and added extensive JSDoc documentation to detail the "Heart-First Handoff" and "Redemption Arc" architectures.
+    - **Emoji-Free Formalism**: Cleaned up the log output and code comments to match high-reliability production standards.
+    
+    ### Technical Changes
+    - **runner.ts**: Implemented `evaluateGradingVerdict()`; unified Phase 2 grading to use style-specific rules; refined Phase 3 enforcement logs.
+    - **scheduler.ts**: Enhanced JSDoc to document the 'Temporal Firewall' and 'Surgical Cleanup' patterns.
+    - **update.ts**: Updated JSDoc to reflect the 'Reactive Reconciliation' requirement for UI sync.
+
+commit 8e3b7914fda43321379cac1b2d7731c089de2b76
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 11:47:19 2026 +0530
+
+    🧠 CommitT Scheduling: The Evolution from "Fragile" to "Surgical"
+    This document provides a side-by-side comparison of the scheduling architecture as it existed in commit 3a96ce7 versus the robust implementation we have today.
+    
+    1. Discovery Indexing: Creation vs. Timeline
+    The Problem: Using an index that prioritizes data entry over actual time.
+    
+    🔴 BEFORE (3a96ce7)
+    typescript
+    // scheduler.ts
+    const allInstances = await ctx.db
+      .query("taskInstances")
+      .withIndex("by_task", (q) => q.eq("task_id", taskId))
+      .collect();
+    Why it failed: The by_task index sorts by _creationTime. If Friday's task was manually created after Monday's, but then moved to earlier in the week, the scheduler would still see Monday first. This meant the "Heartbeat" would often jump past instances or get stuck processed in the wrong order.
+    
+    🟢 AFTER (Current)
+    typescript
+    // scheduler.ts
+    const allApplicable = await ctx.db
+      .query("taskInstances")
+      .withIndex("by_task_end", (q) => q.eq("task_id", taskId).gt("end", now))
+      .filter((q) => q.or(q.eq(q.field("status"), "pending"), q.eq(q.field("status"), "proceeding")))
+      .collect();
+    Why it works: By using by_task_end (indexing on ["task_id", "end"]), we force the database to return instances in strict chronological order. The addition of gt("end", now) creates a Temporal Firewall, ensuring we only ever look at the future and never at the slot we are currently processing.
+    
+    2. Timing the Handoff: The "Heart-First" Shift
+    The Problem: Placing the most critical logic (scheduling the future) behind potentially slow/failing tasks (grading the present).
+    
+    🔴 BEFORE (3a96ce7)
+    typescript
+    // runner.ts
+    export const runVerification = internalMutation({
+      handler: async (ctx, args) => {
+        // 1. Grade the task (Success/Failure)
+        // 2. Start Penalty/Waiver Logic (Heavy/Slow)
+        await armAccountabilityContract(ctx, instance, instance.end);
+    
+        // 3. Sync the next heartbeat (AT THE BOTTOM)
+        await syncTaskSchedule(ctx, instance.task_id);
+      }
+    });
+    Why it failed:
+    armAccountabilityContract
+     involves generating challenges, scheduling penalties, and database patches. If this logic had any delay, or if Instance A transitioned to waiver_active right as the scheduler tried to find it at the bottom, the chain would stall.
+    
+    🟢 AFTER (Current)
+    typescript
+    // runner.ts
+    export const runVerification = internalMutation({
+      handler: async (ctx, args) => {
+        // 1. SECURE THE FUTURE (AT THE VERY TOP)
+        await syncTaskSchedule(ctx, instance.task_id, true);
+    
+        // 2. Grade/Penalty Logic
+        if (isFailed) { await armAccountabilityContract(ctx, instance, instance.end); }
+      }
+    });
+    Why it works: The "Heart-First" pattern ensures that Instance B is scheduled in the database before we even touch Instance A's outcome. If the penalty logic retries or lags, the habit tracker has already "beaten" the clock for the next slot.
+    
+    3. Reactivity: Overcoming the "Stale Pointer" Trap
+    The Problem: Trusting old job IDs when an event's time has changed.
+    
+    🔴 BEFORE (3a96ce7)
+    typescript
+    // scheduler.ts
+    if (nextInstance.scheduled_job_id) {
+      // Logic: "If an ID exists, it must be correct."
+      return;
+    }
+    Why it failed: When dragging an instance from 10:00 AM to 11:00 AM, the database still has the scheduled_job_id from the 10:00 AM alarm. The old code would see that ID and skip the update. The alarm would fire an hour early, grading the user at the wrong time.
+    
+    🟢 AFTER (Current)
+    typescript
+    // scheduler.ts
+    if (nextInstance.scheduled_job_id && !force) {
+      console.log(`[syncTaskSchedule] IDEMPOTENT: Heartbeat healthy...`);
+      return;
+    }
+    // In api/instances/update.ts
+    await syncTaskSchedule(ctx, id, true); // ALWAYS FORCE ON EDITS
+    Why it works: By introducing the force flag and setting it to true by default on all API updates, we guarantee that any time-shift kills the old "Stale" alarm and replaces it with one matching the new authoritative end time.
+    
+    4. Cleanup: From "Nuclear Wiping" to "Surgical Sub-Query"
+    The Problem: Accidental "Self-Cancellation" causing flicker.
+    
+    🔴 BEFORE (3a96ce7)
+    typescript
+    // scheduler.ts
+    for (const inst of allInstances) {
+      if (inst.scheduled_job_id) {
+        // Cancel EVERYTHING for the task series
+        await ctx.scheduler.cancel(inst.scheduled_job_id);
+      }
+    }
+    Why it failed: The runner for 10:35 would wake up, call the sync, and the sync would see the 10:35 job ID and cancel it while it was still running. This created a "race-to-the-bottom" in the Convex scheduler that would often wipe out the 10:40 heartbeat in the process.
+    
+    🟢 AFTER (Current)
+    typescript
+    // scheduler.ts
+    const othersToClean = await ctx.db
+      .query("taskInstances")
+      .withIndex("by_task_end", (q) => q.eq("task_id", taskId).gt("end", nextInstance.end))
+      .collect();
+    Why it works: The cleanup is now strictly "Future-Stray Only." It never touches the current execution window. It only wipes alarms that are beyond our immediate target, keeping the dashboard stable and ensuring the active heartbeat is never interrupted by its own cleanup.
+    
+    🏛️ Final Architectural Summary
+    The core shift was moving from Narrow State Matching (looking for "pending") to Temporal Window Strictness (looking for "> now"). The system no longer tries to "manage" the current task; it focuses entirely on securing the next link in the chain before the present one even finishes. 🦾🚀
+
+commit 3a96ce7bbe8e6ecb1fe6de22230c70fd9463dbea
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 11:36:42 2026 +0530
+
+    fix: enforce time-shift reactivity and surgical heartbeat stability
+    
+    ### The Problem
+    The system was suffering from two conflicting scheduling bugs:
+    1. **The Stale-Time Stall**: Dragging-and-dropping instances (time-shifting) failed to update the scheduled alarm time because the scheduler was skipping rescheduling if a `scheduled_job_id` already existed (False Idempotency).
+    2. **The Self-Cancellation Race**: During task failure, the runner would occasionally cancel its own next-slot job while trying to "clean up" the task series.
+    
+    ### The Fix
+    This commit implements a "Future-Strict Surgical" scheduling model that is both highly reactive to user edits and stable during execution:
+    
+    - **Enabled Reactive Overrides**: Set `force: true` as the default in `syncTaskSchedule`. This ensures that any change to an instance's `end` time (via UI or API) always forces a job replacement, correctly updating the alarm time.
+    - **Surgical Discovery Boundary**: Standardized the discovery query to use `gt("end", now)`. This creates a temporal firewall: the scheduler now strictly looks PAST the currently executing slot, making it impossible for a runner to accidentally see or cancel its own session.
+    - **Aggressive Orphan Purging**: The scheduler now performs a surgical cleanup of any "stray" scheduled jobs ending after the primary next-slot target, ensuring the dashboard remains clean and devoid of duplicate verification jobs.
+    - **Heartbeat-First Handoff**: Maintained the architectural shift where the next heartbeat is secured at the start of the verification cycle, ensuring chain continuity regardless of how long penalty/waiver initialization takes.
+    
+    ### technical changes
+    - **scheduler.ts**: Defaulted `force` to `true`; restricted cleanup to future-only sub-queries.
+    - **runner.ts**: Enforced early sync; look-ahead discovery.
+    - **api/instances/update.ts**: Explicitly enabled forced sync on every instance update.
+
+commit cc809b2652a300f93a574d19e29cfb60eafae300
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 11:31:18 2026 +0530
+
+    fix: implement surgical heartbeat and heart-first scheduling
+    
+    ### The Problem
+    The scheduling chain was "stalling" during task failures. While successful tasks promoted the heartbeat correctly, failing tasks often failed to schedule the "Instance B" verification job, leaving the user with a penalty but no future habit tracking. This was caused by:
+    1. **Self-Cancellation Race**: The scheduler's cleanup loop was trying to cancel the job of the *currently executing* instance, creating a race condition that sometimes swallowed the next job in the chain.
+    2. **Post-Grading Sync**: The next slot was being scheduled *after* the complex waiver/penalty arming logic. Any micro-delay in waiver initialization would block or defer the heartbeat sync.
+    3. **Stale Pointer Idempotency**: The scheduler was incorrectly trusting "dead" scheduled_job_ids left over from previous `convex dev` runs or re-deployments.
+    
+    ### The Fix
+    This commit implements a "Heart-First" architectural pattern to ensure 100% chain continuity:
+    
+    - **Inverse Verification Handoff**: Refactored `runVerification` to trigger `syncTaskSchedule` as the **first** operation. The next slot is now secured in the DB before grading or penalty logic begins.
+    - **Surgical Future-Strict Discovery**: The scheduler now uses `gt("end", now)` to look strictly PAST the current slot. This makes the heartbeat immune to the transitional states (like `waiver_active`) of the currently failing slot.
+    - **Atomic Pointer Purging**: Added a `force` flag to `syncTaskSchedule`. When called from the runner, it now bypasses idempotency checks to explicitly purge potentially stale/dead job IDs and replace them with fresh, authoritative ones.
+    - **Past-Immune Cleanup**: Restricted the "Nuclear Cleanup" to only touch stray jobs that end *after* the next targeted slot. This prevents the runner from accidentally canceling its own active session.
+    
+    ### Technical Changes
+    - **scheduler.ts**: Added `force` parameter; switched to future-strict surgical cleanup logic.
+    - **runner.ts**: Re-ordered phases to prioritize Temporal Recursion; enabled `force` sync; restored official waiver deadlines.
+    - **watchdog.ts**: Synced with new chronological discovery rules.
+
+commit e3fd202dfebc4204dfd0564c4f34d2cdd8de5f39
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 13 10:20:25 2026 +0530
+
+    feat(penalty): refine shaming email and refactor penalty execution
+    
+    - Refined 'embarrassing_photo' email template with better deliverability (Anti-Spam) and premium styling.
+    - Refactored penalty worker logic into Mutation/Action pair to support 'fetch' for Brevo API integration.
+    - Added 'getInstance' internal query to allow background tasks to access commitment data.
+    - Optimized AlarmActivity logging to diagnose 'Zombie Dismissals' (confirmed alarms fire correctly but are being dismissed in <6s).
+    - Fixed minor 'vimport' typo in worker.ts and updated waivers testing overrides.
+    
+    wsl.exe --shutdown
+
+commit ee878f327418056b66c8f25c05677821f140d0ba
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Mar 12 07:04:57 2026 +0530
+
+    feat(penalty): refine shaming email and refactor penalty execution
+    
+    - Refined 'embarrassing_photo' email template with better deliverability (Anti-Spam) and premium styling.
+    - Refactored penalty worker logic into Mutation/Action pair to support 'fetch' for Brevo API integration.
+    - Added 'getInstance' internal query to allow background tasks to access commitment data.
+    - Optimized AlarmActivity logging to diagnose 'Zombie Dismissals' (confirmed alarms fire correctly but are being dismissed in <6s).
+    - Fixed minor 'vimport' typo in worker.ts and updated waivers testing overrides.
+    
+    wsl.exe --shutdown
+
+commit c1730a9b15ff22462c92136fef1712be469a3916
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 11 23:57:16 2026 +0530
+
+    feat: enforce coupled accountability and fix penalty clearing logic
+    
+    Full-stack synchronization for the "Two-way Street" accountability rule.
+    
+    Backend:
+    - Modified Penalty and Waiver schemas/validators to explicitly allow `null` values.
+    - Implemented "Coupled Accountability" validation: ensuring penalties and waivers
+      are either both present or both absent.
+    - Updated [updateInternal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/service.ts:189:0-321:1) service to correctly merge `null` clear signals.
+    
+    Frontend:
+    - Fixed [useCommitTask](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:177:0-289:1) orchestrator to prevent "signal loss" where `null` clears
+      were accidentally converted to `undefined` (do-nothing) actions.
+    - Added `isAccountabilityPrefilled` session flag to [TaskDraftStore](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:107:0-142:2) to track state.
+    - Refactored [useAccountabilityPrefill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useAccountabilityPrefill.ts:5:0-42:1) hook to use a one-shot fetch and the new
+      session flag, resolving the "Bounce Back" bug where cleared penalties
+      would immediately reappear.
+    
+    wsl.exe --shutdown
+
+commit f61a90a90c43c558a6ef16cb4b98981ebee2b23f
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 11 13:31:03 2026 +0530
+
+    fix(ux): streamline penalty navigation and solve pre-fill "Loop of Doom"
+    
+    - Removed navigation interceptor and confirmation modal from Embarrassing Photo screen to reduce dialog fatigue.
+    - Refined [useAccountabilityPrefill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useAccountabilityPrefill.ts:5:0-42:1) logic to strictly check for `undefined` state, allowing users to explicitly clear penalties without triggered background re-fills.
+    - Enforced "Manual Override" intent: set draft penalty to `null` on clear to distinguish from "Untouched" creation state.
+    - Improved UX flow on Task Creation: "Lock Consequence" remains the primary validator while "Back" now acts as a seamless cancel.
+    
+    wsl.exe --shutdown
+
+commit 0a5d09f170b491b32315c3e0d748d23246009d06
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 11 09:15:34 2026 +0530
+
+    feat(accountability): implement single accountability identity & reactive photo recovery
+    
+    - Enforce a "Single Accountability Identity" (Penalty + Waiver) per user in Convex.
+    - Enable auto-learning of this identity during task creation and updates.
+    - Implement background pre-filling of task drafts from the latest identity for zero-friction setup.
+    - Added `getTempUrl` Convex query for on-demand signed URL recovery.
+    - Created [useFreshPhotoUrl](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useFreshPhotoUrl.ts:22:0-36:1) hook for reactive, self-healing image previews across the app.
+    - Strictly prioritize server-refreshed URLs over stale local state for committed photos.
+    - Cleaned up temporary thumbnail previews and refined penalty configuration screens.
+    
+    wsl.exe --shutdown
+
+commit e18eaadd8c49a2f2658d6358e3cd80829a8430e1
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 11 07:40:54 2026 +0530
+
+    feat: implementation of strict mode extensions, persistent penalty waivers, and sovereign instance execution
+    
+    - Implemented backend and UI support for extending active "Steel Vault" durations.
+    - Synchronized local SQLite schema (Migration 10) to include `strict_until`, `strict_duration_days`, and `penalty_waiver_json` for offline enforcement.
+    - Integrated local-first sync repositories to immediately reflect vault locks and verification results in the Android hardware scheduler.
+    - Introduced "Sovereign Orphanhood" in the verification runner to ensure surviving manual exceptions/locked instances are processed after parent task deletion.
+    - Fortified the local DB migration engine with atomic versioning and hardware corruption diagnostics for safer storage resets.
+    - Ensured locked instances inherit `is_manual_edit` status to protect the accountability chain from generic rescheduling purges.
+    
+    wsl.exe --shutdown
+
+commit a03accde4165cd749f18a245bb9123f24f118d69
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 10 22:05:25 2026 +0530
+
+    refactor: implement Zustand task sync and refine Event Detail UI
+    
+    - Created `useTaskStore` to globally cache live task data for instant cross-screen access.
+    - Updated [useTasks](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTasks.ts:9:0-52:1) hook to automatically hydrate the store from Convex subscriptions.
+    - Switched [StrictModeSetup](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28strict-mode%29/setup.tsx:39:0-268:1) to read from the store, eliminating skeleton flickers.
+    - Updated [StrictModeBanner](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/StrictModeBanner.tsx:15:0-39:1) to the "VAULT ACTIVE" aesthetic with a plain lock icon and blue vault border.
+    - Reverted Penalty and Waiver detail rows to the original InfoSection layout as requested.
+    - Enhanced `ConditionCard` to support custom overlays via children and dynamic padding.
+    
+    wsl.exe --shutdown
+
+commit aec4ac9459350eeae3f52963f871fc0ad04440e6
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 10 21:56:22 2026 +0530
+
+    style(modal): harmonize Event Detail aesthetics with creation flow
+    
+    - Unified Penalty and Waiver sections to use the shared [ConditionCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/ConditionCard.tsx:25:0-104:1) component.
+    - Enhanced [ConditionCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/ConditionCard.tsx:25:0-104:1) to support custom children with auto-padding to prevent layout overlap.
+    - Updated Strict Mode banners to the "VAULT ACTIVE" design with a plain lock icon.
+    - Aligned detailed modal aesthetics with the primary "Steel Vault" design system.
+    
+    wsl.exe --shutdown
+
+commit 3b4a94fd08ea518e6116e23f140042748b373b57
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 10 21:48:27 2026 +0530
+
+    feat(sync): implement Optivault Zustand Sync for instant Task access
+    
+    - Added `useTaskStore` to globally manage live task data.
+    - Enhanced [useTasks](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTasks.ts:9:0-52:1) hook to automatically hydrate Zustand from Convex subscriptions.
+    - Refactored [StrictModeSetup](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28strict-mode%29/setup.tsx:39:0-268:1) to read from the store instead of re-querying the server.
+    - Eliminated navigation latency and skeleton flickering when entering task setup.
+    
+    wsl.exe --shutdown
+
+commit 4b252c7c571e1abd9fc7568c3f66bbc4150c4107
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 10 12:00:14 2026 +0530
+
+    fix(native): resolve navigation loops and optimize commitment setup history
+    
+    - Switched penalty and waiver setup confirmations from `router.push` to `router.back()` to prevent redundant summary screen instances.
+    - Restored standard stack navigation for selection lists to enable granular, one-page-at-a-time backtracking.
+    - Updated back-gesture interceptors to correctly handle "Leave it" actions via navigation dispatch, ensuring clean stack pops.
+    - Improved UX by ensuring setup screens are removed from history upon completion rather than bloating the navigation stack.
+    
+    wsl.exe --shutdown
+
+commit b833cb876bf1feb8c8b959dadc4fbe6236c51662
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 10 06:54:38 2026 +0530
+
+    feat: refine strict mode duration selection with direct shortcuts and custom picker
+    
+    Direct Duration Access: Updated the setup screen to show "1 Day" and "2 Days" as top-level selectable options for faster configuration.
+    Custom Duration Picker: Integrated a
+    
+    SelectionSheet
+     triggered via the "Custom" option, enabling granular control for longer lock periods.
+    UI Hierarchy: Renamed the settings section to "Lock Duration" and standardized the header component to match the core commitment creation patterns.
+    Dynamic Labels: Implemented smart row feedback that displays the selected custom value or a checkmark for standard durations.
+    Design Polish: Maintained the primary blue branding across all interactive elements, including icons, buttons, and selection indicators.
+    wsl.exe --shutdown
+
+commit a7b86a31dea1f1becccf83254bb28fbb48cb3b0d
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 10 06:32:28 2026 +0530
+
+    feat: implement dedicated strict mode configuration flow and premium UI
+    
+    Dedicated Navigation: Created the
+    
+    (strict-mode)
+     group with optimized fade transitions to ensure a seamless, glitch-free user experience.
+    Immersive Setup Screen: Implemented
+    
+    StrictModeSetupScreen
+     using the
+    
+    ActionScreenLayout
+     pattern, featuring a consistent header/footer structure and primary blue branding.
+    Menu Integration: Updated the commits action menu to trigger the new dedicated setup route, passing task-specific context (ID and Title).
+    UX Refinement: Synchronized animation timing and presentation styles with the core commitment creation flow for a professional, snappy feel.
+    
+    wsl.exe --shutdown
+
+commit 48548ceb487358144487ea75e4845eac2536f8e1
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 10 05:37:03 2026 +0530
+
+    feat(strict-mode): modularize lock UI and restore core collision logic
+    
+    - UI: Extracted Strict Mode banner into a reusable component built on ConditionCard.
+    - UI: Themed the lock banner to primary blue (#4FA0FF) for design consistency.
+    - Logic: Restored Manual Exception Tracking to ensure user edits/locks survive series regeneration.
+    - Backend: Enhanced generateSeries to perform global collision checks against all existing instances.
+    - Refactor: Fixed 'pop-down' visual glitch by validating backend success before local SQLite updates.
+    
+    wsl.exe --shutdown
+
+commit 49c42965fd37643dc9f38ac73128e4a6a4ce118e
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 10 00:00:23 2026 +0530
+
+    feat(strict-mode): implement end-to-end Strict Mode enforcement
+    
+    - Schema: Added 'strict_until' field to task instances for immutable locking.
+    - Backend: Implemented "The Steel Vault" enforcement in mutations and core services (update/delete/cleanup).
+    - API: Switched to structured error responses for strict mode violations to prevent noisy console errors.
+    - UI: Added lock activation flow with confirmation modal and robust error parsing in EventDetailModal.
+    - Logic: Fixed 'pop-down' glitch by ensuring local SQLite sync respects backend lock rejection in useTaskActions.
+    
+    wsl.exe --shutdown
+
+commit caa331bd713bbce6f4d29d6aa6b98addca8cb4a2
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 9 22:32:45 2026 +0530
+
+    feat(ui): add Lock (Strict Mode) option to event action menu
+    
+    - Integrated a new "Lock (Strict Mode)" item into the EventDetailModal action menu.
+    - Positioned the lock option alongside existing management actions for better visibility.
+    
+    wsl.exe --shutdown
+
+commit 827041d4b76510720a3d526ae9f8af91324b37ab
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 9 20:50:37 2026 +0530
+
+    feat(penalty): fix photoUrl resolution and local sync for commitment updates
+    
+    - Re-implemented public photoUrl resolution in the backend 'updateInternal' service to ensure snapshotted instances receive valid image links after a task edit.
+    - Updated local SQLite repository to support penalty overrides, ensuring processed storage references are cached instead of ephemeral local URIs.
+    - Fixed a syntax error and logic gap in the 'useCommitTask' orchestrator during the Triple-Write sync flow.
+    
+    wsl.exe --shutdown
+
+commit f4e2915282a5121c4ecce90d76a50123813c355a
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 9 09:31:41 2026 +0530
+
+    feat(native): enhance visual feedback for waived task instances
+    
+    - Updated [EventDetailHeader](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailHeader.tsx:43:0-103:1) status badge to display "WAIVED OFF" in a positive green theme (#4CD964) when an instance is successfully bypassed.
+    - Standardized the conditional styling logic in the header to handle both 'proceeded' and 'waived' as success states.
+    
+    wsl.exe --shutdown
+
+commit 7195e46bc4068f7602f62b74975968dcfe754aea
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 9 09:26:52 2026 +0530
+
+    refactor(native): optimize keyboard ergonomics and input stability
+    
+    - Resolved "Component is not a function" error by reverting the shared [Input](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/input.tsx:6:0-15:1) component to a standard function with an `innerRef` prop for focus management.
+    - Implemented a "Focus Lock" strategy: the keyboard now remains active throughout the challenge session and automatically re-activates if dismissed, except when explicitly exiting the screen.
+    - Streamlined the submission UI by making the send arrow persistent; it now stays visible at all times but remains disabled and at 30% opacity when the input is empty.
+    - Perfected the interaction bar animation by unifying the 12px vertical gap logic into a single 250ms keyboard transition for a fluid, lag-free feel.
+    - Cleaned up the CAPTCHA container by removing the transient skeleton loader in favor of a distraction-free loading state.
+    - Fixed several missing UI component imports in `CaptchaWaiverView` to ensure full build stability.
+    
+    wsl.exe --shutdown
+
+commit 48b4f1757856c5d8cf67ec730a5338cb9c098aca
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 9 09:04:31 2026 +0530
+
+    refactor(native): standardize inputs and enhance timer precision
+    
+    - Integrated the shared [Input](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/time.ts:14:0-18:2) component into [CaptchaWaiverView](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/CaptchaWaiverView.tsx:124:0-393:1), refactoring the base component to support `forwardRef` for better focus management.
+    - Implemented [formatRelativeDuration](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/time.ts:89:0-124:1) utility to provide intelligent, magnitude-based time remaining (days/hrs, hrs/mins, mins/secs).
+    - Stabilized the CAPTCHA input bar with a fixed height (`h-14`) to prevent layout jumps/flickering while typing.
+    - Improved keyboard ergonomics by adding a 12px vertical offset to the input bar's translateY animation, creating a better visual gap above the software keyboard.
+    - Cleaned up redundant local styles and standardized the interaction bar layout across the waiver flow.
+    
+    wsl.exe --shutdown
+
+commit 4ee63be089ebca1d6bc2502aee5b8025c1d2a703
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 9 02:16:46 2026 +0530
+
+    feat(native): overhaul CAPTCHA waiver flow for a high-performance UX
+    
+    - Refined [CaptchaWaiverView](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/CaptchaWaiverView.tsx:123:0-393:1) with a fully responsive SVG renderer that dynamically scales to fit its container using `onLayout` measurements.
+    - Implemented a persistent keyboard strategy: converted the main view to a `ScrollView` with `keyboardShouldPersistTaps="always"` and disabled `blurOnSubmit` to ensure the keyboard stays active during rapid-fire solutions.
+    - Replaced native [Modal](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:59:0-62:1) error dialogs with an in-page absolute overlay to prevent the OS from force-dismissing the keyboard on verification failures.
+    - Streamlined the UI by removing redundant instruction text and centering the challenge area for better focus.
+    - Synchronized the `updateTask` mutation with the backend to correctly persist accountability contracts (`penalty` and `penalty_waiver`) during task edits.
+    - Fixed a layout bug on Android where the input field remained offset after keyboard dismissal by correcting the `keyboardDidHide` listener.
+    - Improved [useCommitTask](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:177:0-289:1) hook to handle deferred photo uploads for embarrassing penalties before triggering the final task creation/update.
+    
+    wsl.exe --shutdown
+
+commit 43f8bcbe12003328112a3cf0d283080c8968d31b
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 9 00:12:47 2026 +0530
+
+    feat(accountability): fix persistence and validation of penalty/waiver contracts
+    
+    - Update Convex API and core service to support updating accountability contracts (penalty/waiver).
+    - Implement domain-level validation for waivers, including CAPTCHA count and deadline checks.
+    - Fix "packing" bug in useCommitTask hook where penalty/waiver data was omitted during task updates.
+    - Refine CAPTCHA setup UI to preserve existing deadlines and add "1 hour" option to settings.
+    - Ensure atomic synchronization of modified accountability rules across cloud and local cache.
+    
+    wsl.exe --shutdown
+
+commit 357b42ca7e513645760603a5db47c78c94056cbd
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 23:26:32 2026 +0530
+
+    fix(waivers): resolve schema validation error and restore missing session mutation
+    
+    - Added `completed_at` field to `waiver_state.challenges` schema to permit tracking challenge completion timestamps.
+    - Restored `startSession` mutation in [api/instances/waivers.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/waivers.ts:0:0-0:0) to allow manual initiation of the redemption arc.
+    - Fixed missing `Doc` and [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:6:0-65:1) imports in the waivers API module.
+    - Ensured atomic consistency between frontend puzzle solving and backend state updates.
+    
+    wsl.exe --shutdown
+
+commit e1d460592400308d612101ab34cbe3c3ac29f835
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 23:23:12 2026 +0530
+
+    feat(waivers): implement "on-the-fly" captcha verification and state machine
+    
+    - Replaced bulk challenge generation with a "Lazy Dequeue" pattern for CAPTCHA waivers, dealing challenges one-at-a-time.
+    - Implemented [verifyCaptchaChallenge](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/waivers/captcha.ts:24:0-73:1) handler for atomic progress tracking and sequential puzzle dealing.
+    - Developed the `submitChallenge` Convex mutation to securely bridge verification and task state transitions.
+    - Integrated [LiveCaptcha](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/CaptchaWaiverView.tsx:14:0-124:1) custom SVG renderer in the native UI with real-time reactive state synchronization.
+    - Updated database schema to include `created_at` and `completed_at` timestamps for fine-grained challenge auditing.
+    - Refined the waiver dispatcher to route verification attempts through decoupled, specialized handlers.
+    - Automated penalty cancellation (fallback job cleanup) upon successful completion of the waiver quota.
+    
+    This architecture minimizes secret leakage, prevents race conditions, and provides a premium, "Submit & Flip" user experience.
+    
+    wsl.exe --shutdown
+
+commit c06fd92a46d5e3ac87d0f815b0c45e1b8dabbf82
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 21:53:26 2026 +0530
+
+    feat(backend): implement polymorphic waiver challenge initialization
+    
+    - Refactored `waiver_state` schema to use a `challenges` array for queue-based workflows.
+    - Implemented `WaiverDispatcher` using the Strategy pattern to route challenge generation.
+    - Created `CaptchaHandler` to generate secure, difficulty-aware challenge secrets in a "Vault".
+    - Integrated challenge initialization into [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:6:0-65:1) for atomic session setup.
+    - Fixed Convex runtime compatibility by standardizing static imports in the execution runner.
+    
+    wsl.exe --shutdown
+
+commit af097ea5545ea94d2cb5678524c142924e7b144c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 21:10:47 2026 +0530
+
+    refactor(ui): modularize waiver system and extract CaptchaWaiverView
+    
+    - Decoupled CAPTCHA-specific logic, state, and animations from WaiverActionModal.
+    - Created CaptchaWaiverView to encapsulate the solver UI and challenge logic.
+    - Simplified WaiverActionModal to act as a generic container for future waiver types.
+    - Reverted backend waiver_state schema to a stable baseline for future iteration.
+    
+    wsl.exe --shutdown
+
+commit 821e15f0355b0a5ff5ecb57360c939dbfc9ba8a9
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 17:39:09 2026 +0530
+
+    feat(native): implement real-time progress and urgency timer in WaiverActionModal
+    
+    - Refactored [WaiverActionModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/WaiverActionModal.tsx:10:0-114:1) to replace contact suggestions with a dedicated CAPTCHA solving UI.
+    - Added a real-time "X/Total" solve counter and a dynamic "Time Remaining" countdown.
+    - Implemented pulsulating color-coded urgency states for the timer (turns red and pulses when < 5 mins).
+    - Streamlined navigation in `EventDetailModal` to directly open the action modal for active waiver sessions.
+    - Simplified [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:70:0-230:1) and updated status logic to show 'pointer' icon for active challenges.
+    - Standardized UI components using `robot-outline` iconography for better challenge representation.
+    
+    wsl.exe --shutdown
+
+commit 31e926c90fa5b8143e6f93d18add7b63e7bf38c8
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 14:18:25 2026 +0530
+
+    feat: integrate high-urgency redemption timer and progress into verification status UI
+    
+    OVERVIEW:
+    This update centralizes the waiver redemption experience by consolidating the
+    progress ratio and countdown timer into a single, high-density visual hub
+    within the Verification Status Circle.
+    
+    BACKEND:
+    - PRE-EMPTIVE ARMING: Refactored [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:5:0-61:1) to support manual
+      redemption triggers with server-authoritative `expires_at` timestamps.
+    - RESOURCE API: Implemented `api.instances.waivers.startSession` to initiate
+      manual waiver challenges before official task failure.
+    
+    UI/UX (STUDIO GRADE):
+    - INTEGRATED TIMER: Moved the waiver countdown from the list text into the
+      [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:138:0-304:1). Created an [InternalTimer](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:79:0-134:2) with 1s ticking logic.
+    - URGENCY HEARTBEAT: Implemented a Reanimated pulsing effect and color shift
+      (Blue -> Red) for the timer and SVG ring when <5 minutes remain.
+    - DUAL-DATA STACK: Designed a vertical layout within the 48x48 circle that stacks
+      the challenge ratio (e.g., 3/7) above the live timer (MM:SS).
+    - SVG PROGRESS RING: Enhanced the circular stroke to dynamically reflect the
+      solve progress of CAPTCHAs/Paragraphs.
+    - MINIMALIST REFINEMENT: Removed the percentage icon and increased timer
+      legibility (11px bold) for a cleaner, data-focused "cockpit" look.
+    
+    Files:
+    - [packages/backend/convex/execution/verification/runner.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:0:0-0:0)
+    - [packages/backend/convex/api/instances/waivers.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/waivers.ts:0:0-0:0)
+    - [apps/native/components/ui/commits/VerificationStatusCircle.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:0:0-0:0)
+    - [apps/native/components/ui/modal/EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0)
+    - `apps/native/components/ui/modal/EventDetailModal.tsx`
+    
+    wsl.exe --shutdown
+
+commit 5451fb8509c1e119d42688d85d0cc01d6ef21b28
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 13:23:56 2026 +0530
+
+    feat: implement pre-emptive waiver sessions and high-fidelity redemption UI
+    
+    OVERVIEW:
+    This update introduces a production-grade "Redemption Arc" system, allowing users
+    to manually initiate penalty waivers before a task officially fails. The implementation
+    focuses on sovereign instance execution, authoritative server-side timing, and
+    a high-urgency visual experience.
+    
+    BACKEND ARCHITECTURE:
+    - REUSABLE ACCOUNTABILITY: Extracted [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:5:0-61:1) in [runner.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:0:0-0:0)
+      to support both automatic (failure-based) and pre-emptive (manual) triggers.
+    - SOVEREIGN EXECUTION: Task instances are now treated as independent contracts;
+      grading and waivers proceed even if the parent habit series is deleted.
+    - RESOURCE-CENTRIC API: Implemented `api/instances/waivers.startSession` mutation
+      to deterministically lock in the redemption window based on `Date.now()`.
+    - SCHEMA ALIGNMENT: Synchronized waiver state transitions (`offered` vs `in_progress`)
+      to ensure strict database integrity and prevent validation rejections.
+    
+    FRONTEND & UI/UX:
+    - SVG PROGRESS MODES: Enhanced [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:70:0-230:1) with a high-fidelity
+      SVG stroke ring and numerical ratio display (e.g., 3/7) for live progress tracking.
+    - PULSING COUNTDOWN: Introduced [CountdownPill](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:75:0-144:2) in `EventDetailConditions` with
+      real-time ticking logic.
+    - URGENCY CUES: Implemented a red "Heartbeat Pulse" animation via Reanimated when
+      a waiver session has <5 minutes remaining, increasing psychological stakes.
+    - TRANSACTIONAL FLOW: Integrated confirmation modals and loading states in
+      `EventDetailModal` to ensure atomic state transitions between the app and Convex.
+    
+    Files:
+    - [packages/backend/convex/execution/verification/runner.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:0:0-0:0)
+    - [packages/backend/convex/api/instances/waivers.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/waivers.ts:0:0-0:0)
+    - [apps/native/components/ui/modal/EventDetailModal.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:0:0-0:0)
+    - [apps/native/components/ui/modal/EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0)
+    - `apps/native/components/ui/commits/VerificationStatusCircle.tsx`
+    
+    wsl.exe --shutdown
+
+commit 17b4d7302c5b8e8b33f242ef67ecdc998359d5f5
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 12:42:36 2026 +0530
+
+    feat(backend): implement sovereign instance execution and reusable accountability arming
+    
+    This commit refactors the verification runner to ensure that every task
+    instance — especially manual edits — is treated as a sovereign contract
+    that must reach a terminal state, even if the parent task is deleted.
+    
+    ### 🏗️ Sovereign Instance Execution
+    - **Decoupled Grading:** Removed early returns in `runVerification` tied
+      to parent task existence. The system now grades an instance based on
+      its own state (Phase 1), ensuring that manual exceptions are processed
+      regardless of the master habit's lifecycle.
+    - **Heartbeat Protection:** Guarded the `syncTaskSchedule` (Phase 2)
+      with a task existence check. This prevents the heartbeat from reviving
+      deleted habit series while still allowing current in-flight instances
+      to finish their lifecycle.
+    - **Resolved Chaining Issues:** Fixed a critical edge case where Monday's
+      cleanup would "break the chain" for Wednesday's manual edit. Each
+      instance now executes its contract independently.
+    
+    ### 🛡️ Reusable Accountability Arming
+    - **Extracted [armAccountabilityContract](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/verification/runner.ts:5:0-63:1):** Isolated the penalty/waiver
+      arming logic into a reusable helper.
+    - **Support for Pre-emptive Waivers:** Added a `baseTime` parameter.
+      While auto-failures use the window end, this now supports manually
+      starting a waiver session (e.g., via the UI) by passing `Date.now()`.
+    - **Idempotency & Safety:** Implemented `enforcement_job_id` cancellation
+      within the arming logic to prevent "Double-Firing" during race
+      conditions or overlapping manual triggers.
+    
+    ### 📝 Production Standards
+    - Added comprehensive documentation and rationale for "Sovereign Execution"
+      to prevent future regressions in habit lifecycle management.
+    
+    Files:
+    - `packages/backend/convex/execution/verification/runner.ts`
+    
+    wsl.exe --shutdown
+
+commit 5a6fdc6186724e72400bfb90f968c823928938be
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 11:51:37 2026 +0530
+
+    feat(accountability): implement sovereign enforcement and high-fidelity deterrents
+    
+    This commit hardens the core accountability engine by ensuring backend
+    execution resilience and implementing high-fidelity deterrents in the UI.
+    
+    ### ⛓️ Sovereign Enforcement & Dispatching
+    - **Decoupled Worker:** Refactored `firePenalty` worker to operate
+      independently of parent task records, relying entirely on the frozen
+      `instance.penalty` snapshot to ensure accountability for manual edits.
+    - **Scalable Dispatcher:** Created a centralized [dispatcher.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/dispatcher.ts:0:0-0:0) and
+      modular executors (e.g., [send_email.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/executors/send_email.ts:0:0-0:0)) to route various penalty
+      types (Email, Photo, Money) with a standardized [PenaltyResult](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/dispatcher.ts:12:0-15:2) flow.
+    - **Proactive Defusal:** Updated the server-side janitor ([service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0))
+      to proactively cancel scheduled penalty jobs during task deletion or
+      updates, targeting all "In-Flight" states (`pending`, `proceeding`, `waiver_active`).
+    
+    ### 📸 High-Fidelity Accountability (UI)
+    - **Threat Previews:** Enhanced [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:67:0-180:1) to support
+      thumbnails. Penalties using "Embarrassing Photo" now display a circular
+      preview of the actually uploaded stake, serving as a powerful visual reminder.
+    - **Dynamic Content Routing:** Refactored `EventDetailConditions` to display
+      specific destination details (e.g., "Photo will be sent to [email]") and
+      dynamic waiver counts (e.g., "Solve 5 CAPTCHAs") via a live subscription.
+    - **Visual Urgency:** Standardized all penalty cards to use Commit
+      "Failure Red" (#FF3B30) for consistent psychological impact.
+    - **Reactive Status Mapping:** Integrated real-time instance status into
+      the condition rows, providing immediate feedback for active waivers,
+      successful bypasses, and fired penalties.
+    
+    Files:
+    - [packages/backend/convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0)
+    - [packages/backend/convex/execution/penalties/worker.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/penalties/worker.ts:0:0-0:0)
+    - [packages/backend/convex/core/penalties/dispatcher.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/dispatcher.ts:0:0-0:0)
+    - [packages/backend/convex/core/penalties/executors/send_email.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/penalties/executors/send_email.ts:0:0-0:0)
+    - [apps/native/components/ui/modal/EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0)
+    - `apps/native/components/ui/commits/VerificationStatusCircle.tsx`
+    
+    wsl.exe --shutdown
+
+commit 04b1ddf056c5d060e70ae8bc7388b53714e60984
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 10:48:02 2026 +0530
+
+    feat(ui): implement dynamic penalty and waiver details in event modal
+    
+    This commit enhances the event detail view by replacing static placeholders
+    with live, configuration-driven details for both penalties and waivers.
+    
+    ### 🎯 Dynamic Accountability UI
+    - **Live Waiver Details:** Refactored [WaiverSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:148:0-185:2) to extract real-time
+      config from the live Convex subscription. It now displays exact
+      requirements (e.g., "Solve 5 CAPTCHAs") instead of generic descriptions.
+    - **Specific Penalty Routing:** Enhanced [PenaltySection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:96:0-146:2) to reveal the
+      exact destination of a penalty. If an "Embarrassing Photo" is set to
+      be sent via email, the UI explicitly shows the target recipient's
+      address (e.g., "Photo will be sent to [email]").
+    - **Visual Consistency:** Standardized all penalty cards to use the
+      Commit "Failure Red" (#FF3B30) regardless of type, providing a clear
+      punitive visual cue.
+    
+    ### 🔧 Technical Improvements
+    - **Data Directness:** Migrated UI logic to pull from the top-level
+      `penalty` and `penalty_waiver` objects instead of iterating through
+      generic condition arrays.
+    - **Responsive Status Mapping:** Integrated event status into the
+      condition rows, showing "Applied" for active waivers, "Waived" for
+      successful challenges, and "Failed" for fired penalties.
+    
+    Files:
+    - `apps/native/components/ui/modal/EventDetailConditions.tsx`
+    
+    wsl.exe --shutdown
+
+commit bbb61e58e5044cb58a8a01c155f5d4554bdc2293
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 8 09:58:29 2026 +0530
+
+    feat(backend): implement proactive penalty defusal and decoupled enforcement
+    
+    This commit hardens the accountability engine by ensuring that scheduled
+    penalty jobs ("bombs") are correctly defused during lifecycle events and
+    that the enforcement worker can operate independently of the parent task.
+    
+    ### 🛡️ Proactive Penalty Defusal (The "Janitor" logic)
+    - **Service Layer Cleanup:** Updated `Instances.delete` and [cleanupFuture](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:271:0-306:1)
+      in [core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0) to proactively cancel `enforcement_job_id`
+      (the penalty bomb) in addition to verification heartbeats.
+    - **In-Flight Status Filtering:** Refactored the cleanup condition to target
+      all "In-Flight" states (`pending`, `proceeding`, `waiver_active`) instead
+      of relying on a strict time-based `start >= now` check.
+    - **The Result:** Deleting a task now successfully sweeps away active failing
+      instances and defuses their ticking penalty jobs, preventing "Ghost Penalties"
+      from firing on deleted data.
+    
+    ### ⛓️ Decoupled Enforcement (Sovereign Worker)
+    - **Parent-Task Independence:** Decoupled the `firePenalty` worker in
+      [execution/penalties/worker.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/penalties/worker.ts:0:0-0:0) from the `tasks` table. The worker now
+      relies entirely on the immutable `instance.penalty` snapshot frozen
+      on the instance at creation time.
+    - **Terminal State Guarantee:** Enforced a status transition to `penalized`
+      even if the parent task is missing. This prevents orphaned "Manual Edits"
+      from getting stuck in a perpetual `waiver_active` state on the user's
+      dashboard if they ignore a failed window.
+    - **Resilient Execution:** Accountability is preserved for manual user
+      exceptions—the penalty will still fire based on the frozen contract even
+      if the master habit is deleted, unless the user specifically deletes
+      the manual occurrence itself.
+    
+    ### 🧩 Architectural Integrity
+    - **History Protection:** Ensured that terminal states (`proceeded`, `waived`,
+      `penalized`) are protected from automated cleanups to maintain user stats.
+    - **Manual Edit Sovereignty:** Maintained the "Manual Exception" protection
+      during series updates (syncs) while allowing the system to be aggressive
+      during a true parent task deletion.
+    
+    Files:
+    - [packages/backend/convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0)
+    - `packages/backend/convex/execution/penalties/worker.ts`
+    
+    wsl.exe --shutdown
+
+commit 164c8a3fd1f3f5f5e520f8279a979a9c4357b472
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 22:32:59 2026 +0530
+
+    feat(native/ui): implement premium custom toggle component
+    
+    - Component: Created [CustomSwitch.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/buttons/CustomSwitch.tsx:0:0-0:0) using the `Animated` API for high-fidelity transitions and custom color states (inactive: #3E4553, active: #4FA0FF).
+    - Integration: Replaced the standard React Native [Switch](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/buttons/CustomSwitch.tsx:14:0-65:1) with the new custom toggle in [SettingsToggleCard.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/SettingsToggleCard.tsx:0:0-0:0), updating Alarms, Waiver, and Commitment settings.
+    - Cleanup: Fixed a regression by restoring missing imports for React Native and Uniwind in the settings card.
+
+commit 479afd61d1f2bc63d958514be5e625cccafe3d7f
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 22:27:18 2026 +0530
+
+    ux(native/navigation): enhance penalty selection UI and transition speed
+    
+    - UI: Added navigation arrows (`showArrow={true}`) to all penalty selection cards in [penalties.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penalties.tsx:0:0-0:0) for visual consistency with waivers.
+    - Animation: Updated `embarrassing-photo` setup to use a standard slide-from-right card transition instead of a modal fade.
+    - Performance: Reduced global and stack-specific `animationDuration` to 200ms for a snappier, more responsive navigation experience.
+
+commit d1e97162a2e40dec984a6deb6f2c61065e581603
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 22:20:40 2026 +0530
+
+    ux(native/penalties): refine discard behavior and visual feedback for photo penalty
+    
+    - UI: Updated the 'Yes, leave it' action in the discard modal to use a bold red color (#FF3B30) to clearly signal a destructive action.
+    - Navigation: Modified [handleDiscardPenalty](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:59:2-69:4) to jump directly to the final summary screen ([final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0)) upon discarding, skipping the intermediate selection step.
+    - Logic: Maintained the selective wipe of only the penalty data to preserve waiver settings as per the new coupling rules.
+
+commit 06ef46966eb644b34f294b67c62c79afc411a78a
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 22:18:01 2026 +0530
+
+    refactor(native/penalties): align penalty selection with configuration-first flow
+    
+    - Selection: Updated [penalties.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penalties.tsx:0:0-0:0) to remove immediate state updates. Penalty highlight (border) now only appears once configuration is completed, matching the Penalty Waivers pattern.
+    - UI/UX: Refactored [money.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/money.tsx:0:0-0:0) to use `ActionScreenLayout` and connected it to the global `useTaskDraftStore`.
+    - Logic: Integrated "Stake Now" button in the money penalty screen to persist configuration and navigate directly to the final summary.
+    - Cleanup: Fixed missing imports for `AuthTitle` and synchronized initial state logic with the draft store.
+
+commit 7cbc31851bb04c66beb186044f2ba62cf2fd73ba
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 22:11:07 2026 +0530
+
+    refactor(native/logic): decouple Penalty and Waiver clearing behavior while maintaining validation
+    
+    - Logic: Updated [handleDiscardPenalty](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:59:2-71:4) in [embarrassing-photo.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:0:0-0:0) to only clear the penalty, allowing the waiver to remain in the draft.
+    - UI: Modified `onClear` handlers in [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) for Penalty and Waiver cards to be independent, ensuring users can swap individual components without losing both.
+    - Validation: Maintained the core validation rule in [validateTaskDraft](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/validation/taskDraft.ts:187:0-233:1) that requires both to be present (or both absent) before the final commit.
+
+commit c6706f8476962b9caaaa27cf15012674c010fd20
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 22:05:32 2026 +0530
+
+    feat(native/logic): implement Penalty-Waiver Coupling and enhanced navigation
+    
+    - Logic: Enforced strict coupling between Penalty and Waiver—both must be present, or both must be empty.
+    - Validation: Added [validatePenaltyWaiverCoupling](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/validation/taskDraft.ts:162:0-181:1) to the core [validateTaskDraft](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/validation/taskDraft.ts:187:0-233:1) logic with a new `PENALTY_WAIVER_MISMATCH` error code.
+    - UI: Integrated mismatch validation with the [ConfirmationModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/ConfirmationModal.tsx:22:0-99:1) on the final summary screen, using the title-only display style.
+    - UX: Updated the clear (X) handlers on the summary cards to automatically wipe both Penalty and Waiver for a cleaner cleanup.
+    - Navigation: Optimized the Captcha setup flow to navigate directly to `final.tsx` upon confirmation, skipping redundant back-steps.
+
+commit f6104f4ebda15f2ffd95445d5ad2c08ff6be5c79
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 21:56:57 2026 +0530
+
+    feat(native/ui): implement ActionScreenLayout and unify UI alignment across setup flow
+    
+    - Created [ActionScreenLayout](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ActionScreenLayout.tsx:16:0-53:1) as a shared component to enforce a consistent 16px
+      horizontal constraint for both scrollable content and fixed footers.
+    - Refactored all major screens in the commitment creation flow to use this layout:
+        - [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) (Commit summary)
+        - [time-set.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/time-set.tsx:0:0-0:0) (Days/Times configuration)
+        - [penaltywaivers.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penaltywaivers.tsx:0:0-0:0) (Waiver selection)
+        - [setup.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penaltywaiver%29/setup.tsx:0:0-0:0) (Captcha configuration)
+        - [penalties.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penalties.tsx:0:0-0:0) (Penalty selection)
+        - [embarrassing-photo.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:0:0-0:0) (Photo/Forfeit setup)
+        - [email-setup.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/email-setup.tsx:0:0-0:0) (Email preview/preview)
+    - Standardized card and primary button widths for visual consistency on all screen sizes.
+    - Unified scroll physics by moving headers into the primary scroll area.
+    - Fixed over-scrolling issue by removing default bottom padding in the scroll container.
+
+commit 2435c6781da1efa41d65a2a73feb5194cfbad172
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 16:12:45 2026 +0530
+
+    feat(create-commit): implement conditional highlighting for penalty and waiver cards
+    
+    - Logic: Refaced hardcoded border classes with dynamic `selected` props driven by the existence of store data (!!penalty and !!waiver).
+    - UI: Enforced a visual "glow" state (border + color) only when a configuration is active, providing clearer visual confirmation of the accountability contract.
+    - Consistency: Synced selection colors to use theme-defined `COLORS.danger` for penalties and `COLORS.success` for waivers.
+    - Cleanup: Removed redundant CSS borders from `final.tsx` to align with the design system's prop-based styling.
+
+commit 25c4d6ef2928fffd9510d98a0b6376301b6018b9
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 16:10:04 2026 +0530
+
+    feat(create-commit): implement dynamic penalty waiver preview
+    
+    - UI: Refactored the Final screen to dynamically display chosen waiver configuration instead of a static placeholder.
+    - Mapping: Added specialized icon and text mapping for all waiver types (Captcha, Paragraph, Intensity, Run).
+    - UX: Integrated a fallback prompt to "Choose a Penalty Waiver" if the accountability contract is incomplete.
+    - Copy: Refined the Captcha subtitle to explicitly state the requirement (e.g., "Solve 20 high noise captchas to waive off the penalty").
+    - Store: Ensured a perfect sync between configured draft metadata and the final confirmation UI.
+
+commit 0ee1aba7c8c54dbf1f8b2c02c3f3e87b8ace78a3
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 16:06:50 2026 +0530
+
+    feat(waiver): implement global state synchronization for penalty waivers
+    
+    - Store: Added [setWaiver](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:561:4-586:7) action to [TaskDraftStore](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:106:0-141:2) for centralized management of penalty_waiver configuration.
+    - Hook: Introduced [useWaiverSync](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useWaiverSync.ts:9:0-33:1) to provide clean toggle and sync methods for the accountability contract.
+    - Performance: Refactored [CaptchaSetupScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penaltywaiver%29/setup.tsx:13:0-84:1) using the "Buffered Commit Pattern" (useRef + prop initialization), eliminating expensive re-renders and local state desync during slider interactions.
+    - UI: Connected [PenaltyWaiversScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/penaltywaivers.tsx:11:0-102:1) to the global store to automatically highlight and persist current waiver selection across the creation flow.
+
+commit 48fd69a09d1edbb26efb4fce9486b9aa431bfb62
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 15:41:55 2026 +0530
+
+    feat(penalty): implement back navigation guard for photo configuration
+    
+    - UX: Added a `beforeRemove` interceptor to detect when a user attempts to exit the Embarrassing Photo screen without a valid upload.
+    - Logic: Implemented a discard flow that wipes both `penalty` and `penalty_waiver` from the task draft if the user chooses to decline the forfeit.
+    - Safety: Integrated a confirmation modal to prevent accidental data loss while ensuring the accountability contract remains valid and intentional.
+    - Validation: Enforced that the "Digital Forfeit" setup must be either fully completed or explicitly discarded before returning to the main creation flow.
+
+commit 4dadc29e53dabe8d3d1916c3866cbeeadaee84f1
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 15:06:32 2026 +0530
+
+    feat(verification): implement server-authoritative 'next event' logic
+    
+    - Backend: Added optimized 'next' query to [api/instances/read.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/read.ts:0:0-0:0) using index-based lookups for immediate task discovery.
+    - Frontend: Refactored [useUpcomingVerification](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useUpcomingVerification.ts:6:0-38:1) hook to subscribe directly to the server-side pointer.
+    - Performance: Removed 7-day horizon limits, local filtering logic, and the 30-second heartbeat interval.
+    - Maintenance: Centralized the "Definition of Next" on the server, ensuring mobile clients remain lightweight and perfectly synced.
+
+commit 4a3486575a15305d3065e5d9b6bf5713b889ea4d
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Mar 7 00:34:27 2026 +0530
+
+    feat(scheduler): implement surgical task deletion and advanced native observability
+    
+    - Refactor local SQLite and Convex backend deletion logic to preserve manually edited task instances ('is_manual_edit'), ensuring scheduled events survive parent task removal.
+    - Integrate production-grade ADB logging architecture across all native Android modules (AlarmScheduler, AlarmReceiver, AlarmActivity, BootReceiver, SchedulerModule).
+    - Enhance 'AlarmScheduler' with granular tracing for database path resolution, trigger mathematics, and "Sticky Note" (DE Storage) synchronization.
+    - Upgrade 'AlarmReceiver' with hardware drift metrics and raw intent telemetry to monitor OS-level wakeup latency and data integrity.
+    - Implement sensory alert validation in 'AlarmActivity' to trace audio resource resolution and vibration pattern initialization for orphaned instances.
+    - Strengthen scheduling resilience by logging chain propagation events during user dismissal, system boot restoration, and JS-to-Native bridge delegation.
+    - Fix "Ghost Instance" data loss by ensuring all necessary metadata for autonomous hardware triggers is captured and logged during the scheduling lifecycle.
+
+commit cac944bc03bc20177411e4cbb77dbdea4cc1d175
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 6 23:04:42 2026 +0530
+
+    feat(native): implement surgical task deletion with instance preservation
+    
+    - Implement SQLite Migration 8 -> 9 to add 'is_manual_edit' flag to task instances.
+    - Refactor 'deleteTask' logic to surgically remove only unedited instances while orphaning/preserving manually edited ones (matching Convex backend behavior).
+    - Use temporary foreign key bypass (PRAGMA foreign_keys = OFF) to allow parent task removal without cascading into protected instances.
+    - Update local persistence repositories to synchronize 'is_manual_edit' status across bulk sync and individual update paths.
+    - Enhance DB Debug Inspector UI to detect and display orphaned 'Preserved Instances' with distinct visual treatment.
+
+commit b154da1bd0b459cef64fdf339ff244c66be5ca04
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 6 22:17:18 2026 +0530
+
+    feat(native): sync penalty and verification data to local sqlite
+    
+    - Implement SQLite Migration 7 -> 8 to add penalty_json and conditions_json columns.
+    - Fix "duplicate column" crash bugs in migrations V3-V5 by wrapping ALTER TABLE in try-catches for fresh install robustness.
+    - Update Task and Instance repositories to persist penalty snapshots and instance verification statuses.
+    - Achieve 1:1 parity between Convex Cloud and Local DB to support penalty-aware scheduling and offline-first waivers.
+
+commit cbef40ac30a2b4ef2eeeab07dd3cf006844f46bb
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 6 12:28:59 2026 +0530
+
+    feat(native): implement penalty waiver configuration on final confirmation screen
+    
+    - Add 'Waiver Rules' section to 'final.tsx' using the standard 'SettingsToggleCard' pattern for UX consistency.
+    - Implement 'Waiver Deadline' configuration allowing users to select grace periods (5h, 10h, 24h, 2d) for penalty mitigation.
+    - Add 'Allow Early Waiver' toggle to the draft state, permitting survival challenges to be attempted prior to commitment failure.
+    - Refactor 'TaskDraft' store schema to achieve parity with backend 'PenaltyWaiverSchema', adding 'deadline_minutes' and updating type discriminators to 'captcha' | 'paragraph'.
+    - Synchronize UI selection options with internal minute-based duration logic for robust backend persistence.
+
+commit 47024356e1aa45baae79b324d6fada6034279259
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Mar 6 11:53:40 2026 +0530
+
+    feat(penalty): architect end-to-end penalty integration with deferred upload and backend URL resolution
+    
+    This commit establishes the complete accountability contract pipeline, bridging the native
+    frontend draft state with Convex Storage and the backend service layer.
+    
+    ### 🏗️ Technical Architecture & Rationale:
+    
+    1.  **Deferred Asset Upload Strategy**:
+        Implemented a middleware layer in the 'useCommitTask' orchestrator. Photo assets are kept
+        locally as 'file://' URIs during the configuration phase to save bandwidth. Uploads to
+        Convex Storage are only triggered upon final "Commit," ensuring zero wasted storage for
+        abandoned drafts.
+    
+    2.  **Stateless Frontend / Stateful Backend**:
+        Zustand now consistently tracks 'photoUrl'. On submission, the orchestrator interceptor
+        swaps local URIs for permanent 'storageId' references. The backend then performs
+        synchronous URL resolution, storing BOTH the 'storageId' (for DB integrity) and
+        the 'photoUrl' (for instant UI rendering on reload).
+    
+    3.  **Centralized File Registry**:
+        Integrated 'api.files.record' into the upload pipeline. Every penalty asset is now
+        registered in the 'files' table with a 'penalty_photo' tag, enabling robust ownership
+        tracking, easier garbage collection, and user-level asset audits.
+    
+    ### 🛠️ Detailed Changes:
+    
+    - **Frontend Orchestration ([useCommitTask.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:0:0-0:0))**:
+        Developed [preparePenaltyPayload](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useCommitTask.ts:126:0-174:1) middleware to handle asynchronous multi-part submission
+        flows (Photo Upload -> File Registration -> Task Creation).
+    - **Domain Validation ([core/commitments/validator.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/validator.ts:0:0-0:0))**:
+        Implemented strict type-specific validation for 'embarrassing_photo' penalties,
+        enforcing presence of storageId, delivery channel, and self-deprecation descriptions.
+    - **Service Layer ([core/commitments/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/service.ts:0:0-0:0))**:
+        Updated [createInternal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/service.ts:27:0-135:1) to resolve storage IDs into public HTTPS URLs at the point of
+        creation, embedding them into the task and its 365-instance snapshots for O(1) asset access.
+    - **Schema & API Alignment**:
+        Extended [lib/validators.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/validators.ts:0:0-0:0) and [api/commitments/create.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/create.ts:0:0-0:0) with Penalty and Waiver
+        schemas; standardized all references from 'localPhotoUri' to 'photoUrl' across
+        Zustand stores, EmailSetup, and EmbarrassingPhoto screens.
+    - **UI UX Refinement**:
+        Simplified 'ConfirmationModal' implementation to a high-impact "Title-Only" design
+        pattern for more aggressive error acknowledgment in penalty setup.
+    
+    Co-authored-by: Antigravity <antigravity@google.ai>
+
+commit 9295cf63db9407a163bcb9f05180118579664a6d
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 23:01:24 2026 +0530
+
+    feat(native): refactor penalty waiver flow to page-based navigation and enhance captcha setup
+    
+    - Replace modal-based waiver selection with a dedicated page-based flow for improved integration
+    - Implement [(penaltywaiver)](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/captcha/CaptchaGenerator.tsx:4:0-4:44) route group with `slide_from_right` animations for a seamless "right-snap" feel
+    - Redesign CAPTCHA setup screen with unified headers (3xl green titles) and synchronized subheadings
+    - Enhance [CaptchaWaiverContent](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/waivers/CaptchaWaiverContent.tsx:16:0-127:1) with dynamic mood-based robot icons and high-impact values (6xl)
+    - Optimize slider performance with debounced state synchronization and memoized callbacks
+    - Solve visual inconsistencies including layout jitter and infinite height stretching in scroll views
+    - Refine navigation flow by implementing a sticky primary action footer with high-contrast white text
+    - Standardize instructional content hierarchy by centralizing text into the screen header
+
+commit 34cd9fab54822a102dbb036ba589200bc75cb688
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 21:29:51 2026 +0530
+
+    feat(native): implement 'Digital Forfeit' penalty flow and premium 'Email Preview' setup
+    
+    - Developed the [EmbarrassingPhotoScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:18:0-177:1) with high-fidelity UI for photo uploads and 'Self Deprecation' descriptions.
+    - Created a signature 'Email Preview' screen featuring a Gmail-style header and a modern X/Post-style inline image preview.
+    - Enhanced the [ConditionCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/ConditionCard.tsx:22:0-74:1) component with a `showArrow` property for consistent interactive visual cues.
+    - Configured sub-screen navigation with a "quick right snap" animation (`slide_from_right`) for the configuration flow.
+    - Expanded penalty options with the 'Commit Direct' channel and streamlined the UI by removing redundant recipient selection.
+    - Standardized the entire flow with the project's 'Pure Black' theme and custom typography components.
+
+commit b367cb1b52cce63685a0ad67371f3277a9462670
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 19:04:22 2026 +0530
+
+    feat(penalties): implement native gallery integration for Embarrassing Photo
+    
+    [Summary]
+    Activated the physical payload for the Embarrassing Photo penalty by
+    integrating native device media library access and resolving SDK-level
+    incompatibilities.
+    
+    [Technical Changes]
+    - Feature: Integrated `expo-image-picker` with the following configuration:
+        * Permission Logic: Automatic media library request/denial handling.
+        * Square Aspect Lock: Forced [1:1] editing to maintain UI consistency
+          within circular/modern card layouts.
+        * Instant Preview: Reactive URI binding to replace upload placeholders
+          with selected high-quality image previews.
+    - Fix: Resolved `NoSuchMethodError` (Kotlin) by synchronizing
+      `expo-image-picker` versioning with the host Expo SDK (^54.0.30)
+      via a clean native prebuild.
+    
+    [Impact]
+    - Enables users to physically commit embarrassing media as a forfeit.
+    - Ensures native Android/iOS stability across the JSI bridge.
+    - Maintains 60fps UI performance during image selection and layout rendering.
+
+commit 2944a10311e70a65337b46be01540eb817a60418
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 18:45:54 2026 +0530
+
+    feat(penalties): implement Embarrassing Photo scaffold and navigation polish
+    
+    [Context]
+    The habit enforcement system required concrete digital forfeits to drive
+    user accountability. This update establishes the foundation for the "Embarrassing
+    Photo" penalty, mirroring the modular architecture of the financial stakes.
+    
+    [Key Changes]
+    - Feature: Created [EmbarrassingPhotoScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28penalties%29/embarrassing-photo.tsx:17:0-154:1) featuring a multi-section
+      configuration workflow:
+        * Media: Placeholder area for evidence/cringe photo upload.
+        * Metadata: Multiline text entry for self-deprecating descriptions.
+        * Routing: Channel selection (WhatsApp/Instagram) and recipient targeting.
+    - UX: Upgraded [(penalties)](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/input.tsx:5:0-13:1) group navigation to use a high-performance
+      `transparentModal` presentation with a synced 150ms fade transition.
+    - UI: Hidden scroll indicators across both Money and Photo penalty screens
+      to ensure a clean, premium interface consistent with BeReal/Instagram patterns.
+    
+    [Impact]
+    - Provides a tangible non-financial consequence for missed commitments.
+    - Standardizes the "Pinterest-style" vertical config layout across penalty types.
+    - Ensures zero-latency transition between the creation and penalty flows.
+
+commit 2982bc013e6409f249dc0bb2559bd9f944051116
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 12:26:24 2026 +0530
+
+    ux: implement full-lifecycle loading feedback for asynchronous operations
+    
+    [Problem]
+    High-latency transactions (Cloud + Cache + Hardware sync) felt "stuck" due
+    to lack of visual feedback. Confirmation modals disappeared instantly,
+    leaving a 200ms-400ms gap where the app appeared frozen while background
+    sync was still active.
+    
+    [Solution]
+    Integrated a unified loading state architecture across all critical
+    Commitment/Instance workflows.
+    
+    Key Changes:
+    - UI: Added 'isLoading' prop to 'ConfirmationModal' with integrated
+      ActivityIndicator swap-logic to prevent layout shift.
+    - Safety: Implemented strict button-disabling during loading to prevent
+      double-submission and race conditions in SQLite transactions.
+    - Schedules: Added feedback for drag-and-drop temporal shifts and
+      conflict-resolution ack.
+    - Creation: Locked the 'FinalScreen' modal during the "Triple-Write"
+      protocol (Convex -> SQLite -> Android Native) to ensure full consistency.
+    - Detail View: Refined instance deletion to show active progress within
+      the event modal.
+    
+    [Impact]
+    - Eliminates "App Freeze" perception by providing 60fps visual feedback.
+    - Prevents database corruption from duplicate concurrent mutations.
+    - Improves perceived performance and trust through deterministic states.
+
+commit 38ccdf456e03d2cbb209ac051103694a52509e27
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 12:16:39 2026 +0530
+
+    ui: refine instance deletion UX and manual edit visibility
+    
+    - Updated `EventDetailModal` to use a cleaner, more direct confirmation
+      prompt ("Delete this instance?") and removed redundant sub-text.
+    - Added visual 'EDITED' status labels to calendar events to distinguish
+      manually moved commitments from automated recurrence.
+
+commit 7e7e93481dd227514042514cb5d03aeb5726e5ad
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 12:04:26 2026 +0530
+
+    fix(hooks): resolve deletion sync gap in useTaskActions to prevent phantom alarms
+    
+    [Problem]
+    Task deletion followed an inverted sequence, attempting to re-schedule native
+    hardware alarms before the local SQLite cache or Cloud state were fully cleared.
+    This resulted in "Phantom Alarms"—notifications that would trigger for tasks
+    the user had already deleted because the scheduler saw a stale database state.
+    
+    [Solution]
+    Standardized the `deleteTask` execution flow to follow a strict "Three-Point
+    Consistency" pattern:
+    1. Cloud (Convex): Authoritative removal of commitment and temporal records.
+    2. Cache (SQLite): Immediate local cleanup of instances and task definitions.
+    3. Hardware (Native): Final re-calculation of upcoming alarms using the clean state.
+    
+    [Impact]
+    Eliminates ghost notifications and ensures the physical phone alarm is perfectly
+    mirrored with the current application state immediately after a deletion.
+
+commit 3537d209aabec0fbb1be9157d5ad5f6ff1103a5a
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 11:51:22 2026 +0530
+
+    feat(calendar): implement exception-aware recurrence engine and manual event protection
+    
+    [Problem]
+    Recurring task generation followed strict template rules but ignored manual overrides
+    made to individual instances (e.g., dragging a 6am Gym session to 5pm). This caused
+    silent overlaps and data loss when habit templates were updated or new habits added.
+    
+    [Solution]
+    Introduced an "Exception Pattern" to the scheduling engine to treat manual user
+    edits as "cemented" commitments that the automated system cannot overwrite.
+    
+    Key Changes:
+    - Schema: Added 'is_manual_edit' and 'is_deleted_exception' flags to taskInstances.
+    - Service: Instances.update now automatically marks events as manual upon time-shifts.
+    - Generator: generateSeries now performs a bulk-fetch of manual exceptions and
+      intelligently skips slots that would clash with user-customized events.
+    - Persistence: cleanupFuture specifically excludes manually edited events to
+      protect user work during habit re-naming or rule updates.
+    - UI: Added a high-vibrancy 'EDITED' label in the schedules view to provide
+      immediate visual feedback for exception-level commitments.
+    
+    [Impact]
+    - Zero-cost conflict detection (O(1) database calls per series generation).
+    - Permanent protection of manual user adjustments.
+    - Clearer visual distinction between automated and customized schedule items.
+
+commit 5b3d57802eec14a06dc6af7bfb6a490ab9cc74fd
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 01:38:59 2026 +0530
+
+    feat(calendar): implement multi-stage instance management and UI refinements
+    
+    - UI/UX: Standardize calendar header styling (icon sizes, avatar proportions) to match Google Calendar aesthetic.
+    - FEATURE: Add functional three-dot options menu to `EventDetailModal` with 'Delete' and 'Duplicate' capabilities.
+    - ARCH: Implement "Three-Point Consistency" workflow for instance deletion:
+        - CLOUD: Update Convex `instances.delete` to trigger the 'Temporal Brain' (syncTaskSchedule) for authoritative scheduling sync.
+        - CACHE: Add `deleteInstance` to [useTaskActions](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTaskActions.ts:9:0-110:1) for targeted SQLite cleanup in local persistent storage.
+        - HARDWARE: Force immediate native alarm refresh via `scheduleNextAlarm` post-deletion to prevent "zombie" notifications.
+    - FIX: Resolve various linting errors, duplicate state declarations, and missing hook dependencies in `EventDetailModal`.
+    - DX: Integrate draft-seeding logic for instance duplication, bridging the gap between calendar view and creation flow.
+
+commit 78a8ba88e151db6fada388b05e844e3adf0bfc41
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 01:14:14 2026 +0530
+
+    feat(ui): standardize header dimensions and refine calendar layout
+    
+    Refined the visual hierarchy and interaction density for the Schedules view and Global Header.
+    
+    Key Changes:
+    
+    Header Standardization: Scaled HEADER_ICON_SIZE to 32px across the global navbar, ensuring consistent visual weight between the Hamburger menu, Search, Today, and the User Avatar.
+    Calendar Density: Adjusted numberOfDays in the Schedules view to 3, providing a more focused multi-day layout.
+    Visual Polish:
+    Refined the "Time" marker axis in the calendar—narrowed the container width to 17% and increased text prominence by removing opacity.
+    Improved consistency of the dynamic "Today" action and User Avatar border styling.
+    Stability: Cleaned up
+    
+    _layout.tsx
+     to restore missing styled-component declarations and resolve linting warnings.
+
+commit dd4d4805ce3f45e8e2fb4585cf21baf429ea12f5
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Mar 4 00:46:15 2026 +0530
+
+    feat(header): refactor schedules navbar to match premium calendar standards
+    
+    Refined the global sticky header in
+    
+    _layout.tsx
+     to implement a high-density, functional aesthetic inspired by Google Calendar.
+    
+    Key Changes:
+    
+    Navigation UX: Replaced the full date string with a dynamic "Month-only" title (e.g., "March") and added a chevron-down toggle to signal DatePicker interaction.
+    Icon Standardization: Unified the scaling of all header actions (Hamburger Menu, Search, and Today) to 26px, perfectly synchronizing with the bottom TabBar design system.
+    Dynamic Avatar: Integrated a prominent w-10 h-10 user avatar that intelligently loads the session image with a robust fallback to the user's first initial.
+    Aesthetic Refinement: Restored the calendar-today action icon and ensured solid white color consistency across all header elements for a clean, high-contrast look.
+    Layout Optimization: Adjusted component gaps and touch targets to ensure standard mobile interaction guidelines are met.
+
+commit 6168b1bc3490de77c087afb00ba96974ec9284e1
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 3 23:28:27 2026 +0530
+
+    feat(calendar): implement persistent selection mode and triple-write sync protocol
+    
+    Refactored the calendar interaction model to improve stability and prevent
+    accidental temporal mutations. Significant architectural improvements to
+    the synchronization lifecycle.
+    
+    Key Changes:
+    - Interaction: Implemented friction-based 'Long Press' to activate event
+      selection handles. Handles now persist until background tap or commit.
+    - Logic: Unified drag-and-drop and resize operations under the
+      'onDragSelectedEventEnd' callback with defensive timestamp normalization.
+    - Sync: Implemented 'Triple-Write' protocol in executeEventUpdate:
+        1. Authoritative Cloud mutation (Convex).
+        2. Local instance synchronization (SQLite).
+        3. Hardware trigger refresh (Native Alarms).
+    - UX: Integrated ConfirmationModal for staging temporal shifts and
+      added overlap error handling for schedule collisions.
+    - Docs: Added comprehensive architectural comments detailing design
+      patterns (Headless Range Management, Persistence layers).
+    
+    Fixes identifier resolution between backend (_id) and UI-mapped (id) instances.
+
+commit f59e89e8e932c8d6a1b7393450e59002a2d2ed08
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 3 13:31:33 2026 +0530
+
+    feat(sync): implement 'Triple-Write' protocol for event rescheduling
+    
+    - ARCHITECTURE: Establish an atomic synchronization lifecycle across Cloud (Convex), Cache (SQLite), and Kernel (Android Alarms).
+    - BACKEND: Enhance `instances:update` mutation to return authoritative hydrated state after recalculating checkpoints.
+    - MOBILE: Implement `local-db-instances` repository using a "Search-Clobber-Spawn" pattern for zero-stale-data local updates.
+    - UI: Integrate real-time SQLite sync and native alarm triggering into the [Schedules](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:33:0-259:1) drag-and-drop lifecycle.
+    - RELIABILITY: Ensure hardware-level alarm alignment immediately following any temporal shift in the calendar.
+    - LOGGING: Add production-grade telemetry for all phases of the synchronization transaction.
+
+commit a337cf410d0da6fcffb9db06dc81b3bf3f026250
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 3 13:03:19 2026 +0530
+
+    docs(backend): modularized logic and comprehensive documentation for Instance service
+    
+    - Refactor checkpoint generation into standalone Domain Rule Engines to decouple business logic from persistence.
+    - Implement 'Intelligent Rescheduling' to automatically recalculate verification windows during temporal shifts.
+    - Add professional JSDoc and architectural headers to [convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0) for enterprise-grade maintainability.
+    - Provide detailed internal documentation on the probability-based spot-check engine and the Linked-List series pattern.
+    - Ensure strict data integrity by resetting condition statuses to 'neutral' when a task’s time window is modified.
+    - Standardize developer onboarding through pedagogical comments explaining the "Innocent Until Proven Guilty" verification philosophy.
+
+commit c7239c2dfba3935c7e3e2614b6ec71aa64f1fee7
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 3 12:59:24 2026 +0530
+
+    refactor(backend): modularize checkpoint generation and enhance temporal rescheduling
+    
+    - Decouple verification rules from database logic by extracting standalone generators for 'Stay Throughout' and 'Just Show Up' tasks.
+    - Implement 'Intelligent Temporal Rescheduling' in Instance service to automatically recalculate pings when an event's time slot shifts.
+    - Centralize date/time formatting in [convex/lib/formatters.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/formatters.ts:0:0-0:0) ensuring consistent IST (Asia/Kolkata) localization across the system.
+    - Refactor API layer to be lean, offloading collision hardaware and business logic to the core domain service.
+    - Integrate schedule synchronization ([syncTaskSchedule](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/scheduling/scheduler.ts:4:0-66:1)) into individual updates to maintain background alarm integrity.
+    - Enhance frontend Confirmation Modal to provide descriptive conflict feedback, including conflicting event titles, dates, and time slots.
+    - Improve error propagation by shifting from raw exceptions to structured result objects for business logic violations.
+
+commit 59b7cd973eb3401d6f5a76247c290b827c814bd8
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 3 11:40:17 2026 +0530
+
+    refactor(native/schedules): implement interactive event rescheduling and validation lifecycle
+    
+    [ARCHITECTURE OVERVIEW]
+    Implemented the 'Drag-to-Edit' capability for the Schedules screen, establishing a secure state-interception pattern for temporal mutations. This ensures that user gestures are validated through a dedicated confirmation layer before any persistence logic is triggered.
+    
+    [TECHNICAL CHANGES]
+    - FEATURE: Enabled high-performance dragging in `@howljs/calendar-kit` via 'allowDragToEdit'.
+    - LOGIC: Configured 'dragStep' to 15-minute increments to maintain structural alignment with the task grid.
+    - STATE: Introduced a 'dragConfirm' local state to hold proposed temporal snapshots (start/end) during the validation transition.
+    - HANDLERS: Decoupled 'handleDragEventEnd' (gesture capture) from 'executeEventUpdate' (committed state change).
+    - REFACTOR: Upgraded 'ConfirmationModal' to support dynamic title-based messaging and status-aware color coding.
+    
+    [UX IMPROVEMENTS]
+    - Added high-context modal titles that consolidate the event name, proposed time, and date into a single high-impact string.
+    - Standardized action semantics by applying color codes: Blue (#4FA0FF) for confirmation and Red (#FF3B30) for destructive/cancel actions.
+    - Integrated 'dayjs' for localized, human-friendly time formatting during the transition preview.
+    
+    [INTERNAL LOGGING]
+    - Replaced informal debug logs with standardized [SCHEDULER_EVENT] telemetry for better production monitoring.
+
+commit 9a24efe1a7a9fea8b7a60b55a39774c7d61889ee
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 3 01:17:47 2026 +0530
+
+    feat(core):
+    --- Dev Environment & Tooling ---
+    - **ADB Version Sync**: Resolved "Uncaught TypeError" and hangs by prioritizing modern Android SDK platforms-tools in `.bashrc` over legacy system packages.
+    - **Connection Diagnostics**: Overhauled `connect-phone.ps1` with smarter device sharing (usbipd) and diagnostic coloring to ensure reliable physical device debugging.
+    - **Improved Scripting**: Absolute pathing for ADB in WSL to prevent server-mismatch hangs during Expo/Physical device attachment.
+
+commit a9dc27dc70500a9b8248e2c4b213e762d311e25b
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Mar 3 00:33:13 2026 +0530
+
+    feat(core): implement resilient, temporal-based task scheduling architecture
+    
+    Refactored the task execution system from a brittle, linked-list "Relay Race" pattern to a centralized, idempotent "Temporal Brain" architecture.
+    
+    Key Changes:
+    - **Centralized Scheduler**: Implemented `syncTaskSchedule(taskId)` to act as the single source of truth for all verification alarms.
+    - **Self-Healing Mutations**: Updated Task Create and Update mutations to trigger automatic schedule resets, ensuring all edits (time shifts/recurrence changes) are immediately reflected in the pending alarms.
+    - **Decoupled Verification**: Removed hardcoded `next_instance_id` chaining from the Verification Runner, allowing the system to dynamically calculate the next point in time after every check-in.
+    - **Watchdog Sync**: Added a background Cron job that scans for and "heals" any orphaned tasks missing active alarms every hour.
+    - **Schema Resilience**: Improved system robustness by making scheduling stateless and derived directly from the current database records.
+
+commit cb1bda2ab858321eb59b7a1e14770b3972721ebe
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 2 22:47:11 2026 +0530
+
+    ui(ux): implement reactive green status for verified checkpoints
+    
+    - Updated 'EventDetailModal' and 'useCalendarEvents' to derive status from live subscription checkpoints.
+    - Ensures arrival-based tasks turn green immediately on the schedules screen upon successful check-in.
+
+commit 71e6f58475d53b451f1f370bdcec420bfb201609
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 2 22:41:34 2026 +0530
+
+    feat(core): implement unified checkpoint-based verification architecture
+    
+    Implemented a fundamental shift in verification logic by unifying 'Just Show Up' and 'Stay Throughout' tasks under a single checkpoint-driven system.
+    
+    Backend Changes:
+    - Modified Instance Service to automatically generate a single arrival/grace checkpoint for 'just_show_up' tasks.
+    - Refactored 'verify' mutation to use a unified checkpoint verification branch, eliminating style-specific code paths.
+    - Enforced arrival window validation; users can now only verify arrival tasks within their designated grace periods.
+    
+    Frontend Changes:
+    - Updated 'EventDetailModal' to reactively derive instance status from live subscription checkpoints.
+    - Implemented real-time 'proceeded' status transition for arrival-based tasks upon successful verification.
+    - Optimized transient state seeding to pull from the currently active temporal checkpoint window.
+
+commit 6f02ad539e3f14381035bfab51508bb8c61d4b19
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 2 21:49:11 2026 +0530
+
+    style(ui): synchronize geofence border thickness across map components
+    
+    - Updated lineWidth in 'EventDetailLocation' from 2 to 12 for UI consistency with 'location-set'.
+
+commit 6c37fbf66e8016b15267fd6d50e9abb653c2304f
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 2 21:32:58 2026 +0530
+
+    feat(calendar): implement hybrid reactive data strategy for event details
+    
+    Implemented a production-level data synchronization pattern to ensure real-time
+    accuracy for task instances while maintaining sub-millisecond perceived performance.
+    
+    Core Changes:
+    - Integrated a hybrid data strategy in 'EventDetailModal' using a static Zustand
+      snapshot for immediate rendering followed by a live Convex subscription for
+      reactive background updates.
+    - Optimized 'EventDetailLocation' stability by implementing a memoization guard
+      and targeted useEffect triggers to prevent map flickering during live timer ticks.
+    - Restored and memoized the 'missedCount' tally logic in 'EventDetailTime' to
+      provide accurate, real-time feedback for 'stay throughout' task compliance.
+    - Enhanced 'useCalendarStore' with explicit task ID tracking and a professional
+      logger middleware for improved state traceability.
+    - Standardized documentation across all modified components to TSDoc production
+      standards, removing informal styling and emojis to ensure long-term maintainability.
+
+commit 925aa5679105aa2bbc4c4d62bc205983f60fdda8
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 2 01:08:13 2026 +0530
+
+    refactor(native): abstract settings configurations and fix hook violation
+
+commit 70b1c0d2f1450689640809233817bbc2b8074ba3
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Mar 2 00:16:52 2026 +0530
+
+    feat(core/scheduler): implement Android native Stay Throughout checkpoint loops and strictly verify expired creation checkpoints
+
+commit f62b099b4696cb7c2d66688e82b0b1646a9171de
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 1 22:05:47 2026 +0530
+
+    feat(scheduler): implement persistent checkpoint alarms and UI recovery for continuous check-in bounds
+
+commit 6c5c013d951997613929c060650f77e7f35308a3
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 1 19:02:07 2026 +0530
+
+    feat(local-db): fully normalize task_instances offline schema with checkpoints tracking
+
+commit 14b8f54c212b2384a01af7f5fcda376664ee45bd
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 1 12:23:12 2026 +0530
+
+    fix(frontend): populate stay_throughout default payload with relaxed intensity and 1 allowed miss
+
+commit 89b84d5611efe48cee844bb0e846bd185f39da96
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 1 10:42:13 2026 +0530
+
+    refactor(commitments): simplify continuous verification checkpoint boundaries
+    
+    - Changed stay_throughout checkpoint logic to strictly align start and end times with the generated 5-minute chunk boundaries itself instead of using random sub-offsets and grace periods.
+    
+    - This simplifies random verification logic by demanding a single check-in across the exact entire 5-minute slice.
+
+commit f79c45dc2ff386ade5b089ba14d62e0f29dd076b
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Mar 1 00:56:31 2026 +0530
+
+    feat(commitments): Restore 'Stay Throughout' continuous verification architecture
+    - Restored root-level random checkpoint generation mapping for continuous task verifications.
+    - Un-nested checkpoints from Master Conditions, ensuring scalable 1:N checking for specific snapshots without causing runtime state collisions.
+    - Resolved server-timezone optical illusion bugs where developers saw UTC outputs in localized timestamp strings by explicitly forcing { timeZone: 'Asia/Kolkata' } on backend generators.
+    - Built aggressive client-side missed tally tracking (Green/Yellow/Red indicators) derived from both explicit fails and implicit window timeouts vs .
+    - Added highly detailed, production-level architectural comments across [schema.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/db/schema.ts:0:0-0:0), [verify.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/verify.ts:0:0-0:0)
+
+commit bd2115d59f38cbc35bf384aa8715c1faec3b10ee
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 28 15:09:02 2026 +0530
+
+    feat: implement randomized check in schema and configuration UI
+    
+    This commit introduces the foundational schema and interface required to support continuous verification for commitments. The core domain types and database schema have been expanded to include a checkpoints array within the condition object. This array is designed to track scheduled, randomized verification times allowing the backend to validate a users presence periodically throughout a time block.
+    
+    On the frontend, the commitment configuration screen has been updated to fully support this new verification style. The settings interface now features dynamic styling to clearly indicate disabled states. A new Check In frequency option has been integrated into the setup flow which automatically reveals itself when a user selects the Stay Throughout verification mode. This allows users to intuitively configure how many random verifications they wish to perform per hour.
+
+commit d2c2a6ef348c563a7bc3d47ec1ff376f59418db2
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 28 00:47:24 2026 +0530
+
+    feat(ui): display grace period countdown and early expiration status in event timer
+
+commit 1c1bc96e65986a9937425665e3a286d8cbafecc7
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 28 00:03:49 2026 +0530
+
+    feat(scheduler): integrate dynamic config parsing for custom pre-alarm intervals and media routing over android lockscreen
+
+commit 64f4823a3b7e3310a8a8fbeeb33d6f24d4d33ad2
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 19:14:28 2026 +0530
+
+    feat(native): implement instance-specific configuration persistence and developer telemetry tools
+    
+    - **Database**: Bump DATABASE_VERSION to 6 and introduce config_json column to the task_instances table to mirror backend source-of-truth.
+    - **Sync Logic**: Update final.tsx to persist the backend-provided configuration snapshots directly to local SQLite instances during create/update flows.
+    - **Developer Experience**: Integrate a wipeDb utility and a 🗑️ FAB in the root layout to facilitate rapid local state resets during debugging.
+    - **Instrumentation**: Enhance the debug inspector with pretty-printed JSON telemetry for task instances and resolved overlapping FAB positioning.
+    - **Robustness**: Refactored the SQLite migration chain to ensure sequential, non-skipping schema upgrades.
+
+commit 51f17de2a3b7e3742086291e2919f3e2f3c49327
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 17:45:13 2026 +0530
+
+    feat: implement unified alarm and verification configuration across the stack
+    
+    This change establishes a structured configuration system for tasks that synchronizes verification styles and alarm settings across Convex, SQLite, and the native Android alarm module. The backend schema now encapsulates these settings within a validated config object, and the API layer has been updated to handle these parameters during commitment creation and updates. On the frontend, the task draft store now centrally manages these settings, while the UI in the final confirmation screen has been refactored to bind directly to this global state with improved mutual exclusivity logic. To ensure persistence, a new SQLite migration adds config storage to the local database, and the debug inspector has been enhanced to allow for easy verification of the synchronized configuration data.
+
+commit 0a1ae803dfaf01fe3e9934694f348778ec54238e
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 17:18:53 2026 +0530
+
+    feat(backend): add mandatory config schema for tasks and instances
+    
+    - Update  and  tables to include a nested  object
+    - Define  for structural validation of verification styles and alarm settings
+    - Update [create](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:19:0-38:1) and [update](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:140:0-153:1) API mutations to handle the new configuration field
+    - Synchronize internal service logic to propagate configuration from tasks to generated instances
+    - Fix manual instance creation API to inherit parent task configuration
+
+commit 5b3a57b0e54f05a9240bee7d7da0038a6ee0eb97
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 15:21:55 2026 +0530
+
+    feat(ui): implement interactive selection sheets for task settings
+    
+    - Created [SelectionSheet](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/SelectionSheet.tsx:25:0-82:1) bottom-sheet component for a premium selection experience.
+    - Integrated selection logic for Grace
+
+commit 57306e260d684ae2e90322d91a1b3abc144d4e90
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 15:11:13 2026 +0530
+
+    feat(ui): implement advanced verification and alarm settings in creation flow
+    
+    - Added Commitment
+
+commit 8b7cbc190eacb81b68bc48257330f92d10745d8c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 13:58:07 2026 +0530
+
+    style(ui): unify geofence stroke width in detail view
+    
+    - Updated the geofence circle  in [EventDetailLocation.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailLocation.tsx:0:0-0:0) from 2 to 12.
+    - Matches the thick, native stroke design used in the location setting screen for visual consistency.
+
+commit cf19936434588c8a1e4bb70c7f1f54007af41882
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 13:51:51 2026 +0530
+
+    style(ui): implement status-based coloring for task instances
+    
+    - Applied success green (#4CD964) and danger red (#FF3B30) to calendar event blocks in [useCalendarEvents.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useCalendarEvents.ts:0:0-0:0).
+    - Updated [EventDetailHeader.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailHeader.tsx:0:0-0:0) to color-code the status badge according to the instance state.
+    - Synchronized visual feedback across the calendar and detail modal for verified/failed commitments.
+
+commit a57ae5579e894a1641a097217413119c53bb3720
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 11:21:02 2026 +0530
+
+    feat(commitments): auto-promote instance status on condition verification
+    
+    - Updated [verify.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/verify.ts:0:0-0:0) backend mutation to natively check if all nested explicit conditions (location, picture, etc.) have successfully reached verified, applied, or waived states.
+    - Automatically transitions the overarching Task Instance status to proceeded (complete) when the final requirement is successfully validated.
+    - Transitions instance status from pending to proceeding when initial conditions are met but others still remain.
+    - Appends distinct end-user messages on complete success (All
+
+commit 51f2fc33a157c207ce481575865547dda6339164
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 27 00:31:07 2026 +0530
+
+    feat(verification): enhance UX for location verification loading states
+    
+    - **Frontend ([EventDetailLocation.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailLocation.tsx:0:0-0:0))**: Wired the  state from the [useLocation](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useLocation.ts:9:0-100:1) hook directly to the 's  prop alongside . The visual loading spinner now triggers instantly upon tap to give immediate feedback while the device acquires high-accuracy GPS coordinates, eliminating the perceived lag before server communication begins.
+
+commit 79c6c3d74f119cd8d188c63fdc9980c125d9e549
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 26 23:31:28 2026 +0530
+
+    fix(verification): gracefully handle backend validation failures without throwing
+    
+    - **Backend ([verify.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/verify.ts:0:0-0:0))**: Replaced  with graceful  return payloads for expected business-logic failures (e.g., non-active time windows, sequence mismatches). This prevents fatal server panics and noisy stack traces in the client console.
+    - **Frontend ([EventDetailModal.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:0:0-0:0))**: Removed redundant client-side  logs and added flexible message parsing to cleanly display failure reasons in the UI modal.
+
+commit 2e1f54d5648e3e9bedd5451850d891dbdef29b12
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 26 23:01:51 2026 +0530
+
+    refactor(verification): implement implicit server-side time verification w/ live UI countdown
+    
+    - **Backend ([verify.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/verify.ts:0:0-0:0), [schema.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/schema.ts:0:0-0:0))**: Removed the explicit  condition branch and the  database field. Implemented a strict implicit sequence guard that verifies  bounds before any transaction on the server.
+    - **Frontend ([EventDetailTime.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailTime.tsx:0:0-0:0))**: Replaced the manual  with a live, slowly pulsing React Native  countdown ticker (Starts-in, Expires-in, Expired). Extended the formatter to support  parsing for large time windows.
+    - **Frontend ([EventDetailModal.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:0:0-0:0))**: Removed all boilerplate logic for tracking explicit time verification statuses and polling local state for .
+
+commit 07fc1d56b71b8a9f4093e637b5c02bb7c9c99436
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 26 19:18:07 2026 +0530
+
+    feat(verification): wire up GPS location validation flow
+    
+    - LocationSection: Added interactive VerificationStatusCircle that correctly uses the [useLocation()](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/useLocation.ts:9:0-100:1) hook to request and capture the device's GPS coordinates as evidence.
+    - EventDetailModal:
+      - Updated [handleVerifyCondition](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:162:2-207:4) to accept and pass an optional  payload to the backend mutation.
+      - Modified the state initialization effect to proactively seed  from the event's  array, ensuring explicit constraint statuses (like location) are accurately displayed when reopening the modal.
+    - Backend Verification:
+      - [verify.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/verify.ts:0:0-0:0) mutation now accepts optional evidence.
+      - Replaced hardcoded time validation with the dynamic [validateEvidence](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/verification/evidenceValidators.ts:63:0-83:1) dispatcher.
+      - Added a diagnostic log in [location.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/verification/location.ts:0:0-0:0) to surface raw coordinate payloads received from the frontend.
+
+commit a5d10029818926454255eb42ad746911afd55d40
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 26 12:39:09 2026 +0530
+
+    feat(verification): add failure feedback via ConfirmationModal
+    
+    - ConfirmationModal: fixed the component to correctly render the 'message' prop below the title.
+    - EventDetailModal: integrated ConfirmationModal to display clear, backend-provided reasons when verification fails.
+    - Improved error handling in the verification flow to strip internal error codes and show user-friendly messages for network or runtime errors.
+    - Enhanced UX by providing immediate, descriptive feedback when a user fails a condition check (e.g., verifying too early).
+
+commit de874506f7f995fdc3a75fc15e063f915335ba24
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 26 12:30:46 2026 +0530
+
+    refactor: modularize EventDetailModal UI components
+    
+    - Refactored EventDetailModal.tsx into a clean orchestrator by extracting large UI blocks into specialized sub-components.
+    - Created EventDetailHeader.tsx: Manages the close button, title, description, and status badge pill.
+    - Created EventDetailTime.tsx: Manages the time window details, timezone, and interactive verification circle.
+    - Simplified the main modal's JSX to focus on composition while retaining control over centralized state, hooks, and verification handlers.
+    - Improved code maintainability and navigation by significantly reducing the primary file's complexity.
+
+commit bc5f664ab0f9a3999f87c3913d606343a68cb9fd
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 26 12:12:22 2026 +0530
+
+    feat(ui): color-coded verification circles and per-event status reset
+    
+    - VerificationStatusCircle: verified state now shows green (#4CD964) border,
+      tint, and check icon; failed state shows red (#FF3B30) border, tint, and
+      refresh/close icon — matching the app's design system colors.
+    - EventDetailModal: added useEffect to reset conditionStatuses when a
+      different event is selected, and seed initial state from the Zustand
+      snapshot's time_status — prevents stale green ticks carrying over
+      between events.
+
+commit 4c9088aa13c3f60c444fcd3e3767ca140efd9572
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 26 10:42:04 2026 +0530
+
+    feat(verification): implement server-authoritative per-condition verify flow
+    
+    - Backend:
+        - Rewrote  mutation to be server-authoritative, checking ownership and chronological task sequence.
+        - Added a sequence guard to ensure users can only verify their next pending task by start time.
+        - Implemented implicit time metric verification that evaluates current server time against the task window.
+        - Added  to the schema and persisted verification results to the DB.
+        - Modified idempotency logic to allow retrying failed verifications while skipping verified ones.
+    
+    - UI/Native:
+        - Refactored  to support granular, per-condition verification (starting with the Time row).
+        - Replaced the global Verify button with interactive [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:21:0-100:1) components.
+        - Enhanced [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:21:0-100:1) with  states and a refresh icon for retrying failed checks.
+        - Implemented instant UI feedback using local state to reflect mutation results immediately without triggering expensive map re-renders.
+
+commit 6150bba356aa68330f80ff8e5723cec52d1f4a58
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 26 00:31:03 2026 +0530
+
+    feat(verification): implement server-authoritative time verification and per-condition UI
+    
+    Backend:
+    - db: Added  field to the  schema to persist the implicit time verification result.
+    - api/verify: Rewrote the  mutation to support per-condition checks.
+    - api/verify: Implemented strict sequence guard using  index to ensure users can only verify their chronologically next pending task instance.
+    - api/verify: Added special-case handling for the root time metric, evaluating it directly against the database's  and  times instead of client-provided data.
+    
+    Frontend:
+    - ui/VerificationStatusCircle: Upgraded component to be interactive, accepting  and  props. Added a distinct refresh icon state to allow retrying failed verifications.
+    - modal/EventDetailModal: Refactored the verification flow from a single global Verify button to a granular, per-condition tap model.
+    - modal/EventDetailModal: Wired the time status circle directly to the live Convex  property, ensuring the UI remains perfectly synced with the database without relying on fragile local state.
+    - modal/EventDetailModal: Cleaned up unused legacy verification state and imports.
+
+commit 5514233eec50342212dc8850bc6715fde9804bc9
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 25 21:45:23 2026 +0530
+
+    feat(backend): implement server-authoritative evidence validators
+    
+    - Add [ConditionStatus](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/types/domain/commitment.ts:42:0-48:17) union type mirroring the UI states to [types/domain/commitment.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/types/domain/commitment.ts:0:0-0:0)
+    - Extend the [Condition](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/types/domain/commitment.ts:57:0-71:1) interface with optional [id](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/verification/time.ts:19:0-39:1),  and  fields for instances
+    - Create a pure-function validator registry at [core/verification/evidenceValidators.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/verification/evidenceValidators.ts:0:0-0:0)
+    - Create a  validator to enforce server-side clock window enforcement
+    - Create a  validator to enforce haversine bounds checking and GPS accuracy
+    - Add validator stubs for , , and  verification
+
+commit 4f965d001477b7bbc56cca55c9eca00693d2e257
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 25 09:23:53 2026 +0530
+
+    feat(modal): add verification statuses, increase icons, fix map scroll
+    
+    - Add applied, waived, percentage, neutral states to VerificationStatusCircle
+    - Unify all circles to white styling (border-white/40, bg-white/5)
+    - Use cursor-pointer icon for neutral, percent icon for percentage
+    - Increase circle size to w-12/h-12 and icon size to 24
+    - Fix map-inside-ScrollView touch conflict: toggle scrollEnabled
+      via onTouchStart/End callbacks so map gets full pan/pinch control
+    - Update waiver subtitles with penalty context
+    - Delete deprecated EventDetailModal2, EventDetailConditions2, EventDetailLocation2
+
+commit ece04a55cd5f67fecd3019535f1c895b194e47df
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 25 00:05:34 2026 +0530
+
+    refactor(modal): production cleanup with singleton guard and docs
+    
+    - Rewrite EventDetailModal as a self-contained singleton (zero props)
+      with module-level guard to prevent Expo Router double-mount bug
+    - Read selectedEventId + selectedEvent from Zustand directly
+      (no extra Convex useQuery subscription needed)
+    - Add comprehensive JSDoc: data flow, singleton guard rationale,
+      usage rules, and numbered component sections (1-6)
+    - Clean up useCalendarStore with grouped types, section separators,
+      and JSDoc on setSelectedEventId atomic open/close pattern
+    - Update (main)/_layout.tsx comments to reflect singleton pattern
+    - Deprecate EventDetailModal2 (experimental prototype)
+
+commit 3a6db14487682f0dfdadae650ab655cc5457587c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Feb 24 23:23:46 2026 +0530
+
+    fix(modal): prevent double-mount of EventDetailModal2
+    
+    Expo Router mounts (main)/_layout.tsx twice during Stack transitions
+    (especially with transparentModal presentation), creating two
+    concurrent Modal instances and causing a double
+
+commit deb1059206ecbd2134ec60dbe7852946c5932f94
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Feb 24 11:02:43 2026 +0530
+
+    style(ui): fix condition title typography and overflow behavior
+    
+    - Removed  from All-day, Location, and Condition titles to match the standard  regular weight design.
+    - Replaced  truncation with  on parent containers to ensure text cleanly wraps or hides without breaking layouts.
+    - Reverted unnecessary prop changes in the base  component.
+
+commit 0acb969f8efe3918991f3cfcd469fb2d99ce6ba4
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Feb 24 08:30:25 2026 +0530
+
+    feat(ui): implement modular VerificationStatusCircle across event details
+    - Created universal [VerificationStatusCircle](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationStatusCircle.tsx:15:0-48:1) component to standardize condition verification UI (neutral, verified, failed, partial).
+    - Updated [EventDetailModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:34:0-207:1), , and  to use the new circle component.
+    - Implemented text truncation () in [BodyText](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/text.tsx:73:0-92:1) and applied to all condition rows to prevent text overlapping with the verification circles.
+
+commit 07286dcc52c9a568d1449696b3d19d0d7441e184
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Feb 24 00:02:51 2026 +0530
+
+    fix(android): resolve alarm scheduling breaks and enforce silent mode bypass
+    
+    - Secured scheduling chain: [AlarmReceiver](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmReceiver.kt:15:0-97:1) now immediately re-schedules the next alarm in the background upon wake, guaranteeing the chain survives even if the UI is completely constrained or skipped.
+    - Resolved Swipe
+
+commit 6a7d86cba1f5286ef46939f5e7c1cc409f15ee3c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 23 22:05:53 2026 +0530
+
+    feat(native): implement robust live verification pipeline and auth guards
+    
+    - Created  (Zustand) to manage the global Upcoming
+
+commit 402603c00403a7d0db40878ba3db2ca315c5d07f
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 23 21:58:48 2026 +0530
+
+    feat(native): implement global live state for calendar and verification
+    
+    - Refactored  to use ID-based selection and handle global range state.
+    - Implemented headless synchronizers ([useCalendarEvents](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useCalendarEvents.ts:6:0-56:1), [useUpcomingVerification](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useUpcomingVerification.ts:6:0-67:1)) in the root layout to maintain persistent Convex subscriptions.
+    - Established a single source of truth for all calendar instances via Zustand, reducing redundant database fetches.
+    - Updated [VerificationCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationCard.tsx:27:0-128:1) to use a specialized , following a Next
+
+commit 0ab37bfe46ea0c95c87461844619e17a4e36dd79
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 23 10:33:11 2026 +0530
+
+    feat: implement verification engine and refine location UI
+    
+    - Created [useVerificationEngine](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useVerificationEngine.ts:2:0-93:1) hook to manage evidence gathering logic (location, photo, etc.)
+    - Wired the verification engine into [EventDetailModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:31:0-195:1) to handle the 'Verify' button state and payload generation
+    - Redesigned  to match Google Calendar layout, featuring a full-width map below the address details
+
+commit 1fe216e3a0ca08e6623b9bb9ce0c03a90999bc1a
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 23 08:48:36 2026 +0530
+
+    refactor(native): modularize EventDetailModal components
+    
+    - Extracted Penalty and Waiver UI sections (including static mapping dictionaries) into a dedicated [EventDetailConditions.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailConditions.tsx:0:0-0:0) component.
+    - Extracted complex Google Maps logic, permission checks, and geofence math functions into a dedicated [EventDetailLocation.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailLocation.tsx:0:0-0:0) component.
+    - Cleaned up [EventDetailModal.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:0:0-0:0) by removing over 200 lines of mixed logic, explicitly defining its role as a clean Global Singleton Coordinator for event layouts.
+
+commit 32eb766d539f9bebca6e3a209a57aa9e010e0b75
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 23 08:33:46 2026 +0530
+
+    feat: wire up initial verification endpoint and frontend button
+    
+    * Backend: Created a basic [verify.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/verify.ts:0:0-0:0) Convex mutation to act as the entry point for the verification pipeline. It currently accepts an  and a simple message payload to test authentication and basic routing.
+    * Frontend: Wired up the Verify button inside [EventDetailModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:229:0-387:1) to explicitly call the new Convex  mutation. Passed the active  and added an alert to display the successful round-trip response from the backend.
+
+commit 9b36879246975f0336e8590074effe61a2e8bde5
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 23 08:19:25 2026 +0530
+
+    fix(native): prevent multiple instances of EventDetailModal
+    
+    - Cached the event data in local state within EventDetailModal so that when it closes (and event becomes null), the React component can finish its slide-down animation gracefully without abruptly unmounting and leaving a ghost
+
+commit 0cd5d96e128049102a19e102dbcf31de8863d7ed
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 22 23:28:15 2026 +0530
+
+    docs(ui): add structural diagrams and JSDoc for native map interface
+    
+    - **Location Set Screen ([location-set.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/location-set.tsx:0:0-0:0))**:
+      - Added an ARCHITECTURE
+
+commit a01a444f3b003f8685b8175ace7a1d5a2419840d
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 22 23:23:07 2026 +0530
+
+    docs(ui): add structural diagrams and JSDoc for global performance architecture
+    
+    - **Root Layout ([_layout.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/_layout.tsx:0:0-0:0))**: Documented the Singleton
+
+commit 369e7a8e3071a905d0ea39b42f806fe376f9fcd1
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 22 23:12:26 2026 +0530
+
+    refactor(ui): hoist EventDetailModal to global layout to eliminate redundant rendering
+    
+    - **Root Migration**: Moved  from individual tab screens ([schedules.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:0:0-0:0) and [commits.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:0:0-0:0)) up to the root tab navigator [_layout.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/_layout.tsx:0:0-0:0).
+    - **View Hierarchy Optimization**: Prevented React Navigation from mounting multiple identical modal components in memory simultaneously across active tabs, mitigating Android view hierarchy conflicts and double-dark UI backdrops.
+    - **Render Cycle Decoupling**: Unsubscribed [schedules.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:0:0-0:0) from reading the  Zustand state. It now uniquely imports the setter , allowing instantaneous modal triggering without forcing a re-render of the heavy  instance.
+    - **Overall Result**: Achieved sub-millisecond tap-to-render latency on calendar events while maintaining a perfectly clean global singleton modal architecture.
+
+commit 0a782bd704b2490f19ecec542068fcbab5ae900f
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 22 22:16:27 2026 +0530
+
+    feat(scheduler): implement pre-alarms and exhaustive telemetry
+    
+    - Engineered a deeply integrated native Pre-Alarm system mapping staggered event triggers (-15m, -13m... -1m) natively before the strict main execution.
+    - Added extensive block logging (e.g., ) across all Kotlin files for lifecycle observability.
+    - Rewrote Android OS Window Manager configuration logic in [AlarmActivity](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmActivity.kt:28:0-234:1) to differentiate dynamic 'Pre-Alarm' countdown typography vs 'Main-Alarm' execution displays seamlessly.
+    - Augmented the entire Kotlin codebase with highly-readable architectural documentation (The
+
+commit 0348448bb20dca5690e238578d8ca44c46e2c6fc
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 22 13:17:01 2026 +0530
+
+    refactor: formalize scheduler module architecture and update calendar UI
+    
+    - Comprehensively refactored all Kotlin files in  (AlarmScheduler, BootReceiver, AlarmReceiver, AlarmActivity, SchedulerModule).
+    - Strip out all casual logging and emojis, replacing them with professional telemetry markers.
+    - Added extensive KDoc architectural comments across the module detailing the Vault
+
+commit 8143798a0d08d4ff857fa61510bf992536f7c00f
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 22 11:49:03 2026 +0530
+
+    fix(scheduler): resolve lock-screen alarm boot recovery and migrate to native module manifest
+    
+    - Removed the legacy [withAlarmPermissions](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/plugins/withAlarmPermissions/withAlarmPermissions.js:2:0-124:1) Expo config plugin and its reference in [app.config.js](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app.config.js:0:0-0:0).
+    - Created a dedicated [AndroidManifest.xml](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/android/app/src/main/AndroidManifest.xml:0:0-0:0) natively inside  to handle all scheduling permissions, Receivers, and Activities.
+    - Added  to [BootReceiver](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/BootReceiver.kt:7:0-29:1), [AlarmReceiver](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmReceiver.kt:8:0-52:1), and [AlarmActivity](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmActivity.kt:19:0-127:1) so the OS allows them to run while the device is in a locked boot sequence ().
+    - Added , , and  to [AlarmActivity](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmActivity.kt:19:0-127:1) to ensure the screen wakes up and bypasses the keyguard on Android 10+.
+    - Restored the explicitly logged Sticky
+
+commit d4901b795664a1c7432d77991bb5345b47f94e4e
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 22 07:23:19 2026 +0530
+
+    feat(native-scheduler): implement alarm chaining, media, and boot recovery
+    
+    - Added [markInstanceProceeded](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmScheduler.kt:72:4-94:5) in  to directly update the local SQLite database when a task is completed.
+    - Updated [AlarmActivity](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmActivity.kt:19:0-127:1) to play the system's default alarm ringtone and vibrate continuously until dismissed.
+    - Wired the DISMISS button in [AlarmActivity](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmActivity.kt:19:0-127:1) to mark the instance as proceeded and instantly schedule the next chronological alarm.
+    - Updated [AlarmReceiver](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmReceiver.kt:8:0-52:1) and [AlarmActivity](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmActivity.kt:19:0-127:1) to pass the  through the Intent chain.
+    - Implemented [BootReceiver](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/BootReceiver.kt:7:0-29:1) recovery to automatically call  on device restart, ensuring alarms survive reboots.
+
+commit 0c02f11a6eb32d166d771694f2d4803bfe5ecea0
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 22 01:08:55 2026 +0530
+
+    feat(native-scheduler): implement simplified alarm logic with direct SQLite integration
+    
+    - Nuked complex legacy scheduling to start from a clean baseline.
+    - Implemented  to query the local Expo SQLite DB for the next chronologically upcoming task instance.
+    - Integrated Android  (Exact/Clock) to schedule native OS triggers that persist through app swipes.
+    - Created [AlarmReceiver](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmReceiver.kt:8:0-50:1) and [AlarmActivity](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/modules/scheduler-module/android/src/main/java/expo/modules/scheduler/AlarmActivity.kt:14:0-66:1) placeholders to handle the wake-up intent and display a basic lock-screen UI.
+    - Restored original JS-bridge function names in  to ensure frontend compatibility.
+
+commit d815ffb6be9f8f45f472712fb3ee4f00e7e02de2
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 21 21:58:11 2026 +0530
+
+    refactor: synchronize local sqlite instances explicitly with convex backend
+    
+    - Updated backend [create](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:18:0-36:1) and [update](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:137:0-150:1) mutations to return explicit  rows.
+    - Removed duplicated client-side recurrence calculation ( / [scheduler.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/scheduler.ts:0:0-0:0)).
+    - Updated [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) to insert actual 365 backend instances directly into SQLite , preserving their exact Convex instance  and timestamps.
+    - Bumped local DB  to 4, adding an explicit  column to  via  to avoid frontend JOIN requirements.
+    - Updated [useTaskActions.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTaskActions.ts:0:0-0:0) deletion logic using a nested SQL lookup to explicitly clear local instances during a task deletion.
+    
+    This ensures mathematically identical 1:1 parity between Convex backend instances and Android local SQLite alarms without local clock drift.
+
+commit 13e56cc05be9a3626e538df41ca6c239b5b5485e
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 21 19:45:23 2026 +0530
+
+    feat: Migrate to pre-calculated JavaScript task instances architecture
+    
+    - Added  table to local SQLite DB (Version 3) with indexing on start/end times.
+    - Created [lib/scheduler.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/lib/scheduler.ts:0:0-0:0) to statically calculate exactly 1 year of timestamps from recurrence rules using dayjs.
+    - Updated [final.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28create-commit%29/final.tsx:0:0-0:0) to batch insert 365 generated instances into local DB automatically upon task creation or update.
+    - Updated [useTaskActions.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTaskActions.ts:0:0-0:0) to explicitly delete all associated instances when a local task is deleted from [commits.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:0:0-0:0), preventing ghost alarms.
+    - Enhanced [DbDebugFab](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/_layout.tsx:38:0-192:1) in [_layout.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/_layout.tsx:0:0-0:0) to fetch and pretty-print explicitly generated task instance timestamps (with titles) to improve debug visibility.
+    
+    This shifts the responsibility of complex recurrence scheduling from the opaque native Android layer into a transparent, debuggable JavaScript/SQLite structure.
+
+commit 29a4b1bd7a0d3d834117be4cad8c7be0fb8f8374
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 20 23:56:22 2026 +0530
+
+    feat: unify pre-alarm and main alarm UI
+    
+    - Removed PreAlarmActivity and its Toast/TTS logic
+    - Updated AlarmReceiver to launch the full-screen AlarmActivity for both main alarms and pre-alarms
+    - Passed  and  flags so AlarmActivity can adapt its text (e.g., Upcoming
+
+commit 6f3ac8d27eee6443d7b7646d8c2c047f6e69e417
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 20 01:55:08 2026 +0530
+
+    fix: reliable alarm rescheduling after device reboot
+    
+    - Fix alarms being pushed a week forward after reboot by reusing
+      saved fireAtMs from device-protected storage when still valid
+    - Add recently
+
+commit 055ad2c7f5046646058d933b4e26583386659c3a
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 19 01:36:57 2026 +0530
+
+    feat(native): add SchedulerModule with self-chaining alarm system
+    
+    New Expo Module: modules/scheduler-module/
+    - Native Kotlin module that reads tasks from local SQLite (commit.db)
+    - Parses recurrence rules (type, days_of_week, time_windows)
+    - Calculates next time slot using findNextTimeSlot() algorithm
+    - Schedules Toast at computed time via Handler.postDelayed()
+    - Self-chaining: when a toast fires, it automatically calculates
+      and schedules the NEXT occurrence — chain continues indefinitely
+    - Per-task chains tracked via ConcurrentHashMap<convexId, Runnable>
+    - One-time tasks end after first fire; recurring tasks chain forever
+    
+    API:
+      scheduleForTask(convexId)    — CREATE: start chain
+      rescheduleForTask(convexId)  — UPDATE: cancel old + start new chain
+      cancelForTask(convexId)      — DELETE: cancel chain
+      getActiveChains()            — DEBUG: list active chain IDs
+    
+    Integration:
+    - final.tsx CREATE path: calls scheduleForTask() after local DB insert
+    - final.tsx UPDATE path: calls rescheduleForTask() after local DB update
+    - useTaskActions.ts DELETE: calls cancelForTask() before DB deletion
+    
+    Also in this session:
+    - Refactored AlarmModule from legacy bridge to Expo Modules API
+    - AlarmModule reads expo-sqlite DB at filesDir/SQLite/commit.db
+    - Removed old plugin-based approach (plugins/withAlarmModule/)
+    - Cleaned up MainApplication.kt (removed manual AlarmPackage registration)
+    
+    Bug fixes:
+    - Fixed DB path: expo-sqlite uses filesDir/SQLite/ not getDatabasePath()
+    - Fixed chain not continuing: findNextTimeSlot was returning same window
+      because endSecs > currentSecs. Added afterMs param to skip past windows
+    - Fixed adjacent windows skipped: changed <= to < so window starting at
+      exactly the previous window's end time is correctly included
+
+commit 7a8201918008234bccbb56f804041aba3915e2ba
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 18 22:58:59 2026 +0530
+
+    feat(native): add AlarmModule with Expo Modules API + global Alarm FAB
+    
+    - Created local Expo Module at modules/alarm-module/ using the modern
+      Expo Modules Kotlin DSL (expo.modules.kotlin.modules.Module)
+    - AlarmModule exposes showToast() — displays a native Android Toast
+    - Added global floating Alarm button (AlarmFab) in root _layout.tsx,
+      accessible from every screen in the app
+    - Module is auto-linked via expo-module.config.json (no manual
+      MainApplication.kt patching needed)
+    
+    Refactored from legacy approach:
+    - Removed old Config Plugin injection pattern (plugins/withAlarmModule/)
+      that used ReactContextBaseJavaModule + manual MainApplication patching
+    - Cleaned up injected AlarmModule.kt & AlarmPackage.kt from android/
+    - Removed add(AlarmPackage()) from MainApplication.kt
+    
+    Files added:
+      modules/alarm-module/expo-module.config.json
+      modules/alarm-module/index.ts
+      modules/alarm-module/android/build.gradle
+      modules/alarm-module/android/src/main/java/expo/modules/alarm/AlarmModule.kt
+    
+    Files modified:
+      app/_layout.tsx (AlarmFab + showToast import)
+      app.config.js (removed old plugin entry)
+      android/.../MainApplication.kt (removed legacy AlarmPackage registration)
+
+commit b9f8f38feb1705f4d9d8ff7696e9a0f43fa5238c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 18 00:54:43 2026 +0530
+
+    feat(native): sync task CRUD to local SQLite database
+    
+    Set up expo-sqlite with versioned migrations and wire all task
+    operations to write to both Convex and local DB:
+    
+    - Create: insert into local_tasks after successful Convex create
+    - Update: update local_tasks row after successful Convex update
+    - Delete: delete from local_tasks after successful Convex delete
+    
+    Schema mirrors Convex tasks table exactly (assigner_id, assignee_id,
+    title, description, visibility, recurrence, conditions, timestamps).
+    Nested objects stored as JSON strings.
+    
+    Includes floating debug FAB (🔍) for inspecting local DB contents
+    at any time during development.
+    
+    Convex remains source of truth — local writes are non-blocking and
+    fail gracefully with console errors if the local DB is unavailable.
+
+commit 7d37aa5062401b76d23e67fc6aca93d74b247a3d
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 18 00:08:23 2026 +0530
+
+    feat: set up local SQLite database for alarm system
+    
+    - Install expo-sqlite and add plugin to app.config.js
+    - Create lib/local-db.ts with versioned migration system
+      - local_tasks: mirrors Convex tasks with recurrence rules
+      - scheduled_alarms: tracks AlarmManager registrations
+      - alarm_overrides: single-instance exceptions (drag-drop)
+      - blocked_apps: prepared for future app blocking
+    - Wrap root layout with SQLiteProvider for app-wide DB access
+    - Enable WAL journal mode and foreign keys
+    
+    fix(scheduler): normalize ISO-8601 Sunday (7) to JS convention (0)
+    
+    Weekly recurrences set to Sunday sent days_of_week: [7] (ISO-8601),
+    but the scheduler used getDay() which returns 0 for Sunday. Mon-Sat
+    were unaffected as both conventions align for those days.
+
+commit 78e77a32aee73a79545ec4932b988a136306ffc1
+Author: Maajith <maajithanas@gmail.com>
+Date:   Tue Feb 17 05:54:20 2026 +0530
+
+    fix(scheduler): normalize ISO-8601 Sunday (7) to JS convention (0)
+    
+    Weekly recurrences set to Sunday sent days_of_week: [7] from the
+    frontend (ISO-8601), but the scheduler used JS getDay() which returns
+    0 for Sunday. The mismatch caused no instances to be generated for
+    Sunday-only tasks. Mon–Sat (1–6) were unaffected as both conventions
+    align for those days.
+    
+    Also added debug console logs across the creation pipeline for
+    payload tracing.
+
+commit 995cc42f303f5d8996402e6d561daaf855ffc8f8
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 16 02:54:23 2026 +0530
+
+    feat(ui): Enhance VerificationCard loading state with shimmer skeleton
+    
+    - Replaces static N/A fallback text in [VerificationCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationCard.tsx:28:0-162:1) with [SkeletonBlock](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/SkeletonBlock.tsx:24:0-104:1) components during data loading.
+    - Updates [SkeletonBlock](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/SkeletonBlock.tsx:24:0-104:1) to implement a shine-through shimmer effect using a moving semi-transparent overlay, replacing the previous simple pulsing opacity.
+    - Improves visual feedback and perceived performance during initial data fetch.
+    - Fixes minor import duplication in .
+
+commit 49c09e706e72c6a13553c5ef52bd796f2b190e71
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 16 02:46:50 2026 +0530
+
+    feat(VerificationCard): Implement dynamic event fetching and timer
+    
+    - Updates [VerificationCard](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/commits/VerificationCard.tsx:26:0-151:1) to fetch upcoming pending instances using [useCalendarEvents](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useCalendarEvents.ts:14:0-62:1), replacing static content.
+    - Implements a live countdown timer that displays In
+
+commit 4f27747b55b1609ee2daf98f658a371a0aad7ae7
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 16 02:07:07 2026 +0530
+
+    feat(EventDetailModal): Add scrollable Penalty and Waiver sections
+    
+    - Integrate [PenaltySection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:39:0-48:2) and [WaiverSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:50:0-59:2) to display event conditions.
+    - Implement mapping for penalties (Money, Photo, Message, BlockApp) and waivers (Captcha, Paragraph, Intense, Run).
+    - Refactor modal content into a scrollable view () for better overflow handling.
+    - Style sections with consistent borders and relevant icons/colors.
+    - Set default fallback displays for penalties ('money') and waivers ('captcha') for visual validation.
+
+commit 475aef486e68f527f5093635d0639dd2c186f590
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 16 01:50:09 2026 +0530
+
+    feat(EventDetailModal): Refine UI with dynamic Map integration and Status badges
+    
+    - Restructure detailed time section with clear borders and iconography.
+    - Implement [LocationSection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/EventDetailModal.tsx:34:0-136:2) component with interactive .
+    - Add visual indicators for map loading state and current user location.
+    - Integrate dynamic status badges (verified, pending, failed) in the header.
+    - Update layout with description and consistent spacing.
+
+commit de94e3ae9c88633838bf0428ee3cb6277a072c8d
+Author: Maajith <maajithanas@gmail.com>
+Date:   Mon Feb 16 00:06:47 2026 +0530
+
+    Refactor EventDetailModal and centralize event selection state
+    
+    - Update EventDetailModal to a plain dark-themed popup (#1A1A1A).
+    - Move event selection state management to useCalendarStore (Zustand).
+    - Update schedules.tsx to dispatch selected events to the global store.
+    - Enhance store logger to output detailed event objects.
+
+commit 0976769579fc8f5be1685d0927729eb15bf0c1ec
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 15 16:44:44 2026 +0530
+
+    feat: update calendar to 4-day view and redesign shimmer skeleton
+    
+    - Switch calendar view mode to 4 days (from 1).
+    - Unify event styling: standardized to single blue color (#4FA0FF) with white text and square corners.
+    - Redesign [CalendarShimmer](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/CalendarShimmer.tsx:16:0-97:1) to match the new 4-day grid layout.
+    - Replace text in skeleton with pulsing [SkeletonBlock](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/SkeletonBlock.tsx:24:0-68:1) components for an abstract loading state.
+    - Reduce time column width in skeleton to 15%.
+
+commit a96582246a89fa52435b742fc8ad148f5fac0216
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 15 15:26:16 2026 +0530
+
+    feat(native): rebrand verify tab and customize calendar appearance
+    
+    - Renamed Verify tab to Calendar with a  icon in the bottom bar.
+    - Refactored [CalendarShimmer](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/CalendarShimmer.tsx:20:0-84:1) to a single-day view with black borders and 80px row height.
+    - Reverted calendar event colors to utilize task-based coloring instead of a static blue.
+
+commit adfcbef26c0242b943791080e5a2b409b2fe4920
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 15 15:16:50 2026 +0530
+
+    feat(native): refactor commits screen and customize calendar theme
+    
+    - Refactored [CommitsScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:59:0-285:1) to use  instead of  for better layout control with a fixed header.
+    - customized  theme in [CalendarConfig.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/calendar/CalendarConfig.ts:0:0-0:0):
+      - Hidden specific borders (hour column, header) by setting them to black.
+      - Darkened and thickened grid lines using black borders on day containers.
+      - Increased day number font size to 20.
+      - Updated event container border radius.
+    - Updated [CalendarShimmer](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/CalendarShimmer.tsx:22:0-88:1) to match the new calendar look:
+      - Increased row height to 80px.
+      - Thickened grid lines and changed color to black.
+    - Increased  to 80 in  for larger time slots.
+
+commit 556447691954320e48665696efe34919a217cefa
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 14 00:47:57 2026 +0530
+
+    style(native): align CommitCardSkeleton layout with CommitCard
+    
+    - Update  to mirror the exact structure of .
+    - Implement 3-column grid for the top row (Status, Info, Options).
+    - Add bottom row skeletons for metadata (Timer/Phone).
+    - Align padding, spacing, and border radius for a seamless loading experience.
+
+commit 19b4dabb8cc0e5112da0ca826a6ec944ef9c36fe
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 13 23:48:17 2026 +0530
+
+    fix(native): show list skeleton on empty loading state in CommitsScreen
+    
+    - Replace full-screen skeleton overlay with list-item skeletons in  state.
+    - Use  for skeleton container to prevent layout collapse in FlatList.
+    - Clean up unused imports (, [useSkeletonAnimation](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useSkeletonAnimation.ts:3:0-34:1)).
+    - Ensure skeletons are only shown when  is true.
+
+commit f5ac8abfbd9417926468e420f5c2d4f47c44dd55
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 13 23:36:39 2026 +0530
+
+    refactor(native): clean up CommitsScreen with custom hooks
+    
+    - Refactor [CommitsScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:64:0-302:1) to separate concerns (Data, Actions, UI State).
+    - Extract data fetching logic into [useTasks](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTasks.ts:8:0-42:1) hook.
+    - Extract mutation and navigation logic into [useTaskActions](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTaskActions.ts:7:0-64:1) hook.
+    - Extract UI selection state (menus, modals) into [useTaskSelection](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/commits/useTaskSelection.ts:8:0-66:1) hook.
+    - Implement [useSkeletonAnimation](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useSkeletonAnimation.ts:3:0-34:1) for loading states.
+    - Improve code readability with JSDoc and section headers.
+    - Fix  imports and remove redundant code.
+
+commit 6a61b30f440c0ef9cb0b3e8a1dfa0c14f7ab4ead
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 13 22:53:16 2026 +0530
+
+    refactor(native): Decompose [SchedulesScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:24:0-123:1) into hooks and configuration
+    
+    - Extract complicated state logic into dedicated custom hooks:
+      - [useCalendarRange](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useCalendarRange.ts:16:0-57:1): Manages infinite scroll date range and debouncing.
+      - [useCalendarEvents](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useCalendarEvents.ts:14:0-62:1): Handles Convex data fetching and event transformation.
+      - [useSkeletonAnimation](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/hooks/calendar/useSkeletonAnimation.ts:3:0-34:1): Manages loading skeleton visibility and fade-out animations.
+    - Centralize calendar configuration (colors, themes, locales) in [components/calendar/CalendarConfig.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/calendar/CalendarConfig.ts:0:0-0:0).
+    - Reduce [SchedulesScreen](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:24:0-123:1) component size from ~250 lines to ~100 lines, focusing purely on layout and orchestration.
+    - Improve code readability with comprehensive JSDoc and section comments.
+
+commit a8eaff21ede6533e5a539f248958a5be6981d32c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 13 22:46:53 2026 +0530
+
+    refactor(backend): Centralize instance management logic into  module
+    
+    - Consolidate instance CRUD and generation logic into [packages/backend/convex/core/instances/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:0:0-0:0).
+    - Move [generateTimeSlots](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/generator.ts:19:0-92:1) logic to [core/instances/generator.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/generator.ts:0:0-0:0).
+    - Keep scheduling logic ([scheduleFirstInstance](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/scheduling/scheduler.ts:4:0-31:1)) in [execution/scheduling/scheduler.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/execution/scheduling/scheduler.ts:0:0-0:0) for separation of concerns.
+    - Update [core/commitments/service.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/service.ts:0:0-0:0) to use the new  service and .
+    - Update API endpoints ([create](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:18:0-36:1), [update](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:137:0-150:1), [delete](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/instances/service.ts:152:0-162:1)) to consume  service.
+    - Implement proper DB schema enum mapping for status transitions ( -> ,  -> ).
+    - Remove legacy files: [core/commitments/instanceService.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/instanceService.ts:0:0-0:0) and .
+    - Verify frontend compatibility with existing  endpoints.
+
+commit 1ef647539f1288b1eda4cd408a1c8071ebdaa10a
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 13 01:08:56 2026 +0530
+
+    feat(backend): implement instance CRUD and consolidate read logic
+    
+    - Added [create.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/create.ts:0:0-0:0), [update.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/update.ts:0:0-0:0), and [delete.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/delete.ts:0:0-0:0) to  for full CRUD support.
+    - Consolidated [get](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/conflictDetection.ts:309:0-319:1), [list](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/instanceQueries.ts:2:0-14:1), and  queries into [api/instances/read.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/read.ts:0:0-0:0) to mirror commitments structure.
+    - Removed deprecated [list.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/instances/list.ts:0:0-0:0) and [core/commitments/instanceQueries.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/instanceQueries.ts:0:0-0:0).
+    - Updated frontend ([schedules.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:0:0-0:0)) to use the new  endpoints.
+    - Fixed TypeScript type narrowing issues in instance handlers.
+
+commit 00b14d892b1b9c3ca6d8360fbcb072c1414a8c0c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 13 00:27:22 2026 +0530
+
+    refactor(backend): consolidate read operations and remove query abstraction
+    
+    - Merged [get.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/get.ts:0:0-0:0) and [list.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/list.ts:0:0-0:0) into [api/commitments/read.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/api/commitments/read.ts:0:0-0:0) to group read operations.
+    - Removed unnecessary [core/commitments/queries.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/core/commitments/queries.ts:0:0-0:0) abstraction layer; API now queries DB directly.
+    - Updated frontend references to use the new  module.
+
+commit 25987c3ee626cd10a3cfa3f6fe5b07f9fb239406
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 13 00:15:15 2026 +0530
+
+    refactor(backend): move conflict detection logic to commitments core
+    
+    - Relocated [conflictDetection.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/conflictDetection.ts:0:0-0:0) from  to  to co-locate domain logic.
+    - Added comprehensive JSDoc comments to  endpoints and core services for better maintainability.
+    - Clarified the distinction between API schema validation (lib/validators) and domain business logic validation (core/commitments/validator).
+    - Fixed relative import paths post-refactor.
+
+commit abcfc06640c639fd70fced2f6bb376ac743bce66
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 12 02:20:14 2026 +0530
+
+    feat(calendar): implement event detail modal with location map
+    
+    Adds a premium bottom-sheet modal for viewing event details directly from the calendar.
+    
+    Key Features:
+    - **Interactive Modal**: Slides up on event click, displaying title, type (Event/Task), and time formatted with DayJS.
+    - **Location Integration**:
+      - Automatically extracts location data from event conditions.
+      - Displays the event's address or title.
+      - Renders an interactive Google Map (via ) centered on the target.
+      - Visualizes the geofence with a blue circle overlay matching the creation flow style.
+      - Shows the user's current live location relative to the target.
+    - **UI Consistency**:
+      - Uses standardized typography ([AuthHeading](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/text.tsx:22:0-37:1), [BodyText](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/text.tsx:73:0-90:1)) and button ([PrimaryButton](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/button.tsx:18:0-31:1)) components.
+      - Polished styling with transparency and glass effects.
+    
+    Refactor:
+    - Updated [schedules.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/schedules.tsx:0:0-0:0) to pass full instance objects including conditions.
+    - Enhanced  with a reusable  component.
+
+commit ef221a2cb3353616f3fb27780752ead3573efacf
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 12 01:37:36 2026 +0530
+
+    feat: add skeleton loading screens with smooth fade transitions
+    
+    Introduces polished loading states for both the Calendar and Commits screens to improve perceived performance and eliminate UI flickering.
+    
+    Key Changes:
+    - **Skeleton Components**: Created [CalendarShimmer](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/CalendarShimmer.tsx:22:0-79:1) and [CommitCardSkeleton](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/skeletons/CommitCardSkeleton.tsx:7:0-23:1) using  for a pulsing shimmer effect.
+    - **Smooth Transitions**: Implemented an absolute overlay system that displays the skeleton for a minimum of 4 seconds on initial load, then smoothly fades out ( -> 0) to reveal the content.
+    - **Calendar UI Polish**:
+      - Disabled drag/drop and pinch-to-zoom for a fixed, reliable view.
+      - Adjusted default zoom level (30px interval) and font sizes for better readability.
+      - Added bookmark icons () to event blocks.
+    - **Commits Screen**: Integrated the same skeleton overlay pattern for a consistent startup experience.
+
+commit e5b6c64faf5130bf4ccbe0afd1c5b49a20839695
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 12 01:06:01 2026 +0530
+
+    style(calendar): update theme with grey grid and zoomed-out view
+    
+    Updates the calendar appearance for a denser, more readable layout.
+    
+    **Key Changes:**
+    - **Theme**: Changed the grid background (day columns) to a grey shade () to distinguish it from the black headers.
+    - **Typography**:
+      - Increased font weight for day names (Mon, Tue) and hours to **bold**.
+      - Adjusted day name font size to 13px.
+      - Ensured event text is white and centered.
+    - **Event Styling**: Added a white **bookmark icon** () next to event titles.
+    - **View Settings**:
+      - Disabled **drag-and-drop** and **pinch-to-zoom** interactions for a static view.
+      - Set  to **30** for a zoomed
+
+commit 9eb540e086338220b6a48b987fa9b2ac54cd161a
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 11 23:23:21 2026 +0530
+
+    feat(calendar): implement reactive infinite scrolling and custom event styling
+    
+    Refactors the calendar component to support efficient, reactive data fetching with Convex, replacing the static store mechanism.
+    
+    Key Improvements:
+    - **Reactive Data Layer**: Implemented  with a new  database index for optimized range-based queries.
+    - **Smart Pagination**: Added a buffer
+
+commit 3d6629e9e308d316b56d059d58295279292615d7
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 11 19:28:17 2026 +0530
+
+    refactor(backend): pre-materialize task instances with linked-list scheduling
+    
+    - Add next_instance_id to taskInstances schema for chain traversal
+    - Create instanceGenerator.ts with generateTimeSlots() for bulk slot generation
+    - Rewrite scheduler.ts: createAllInstances() bulk inserts 1 year of instances,
+      scheduleFirstInstance() schedules only the next verification job
+    - Update runner.ts to follow next_instance_id chain instead of recalculating
+    - Update service.ts: createInternal/updateInternal use new bulk generation,
+      cleanupFutureInstances replaces cleanupPendingInstances for delete/update
+    
+    Eliminates virtual event merging — all calendar events are now real DB records.
+
+commit 9b4413c85472fd156593e4976357a7a8864123af
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 8 21:47:55 2026 +0530
+
+    refactor(native): switch to Tabs layout for state persistence
+    
+    - Replace  with   in  to prevent pages from unmounting during navigation.
+    - Update [BottomTabBar](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/BottomBar.tsx:9:0-94:1) to implement standard , using  and  for correct tab handling.
+    - Fix white background artifacts on the  screen by wrapping content in a  container.
+    - Remove default top border from the tab bar to ensure a seamless dark theme.
+
+commit 09981f8ebc0d44895190a5f837e93858cb9cb22b
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 8 20:33:23 2026 +0530
+
+    feat(schedules): revamp calendar with custom date picker and drag-and-drop
+    
+    - Add custom [DatePickerModal](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/modal/DatePickerModal.tsx:19:0-135:1) matching system UI style.
+    - Integrate date picker and Today quick-nav button into Schedules header.
+    - Enable full event interactivity: drag-to-move, drag-to-create, and resize.
+    - Improve drag responsiveness with instant-press gesture.
+    - Implement event selection and background deselect.
+    - Update calendar theme: minimalist time labels, custom font sizes, and dark mode colors.
+    - Remove redundant  and  screens.
+
+commit 24c7caff8ad64191d3934f5bac0cb01c1cf3cb01
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 8 02:54:29 2026 +0530
+
+    feat(native): refactor calendar state to zustand and fix drag-drop time handling
+    
+    - **Global State Management**: Migrated calendar event state from local  in [verify.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/verify.tsx:0:0-0:0) to a new  using Zustand.
+    - **Store Actions**: Implemented actions for adding, updating, and selecting events, along with a custom logger middleware for debugging state changes.
+    - **Robust Drag Handling**: Fixed a critical bug where events would disappear or throw invalid date warnings after dragging.
+      - Added logic to correctly extract start/end times from various return formats (ISO strings, Date objects).
+      - Ensured exclusive handling of [dateTime](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:366:4-381:7) (timed) vs [date](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useCalendarStore.ts:84:4-93:7) (all-day) properties to maintain valid event structures.
+    - **Refactor**: Updated  to fully integrate with the new store and improved event update reliability.
+
+commit 5b2aaa7975704af5739e0ebb54c7f79450740fb2
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Feb 8 02:30:27 2026 +0530
+
+    git commit -am feat:
+
+commit 3a982d2df7f99dee555845bdd35f1a706a3299a4
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 7 20:09:06 2026 +0530
+
+    feat(native): global header integration and verify tab
+    
+    - Moved the main 'CommitT' header to [(main)/_layout.tsx](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:32:0-32:25) for persistence across tabs.
+    - Added a new 'Verify' tab to the bottom navigation using  icon.
+    - Created [(main)/verify.tsx](cci:2://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:32:0-32:25) as a placeholder for the upcoming verification screen.
+    - Refactored [commits.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:0:0-0:0) to remove duplicate headers and optimize spacing.
+    - Removed [ScreenHeader](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/components/ui/ScreenContainer.tsx:36:0-51:1) usage in [commits.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:0:0-0:0) to eliminate unwanted extra padding.
+
+commit 9a4b9e925e5a4a66aee91c5a520304d8c9af8c97
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 7 14:27:27 2026 +0530
+
+    chore(backend): remove unused taskTelemetry table and file
+    
+    - Deleted [packages/backend/convex/taskTelemetry.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/taskTelemetry.ts:0:0-0:0) as it was unused.
+    - Removed  table definition from [schema.ts](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/schema.ts:0:0-0:0).
+    - Cleaned up dead code to simplify the database schema.
+
+commit 2d1c7e5f82ffb902649b55e73ffb82ed979e86a1
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sat Feb 7 02:53:36 2026 +0530
+
+    refactor(backend): standardize user ID access and fix frontend task fetching
+    
+    Major refactor to align API endpoints with the updated authentication middleware and fix a critical data fetching bug in the native app.
+    
+    Backend Changes:
+    - Updated  and  commitment mutations to correctly access  from the authenticated context.
+    - Replaced legacy usage of  and  to match the strict  type definition injected by the auth middleware.
+    - Ensured consistent property access across the commitments API module.
+    
+    Frontend Changes:
+    - Fixed a regression in [commits.tsx](cci:7://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/app/%28main%29/commits.tsx:0:0-0:0) where the task list query was passing a hardcoded user_id string.
+    - Implemented proper session-based conditional querying: the  query now waits for a valid  before firing (using the skip pattern).
+    
+    This resolves the issue where created commitments were not appearing in the main list view.
+
+commit 171f6cb420b386565ed1b83dc0b196ebed4a42fb
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 6 02:01:46 2026 +0530
+
+    feat(backend): implement comprehensive lifecycle cleanup for task updates and deletions
+    
+    - **Deletion Cleanup**: Updated the [remove](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:462:4-472:7) mutation to automatically identify and delete all  task instances associated with the target task.
+    - **Schedule Cancellation**: Implemented logic to cancel any active Convex scheduler jobs linked to pending instances during deletion, preventing zombie executions for deleted tasks.
+    - **Update Rescheduling**: Modified the [update](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:450:4-460:7) mutation to perform a timeline
+
+commit b1b4292ade888c97d846af91881b0427d5f9bb20
+Author: Maajith <maajithanas@gmail.com>
+Date:   Fri Feb 6 01:33:22 2026 +0530
+
+    fix(native): auto-calculate recurrence count based on days and slots
+    
+    - Update  to automatically compute  as the product of selected days and time windows when  is 'after'.
+    - Ensure correct total instance count for finite recurring tasks (e.g., 2 days * 2 slots = 4 instances).
+    - Remove redundant manual count calculation from .
+
+commit b52228bdb919b7f61576b5cd7a9daac400c863b3
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 5 23:32:57 2026 +0530
+
+    feat(backend): implement self-perpetuating verification chain
+    
+    - **Schema**: Updated  to include rule snapshots (recurrence, conditions) and  for precise control.
+    - **Scheduling Logic**: Created [scheduleNextInstance](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/instanceScheduling.ts:7:0-81:1) helper to calculate slots, create pending instances, and set runAt alarms in a single atomic flow.
+    - **Tasks Module**: Updated  mutation to kickstart the chain immediately upon task creation.
+    - **Verification Loop**: Implemented the Chain
+
+commit 4b00bf6205d9c95feee3705dd4b3d160446d18f5
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 5 16:12:09 2026 +0530
+
+    fix(security): implement robust auth, validation & error handling
+    
+    - AUTH: Enforce user authorization in [create](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:119:0-142:3), [update](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:428:4-438:7), and [remove](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/apps/native/stores/useTaskDraftStore.ts:440:4-450:7) mutations. Task creators (assigners) are now strictly verified using .
+    - SECURITY: Prevent spoofing by deriving  from the session instead of client arguments.
+    - VALIDATION: Added comprehensive backend validation effectively mirroring frontend rules to prevent API misuse.
+    - API: Refactored  frontend call to align with secure backend signature (removed ).
+    - UX: Added robust  error handling in  to catch and display network/server errors elegantly.
+
+commit cb5a399264470f04d63ce2b40cdaadda41e8ed3c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 5 11:17:12 2026 +0530
+
+    fix(backend): add critical validation & refactor tasks.ts
+    
+    - SECURITY: Added [validateTaskInput](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/validation.ts:276:0-329:1) & [validateTaskUpdate](cci:1://file://wsl.localhost/Ubuntu-22.04/home/maajith/mono/packages/backend/convex/lib/validation.ts:331:0-378:1) to enforce rules on the backend. This prevents malicious API calls from bypassing frontend checks (e.g., ensuring Time
+
+commit 0882ca6031dfd60d3bca7e10e0458f302a2e5a65
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 5 02:53:32 2026 +0530
+
+    feat(tasks): schedule verification check at time slot end
+    
+    - Add scheduling utility (lib/scheduling.ts) to find next time slot from recurrence rules
+    - Schedule runScheduledCheck at exact end time using ctx.scheduler.runAt()
+    - Add internal mutation that prints hellllooo as placeholder for verification logic
+    - Handle timezone offset (IST +330 default)
+
+commit 47275872d96accde36ca297392b318d6b67eeef5
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 5 02:22:43 2026 +0530
+
+    feat(tasks): add conflict detection and refactor task screens
+    
+    ## Conflict Detection
+    - Implement schedule conflict detection in create/update mutations
+    - Read time windows from  instead of conditions
+    - Return result objects ({ success, error }) instead of throwing ConvexError
+    - Generate user-friendly conflict messages with overlapping day/time details
+    
+    ## Backend Changes (convex/tasks.ts)
+    - Add conflict check before task creation and update
+    - Return structured result:  or
+    - Exclude self from conflict check when updating existing task
+    
+    ## Frontend Refactor (final.tsx)
+    - Add proper TypeScript types and interfaces
+    - Extract constants: CONDITION_CONFIGS, LAYOUT, COLORS
+    - Memoize computed values and callbacks for performance
+    - Handle mutation results gracefully with error modal display
+    - Remove debug console.logs
+    
+    ## Frontend Refactor (commits.tsx)
+    - Sort tasks by most recently updated/created (newest first)
+    - Add proper TypeScript types: Task, ListItem, AnchorPosition
+    - Extract render functions for each section
+    - Memoize listData, stickyHeaderIndices, actionMenuItems
+    - Add keyExtractor for better FlatList performance
+    
+    ## Files Modified
+    - packages/backend/convex/tasks.ts
+    - packages/backend/convex/lib/conflictDetection.ts
+    - packages/backend/convex/lib/index.ts
+    - apps/native/app/(create-commit)/final.tsx
+    - apps/native/app/(main)/commits.tsx
+
+commit 7d8e0d98635555939fe475f04153984046f24cf6
+Author: Maajith <maajithanas@gmail.com>
+Date:   Thu Feb 5 01:23:06 2026 +0530
+
+    feat(schema): move time_windows to recurrence, sync frontend types with Convex
+
+commit c8a61a1f491398cc778f6992b0307d0265e94ae2
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 4 23:02:39 2026 +0530
+
+    feat: add intelligent recurrence logic with after/never ends strategy and Zustand state logger
+
+commit 56c0398e0650e9c72d700a36a368026af01b71a0
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 4 02:02:37 2026 +0530
+
+    feat(native): add task draft validation with Time + X rule
+    
+    - Add lib/validation/taskDraft.ts with production-level validators
+    - Validate: title required, time required, time+x combination
+    - Add singleButton mode to ConfirmationModal for error alerts
+    - Update final.tsx to use centralized validation before commit
+    - Update time-set.tsx Save button to require days + time slots
+    - Add validation index.ts for clean module exports
+
+commit d4b7560dc626022512c41d676cf914c2b679cbc5
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 4 01:04:26 2026 +0530
+
+    test2
+
+commit b4a6f8133a516d79836e99f1fd092748b052ea48
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 4 01:03:50 2026 +0530
+
+    test
+
+commit 022c8c8de7c03d40e5cda266821a20183078a286
+Author: Maajith <maajithanas@gmail.com>
+Date:   Wed Feb 4 00:49:10 2026 +0530
+
+    your message
+
+commit 77fe9b6b47c1e9b345c3d6eb4809134421967cb2
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Jan 18 23:07:29 2026 +0530
+
+    polish: confirmation modal, clear buttons, and UI refinements
+
+commit b780135e7c9bef9f5e2a964c05f07070bac8356b
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Jan 18 02:58:41 2026 +0530
+
+    front end stitched with back end
+
+commit 19ac3bdcba1bb8b199d1f1a00aac40839b05333a
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Jan 4 19:58:00 2026 +0530
+
+    chore: sync env and lockfile
+
+commit ae3e9bcb005d5678cef925d9c1c3ce027eea1e8c
+Author: Maajith <maajithanas@gmail.com>
+Date:   Sun Jan 4 19:48:38 2026 +0530
+
+    additional map features
+
+commit 30a64642624f09b244f74b3d25f08541eadd4dfe
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Fri Jan 16 18:12:45 2026 +0530
+
+    chore: remove task status from task
+
+commit f02dc20676407100ce908848da83e7736d51c3aa
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Fri Jan 16 00:07:45 2026 +0530
+
+    feat(backend): add taskInstances table
+
+commit 0149b5d96fcdc407fadcc5edb341cccb7d58f414
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Thu Jan 15 17:19:09 2026 +0530
+
+    docs: add content for tasks
+
+commit 2b9fbe251676c0401e722f50eaf9659fc5e9d358
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Thu Jan 15 17:00:58 2026 +0530
+
+    feat(backend): add recurring logic
+
+commit 7258d2522aaa7e77b0fa8235870d9e8c17709ac1
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Tue Jan 6 16:38:10 2026 +0530
+
+    docs: add new table TaskTelemetry
+
+commit 7c6b5b57b8a3db2fb05d90b45c3bee69856d8621
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Tue Jan 6 14:18:42 2026 +0530
+
+    feat(backend): add Task telemetry table for observation
+
+commit e0f37a6db4c1c202691fe992d6a4b608360d4886
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Jan 5 21:34:01 2026 +0530
+
+    style: oxc checks & formats
+
+commit 737ce039236f1e58a563c244c1dfd81cd25bb11e
+Merge: 1bebd99 88410b1
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Jan 5 21:32:51 2026 +0530
+
+    Merge branch 'dev-atheeq'
+
+commit 88410b133533843b4f6565737a2cb6d49414c6b0
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Jan 5 20:46:38 2026 +0530
+
+    docs: update contents with metric registry and schema
+
+commit cb578c2dfa15c9d57e0cdca6ee67fef7eec22d7c
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Jan 5 19:05:38 2026 +0530
+
+    fix(convex): functions to use string type for user id
+
+commit 80f80fc2938813e5bf888e851d46c0ae675b35d8
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Jan 5 19:04:44 2026 +0530
+
+    feat(convex): new field 'component' for metrics
+
+commit 2591a8ea58972e7ae4d066a009221e557440288e
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Jan 5 18:02:31 2026 +0530
+
+    chore(docs): update the titles
+
+commit dd30f80ebdae1898edf4fcae5849184ca2e73c87
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Jan 5 15:30:09 2026 +0530
+
+    chore: docs cleanup boilerplate
+
+commit c5382fbb0e660a44e6b22350aa58a4ed54991e36
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Jan 5 13:29:01 2026 +0530
+
+    refactor(schema): remove explicit time_window to use time as an metric instead
+
+commit 1bebd9989281b2731c737fb617e9230121d23ac7
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sat Jan 3 10:29:14 2026 +0530
+
+    feat(native): auth persistance
+
+commit 420b24c2a203517435cdcab13942c10d3d468823
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Thu Jan 1 23:27:23 2026 +0530
+
+    feat: type safe env management using t3-env
+
+commit f4d71b85ac185ca1e1bf2c336c06e771f0f54c46
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Thu Jan 1 13:29:05 2026 +0530
+
+    chore: docs tsconfig extends base config
+
+commit d7bdc585ee3f8025c9f7ab2a0d92ee342d77e2a5
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Thu Jan 1 03:56:04 2026 +0530
+
+    style: oxc checks & docs moved to packages
+
+commit 7e86744cda2491379d7b98064068ed74639a7149
+Merge: f058e3c 6dd76c7
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Thu Jan 1 03:34:52 2026 +0530
+
+    Merge branch 'dev-atheeq'
+
+commit f058e3ca936554253892d06394d898b29082b8d9
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Thu Jan 1 06:36:02 2026 +0530
+
+    feat: merge dev-maajith with proper package versioning
+
+commit 6dd76c7421ed6896e155dd80c38d44c8d91d9588
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Tue Dec 30 21:39:00 2025 +0530
+
+    feat(backend): add ai condtion generation
+
+commit d91f7981e3e22747493a933eacdae452b55c24e2
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Tue Dec 30 00:47:20 2025 +0530
+
+    feat(ai): add basic ai setup with opencode
+
+commit 0ab4429b60a9064281294c585645537001fc086b
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Dec 29 23:07:23 2025 +0530
+
+    feat(backend): add schema functions
+
+commit 140e9dc903bb930c6ea232fb8d7fa29199e68fc8
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Dec 29 00:38:50 2025 +0530
+
+    feat(backend): add schema for conditions and metrics
+
+commit 6e35134c787e8a2b011576ae356e9204760e083f
+Merge: 538fff4 0501702
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Dec 29 00:37:04 2025 +0530
+
+    Merge branch 'main'
+
+commit 05017028943be655c6f595d1bf22563cca2d137a
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Dec 28 23:12:26 2025 +0530
+
+    fix(native): maps envs and configs
+
+commit c65c26443647613e12c6b67ed0380169562cdd21
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Dec 28 01:06:39 2025 +0530
+
+    chore: oxc checks and formats
+
+commit c6984a3daefad0d240f653c96a36082186a9b02b
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Dec 28 00:40:32 2025 +0530
+
+    feat: repo updates
+
+commit 538fff47dfb2a1df98ea96c9c16d74fc943f76c2
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Dec 14 23:43:00 2025 +0530
+
+    feat: update task schema conditions and with new metrics
+
+commit c519130e92d08ba3b1b501079199a627cee01914
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Dec 14 18:52:58 2025 +0530
+
+    chore: remove bts.jsonc config file
+
+commit e51689f41631535dc8145b2532c5f6b6d8a3de22
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Dec 14 16:36:56 2025 +0530
+
+    fix: biome fixes, better-auth versions and first time signup issues
+
+commit ca982c9d3663bc54ec5d1b83a4a2936afd53309b
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Dec 14 03:38:05 2025 +0530
+
+    feat: google auth setup
+
+commit 14f27aa2aa89ba86ca60300f0f25fdebf33b3d42
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Fri Dec 12 18:51:02 2025 +0530
+
+    feat: Mail based auth setup
+
+commit ca75073658a6d17f0c8e20dfe95fb407ea397e38
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Fri Dec 12 17:26:49 2025 +0530
+
+    Merge branch main with 'dev-maajith'
+
+commit 42170bcf845260323ab4103252813497e739515e
+Merge: 672539c 1be41fc
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Fri Dec 12 17:24:33 2025 +0530
+
+    Merge branch main with 'dev-atheeq'
+
+commit 1be41fcd1d6396f006d36384524000010042ec96
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Wed Dec 10 22:15:44 2025 +0530
+
+    feat: user auth and profile management
+
+commit 3cfac6d430a3b2c3f158c8eb69ededc8eb0f7fbd
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Wed Dec 10 20:29:31 2025 +0530
+
+    refactor: schema to be simplified
+
+commit ae7eb0f0457a463c1a33ead55e096238a52f149e
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Wed Dec 10 00:58:53 2025 +0530
+
+    feat: add schemas based on SPEC-1
+
+commit 1755b1ed80de358dc2645c8cd214d10721c96889
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Tue Dec 9 23:59:37 2025 +0530
+
+    feat: Extension boilerplate
+
+commit 672539c063c5adab35696986f09b3269ea4e546a
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Wed Dec 3 20:52:40 2025 +0530
+
+    chore: make consistent monorepo structure
+
+commit 69bd9a6bfcd50fe8cadddeb1789dcdc1b3a9b49f
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Wed Dec 3 20:46:22 2025 +0530
+
+    feat: monitoring extension setup using wxt
+
+commit a022aec7c0303a0d477a6cb8da25406dd8d6b136
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Wed Dec 3 20:36:49 2025 +0530
+
+    feat: monitoring module setup
+
+commit 30bdea6d91f3b5878470b4a51d6e2d59b7950cce
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Nov 30 16:14:55 2025 +0530
+
+    feat: monitoring module setup
+
+commit a4405b242492709c61fa71a715dcc41f23fb0150
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sat Nov 22 23:39:59 2025 +0530
+
+    🎉 Initial Commit
+
+commit 98d547400d82f245ecb54389c5725cfad1e4e67d
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sat Nov 22 23:18:22 2025 +0530
+
+    updates on monitoring
+
+commit a4e03d71769c8683612823ffe16a16ef14c118a4
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Oct 20 03:23:27 2025 +0530
+
+    ♻️ refactor: integrate monitoring package into native app
+
+commit 5c88413f10b377b3f7b72f8edf5831bc46bcd867
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Oct 20 02:11:30 2025 +0530
+
+    🐛 fix: type check error fix
+
+commit 9dcedb17eda5e0d534c1420e8e613d0f30e8b9a9
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Oct 20 01:23:20 2025 +0530
+
+    👷 build: updated packages to compatible latest versions
+
+commit a73a952a6297df08d41a9374e867b6c4da608cbd
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Oct 20 00:47:42 2025 +0530
+
+    ✨ feat: complete monitoring API with real-time event bridge
+
+commit 1480cb8797cec6ea63afbaf42de1655d0604645b
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Oct 19 18:13:09 2025 +0530
+
+    ♻️ refactor: monitoring package
+
+commit b9d8281c6444ccf1f0ff89df85ace0bc7636771f
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sat Oct 18 21:39:32 2025 +0530
+
+    ✨ feat: Monitoring app usages (android)
+
+commit 5f354d70a2b677df4c1419155753beea04b3cf97
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sat Oct 18 18:02:35 2025 +0530
+
+    🔧 chore: Set up native modules for monitoring mobile devices
+
+commit 69e7bcc5f220ea4f38e162f05e9601cda292b482
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sat Oct 18 01:39:59 2025 +0530
+
+    🔧 chore: set up cross-platform boilerplate
+
+commit 0f84f1014088377da4cbbd5b922ba0fe302e72eb
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Oct 13 17:30:17 2025 +0530
+
+    20251013173017
+
+commit 07d1a81940ddb3a27a6c007b52cdbf13e22d634d
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Oct 13 02:49:06 2025 +0530
+
+    20251013024906
+
+commit d7d7f9239e071d3b827c4bd228653491eab9dc88
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Mon Oct 13 01:38:32 2025 +0530
+
+    20251013013832
+
+commit c3ac4895780164dfe2cd5bc9667ca7e8492a2a15
+Author: atheeq-rhxn <atheeq.rhxn@gmail.com>
+Date:   Sun Oct 12 22:39:48 2025 +0530
+
+    20251012223948

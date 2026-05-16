@@ -16,3 +16,5 @@ cp "/mnt/c/Users/maaji/Downloads/PhotoshopPreview_Image.png" /home/maajith/mono/
 sudo /home/maajith/Android/Sdk/platform-tools/adb reverse tcp:8082 tcp:8082
 
 time ~/connect.sh
+
+git log --since="2026-03-15" --until="2026-04-28" > apps/commit_history.txt
