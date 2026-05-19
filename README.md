@@ -46,11 +46,12 @@ Each layer is gated behind the previous. A failure at any stage produces a deter
 |---|---|
 | **Mobile Core** | React Native, Expo, TypeScript, Reanimated, Zustand |
 | **Native Android** | Kotlin, Accessibility Service, WindowManager, AlarmManager, WakeLocks |
+| **Location Tracking**| Android LocationManager (1Hz Live GPS), FusedLocationProviderClient, Google Maps/Places APIs |
 | **Backend** | Convex (real-time sync + serverless mutations), domain-driven crons |
 | **Local DB** | SQLite via Expo SQLite (WAL journaling, mutex-locked writes, Nuke & Pave migrations) |
 | **Auth & Security** | Better Auth (Email/OAuth), JailMonkey (Root/Jailbreak Detection) |
 | **Styling & UI** | TailwindCSS v4, Uniwind, HeroUI Native, Gorhom Bottom Sheets |
-| **Validation & Data**| Zod (Runtime Schemas), OpenCode AI SDK, Google Maps/Places APIs |
+| **Validation & Data**| Zod (Runtime Schemas), OpenCode AI SDK |
 | **Monorepo** | Turborepo, Bun |
 | **Desktop / Browser**| Tauri + Vite + React, WXT (Browser Extension Framework) |
 
@@ -144,6 +145,7 @@ To prevent bypass abuse, the core Kotlin anti-circumvention heuristics and penal
     <td align="center"><a href="https://expo.dev"><img src="https://avatars.githubusercontent.com/u/12504344?s=200&v=4" width="60" alt="Expo" style="border-radius:10px" /></a></td>
     <td align="center"><a href="https://docs.swmansion.com/react-native-reanimated/"><img src="https://avatars.githubusercontent.com/u/6952717?s=200&v=4" width="60" alt="Software Mansion" style="border-radius:10px" /></a></td>
     <td align="center"><a href="https://wxt.dev"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRCE8JgRAqw2TaqOlrnpD0w6HcuVKkWwxWTJQ&s" width="60" alt="WXT" style="border-radius:10px" /></a></td>
+    <td align="center"><a href="https://better-auth.com/"><img src="https://avatars.githubusercontent.com/u/173289326?s=200&v=4" width="60" alt="Better Auth" style="border-radius:10px" /></a></td>
   </tr>
   <tr>
     <td align="center"><a href="https://reactnative.dev/"><b>React Native</b></a><br>Core Mobile Layer</td>
@@ -151,5 +153,6 @@ To prevent bypass abuse, the core Kotlin anti-circumvention heuristics and penal
     <td align="center"><a href="https://expo.dev"><b>Expo</b></a><br>Native Framework</td>
     <td align="center"><a href="https://docs.swmansion.com/react-native-reanimated/"><b>Reanimated</b></a><br>60fps Animations</td>
     <td align="center"><a href="https://wxt.dev"><b>WXT</b></a><br>Extension Engine</td>
+    <td align="center"><a href="https://better-auth.com/"><b>Better Auth</b></a><br>Authentication</td>
   </tr>
 </table>
