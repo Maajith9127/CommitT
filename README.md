@@ -139,7 +139,7 @@ To prevent bypass abuse, the core Kotlin anti-circumvention heuristics and penal
 <table>
   <tr>
     <td align="center"><a href="https://reactnative.dev/"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" width="60" alt="React Native" /></a></td>
-    <td align="center"><a href="https://convex.dev"><img src="https://avatars.githubusercontent.com/u/101344440?s=200&v=4" width="60" alt="Convex" style="border-radius:10px" /></a></td>
+    <td align="center"><a href="https://convex.dev"><img src="https://raw.githubusercontent.com/get-convex/convex-js/main/convex-logo-light.svg" width="60" alt="Convex" style="border-radius:10px" /></a></td>
     <td align="center"><a href="https://expo.dev"><img src="https://avatars.githubusercontent.com/u/12504344?s=200&v=4" width="60" alt="Expo" style="border-radius:10px" /></a></td>
     <td align="center"><a href="https://docs.swmansion.com/react-native-reanimated/"><img src="https://avatars.githubusercontent.com/u/6952717?s=200&v=4" width="60" alt="Software Mansion" style="border-radius:10px" /></a></td>
     <td align="center"><a href="https://wxt.dev"><img src="https://avatars.githubusercontent.com/u/148419614?s=200&v=4" width="60" alt="WXT" style="border-radius:10px" /></a></td>
