@@ -44,14 +44,15 @@ Each layer is gated behind the previous. A failure at any stage produces a deter
 
 | Layer | Technology |
 |---|---|
-| **Mobile** | React Native, Expo, TypeScript, Reanimated, Zustand |
+| **Mobile Core** | React Native, Expo, TypeScript, Reanimated, Zustand |
 | **Native Android** | Kotlin, Accessibility Service, WindowManager, AlarmManager, WakeLocks |
 | **Backend** | Convex (real-time sync + serverless mutations), domain-driven crons |
 | **Local DB** | SQLite via Expo SQLite (WAL journaling, mutex-locked writes, Nuke & Pave migrations) |
-| **Desktop** | Tauri + Vite + React |
-| **Browser** | WXT-based Chrome/Firefox distraction blocker extension |
+| **Auth & Security** | Better Auth (Email/OAuth), JailMonkey (Root/Jailbreak Detection) |
+| **Styling & UI** | TailwindCSS v4, Uniwind, HeroUI Native, Gorhom Bottom Sheets |
+| **Validation & Data**| Zod (Runtime Schemas), OpenCode AI SDK, Google Maps/Places APIs |
 | **Monorepo** | Turborepo, Bun |
-| **APIs** | Google Maps, Google Places, Google Fused Location Provider |
+| **Desktop / Browser**| Tauri + Vite + React, WXT (Browser Extension Framework) |
 
 ## Architecture
 
