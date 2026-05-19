@@ -136,7 +136,17 @@ To prevent bypass abuse, the core Kotlin anti-circumvention heuristics and penal
 
 ## Acknowledgements
 
-- [Convex](https://convex.dev) — real-time serverless backend
-- [Expo](https://expo.dev) — React Native development platform
-- [Reanimated](https://docs.swmansion.com/react-native-reanimated/) — hardware-accelerated animations
-- [WXT](https://wxt.dev) — browser extension framework
+<table>
+  <tr>
+    <td align="center"><a href="https://convex.dev"><img src="https://avatars.githubusercontent.com/u/101344440?s=200&v=4" width="60" alt="Convex" style="border-radius:10px" /></a></td>
+    <td align="center"><a href="https://expo.dev"><img src="https://avatars.githubusercontent.com/u/12504344?s=200&v=4" width="60" alt="Expo" style="border-radius:10px" /></a></td>
+    <td align="center"><a href="https://docs.swmansion.com/react-native-reanimated/"><img src="https://avatars.githubusercontent.com/u/6952717?s=200&v=4" width="60" alt="Software Mansion" style="border-radius:10px" /></a></td>
+    <td align="center"><a href="https://wxt.dev"><img src="https://avatars.githubusercontent.com/u/148419614?s=200&v=4" width="60" alt="WXT" style="border-radius:10px" /></a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://convex.dev"><b>Convex</b></a><br>Serverless Backend</td>
+    <td align="center"><a href="https://expo.dev"><b>Expo</b></a><br>Native Framework</td>
+    <td align="center"><a href="https://docs.swmansion.com/react-native-reanimated/"><b>Reanimated</b></a><br>60fps Animations</td>
+    <td align="center"><a href="https://wxt.dev"><b>WXT</b></a><br>Extension Engine</td>
+  </tr>
+</table>
