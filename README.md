@@ -1,69 +1,110 @@
 <h1 align="center">CommitT</h1>
 
 <p align="center">
-A strict, offline-first accountability enforcer for Android
+A strict, native Android accountability enforcer with real penalties
+</p>
+
+<p align="center">
+<a href="https://committ.mintlify.app">Documentation</a>
 </p>
 
 ## Why CommitT?
 
-Most accountability apps rely on willpower. CommitT doesn't. It hooks directly into the Android operating system — blocking apps, locking settings, and enforcing real penalties when you break your commitments.
+Most accountability apps rely on willpower. CommitT doesn't. It hooks directly into the Android operating system — blocking apps, locking settings, and enforcing real penalties when you break your commitments. No loopholes.
 
-- **Automatic app blocking** — Instagram, YouTube, Games, etc. get blocked during active sessions
+- **Automatic app blocking** — Instagram, YouTube, Games, etc. get hard-blocked during active sessions
 - **Settings lockout** — you cannot access device Settings or disable blocks mid-session
 - **Time + Location enforcement** — commitments activate based on when and where you are
-- **Random check-ins** — photo and GPS verification at unpredictable intervals
+- **Random check-ins** — photo and GPS verification at unpredictable intervals to prove you stayed
 - **Multiple difficulty levels** — choose how strict the enforcement should be
-- **Offline-first** — enforcement continues with zero internet dependency
 - **Real penalties** — money stakes, embarrassing photos sent to friends, or CAPTCHA walls
 - **Immutable commitments** — once a session starts, you cannot edit or delete it
+- **Penalty waivers** — fail a commitment? Complete redemption challenges before the deadline or the penalty fires automatically
+- **Smart alarms** — staggered pre-alarms, session start, random checkpoint pings, and end-of-window notifications
+
+## How It Works
+
+CommitT uses a **Triple-Write Protocol** to synchronize commitments across three isolated environments:
+
+1. **Cloud First (Convex Backend)** — The remote mutation is attempted first. If it fails (e.g., no network), the entire operation halts with a clean error. The cloud is the source of truth.
+2. **Local Cache (Expo SQLite)** — On cloud success, a raw SQL transaction writes the task and all generated instances to the on-device database. This powers instant UI re-renders without a network round-trip.
+3. **Native OS (Kotlin AlarmScheduler)** — Finally, `scheduleNextAlarm()` fires across the React Native JSI bridge. The Kotlin module reads SQLite state and binds WakeLock-backed PendingIntents to the hardware alarm clock.
+
+Each layer is gated behind the previous. A failure at any stage produces a deterministic rollback via the Saga pattern.
 
 ## Vision
 
 **Enforcement over motivation.** Willpower fades after two weeks. CommitT physically prevents quitting.
 
-**Offline-first, always.** The enforcer runs on-device via SQLite and native Kotlin services. Cloud sync is supplementary, never required.
+**Cloud-first, locally resilient.** The source of truth lives in Convex. But once synced, enforcement runs entirely on-device via SQLite and native Kotlin services — surviving network drops, app restarts, and phone reboots.
 
-**Security through depth.** Three layers of Android system integration (Accessibility Service, WindowManager overlays, AlarmManager + WakeLocks) make circumvention extremely difficult.
+**Security through depth.** Three layers of Android system integration (Accessibility Service, WindowManager overlays, AlarmManager + WakeLocks) make circumvention extremely difficult. The anti-bypass heuristics remain closed-source by design.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Mobile** | React Native, Expo, TypeScript, Reanimated |
+| **Mobile** | React Native, Expo, TypeScript, Reanimated, Zustand |
 | **Native Android** | Kotlin, Accessibility Service, WindowManager, AlarmManager, WakeLocks |
-| **Backend** | Convex (real-time sync), serverless functions, domain-driven crons |
-| **Local DB** | SQLite (offline cache, WAL journaling, mutex-locked writes) |
+| **Backend** | Convex (real-time sync + serverless mutations), domain-driven crons |
+| **Local DB** | SQLite via Expo SQLite (WAL journaling, mutex-locked writes, Nuke & Pave migrations) |
 | **Desktop** | Tauri + Vite + React |
-| **Browser** | WXT-based Chrome/Firefox extension |
+| **Browser** | WXT-based Chrome/Firefox distraction blocker extension |
 | **Monorepo** | Turborepo, Bun |
+| **APIs** | Google Maps, Google Places, Google Fused Location Provider |
 
 ## Architecture
 
 ```
 apps/
-├── native/              # React Native + Expo mobile client
-│   ├── app/             # Screens, routing, commitment creation wizards
-│   ├── lib/             # Triple-Write Saga, sync engine, mutex locks
-│   ├── modules/         # Native Kotlin bridges (alarm, blocker, recovery)
-│   ├── components/      # UI components, design tokens, security shields
-│   ├── providers/       # Resurrection provider, hydration engine
-│   └── plugins/         # Expo config plugins (AndroidManifest AST patches)
-├── web/                 # Tauri desktop dashboard
-├── extension/           # Browser distraction blocker
-└── BugReport/           # Forensic engineering case studies
+├── native/                    # React Native + Expo mobile client
+│   ├── app/                   # Screens and routing
+│   │   ├── (main)/            # Dashboard, commits list, presets
+│   │   ├── (create-commit)/   # Multi-step commitment creation wizard
+│   │   ├── (auth)/            # Authentication and session management
+│   │   ├── (penalties)/       # Penalty configuration screens
+│   │   └── (settings)/        # Permissions audit, preferences
+│   ├── lib/                   # Core infrastructure
+│   │   ├── triple-write-orchestrator.ts   # Cloud → SQLite → Kotlin saga
+│   │   ├── sync-engine.ts     # Offline sync and write-gate queue
+│   │   ├── local-db.ts        # Nuke & Pave schema management
+│   │   └── sync-lock.ts       # Cross-thread mutex locks
+│   ├── modules/               # Native Kotlin bridges
+│   │   ├── scheduler-module/  # AlarmManager + WakeLock orchestration
+│   │   ├── blocker-module/    # [CLOSED SOURCE] Anti-circumvention engine
+│   │   ├── app-lister-module/ # JSI-powered package enumeration
+│   │   ├── alarm-module/      # Hardware alarm sound routing
+│   │   └── recovery-module/   # Self-healing connection recovery
+│   ├── components/            # UI components and design tokens
+│   ├── providers/             # Resurrection provider, hydration engine
+│   ├── stores/                # Zustand state machines
+│   └── plugins/               # Expo config plugins (AndroidManifest AST patches)
+├── web/                       # Tauri desktop dashboard
+├── extension/                 # Browser distraction blocker (WXT)
+└── BugReport/                 # Forensic engineering case studies
 
 packages/
-├── backend/convex/      # Convex cloud backend
-│   ├── db/schema.ts     # 500+ line typed schema ("The Steel Vault")
-│   ├── api/             # Public mutation/query edge handlers
-│   ├── core/            # Waivers, penalties, verification logic
-│   └── execution/       # Watchdog cron, grading engine, penalty worker
-└── docs/                # Architecture & philosophy documentation
+├── backend/convex/            # Convex cloud backend
+│   ├── db/schema.ts           # 500+ line typed schema with immutable lock zones
+│   ├── api/                   # Public mutation and query edge handlers
+│   │   ├── verify.ts          # 5-phase cryptographic verification pipeline
+│   │   └── logs/              # Centralized audit log system
+│   ├── core/                  # Domain logic (waivers, penalties, verification)
+│   ├── execution/             # Watchdog cron, grading engine, penalty worker
+│   └── crons.ts               # Hourly self-healing scheduler
+└── docs/                      # Architecture and philosophy documentation
 ```
+
+## Engineering Highlights
+
+- **SQLite WAL Contention Resolution** — Diagnosed and fixed a production database corruption caused by competing WAL writer locks between the Kotlin native layer and Expo SQLite JS runtime. Full forensic writeup in `apps/BugReport/SyncBug.txt`.
+- **82% Android Memory Reduction** — Resolved a `java.lang.OutOfMemoryError` (124MB allocation) in the scheduler module by implementing data-size constraints and connection lifecycle management.
+- **Boot-Resilient Alarm Architecture** — Dual-storage system ("Vault" + "Sticky Note") ensures alarms survive phone reboots even before the user enters their PIN, using Android's Device Protected Storage (FBE bypass).
+- **Self-Healing Watchdog** — Backend cron that automatically detects and reschedules orphaned task instances every hour.
 
 ## Documentation
 
-- [committ.mintlify.app](https://committ.mintlify.app) — full documentation, architecture reference, and engineering case studies
+- [committ.mintlify.app](https://committ.mintlify.app) — full documentation with configuration reference and architecture deep-dives
 
 ## Security Notice
 
@@ -74,3 +115,4 @@ To prevent bypass abuse, the core Kotlin anti-circumvention heuristics and penal
 - [Convex](https://convex.dev) — real-time serverless backend
 - [Expo](https://expo.dev) — React Native development platform
 - [Reanimated](https://docs.swmansion.com/react-native-reanimated/) — hardware-accelerated animations
+- [WXT](https://wxt.dev) — browser extension framework
