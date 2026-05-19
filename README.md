@@ -145,7 +145,7 @@ To prevent bypass abuse, the core Kotlin anti-circumvention heuristics and penal
     <td align="center"><a href="https://expo.dev"><img src="https://avatars.githubusercontent.com/u/12504344?s=200&v=4" width="60" alt="Expo" style="border-radius:10px" /></a></td>
     <td align="center"><a href="https://docs.swmansion.com/react-native-reanimated/"><img src="https://avatars.githubusercontent.com/u/6952717?s=200&v=4" width="60" alt="Software Mansion" style="border-radius:10px" /></a></td>
     <td align="center"><a href="https://wxt.dev"><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRCE8JgRAqw2TaqOlrnpD0w6HcuVKkWwxWTJQ&s" width="60" alt="WXT" style="border-radius:10px" /></a></td>
-    <td align="center"><a href="https://better-auth.com/"><img src="https://avatars.githubusercontent.com/u/173289326?s=200&v=4" width="60" alt="Better Auth" style="border-radius:10px" /></a></td>
+    <td align="center"><a href="https://better-auth.com/"><img src="https://images.seeklogo.com/logo-png/65/1/better-auth-logo-png_seeklogo-653281.png" width="60" alt="Better Auth" style="border-radius:10px" /></a></td>
   </tr>
   <tr>
     <td align="center"><a href="https://reactnative.dev/"><b>React Native</b></a><br>Core Mobile Layer</td>
