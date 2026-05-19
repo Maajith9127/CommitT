@@ -1,0 +1,159 @@
+CommitT OS
+==========
+
+CommitT is an offline-first, native Android-integrated enforcer built to hard-lock 
+digital distractions and drive absolute physical and professional consistency. It 
+bypasses standard user-space restrictions to manage native hardware overrides, 
+deep OS permissions, and synchronized behavioral accountability.
+
+SECURITY NOTICE: To maintain the integrity of the ecosystem and prevent active 
+bypass abuse, the core Kotlin anti-circumvention heuristics and penalty execution 
+engines remain closed-source. This repository contains the public-facing architecture, 
+native bridges, and synchronization concepts.
+
+Quick Start (Codebase Tour)
+---------------------------
+
+* The Core Infrastructure Library: apps/native/lib/
+  (Contains the Triple-Write Saga Orchestrator and Offline SQLite Sync Engine)
+* The Cloud Backend (Domain-Driven): packages/backend/convex/
+  (Houses the Serverless API Edge, Background Schedulers, and DB Schemas)
+* The React Native UI / Mobile Client: apps/native/app/
+  (Includes the 60fps Heterogeneous FlatList and Tactile Design Systems)
+* The Native Android Hardware Bridges: apps/native/modules/
+  (JSI bridges to Kotlin Accessibility Services and AlarmManagers)
+* The Desktop Dashboard (Tauri/Vite): apps/web/
+  (Cross-platform desktop client for managing commitments)
+* The Browser Blocker Extension: apps/extension/
+  (WXT-based distraction blocker for Chrome/Firefox)
+
+Essential Documentation
+-----------------------
+
+All reviewers and engineers should be familiar with:
+
+* Execution Stack: React Native, Expo, Kotlin, SQLite, Convex, Tauri, Vite
+* System Philosophy: docs/PHILOSOPHY.md
+  (The origin story and the requirement for mathematically unbreakable discipline)
+* Security Routing Rules: docs/ARCHITECTURE.md#direct-routing-guide
+  (Strict guidelines on dependencies and state mutations)
+
+Documentation can be viewed directly within the docs/ directory.
+
+
+Who Are You?
+============
+
+Find your role below:
+
+* Startup Founder - Evaluating product execution and philosophical drive
+* Lead Systems Engineer / CTO - Auditing offline sync, db concurrency, and sagas
+* Cloud Backend Architect - Reviewing Domain-Driven Design, Schedulers, and Schemas
+* Native Security Expert - Reviewing Android OS-level enforcement and tripwires
+* UI/UX Performance Engineer - Investigating tactile interactions and 60fps lists
+* Full-Stack Engineer - Reviewing the Web Dashboard and Chrome Extension
+
+
+For Specific Users
+==================
+
+Startup Founder
+---------------
+
+Welcome. If you are evaluating this project for high-leverage product execution, 
+start your journey here:
+
+* The Origin Story: docs/PHILOSOPHY.md
+  (Why most blocker apps fail, and how CommitT enforces a 6:00 AM gym routine)
+* The Onboarding Boot Sequence: apps/native/app/index.tsx
+  (Cold boot transition handling via Reanimated 3)
+* Auth & Session Handling: apps/native/app/(auth)/
+  (Secure, offline-capable session management)
+* Multi-Step Wizard Flows: apps/native/app/(create-commit)/
+  (Complex Zustand state machines governing multi-step commitment creation)
+
+Lead Systems Engineer / CTO
+---------------------------
+
+Explore the system's deep internals, bridging protocols, and offline synchronization models:
+
+* Engineering Case Study (The May 8th WAL Collision): apps/BugReport/SyncBug.txt
+  (Forensic analysis of SQLite WAL contention between Native and JS threads)
+* The Triple-Write Saga Orchestrator: apps/native/lib/triple-write-orchestrator.ts
+  (Distributed transaction logic ensuring Cloud ➔ Disk ➔ Hardware consistency)
+* Core Local SQLite Engine: apps/native/lib/sync-engine.ts & local-db.ts
+  (Atomic "Nuke & Pave" schemas and write-gate queueing)
+* Database Mutex Locks: apps/native/lib/sync-lock.ts
+  (Preventing cross-thread data races)
+* Offline Hydration Lifecycle: apps/native/components/system/HydrationEngine.tsx
+  (Restoring global state from disk on boot)
+* Connection Watchdog & Resurrection: apps/native/providers/ResurrectionProvider.tsx
+  (Self-healing WebSocket and DB handle recovery)
+* Expo Native Plugins: apps/native/plugins/withAlarmPermissions/
+  (AST manipulation of AndroidManifest.xml during build)
+
+Cloud Backend Architect
+-----------------------
+
+Review the Domain-Driven Design (DDD) of the Convex Cloud execution engine:
+
+* The Database Schema (The Steel Vault): packages/backend/convex/db/schema.ts
+  (500+ lines of strictly typed schemas, including the immutable Strict Lock Zone)
+* Core Domain Logic: packages/backend/convex/core/
+  (Separation of concerns across Waivers, Penalties, and Enforcement)
+* The Self-Healing Watchdog Engine: packages/backend/convex/execution/watchdog.ts
+  (Background cron that identifies and re-syncs orphaned commitments)
+* Automated Schedulers (Crons): packages/backend/convex/crons.ts
+  (Time-based penalty execution)
+* The Public API Edge Handlers: packages/backend/convex/api/
+  (Client-facing mutation and query boundaries)
+
+Native Security Expert
+----------------------
+
+Security documentation, native tripwires, and hardening guides:
+
+* The Kotlin Enforcer Modules: apps/native/modules/
+  (The interface layer connecting JS to native Android APIs)
+* Security Shield Overlay & Lockdown: apps/native/components/system/SecurityShield.tsx
+  (Mid-render React bounds checking to prevent UI bypasses)
+* Native Penalty Triggers: apps/native/app/(penalties)/
+  (Email dispatch, Financial penalties, and Embarrassing Photo uploads)
+* App Lister Module (Native JSI): apps/native/modules/app-lister-module/
+  (High-speed extraction of installed packages and icons via JSI)
+* Neutralizing Memory Leaks: docs/ENGINEERING_WINS.md#1-neutralizing-android-native-memory-leaks-oom
+  (How an 82% memory reduction was achieved by optimizing SQLite transaction boundaries)
+
+UI/UX Performance Engineer
+--------------------------
+
+Review the tactile design systems, kinetic routing, and hardware-accelerated interactions:
+
+* Main Navigation & Tab Context: apps/native/contexts/TabContext.tsx
+  (Custom React Context wrapping Expo Router for precise tab state)
+* The 60fps Heterogeneous FlatList: apps/native/app/(main)/commits.tsx
+  (Memory-efficient recycling for complex layout items)
+* 30k+ line Preset Lists: apps/native/app/(main)/presets.tsx
+  (Virtualized rendering for massive local datasets)
+* UI Component Library: apps/native/components/ui/
+  (Obsidian and Saffron design token implementations)
+* Kinetic Obsidian Toggles: apps/native/components/ui/PremiumToggle.tsx
+  (Custom switches with Reanimated springs and mechanical haptics)
+
+Full-Stack Engineer
+-------------------
+
+Review the cross-platform clients bridging the CommitT ecosystem:
+
+* The Desktop Control Dashboard: apps/web/src/
+  (Tauri + Vite + React desktop implementation)
+* The Browser Distraction Blocker: apps/extension/
+  (WXT framework intercepting distracting web requests)
+* The UI Prototyping Sandbox: apps/accessibility-lab/
+  (Isolated playground for native bridging experiments)
+
+Communication and Support
+=========================
+
+* Developer Profile: https://github.com/Maajith9127
+* Issue Tracking: Please use GitHub Issues on this repository.
