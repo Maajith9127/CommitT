@@ -68,13 +68,21 @@ apps/
 │   │   ├── triple-write-orchestrator.ts   # Cloud → SQLite → Kotlin saga
 │   │   ├── sync-engine.ts     # Offline sync and write-gate queue
 │   │   ├── local-db.ts        # Nuke & Pave schema management
-│   │   └── sync-lock.ts       # Cross-thread mutex locks
-│   ├── modules/               # Native Kotlin bridges
+│   │   ├── sync-lock.ts       # Cross-thread mutex locks
+│   │   ├── local-db-commits.ts# Specialized SQLite transaction boundaries
+│   │   └── validation/        # Task constraint validation (timeSlot.ts, taskDraft.ts)
+│   ├── modules/               # Native Kotlin bridges (JSI)
 │   │   ├── scheduler-module/  # AlarmManager + WakeLock orchestration
+│   │   │   ├── AlarmScheduler.kt # Binds SQLite state to Android Alarm Clock
+│   │   │   ├── BootReceiver.kt   # Re-hydrates state on device restart (FBE bypass)
+│   │   │   └── SchedulerModule.kt# JSI bindings for JS layer
 │   │   ├── blocker-module/    # [CLOSED SOURCE] Anti-circumvention engine
 │   │   ├── app-lister-module/ # JSI-powered package enumeration
-│   │   ├── alarm-module/      # Hardware alarm sound routing
-│   │   └── recovery-module/   # Self-healing connection recovery
+│   │   │   └── AppListerModule.kt # High-speed extraction of installed packages
+│   │   ├── recovery-module/   # Self-healing connection recovery
+│   │   │   └── RecoveryModule.kt # Monitors and resurrects dead websockets
+│   │   └── logcat-module/     # Native logging bridge
+│   │       └── LogcatRecorder.kt # In-memory buffer for bridging native logs to JS
 │   ├── components/            # UI components and design tokens
 │   ├── providers/             # Resurrection provider, hydration engine
 │   ├── stores/                # Zustand state machines
@@ -90,7 +98,10 @@ packages/
 │   │   ├── verify.ts          # 5-phase cryptographic verification pipeline
 │   │   └── logs/              # Centralized audit log system
 │   ├── core/                  # Domain logic (waivers, penalties, verification)
-│   ├── execution/             # Watchdog cron, grading engine, penalty worker
+│   ├── execution/             # Distributed execution and scheduling
+│   │   ├── watchdog.ts        # Background cron that identifies orphaned tasks
+│   │   ├── penalties.ts       # Accountability contract engine
+│   │   └── verify.ts          # Core verification assertions
 │   └── crons.ts               # Hourly self-healing scheduler
 └── docs/                      # Architecture and philosophy documentation
 ```
