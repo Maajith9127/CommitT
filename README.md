@@ -92,17 +92,30 @@ apps/
 └── BugReport/                 # Forensic engineering case studies
 
 packages/
-├── backend/convex/            # Convex cloud backend
-│   ├── db/schema.ts           # 500+ line typed schema with immutable lock zones
-│   ├── api/                   # Public mutation and query edge handlers
-│   │   ├── verify.ts          # 5-phase cryptographic verification pipeline
-│   │   └── logs/              # Centralized audit log system
-│   ├── core/                  # Domain logic (waivers, penalties, verification)
-│   ├── execution/             # Distributed execution and scheduling
-│   │   ├── watchdog.ts        # Background cron that identifies orphaned tasks
-│   │   ├── penalties.ts       # Accountability contract engine
-│   │   └── verify.ts          # Core verification assertions
-│   └── crons.ts               # Hourly self-healing scheduler
+├── backend/convex/            # Convex cloud backend (Domain-Driven Design)
+│   ├── api/                   # Presentation Layer: Public mutation/query handlers
+│   │   ├── commitments/       # Client interfaces for commitment creation
+│   │   ├── instances/         # Session instance controllers
+│   │   ├── notifications/     # Outbound webhook & push routing
+│   │   ├── security/          # Auth and permission boundaries
+│   │   └── sync/              # Client-to-cloud synchronization endpoints
+│   ├── config/                # Environment, constants, and enums
+│   ├── core/                  # Domain Layer: Pure Business Logic
+│   │   ├── commitments/       # Commitment lifecycle rules
+│   │   ├── enforcement/       # Restriction and hardware lock logic
+│   │   ├── instances/         # State machine for active sessions
+│   │   ├── penalties/         # Accountability calculation rules
+│   │   ├── verification/      # Cryptographic & GPS validation rules
+│   │   └── waivers/           # Redemption and waiver rules
+│   ├── db/                    # Data Access Layer
+│   │   └── schema.ts          # 500+ line typed schema with immutable lock zones
+│   ├── execution/             # Application Layer: Background jobs & scheduling
+│   │   ├── penalties/         # Async workers for Stripe/Resend execution
+│   │   ├── scheduling/        # State transitions and cron orchestrators
+│   │   ├── verification/      # Async condition validation workers
+│   │   └── watchdog.ts        # Background cron that identifies orphaned tasks
+│   ├── lib/                   # Shared utilities (logger, errorHandling, validators)
+│   └── crons.ts               # Hourly self-healing scheduler registration
 └── docs/                      # Architecture and philosophy documentation
 ```
 
