@@ -130,8 +130,8 @@ packages/
 
 ## Documentation
 
-- **Engineering Logs & Architecture Notes**: [committ.mintlify.app](https://committ.mintlify.app) — A deep-dive personal development diary detailing how the architecture was built, the technical challenges faced, and the solutions implemented.
-- **Official Documentation**: *(Coming Soon)* — Production-level user guides and API configuration references.
+- **Official Documentation**: [committ.mintlify.app](https://committ.mintlify.app) — Production-level user guides, feature documentation, and configuration references.
+- **Engineering Logs & Architecture Notes**: [Daily Logging Journey](https://committ.mintlify.app/2025/december/day-05) — A deep-dive personal development diary detailing how the architecture was built, the technical challenges faced, and the solutions implemented.
 
 ## Security Notice
 
