@@ -1,4 +1,7 @@
 <h1 align="center">CommitT</h1>
+<p align="center">
+  <img src="https://img.shields.io/badge/license-AGPL%20v3-blue" alt="License" />
+</p>
 
 <p align="center">
 A strict, native Android accountability enforcer with real penalties
@@ -157,3 +160,11 @@ To prevent bypass abuse, the core Kotlin anti-circumvention heuristics and penal
     <td align="center"><a href="https://better-auth.com/"><b>Better Auth</b></a><br>Authentication</td>
   </tr>
 </table>
+
+## License
+
+CommitT is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0).
+
+This ensures that any modified versions deployed as a service must also remain open-source under the same license.
+
+Commercial licensing may be available in the future for organizations seeking proprietary usage rights.
