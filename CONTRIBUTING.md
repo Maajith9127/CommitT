@@ -33,3 +33,12 @@ We follow conventional commits to keep the commit history clean and readable. Pl
 - Test your changes thoroughly before submitting a PR.
 
 By contributing to CommitT, you agree that your contributions will be licensed under the project's AGPL-3.0 license.
+
+## Architectural Guide
+
+Before contributing, we highly recommend reviewing our architecture documentation. CommitT uses a complex **Triple-Write Protocol** and relies heavily on native Android services for enforcement.
+
+Understanding how the **Convex Backend**, **Local SQLite DB**, and **Kotlin Native Modules** interact is critical for building features that do not break the enforcement guarantees.
+
+Read the full architecture guide here:
+[CommitT Architecture Documentation](https://committ.mintlify.app/architecture/overview)
