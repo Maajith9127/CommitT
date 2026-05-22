@@ -12,8 +12,9 @@ A strict, native Android accountability enforcer with real penalties
 </p>
 
 <p align="center">
-  <!-- TODO: Replace with actual demo video link -->
-  <video src="https://github.com/user-attachments/assets/demo-video-placeholder.mp4" width="250" controls></video>
+  <a href="https://www.youtube.com/watch?v=bRXWSDxBWDg" target="_blank">
+    <img src="https://img.youtube.com/vi/bRXWSDxBWDg/maxresdefault.jpg" alt="CommitT Demo Video" width="600" />
+  </a>
 </p>
 
 ## Why CommitT?
