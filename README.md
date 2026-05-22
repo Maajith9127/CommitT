@@ -11,6 +11,11 @@ A strict, native Android accountability enforcer with real penalties
 <a href="https://committ.mintlify.app">Documentation</a>
 </p>
 
+<p align="center">
+  <!-- TODO: Replace with actual demo video link -->
+  <video src="https://github.com/user-attachments/assets/demo-video-placeholder.mp4" width="250" controls></video>
+</p>
+
 ## Why CommitT?
 
 Most accountability apps rely on willpower. CommitT doesn't. It hooks directly into the Android operating system — blocking apps, locking settings, and enforcing real penalties when you break your commitments. No loopholes.
