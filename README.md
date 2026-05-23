@@ -48,7 +48,7 @@ sequenceDiagram
     participant SQL as Local SQLite (Local Cache)
     participant Kotlin as Kotlin Native OS (JSI Bridge)
 
-    User->>JS: Press "CommitT" (Wizard Final Screen)
+    User->>JS: Press CommitT (Wizard Final Screen)
     JS->>JS: Prepare and upload media assets (e.g. Penalty photo)
     
     Note over JS, Cloud: Step 1: Cloud-First Mutation Gate
@@ -57,7 +57,7 @@ sequenceDiagram
         Cloud-->>JS: Error (Unauthenticated / Validation failure)
         JS->>User: Abort transaction and show Error Modal
     else Cloud Write Succeeds
-        Cloud-->>JS: Success { taskId, instances }
+        Cloud-->>JS: Success (taskId, instances)
         Note over Cloud: Task is permanently committed on Cloud
     end
 
@@ -73,17 +73,14 @@ sequenceDiagram
         JS->>User: Render full-screen blocking Healing Overlay
         
         loop Every 2 Seconds (Until Eventual Consistency)
+            Note over JS, SQL: Ingest latest cloud state
             JS->>SQL: Targeted purge (DELETE stale instances)
             JS->>Cloud: Query latest Delta payload (getDeltaPayload)
             Cloud-->>JS: Delta payload
             JS->>SQL: Ingest Delta payload (ingestDeltaPayload)
             JS->>Kotlin: JSI Bridge Call: scheduleNextAlarm()
-            alt Forward-Heal Successful
-                JS->>User: Dismiss Healing Overlay
-                JS->>User: Return SUCCESS (Dashboard)
-            else Heal Attempt Fails
-                Note over JS: Wait 2s and retry infinitely
-            end
+            Note over JS, User: If successful: Dismiss overlay & Return SUCCESS (Dashboard)
+            Note over JS: If fails: Wait 2s and retry infinitely
         end
     end
 ```
