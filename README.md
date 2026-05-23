@@ -39,6 +39,49 @@ CommitT uses a **Triple-Write Protocol** to synchronize commitments across three
 2. **Local Cache (Expo SQLite)** — On cloud success, a raw SQL transaction writes the task and all generated instances to the on-device database. This powers instant UI re-renders without a network round-trip.
 3. **Native OS (Kotlin AlarmScheduler)** — Finally, `scheduleNextAlarm()` fires across the React Native JSI bridge. The Kotlin module reads SQLite state and binds WakeLock-backed PendingIntents to the hardware alarm clock.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User Device / UI
+    participant JS as React Native JS (Expo)
+    participant Cloud as Convex Backend (Cloud First)
+    participant SQL as Local SQLite (Local Cache)
+    participant Kotlin as Kotlin Native OS (JSI Bridge)
+    participant GPS as LocationManager (1Hz GPS)
+
+    User->>JS: Create Commitment (Wizard Flow)
+    
+    Note over JS, Cloud: Step 1: Cloud-First Mutation Gate
+    JS->>Cloud: POST mutation (createCommitment)
+    alt Network OK & Valid
+        Cloud-->>JS: Success (Returns commitmentId & instances)
+    else Network Failure / Validation Error
+        Cloud-->>JS: Rollback / Throw Error
+        Note over JS: Saga terminates with clean state
+    end
+
+    Note over JS, SQL: Step 2: Local SQLite Cache Transaction
+    JS->>SQL: SQL Transaction (Insert Task & Instances)
+    SQL-->>JS: Transaction Committed
+
+    Note over JS, Kotlin: Step 3: Native OS Alarm Synchronization
+    JS->>Kotlin: JSI Bridge Call: scheduleNextAlarm()
+    Kotlin->>SQL: Query Active Alarms State
+    SQL-->>Kotlin: Active Alarm Config
+    Kotlin->>User: Register Android Hardware Alarms (AlarmManager + WakeLock)
+
+    Note over Kotlin, GPS: Active Session Enforcement (1Hz Loop)
+    loop Every 1 Second (1Hz GPS Polling)
+        Kotlin->>GPS: Poll Live Location (FusedLocationProvider)
+        GPS-->>Kotlin: Coordinates (Bangalore default or active GPS)
+        alt GPS Disabled / Out of Geofence
+            Kotlin->>User: Immediate Fail-Closed Response (BlockerOverlayActivity)
+        else Geofence Verified
+            Note over Kotlin: Session stays unblocked
+        end
+    end
+```
+
 Each layer is gated behind the previous. A failure at any stage produces a deterministic rollback via the Saga pattern.
 
 ## Vision
