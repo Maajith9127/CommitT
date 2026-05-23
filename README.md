@@ -47,42 +47,48 @@ sequenceDiagram
     participant Cloud as Convex Backend (Cloud First)
     participant SQL as Local SQLite (Local Cache)
     participant Kotlin as Kotlin Native OS (JSI Bridge)
-    participant GPS as LocationManager (1Hz GPS)
 
-    User->>JS: Create Commitment (Wizard Flow)
+    User->>JS: Press "CommitT" (Wizard Final Screen)
+    JS->>JS: Prepare and upload media assets (e.g. Penalty photo)
     
     Note over JS, Cloud: Step 1: Cloud-First Mutation Gate
-    JS->>Cloud: POST mutation (createCommitment)
-    alt Network OK & Valid
-        Cloud-->>JS: Success (Returns commitmentId & instances)
-    else Network Failure / Validation Error
-        Cloud-->>JS: Rollback / Throw Error
-        Note over JS: Saga terminates with clean state
+    JS->>Cloud: POST mutation (create/update task)
+    alt Cloud Write Fails
+        Cloud-->>JS: Error (Unauthenticated / Validation failure)
+        JS->>User: Abort transaction and show Error Modal
+    else Cloud Write Succeeds
+        Cloud-->>JS: Success { taskId, instances }
+        Note over Cloud: Task is permanently committed on Cloud
     end
 
-    Note over JS, SQL: Step 2: Local SQLite Cache Transaction
-    JS->>SQL: SQL Transaction (Insert Task & Instances)
-    SQL-->>JS: Transaction Committed
-
-    Note over JS, Kotlin: Step 3: Native OS Alarm Synchronization
+    Note over JS, Kotlin: Step 2: Main Local Sync (syncLock)
+    JS->>SQL: SQL Transaction (Insert/Update Task & Instances)
     JS->>Kotlin: JSI Bridge Call: scheduleNextAlarm()
-    Kotlin->>SQL: Query Active Alarms State
-    SQL-->>Kotlin: Active Alarm Config
-    Kotlin->>User: Register Android Hardware Alarms (AlarmManager + WakeLock)
-
-    Note over Kotlin, GPS: Active Session Enforcement (1Hz Loop)
-    loop Every 1 Second (1Hz GPS Polling)
-        Kotlin->>GPS: Poll Live Location (FusedLocationProvider)
-        GPS-->>Kotlin: Coordinates (Bangalore default or active GPS)
-        alt GPS Disabled / Out of Geofence
-            Kotlin->>User: Immediate Fail-Closed Response (BlockerOverlayActivity)
-        else Geofence Verified
-            Note over Kotlin: Session stays unblocked
+    
+    alt Local Sync Succeeds
+        Kotlin-->>JS: Alarms Synchronized
+        JS->>User: Clear loaders and navigate back to Dashboard
+    else Local Sync Fails (e.g. SQLite Lock / System lag)
+        Note over JS: Trigger Forward-Heal Loop
+        JS->>User: Render full-screen blocking Healing Overlay
+        
+        loop Every 2 Seconds (Until Eventual Consistency)
+            JS->>SQL: Targeted purge (DELETE stale instances)
+            JS->>Cloud: Query latest Delta payload (getDeltaPayload)
+            Cloud-->>JS: Delta payload
+            JS->>SQL: Ingest Delta payload (ingestDeltaPayload)
+            JS->>Kotlin: JSI Bridge Call: scheduleNextAlarm()
+            alt Forward-Heal Successful
+                JS->>User: Dismiss Healing Overlay
+                JS->>User: Return SUCCESS (Dashboard)
+            else Heal Attempt Fails
+                Note over JS: Wait 2s and retry infinitely
+            end
         end
     end
 ```
 
-Each layer is gated behind the previous. A failure at any stage produces a deterministic rollback via the Saga pattern.
+Each layer is gated behind the previous. If the Cloud Write fails, the operation terminates cleanly. However, once the Cloud confirmation is received, the operation is considered globally successful. If a subsequent local write fails, instead of reverting the cloud (Saga rollback), CommitT executes an infinite **Forward-Heal Loop** to pull the latest Convex Delta payload and ingest it into SQLite, ensuring eventual local consistency without split-brain anomalies.
 
 ## Vision
 
