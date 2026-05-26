@@ -92,7 +92,7 @@ We begin by configuring a new accountability task: setting up scheduling, locati
   </tr>
 </table>
 
-### Phase 2: Calendar, Live Verification & History
+### Phase 2: Calendar, Presets & Enforcement History
 Once commitments are active, CommitT schedules task instances, runs background monitors, and logs enforcement.
 
 <table>
@@ -108,21 +108,21 @@ Once commitments are active, CommitT schedules task instances, runs background m
       <sub>Clicking a calendar instance opens the action modal showing details and conditions.</sub>
     </td>
     <td align="center" valign="top" width="25%">
-      <b>14. Live Verification</b><br/>
-      <img src="screenshots/14.png" alt="Location Verification Success" width="180" /><br/>
-      <sub>When at the right time and place, clicking the hand icon verifies the location condition.</sub>
+      <b>14. Presets (Location, Blocks, Rules & Photos)</b><br/>
+      <img src="screenshots/14.png" alt="Presets Management" width="180" /><br/>
+      <sub>Save repeatedly visited places, app blocks, rules, and photos here to reuse them directly in time slots.</sub>
     </td>
     <td align="center" valign="top" width="25%">
-      <b>15. Presets Builder</b><br/>
-      <img src="screenshots/15.png" alt="Presets Management" width="180" /><br/>
-      <sub>Configure reusable presets (locations, app blocks, rules) to load into slots.</sub>
+      <b>15. Upcoming Tasks</b><br/>
+      <img src="screenshots/15.png" alt="Upcoming Tasks" width="180" /><br/>
+      <sub>Shows upcoming tasks and active commitment windows.</sub>
     </td>
   </tr>
   <tr>
     <td align="center" valign="top" width="25%">
-      <b>16. Upcoming & History</b><br/>
-      <img src="screenshots/16.png" alt="Enforcement History Logs" width="180" /><br/>
-      <sub>Review upcoming alarms, history records, and compliance audit logs.</sub>
+      <b>16. History & Audit Logs</b><br/>
+      <img src="screenshots/16.png" alt="Compliance Audit Logs" width="180" /><br/>
+      <sub>History of all scheduled tasks, failures, penalty status, and compliance audit logs.</sub>
     </td>
     <td align="center" valign="top" width="25%">
       <b>17. Profile & Settings</b><br/>
