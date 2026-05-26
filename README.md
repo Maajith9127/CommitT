@@ -10,7 +10,7 @@ A native Android enforcer that physically prevents you from breaking your commit
 * Random check-ins verify you stayed the full session
 * Commitments become immutable once a session starts
 
-🚀 **[Official Documentation](https://committ.mintlify.app)** | 📖 **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
+**[Official Documentation](https://committ.mintlify.app)** | **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
 
 <br/>
 
