@@ -17,62 +17,127 @@ A strict, native Android accountability enforcer with real penalties
   </a>
 </p>
 
-## App Previews
+## App Walkthrough & Features
 
-<details>
-  <summary>📸 Click to expand the full 19-screen step-by-step walkthrough</summary>
-  <br/>
-  
-  ### 📱 Phase 1: Authentication & Main Dashboard
-  <table>
-    <tr>
-      <td align="center" width="25%"><b>Dashboard / Active Commits</b><br/><img src="screenshots/1.png" alt="Dashboard" width="180" /></td>
-      <td align="center" width="25%"><b>Onboarding / Details</b><br/><img src="screenshots/2.png" alt="Screen 2" width="180" /></td>
-      <td align="center" width="25%"><b>Task Statistics</b><br/><img src="screenshots/3.png" alt="Screen 3" width="180" /></td>
-      <td align="center" width="25%"><b>Profile & Session History</b><br/><img src="screenshots/4.png" alt="Screen 4" width="180" /></td>
-    </tr>
-  </table>
+The following step-by-step walkthrough demonstrates the user flow of setting up a new **Gym Commitment**, managing scheduling/overrides, verifying conditions, and viewing logs.
 
-  ### ⚙️ Phase 2: Preset Selection & Configuration
-  <table>
-    <tr>
-      <td align="center" width="25%"><b>Choose Category</b><br/><img src="screenshots/5.png" alt="Screen 5" width="180" /></td>
-      <td align="center" width="25%"><b>Commitment Presets</b><br/><img src="screenshots/6.png" alt="Screen 6" width="180" /></td>
-      <td align="center" width="25%"><b>Custom App Blocklist</b><br/><img src="screenshots/7.png" alt="Screen 7" width="180" /></td>
-      <td align="center" width="25%"><b>Blocklist Customization</b><br/><img src="screenshots/8.png" alt="Screen 8" width="180" /></td>
-    </tr>
-  </table>
+### 📱 Phase 1: Creating a Commitment (The Wizard Flow)
+We begin by configuring a new accountability task: setting up scheduling, locations, app blocklists, and penalty stakes.
 
-  ### 📍 Phase 3: Time & Location Bounds
-  <table>
-    <tr>
-      <td align="center" width="25%"><b>Schedule Time Setup</b><br/><img src="screenshots/9.png" alt="Screen 9" width="180" /></td>
-      <td align="center" width="25%"><b>Active Window Picker</b><br/><img src="screenshots/10.png" alt="Screen 10" width="180" /></td>
-      <td align="center" width="25%"><b>Location Fencing Map</b><br/><img src="screenshots/11.png" alt="Screen 11" width="180" /></td>
-      <td align="center" width="25%"><b>Geofencing Radius Picker</b><br/><img src="screenshots/12.png" alt="Screen 12" width="180" /></td>
-    </tr>
-  </table>
+<table>
+  <tr>
+    <td align="center" valign="top" width="25%">
+      <b>1. Main Dashboard</b><br/>
+      <img src="screenshots/1.png" alt="Main Dashboard" width="180" /><br/>
+      <sub>Ready to create a new commitment. Tap the <b>+ Add</b> button.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>2. Wizard Configuration</b><br/>
+      <img src="screenshots/2.png" alt="Wizard Configuration Setup" width="180" /><br/>
+      <sub>Enter name (e.g. Gym) and basic parameters for the new commitment.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>3. Time Slots & Days</b><br/>
+      <img src="screenshots/3.png" alt="Time Slots Setup" width="180" /><br/>
+      <sub>Add the active days and specific time windows.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>4. Slot Geofencing</b><br/>
+      <img src="screenshots/4.png" alt="Slot Location Configuration" width="180" /><br/>
+      <sub>Configure location bounds per time slot (selecting <b>Stay Throughout</b> or <b>Just Show Up</b> logic).</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="25%">
+      <b>5. Slot App Blocking</b><br/>
+      <img src="screenshots/5.png" alt="Slot App Blocklist" width="180" /><br/>
+      <sub>Select which apps to block during this specific time slot.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>6. Slot Behavioral Rules</b><br/>
+      <img src="screenshots/6.png" alt="Slot Rules" width="180" /><br/>
+      <sub>Configure granular behavioral rules, intensity levels, and alarm timings for the slot.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>7. Universal Location</b><br/>
+      <img src="screenshots/7.png" alt="Universal Location Fallback" width="180" /><br/>
+      <sub>Set an overall location fallback that applies universally to all slots unless overridden.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>8. Universal App Blocking</b><br/>
+      <img src="screenshots/8.png" alt="Universal App Blocklist" width="180" /><br/>
+      <sub>Set an overall app blocklist that applies universally to all time slots.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="25%">
+      <b>9. Penalties & Waivers</b><br/>
+      <img src="screenshots/9.png" alt="Stakes and Penalty Configuration" width="180" /><br/>
+      <sub>Configure financial stakes, social penalty images, or waiver redemption options.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>10. Universal Rules</b><br/>
+      <img src="screenshots/10.png" alt="Universal Behavioral Rules" width="180" /><br/>
+      <sub>Define overall behavioral rules (per-slot settings will automatically override these).</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>11. Dashboard Updated</b><br/>
+      <img src="screenshots/11.png" alt="Dashboard with new Commitment" width="180" /><br/>
+      <sub>Back to the main dashboard displaying the newly added, active <b>Gym</b> commitment.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      -
+    </td>
+  </tr>
+</table>
 
-  ### 🔒 Phase 4: Penalty & Waiver Settings
-  <table>
-    <tr>
-      <td align="center" width="25%"><b>Stake Penalty Setup</b><br/><img src="screenshots/13.png" alt="Screen 13" width="180" /></td>
-      <td align="center" width="25%"><b>CAPTCHA Anti-Bypass</b><br/><img src="screenshots/14.png" alt="Screen 14" width="180" /></td>
-      <td align="center" width="25%"><b>Verification Interval Settings</b><br/><img src="screenshots/15.png" alt="Screen 15" width="180" /></td>
-      <td align="center" width="25%"><b>Waiver Challenge Customization</b><br/><img src="screenshots/16.png" alt="Screen 16" width="180" /></td>
-    </tr>
-  </table>
+### 📅 Phase 2: Calendar, Live Verification & History
+Once commitments are active, CommitT schedules task instances, runs background monitors, and logs enforcement.
 
-  ### 🚨 Phase 5: Final Review & Enforcement
-  <table>
-    <tr>
-      <td align="center" width="25%"><b>Wizard Review (Final Step)</b><br/><img src="screenshots/17.png" alt="Screen 17" width="180" /></td>
-      <td align="center" width="25%"><b>Active Lockscreen Blocker</b><br/><img src="screenshots/18.png" alt="Screen 18" width="180" /></td>
-      <td align="center" width="25%"><b>Penalty Execution Logging</b><br/><img src="screenshots/19.png" alt="Screen 19" width="180" /></td>
-      <td align="center" width="25%">-</td>
-    </tr>
-  </table>
-</details>
+<table>
+  <tr>
+    <td align="center" valign="top" width="25%">
+      <b>12. Task Calendar</b><br/>
+      <img src="screenshots/12.png" alt="Scheduled Calendar Instances" width="180" /><br/>
+      <sub>View generated task instances (e.g. Gym session scheduled for 10:30 PM - 11:55 PM).</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>13. Instance Modal</b><br/>
+      <img src="screenshots/13.png" alt="Instance Action Modal" width="180" /><br/>
+      <sub>Clicking a calendar instance opens the action modal showing details and conditions.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>14. Live Verification</b><br/>
+      <img src="screenshots/14.png" alt="Location Verification Success" width="180" /><br/>
+      <sub>When at the right time and place, clicking the hand icon verifies the location condition.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>15. Presets Builder</b><br/>
+      <img src="screenshots/15.png" alt="Presets Management" width="180" /><br/>
+      <sub>Configure reusable presets (locations, app blocks, rules) to load into slots.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top" width="25%">
+      <b>16. Upcoming & History</b><br/>
+      <img src="screenshots/16.png" alt="Enforcement History Logs" width="180" /><br/>
+      <sub>Review upcoming alarms, history records, and compliance audit logs.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      <b>17. Profile & Settings</b><br/>
+      <img src="screenshots/17.png" alt="User Profile Details" width="180" /><br/>
+      <sub>Manage active profile settings, account credentials, and enforcer flags.</sub>
+    </td>
+    <td align="center" valign="top" width="25%">
+      -
+    </td>
+    <td align="center" valign="top" width="25%">
+      -
+    </td>
+  </tr>
+</table>
+
+
 
 ## Why CommitT?
 
