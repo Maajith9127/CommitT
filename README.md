@@ -1,6 +1,12 @@
 # CommitT
 
-A strict, native Android accountability enforcer designed to break app addiction and build unbreakable habits. Unlike standard app blockers that rely on willpower, CommitT hooks directly into the Android OS (Accessibility Service & WindowManager) to physically block apps, lock system settings, and trigger real-world penalties (like financial stakes or social alerts) with zero bypass loopholes.
+**A native Android enforcer that physically prevents you from breaking your commitments.**
+
+### Why I Built This (The Recruiter Hook):
+* 🎯 **The Willpower Loophole**: Most habit-building blockers fail because they are easily bypassed by uninstalling the app, killing the process, or disabling accessibility permissions.
+* 🔒 **Fail-Closed OS Locking**: CommitT integrates directly with native Android APIs (**Accessibility Service + WindowManager + AlarmManager**) to physically block apps and lockout Settings, surviving device reboots and force-stops.
+* ⚡ **Triple-Write Saga Protocol**: Orchestrates writes across three layers (**Convex Cloud ➔ Expo SQLite ➔ Kotlin Scheduler**) using a custom transaction saga. If the connection fails mid-sync, the device locks down locally.
+* 💸 **Real Enforcement Stakes**: Missed check-ins trigger immutable penalty executions (monetary stakes via Stripe, social warnings, or custom CAPTCHA waivers) with zero bypass capabilities.
 
 🚀 **[Official Documentation](https://committ.mintlify.app)** | 📖 **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
 
