@@ -1,12 +1,14 @@
 # CommitT
 
-**A native Android enforcer that physically prevents you from breaking your commitments.**
+A native Android enforcer that physically prevents you from breaking your commitments.
 
-### Why I Built This (The Recruiter Hook):
-* 🎯 **The Willpower Loophole**: Most habit-building blockers fail because they are easily bypassed by uninstalling the app, killing the process, or disabling accessibility permissions.
-* 🔒 **Fail-Closed OS Locking**: CommitT integrates directly with native Android APIs (**Accessibility Service + WindowManager + AlarmManager**) to physically block apps and lockout Settings, surviving device reboots and force-stops.
-* ⚡ **Triple-Write Saga Protocol**: Orchestrates writes across three layers (**Convex Cloud ➔ Expo SQLite ➔ Kotlin Scheduler**) using a custom transaction saga. If the connection fails mid-sync, the device locks down locally.
-* 💸 **Real Enforcement Stakes**: Missed check-ins trigger immutable penalty executions (monetary stakes via Stripe, social warnings, or custom CAPTCHA waivers) with zero bypass capabilities.
+* Miss your habit → lose money or automatically send an embarrassing photo to your friends
+* Walk into a location → distracting apps get blocked automatically
+* Leave early → verification fails
+* Try deleting the app mid-session → you can’t
+* Lose internet → enforcement still continues offline
+* Random check-ins verify you stayed the full session
+* Commitments become immutable once a session starts
 
 🚀 **[Official Documentation](https://committ.mintlify.app)** | 📖 **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
 
