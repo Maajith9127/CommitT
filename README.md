@@ -1,24 +1,26 @@
 # CommitT
 
-A native Android enforcer that physically prevents you from breaking your commitments.
+**A brutal accountability system that forces you to keep your promises to yourself.**
 
-* Miss your habit → lose money or automatically send an embarrassing photo to your friends
-* Walk into a location → distracting apps get blocked automatically
-* Leave early → verification fails
-* Try deleting the app mid-session → you can’t
-* Lose internet → enforcement still continues offline
-* Random check-ins verify you stayed the full session
-* Commitments become immutable once a session starts
+Most habit trackers fail because they rely on willpower.  
+CommitT removes that option — it uses **time blocks, geofencing, automatic app blocking**, and **real penalties** (like sending an embarrassing photo) to make failing genuinely painful.
 
-**[Official Documentation](https://committ.mintlify.app)** | **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
+I built this because I was tired of quitting on myself. Now I use it daily to stay consistent with the gym and deep work.
 
-<br/>
+**[▶ Watch Demo Video](https://www.youtube.com/watch?v=bRXWSDxBWDg)** | **[Official Documentation](https://committ.mintlify.app)** | **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=bRXWSDxBWDg" target="_blank">
     <img src="https://img.youtube.com/vi/bRXWSDxBWDg/maxresdefault.jpg" alt="CommitT Demo Video" width="600" style="border-radius: 12px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);" />
   </a>
 </p>
+
+### Key Features
+- Time + Location based commitments
+- Hard app & website blocking
+- Penalty system (Embarrassing Photo + Self Deprecation)
+- Penalty Waivers (CAPTCHAs, writing, running etc.)
+- Calendar + Strict enforcement
 
 
 ## App Walkthrough & Features
