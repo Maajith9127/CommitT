@@ -1,13 +1,10 @@
 # CommitT
 
-**A brutal accountability system that forces you to keep your promises to yourself.**
+* A brutal accountability system that forces you to keep your promises to yourself.
+* Most habit trackers fail because they rely on willpower. CommitT removes that option using time blocks, geofencing, automatic app blocking, and real-world penalties (like sending an embarrassing photo) to make failing genuinely painful.
+* Built from the personal frustration of quitting on goals—now used daily to stay consistent with the gym and deep work.
 
-Most habit trackers fail because they rely on willpower.  
-CommitT removes that option — it uses **time blocks, geofencing, automatic app blocking**, and **real penalties** (like sending an embarrassing photo) to make failing genuinely painful.
-
-I built this because I was tired of quitting on myself. Now I use it daily to stay consistent with the gym and deep work.
-
-**[▶ Watch Demo Video](https://www.youtube.com/watch?v=bRXWSDxBWDg)** | **[Official Documentation](https://committ.mintlify.app)** | **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
+**[Watch Demo Video](https://www.youtube.com/watch?v=bRXWSDxBWDg)** | **[Official Documentation](https://committ.mintlify.app)** | **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=bRXWSDxBWDg" target="_blank">
