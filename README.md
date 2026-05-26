@@ -17,6 +17,63 @@ A strict, native Android accountability enforcer with real penalties
   </a>
 </p>
 
+## App Previews
+
+<details>
+  <summary>📸 Click to expand the full 19-screen step-by-step walkthrough</summary>
+  <br/>
+  
+  ### 📱 Phase 1: Authentication & Main Dashboard
+  <table>
+    <tr>
+      <td align="center" width="25%"><b>Dashboard / Active Commits</b><br/><img src="screenshots/1.png" alt="Dashboard" width="180" /></td>
+      <td align="center" width="25%"><b>Onboarding / Details</b><br/><img src="screenshots/2.png" alt="Screen 2" width="180" /></td>
+      <td align="center" width="25%"><b>Task Statistics</b><br/><img src="screenshots/3.png" alt="Screen 3" width="180" /></td>
+      <td align="center" width="25%"><b>Profile & Session History</b><br/><img src="screenshots/4.png" alt="Screen 4" width="180" /></td>
+    </tr>
+  </table>
+
+  ### ⚙️ Phase 2: Preset Selection & Configuration
+  <table>
+    <tr>
+      <td align="center" width="25%"><b>Choose Category</b><br/><img src="screenshots/5.png" alt="Screen 5" width="180" /></td>
+      <td align="center" width="25%"><b>Commitment Presets</b><br/><img src="screenshots/6.png" alt="Screen 6" width="180" /></td>
+      <td align="center" width="25%"><b>Custom App Blocklist</b><br/><img src="screenshots/7.png" alt="Screen 7" width="180" /></td>
+      <td align="center" width="25%"><b>Blocklist Customization</b><br/><img src="screenshots/8.png" alt="Screen 8" width="180" /></td>
+    </tr>
+  </table>
+
+  ### 📍 Phase 3: Time & Location Bounds
+  <table>
+    <tr>
+      <td align="center" width="25%"><b>Schedule Time Setup</b><br/><img src="screenshots/9.png" alt="Screen 9" width="180" /></td>
+      <td align="center" width="25%"><b>Active Window Picker</b><br/><img src="screenshots/10.png" alt="Screen 10" width="180" /></td>
+      <td align="center" width="25%"><b>Location Fencing Map</b><br/><img src="screenshots/11.png" alt="Screen 11" width="180" /></td>
+      <td align="center" width="25%"><b>Geofencing Radius Picker</b><br/><img src="screenshots/12.png" alt="Screen 12" width="180" /></td>
+    </tr>
+  </table>
+
+  ### 🔒 Phase 4: Penalty & Waiver Settings
+  <table>
+    <tr>
+      <td align="center" width="25%"><b>Stake Penalty Setup</b><br/><img src="screenshots/13.png" alt="Screen 13" width="180" /></td>
+      <td align="center" width="25%"><b>CAPTCHA Anti-Bypass</b><br/><img src="screenshots/14.png" alt="Screen 14" width="180" /></td>
+      <td align="center" width="25%"><b>Verification Interval Settings</b><br/><img src="screenshots/15.png" alt="Screen 15" width="180" /></td>
+      <td align="center" width="25%"><b>Waiver Challenge Customization</b><br/><img src="screenshots/16.png" alt="Screen 16" width="180" /></td>
+    </tr>
+  </table>
+
+  ### 🚨 Phase 5: Final Review & Enforcement
+  <table>
+    <tr>
+      <td align="center" width="25%"><b>Wizard Review (Final Step)</b><br/><img src="screenshots/17.png" alt="Screen 17" width="180" /></td>
+      <td align="center" width="25%"><b>Active Lockscreen Blocker</b><br/><img src="screenshots/18.png" alt="Screen 18" width="180" /></td>
+      <td align="center" width="25%"><b>Penalty Execution Logging</b><br/><img src="screenshots/19.png" alt="Screen 19" width="180" /></td>
+      <td align="center" width="25%">-</td>
+    </tr>
+  </table>
+</details>
+
 ## Why CommitT?
 
 Most accountability apps rely on willpower. CommitT doesn't. It hooks directly into the Android operating system — blocking apps, locking settings, and enforcing real penalties when you break your commitments. No loopholes.
