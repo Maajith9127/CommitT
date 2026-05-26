@@ -1,21 +1,17 @@
-<h1 align="center">CommitT</h1>
-<p align="center">
-  <img src="https://img.shields.io/badge/license-AGPL%20v3-blue" alt="License" />
-</p>
+# CommitT
 
-<p align="center">
-A strict, native Android accountability enforcer with real penalties
-</p>
+A strict, native Android accountability enforcer designed to break app addiction and build unbreakable habits. Unlike standard app blockers that rely on willpower, CommitT hooks directly into the Android OS (Accessibility Service & WindowManager) to physically block apps, lock system settings, and trigger real-world penalties (like financial stakes or social alerts) with zero bypass loopholes.
 
-<p align="center">
-<a href="https://committ.mintlify.app">Documentation</a>
-</p>
+🚀 **[Official Documentation](https://committ.mintlify.app)** | 📖 **[Daily Engineering Journey](https://committ.mintlify.app/2025/december/day-05)**
+
+<br/>
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=bRXWSDxBWDg" target="_blank">
-    <img src="https://img.youtube.com/vi/bRXWSDxBWDg/maxresdefault.jpg" alt="CommitT Demo Video" width="600" />
+    <img src="https://img.youtube.com/vi/bRXWSDxBWDg/maxresdefault.jpg" alt="CommitT Demo Video" width="600" style="border-radius: 12px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);" />
   </a>
 </p>
+
 
 ## App Walkthrough & Features
 
