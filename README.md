@@ -21,7 +21,7 @@ A strict, native Android accountability enforcer with real penalties
 
 The following step-by-step walkthrough demonstrates the user flow of setting up a new **Gym Commitment**, managing scheduling/overrides, verifying conditions, and viewing logs.
 
-### 📱 Phase 1: Creating a Commitment (The Wizard Flow)
+### Phase 1: Creating a Commitment (The Wizard Flow)
 We begin by configuring a new accountability task: setting up scheduling, locations, app blocklists, and penalty stakes.
 
 <table>
@@ -85,13 +85,11 @@ We begin by configuring a new accountability task: setting up scheduling, locati
       <img src="screenshots/11.png" alt="Dashboard with new Commitment" width="180" /><br/>
       <sub>Back to the main dashboard displaying the newly added, active <b>Gym</b> commitment.</sub>
     </td>
-    <td align="center" valign="top" width="25%">
-      -
-    </td>
+    <td width="25%"></td>
   </tr>
 </table>
 
-### 📅 Phase 2: Calendar, Live Verification & History
+### Phase 2: Calendar, Live Verification & History
 Once commitments are active, CommitT schedules task instances, runs background monitors, and logs enforcement.
 
 <table>
@@ -128,12 +126,8 @@ Once commitments are active, CommitT schedules task instances, runs background m
       <img src="screenshots/17.png" alt="User Profile Details" width="180" /><br/>
       <sub>Manage active profile settings, account credentials, and enforcer flags.</sub>
     </td>
-    <td align="center" valign="top" width="25%">
-      -
-    </td>
-    <td align="center" valign="top" width="25%">
-      -
-    </td>
+    <td width="25%"></td>
+    <td width="25%"></td>
   </tr>
 </table>
 
